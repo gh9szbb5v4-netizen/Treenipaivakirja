@@ -127,7 +127,10 @@
     kehitys: undefined,
     kehitysLoading: false,
     storageMode: "claude",
-    lastError: null
+    storageWarn: false,
+    lastError: null,
+    activeWeek: null,
+    showAllWeeks: false
   };
 
   // ---------- utils ----------
@@ -218,6 +221,7 @@
     var map = mapHeaders(headers);
     if(!map.exercise) throw new Error('CSV:stä puuttuu liikkeen nimen sisältävä sarake (esim. "Liike" tai "Exercise").');
     var dayMap = new Map();
+    var weekOrder = [];
     rows.forEach(function(row, idx){
       var weekVal = map.week ? (row[map.week] || "").trim() : "";
       var dayVal = map.day ? (row[map.day] || "").trim() : "";
@@ -226,9 +230,12 @@
       else if(weekVal) groupName = "Viikko " + weekVal;
       else if(dayVal) groupName = dayVal;
       else groupName = "Ohjelma";
-      if(!dayMap.has(groupName)) dayMap.set(groupName, []);
+      if(!dayMap.has(groupName)){
+        dayMap.set(groupName, { week: weekVal || null, exercises: [] });
+        if(weekVal && weekOrder.indexOf(weekVal) === -1) weekOrder.push(weekVal);
+      }
       var intensityRaw = map.intensity ? row[map.intensity] : (map.notes ? row[map.notes] : "");
-      dayMap.get(groupName).push({
+      dayMap.get(groupName).exercises.push({
         id: "ex-" + idx,
         name: row[map.exercise] || "Nimetön liike",
         sets: map.sets ? row[map.sets] : "",
@@ -240,8 +247,8 @@
       });
     });
     var days = [];
-    dayMap.forEach(function(exercises, name){ days.push({ name: name, exercises: exercises }); });
-    return { days: days };
+    dayMap.forEach(function(group, name){ days.push({ name: name, week: group.week, exercises: group.exercises }); });
+    return { days: days, weeks: weekOrder };
   }
 
   // ---------- storage adapter ----------
@@ -258,16 +265,17 @@
       return true;
     }catch(e){ return false; }
   }
-  function demoteStorage(err){
+  function demoteStorage(err, silent){
     var msg = (err && err.message) ? err.message : String(err);
     if(storageMode === "claude"){
       storageMode = localAvailable() ? "local" : "memory";
-      state.storageMode = storageMode;
-      state.lastError = msg;
     } else if(storageMode === "local"){
       storageMode = "memory";
-      state.storageMode = storageMode;
+    }
+    state.storageMode = storageMode;
+    if(!silent || storageMode === "memory"){
       state.lastError = msg;
+      state.storageWarn = true;
     }
   }
   async function storeSet(key, value){
@@ -375,7 +383,9 @@
         state.draftSets = {};
         state.dirtySets = {};
         state.openExercise = null;
+        state.showAllWeeks = false;
         await saveProgram();
+        await computeDefaultActiveWeek();
         state.todayEntry = await loadEntry(state.draftDate);
         state.view = "ohjelma";
         showToast("Ohjelma tuotu onnistuneesti");
@@ -676,6 +686,43 @@
     render();
   }
 
+  function findGroupForExerciseId(id){
+    if(!state.program) return null;
+    for(var i=0;i<state.program.days.length;i++){
+      var day = state.program.days[i];
+      for(var j=0;j<day.exercises.length;j++){
+        if(day.exercises[j].id === id) return day;
+      }
+    }
+    return null;
+  }
+
+  async function computeDefaultActiveWeek(){
+    if(!state.program || !state.program.weeks || state.program.weeks.length === 0){
+      state.activeWeek = null;
+      return;
+    }
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
+      for(var i=dates.length-1;i>=0;i--){
+        var entry = await loadEntry(dates[i]);
+        var exKeys = Object.keys(entry.exercises || {});
+        exKeys.sort(function(a,b){
+          var la = entry.exercises[a].loggedAt || "";
+          var lb = entry.exercises[b].loggedAt || "";
+          return lb < la ? -1 : (lb > la ? 1 : 0);
+        });
+        for(var j=0;j<exKeys.length;j++){
+          var grp = findGroupForExerciseId(exKeys[j]);
+          if(grp && grp.week){ state.activeWeek = grp.week; return; }
+        }
+      }
+    }catch(e){}
+    state.activeWeek = state.program.weeks[0];
+  }
+
   async function loadHistory(){
     state.historyLoading = true; render();
     try{
@@ -890,6 +937,8 @@
     state.autoCalcInfo = {};
     state.dirtySets = {};
     state.kehitys = undefined;
+    state.activeWeek = null;
+    state.showAllWeeks = false;
     state.view = "ohjelma";
     showToast("Kaikki tiedot tyhjennetty");
     render();
@@ -908,7 +957,7 @@
   function renderHeader(){
     var html = '<div class="header"><div class="eyebrow">Treenipäiväkirja</div><div class="date">' +
       capitalize(formatDateFI(todayISO())) + '</div></div>';
-    if(state.storageMode === "local"){
+    if(state.storageMode === "local" && state.storageWarn){
       html += '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
         '<b style="color:var(--brass);">Varatallennus käytössä.</b> Claude-tallennus ei vastannut tässä ympäristössä, joten merkinnät tallennetaan tämän selaimen omaan muistiin. ' +
         'Ne säilyvät normaalisti tällä laitteella ja tässä selaimessa, mutta eivät siirry muille laitteille. Ota varmuuskopio Asetukset-välilehden CSV-viennillä.' +
@@ -944,10 +993,37 @@
       '<input type="file" accept=".csv" id="csv-input-initial">' +
       '</div>';
   }
+  function renderWeekStepper(){
+    var weeks = state.program.weeks;
+    var idx = weeks.indexOf(state.activeWeek);
+    if(idx === -1) idx = 0;
+    return '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; gap:8px;">' +
+      '<button class="btn-secondary" data-week-nav="prev" type="button" style="width:46px; padding:10px 0; font-size:16px;" ' + (idx<=0?"disabled":"") + '>‹</button>' +
+      '<div style="text-align:center; flex:1;"><div style="font-weight:700; font-size:15px;">Viikko ' + escapeHtml(state.activeWeek) + '</div>' +
+      '<div style="font-size:11px; color:var(--mist); margin-top:2px;">' + (idx+1) + ' / ' + weeks.length + '</div></div>' +
+      '<button class="btn-secondary" data-week-nav="next" type="button" style="width:46px; padding:10px 0; font-size:16px;" ' + (idx>=weeks.length-1?"disabled":"") + '>›</button>' +
+      '</div>';
+  }
   function renderOhjelma(){
     var html = '<div class="date-picker-row"><label for="log-date">Kirjataan päivälle</label>' +
       '<input type="date" id="log-date" value="' + state.draftDate + '"></div>';
-    state.program.days.forEach(function(day){
+
+    var hasWeeks = state.program.weeks && state.program.weeks.length > 0;
+    var groupsToShow = state.program.days;
+
+    if(hasWeeks){
+      if(!state.showAllWeeks){
+        html += renderWeekStepper();
+        groupsToShow = state.program.days.filter(function(d){ return d.week === state.activeWeek; });
+      }
+      html += '<div style="text-align:center; margin:2px 0 14px;"><button data-toggle-week-view type="button" style="background:none; border:none; color:var(--mist); font-size:12px; text-decoration:underline; padding:4px;">' +
+        (state.showAllWeeks ? "Näytä vain nykyinen viikko" : "Näytä koko ohjelma") + '</button></div>';
+    }
+
+    if(groupsToShow.length === 0){
+      html += '<div class="empty">Tälle viikolle ei löytynyt liikkeitä.</div>';
+    }
+    groupsToShow.forEach(function(day){
       html += '<div class="day-heading">' + escapeHtml(day.name) + '</div>';
       day.exercises.forEach(function(ex){ html += renderExercise(ex); });
     });
@@ -1199,6 +1275,19 @@
       else render();
       return;
     }
+    if((el = e.target.closest("[data-week-nav]"))){
+      var weeks = state.program.weeks;
+      var curIdx = weeks.indexOf(state.activeWeek);
+      if(curIdx === -1) curIdx = 0;
+      var newIdx = curIdx + (el.dataset.weekNav === "next" ? 1 : -1);
+      if(newIdx >= 0 && newIdx < weeks.length){ state.activeWeek = weeks[newIdx]; render(); }
+      return;
+    }
+    if((el = e.target.closest("[data-toggle-week-view]"))){
+      state.showAllWeeks = !state.showAllWeeks;
+      render();
+      return;
+    }
     if((el = e.target.closest("[data-toggle-ex]"))){ await toggleExercise(el.dataset.id); return; }
     if((el = e.target.closest("[data-add-set]"))){
       var id1 = el.dataset.id;
@@ -1317,7 +1406,7 @@
   render();
   (async function init(){
     if(!window.storage || typeof window.storage.get !== "function" || typeof window.storage.set !== "function"){
-      demoteStorage(new Error("Claude-tallennusrajapintaa ei löydy"));
+      demoteStorage(new Error("Claude-tallennusrajapintaa ei löydy"), true);
     } else {
       await storeSet("storage-check", "ok");
     }
@@ -1329,6 +1418,11 @@
     if(state.program && state.program.days){
       var migrated = false;
       state.program.days.forEach(function(day){
+        if(!("week" in day)){
+          var wm = /^Viikko\s+(\S+)/.exec(day.name);
+          day.week = wm ? wm[1] : null;
+          migrated = true;
+        }
         (day.exercises || []).forEach(function(ex){
           if(!("intensity" in ex)){
             ex.intensity = parseIntensity(ex.notes);
@@ -1337,6 +1431,12 @@
           if(!("unit" in ex)){ ex.unit = ""; migrated = true; }
         });
       });
+      if(!state.program.weeks){
+        var wOrder = [];
+        state.program.days.forEach(function(d){ if(d.week && wOrder.indexOf(d.week) === -1) wOrder.push(d.week); });
+        state.program.weeks = wOrder;
+        migrated = true;
+      }
       if(migrated){
         try{ await saveProgram(); }catch(e){}
       }
@@ -1352,6 +1452,7 @@
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
       catch(e){ state.todayEntry = { date: state.draftDate, exercises:{} }; }
+      await computeDefaultActiveWeek();
     }
     state.loading = false;
     render();
