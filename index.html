@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#12161d">
+<title>Treenipäiväkirja</title>
+<style>
+  :root{
+    --ink:#12161d;
+    --surface:#1c222b;
+    --surface-2:#262e39;
+    --line:#333c48;
+    --brass:#c9a227;
+    --chalk:#eeeae2;
+    --mist:#8891a0;
+    --danger:#c1633c;
+    --radius:14px;
+    --radius-sm:8px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0; background:var(--ink); color:var(--chalk);}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  #app{max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 48px);}
+  *:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+
+  .header{padding:6px 2px 18px;}
+  .eyebrow{text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--brass); font-weight:700;}
+  .date{font-size:26px; font-weight:800; letter-spacing:-0.01em; margin-top:5px; font-variant-numeric:tabular-nums;}
+
+  .tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px;}
+  .tab{flex:1; text-align:center; padding:10px 4px; font-size:12px; font-weight:700; color:var(--mist); text-transform:uppercase; letter-spacing:.08em; border-bottom:2px solid transparent; cursor:pointer;}
+  .tab.active{color:var(--chalk); border-bottom-color:var(--brass);}
+
+  .day-heading{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--mist); margin:20px 2px 8px; font-weight:700;}
+  .day-heading:first-of-type{margin-top:0;}
+
+  .exercise{background:var(--surface); border-radius:var(--radius); margin-bottom:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.04);}
+  .exercise-head{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; min-height:44px;}
+  .exercise-name{font-weight:600; font-size:15px;}
+  .exercise-target{font-size:12px; color:var(--mist); margin-top:3px; font-variant-numeric:tabular-nums;}
+  .chevron{color:var(--mist); font-size:20px; transition:transform .2s, color .2s; flex-shrink:0; margin-left:10px;}
+  .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
+
+  .ledger{padding:0 16px 16px;}
+  .ledger-row{display:grid; grid-template-columns:20px 1fr 1fr 1.3fr 24px; gap:6px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line);}
+  .ledger-row:last-of-type{border-bottom:none;}
+  .ledger-head{font-size:10px; text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
+  .set-num{color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px;}
+  .ledger-input{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:14px; width:100%; font-variant-numeric:tabular-nums;}
+  .remove-set{background:none; border:none; color:var(--mist); font-size:18px; cursor:pointer; padding:4px; line-height:1;}
+
+  .add-set-btn{width:100%; margin-top:10px; padding:11px; background:var(--surface-2); border:1px dashed var(--line); border-radius:var(--radius-sm); color:var(--mist); font-size:13px; font-weight:700; cursor:pointer;}
+  .subtotal{display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px; color:var(--mist);}
+  .subtotal b{color:var(--brass); font-variant-numeric:tabular-nums;}
+  .save-btn{width:100%; margin-top:12px; padding:13px; background:var(--brass); border:none; border-radius:var(--radius-sm); color:var(--ink); font-weight:800; font-size:14px; cursor:pointer;}
+  .save-btn:active{opacity:.85;}
+
+  .btn-secondary{background:var(--surface-2); border:1px solid var(--line); color:var(--chalk); padding:12px; border-radius:var(--radius-sm); font-weight:700; font-size:14px; width:100%; cursor:pointer;}
+
+  .date-picker-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:13px; color:var(--mist);}
+  .date-picker-row input[type=date]{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 10px; font-size:14px;}
+
+  .upload-box{border:1px dashed var(--line); border-radius:var(--radius); padding:26px 18px; margin-top:6px;}
+  .upload-box p{color:var(--mist); font-size:13px; line-height:1.55; margin:0 0 12px;}
+  .csv-example{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; background:var(--surface-2); padding:10px; border-radius:8px; overflow-x:auto; white-space:nowrap; color:var(--mist); margin-bottom:16px;}
+
+  .history-date{background:var(--surface); border-radius:var(--radius); margin-bottom:10px; padding:14px 16px;}
+  .history-date-head{display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px; font-variant-numeric:tabular-nums; cursor:pointer; min-height:32px;}
+
+  .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:14px; line-height:1.6;}
+
+  .toast{position:fixed; bottom:calc(20px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); background:var(--brass); color:var(--ink); padding:10px 18px; border-radius:999px; font-weight:800; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:50; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_PROGRAM_KEY = "workout-program";
+  var STORAGE_MAX_KEY = "known-max";
+  var STORAGE_LASTSET_KEY = "last-set-log";
+
+  var ALIASES = {
+    week: ["viikko","week","vko"],
+    day: ["day","päivä","paiva","pv","viikonpäivä"],
+    exercise: ["exercise","liike","harjoitus","harjoite","liikkeen nimi"],
+    sets: ["sets","sarjat","sarjaa"],
+    reps: ["reps","toistot","toistoa"],
+    unit: ["yksikot","yksiköt","yksikkö","unit","units"],
+    weight: ["weight","paino","kg"],
+    notes: ["notes","huomiot","lisätiedot","huomio","kommentti"],
+    intensity: ["teho","intensity","rpe"]
+  };
+
+  var state = {
+    loading: true,
+    program: null,
+    manualExercises: [],
+    view: "ohjelma",
+    openExercise: null,
+    draftSets: {},
+    draftDate: todayISO(),
+    todayEntry: null,
+    historyDates: undefined,
+    historyLoading: false,
+    historyCache: {},
+    expandedHistoryDate: null,
+    confirmingReset: false,
+    confirmingDeleteDate: null,
+    knownMax: {},
+    lastSet: {},
+    autoCalcInfo: {},
+    dirtySets: {},
+    confirmingDeleteMax: null,
+    kehitys: undefined,
+    kehitysLoading: false,
+    storageMode: "claude",
+    lastError: null
+  };
+
+  // ---------- utils ----------
+  function todayISO(){ var d = new Date(); return d.toISOString().slice(0,10); }
+  function daysAgoISO(n){ var d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0,10); }
+  function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+  function formatDateFI(iso){
+    var d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("fi-FI", { weekday:"long", day:"numeric", month:"long" });
+  }
+  function toNumber(str){
+    if(str === null || str === undefined || str === "") return NaN;
+    return parseFloat(String(str).replace(",", "."));
+  }
+  function roundToStep(value, step){
+    var r = Math.round(value / step) * step;
+    return Math.round(r * 100) / 100;
+  }
+  function parseIntensity(raw){
+    if(!raw) return null;
+    var s = String(raw).trim();
+    if(!s) return null;
+    if(/^max$/i.test(s)) return { isMax: true, percents: [] };
+    var matches = s.match(/\d+(?:[.,]\d+)?\s*%/g);
+    if(matches && matches.length){
+      var percents = matches.map(function(m){ return toNumber(m.replace("%", "")); }).filter(function(n){ return isFinite(n); });
+      if(percents.length) return { isMax: false, percents: percents };
+    }
+    return null;
+  }
+  function escapeHtml(str){
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
+  // ---------- CSV parsing ----------
+  function detectDelimiter(headerLine){
+    var semi = (headerLine.match(/;/g) || []).length;
+    var comma = (headerLine.match(/,/g) || []).length;
+    var tab = (headerLine.match(/\t/g) || []).length;
+    if(tab >= semi && tab >= comma && tab > 0) return "\t";
+    return semi > comma ? ";" : ",";
+  }
+  function parseCSVLine(line, delim){
+    var result = [], cur = "", inQ = false;
+    for(var i=0;i<line.length;i++){
+      var c = line[i];
+      if(c === '"'){
+        if(inQ && line[i+1] === '"'){ cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if(c === delim && !inQ){ result.push(cur); cur = ""; }
+      else cur += c;
+    }
+    result.push(cur);
+    return result.map(function(s){ return s.trim(); });
+  }
+  function parseCSV(text){
+    var lines = text.split(/\r\n|\n|\r/).filter(function(l){ return l.trim().length > 0; });
+    if(lines.length === 0) return [];
+    var delim = detectDelimiter(lines[0]);
+    var headers = parseCSVLine(lines[0], delim).map(function(h){ return h.toLowerCase().trim(); });
+    var out = [];
+    for(var i=1;i<lines.length;i++){
+      var vals = parseCSVLine(lines[i], delim);
+      var obj = {};
+      headers.forEach(function(h, idx){ obj[h] = vals[idx] !== undefined ? vals[idx] : ""; });
+      out.push(obj);
+    }
+    return out;
+  }
+  function mapHeaders(headers){
+    var map = {};
+    Object.keys(ALIASES).forEach(function(key){
+      var aliases = ALIASES[key];
+      var found = headers.find(function(h){
+        return aliases.some(function(a){ return h === a || h.indexOf(a) !== -1; });
+      });
+      if(found) map[key] = found;
+    });
+    return map;
+  }
+  function parseProgramCSV(text){
+    text = text.replace(/^\uFEFF/, "");
+    var rows = parseCSV(text);
+    if(rows.length === 0) throw new Error("CSV-tiedosto on tyhjä.");
+    var headers = Object.keys(rows[0]);
+    var map = mapHeaders(headers);
+    if(!map.exercise) throw new Error('CSV:stä puuttuu liikkeen nimen sisältävä sarake (esim. "Liike" tai "Exercise").');
+    var dayMap = new Map();
+    rows.forEach(function(row, idx){
+      var weekVal = map.week ? (row[map.week] || "").trim() : "";
+      var dayVal = map.day ? (row[map.day] || "").trim() : "";
+      var groupName;
+      if(weekVal && dayVal) groupName = "Viikko " + weekVal + " · Päivä " + dayVal;
+      else if(weekVal) groupName = "Viikko " + weekVal;
+      else if(dayVal) groupName = dayVal;
+      else groupName = "Ohjelma";
+      if(!dayMap.has(groupName)) dayMap.set(groupName, []);
+      var intensityRaw = map.intensity ? row[map.intensity] : (map.notes ? row[map.notes] : "");
+      dayMap.get(groupName).push({
+        id: "ex-" + idx,
+        name: row[map.exercise] || "Nimetön liike",
+        sets: map.sets ? row[map.sets] : "",
+        reps: map.reps ? row[map.reps] : "",
+        unit: map.unit ? row[map.unit] : "",
+        weight: map.weight ? row[map.weight] : "",
+        notes: map.notes ? row[map.notes] : (map.intensity ? row[map.intensity] : ""),
+        intensity: parseIntensity(intensityRaw)
+      });
+    });
+    var days = [];
+    dayMap.forEach(function(exercises, name){ days.push({ name: name, exercises: exercises }); });
+    return { days: days };
+  }
+
+  // ---------- storage adapter ----------
+  // Kokeilee järjestyksessä: Claude-tallennus -> selaimen oma tallennustila -> muisti.
+  var storageMode = "claude";
+  var memoryStore = {};
+  var LOCAL_PREFIX = "treenipk:";
+
+  function localAvailable(){
+    try{
+      if(typeof localStorage === "undefined" || !localStorage) return false;
+      localStorage.setItem(LOCAL_PREFIX + "__t", "1");
+      localStorage.removeItem(LOCAL_PREFIX + "__t");
+      return true;
+    }catch(e){ return false; }
+  }
+  function demoteStorage(err){
+    var msg = (err && err.message) ? err.message : String(err);
+    if(storageMode === "claude"){
+      storageMode = localAvailable() ? "local" : "memory";
+      state.storageMode = storageMode;
+      state.lastError = msg;
+    } else if(storageMode === "local"){
+      storageMode = "memory";
+      state.storageMode = storageMode;
+      state.lastError = msg;
+    }
+  }
+  async function storeSet(key, value){
+    if(storageMode === "claude"){
+      try{
+        var r = await window.storage.set(key, value, false);
+        if(r) return r;
+        throw new Error("Tyhjä vastaus tallennuksesta");
+      }catch(e){ demoteStorage(e); }
+    }
+    if(storageMode === "local"){
+      try{ localStorage.setItem(LOCAL_PREFIX + key, value); return { key: key, value: value }; }
+      catch(e){ demoteStorage(e); }
+    }
+    memoryStore[key] = value;
+    return { key: key, value: value };
+  }
+  async function storeGet(key){
+    if(storageMode === "claude"){
+      try{
+        var r = await window.storage.get(key, false);
+        return r || null;
+      }catch(e){ return null; }
+    }
+    if(storageMode === "local"){
+      try{
+        var v = localStorage.getItem(LOCAL_PREFIX + key);
+        return (v === null) ? null : { key: key, value: v };
+      }catch(e){ return null; }
+    }
+    return memoryStore.hasOwnProperty(key) ? { key: key, value: memoryStore[key] } : null;
+  }
+  async function storeDelete(key){
+    if(storageMode === "claude"){
+      try{ return await window.storage.delete(key, false); }catch(e){ return null; }
+    }
+    if(storageMode === "local"){
+      try{ localStorage.removeItem(LOCAL_PREFIX + key); return { key: key, deleted: true }; }catch(e){ return null; }
+    }
+    delete memoryStore[key];
+    return { key: key, deleted: true };
+  }
+  async function storeList(prefix){
+    if(storageMode === "claude"){
+      try{
+        var r = await window.storage.list(prefix, false);
+        return { keys: (r && r.keys) || [] };
+      }catch(e){ return { keys: [] }; }
+    }
+    if(storageMode === "local"){
+      try{
+        var out = [];
+        for(var i=0;i<localStorage.length;i++){
+          var k = localStorage.key(i);
+          if(k && k.indexOf(LOCAL_PREFIX) === 0){
+            var bare = k.slice(LOCAL_PREFIX.length);
+            if(!prefix || bare.indexOf(prefix) === 0) out.push(bare);
+          }
+        }
+        return { keys: out };
+      }catch(e){ return { keys: [] }; }
+    }
+    var mk = Object.keys(memoryStore).filter(function(k){ return !prefix || k.indexOf(prefix) === 0; });
+    return { keys: mk };
+  }
+
+  // ---------- storage helpers ----------
+  async function loadEntry(date){
+    try{
+      var res = await storeGet("entries:" + date);
+      return (res && res.value) ? JSON.parse(res.value) : { date: date, exercises: {} };
+    }catch(e){
+      return { date: date, exercises: {} };
+    }
+  }
+  async function saveProgram(){
+    try{ await storeSet(STORAGE_PROGRAM_KEY, JSON.stringify(state.program)); }
+    catch(e){ state.lastError = (e && e.message) ? e.message : String(e); showToast("Ohjelman tallennus epäonnistui: " + state.lastError, 4500); }
+  }
+  async function saveKnownMax(){
+    try{ await storeSet(STORAGE_MAX_KEY, JSON.stringify(state.knownMax)); }
+    catch(e){ showToast("Maksimin tallennus epäonnistui"); }
+  }
+  async function saveLastSet(){
+    try{ await storeSet(STORAGE_LASTSET_KEY, JSON.stringify(state.lastSet)); }
+    catch(e){ /* hiljainen virhe, ei kriittinen */ }
+  }
+
+  // ---------- data helpers ----------
+  function allExercises(){
+    var list = state.manualExercises.slice();
+    if(state.program){ state.program.days.forEach(function(d){ list = list.concat(d.exercises); }); }
+    return list;
+  }
+  function findExerciseById(id){ return allExercises().find(function(e){ return e.id === id; }); }
+
+  // ---------- actions ----------
+  function handleFile(file){
+    var reader = new FileReader();
+    reader.onload = async function(e){
+      try{
+        var program = parseProgramCSV(e.target.result);
+        state.program = program;
+        state.manualExercises = [];
+        state.draftSets = {};
+        state.dirtySets = {};
+        state.openExercise = null;
+        await saveProgram();
+        state.todayEntry = await loadEntry(state.draftDate);
+        state.view = "ohjelma";
+        showToast("Ohjelma tuotu onnistuneesti");
+        render();
+      }catch(err){
+        showToast(err.message || "CSV:n luku epäonnistui");
+      }
+    };
+    reader.onerror = function(){ showToast("Tiedoston luku epäonnistui"); };
+    reader.readAsText(file, "UTF-8");
+  }
+
+  async function toggleExercise(id){
+    if(state.openExercise === id){ state.openExercise = null; render(); return; }
+    var ex = findExerciseById(id);
+    if(!ex) return;
+    state.openExercise = id;
+    if(!state.draftSets[id] || !state.dirtySets[id]){
+      var existing = state.todayEntry && state.todayEntry.exercises[id];
+      if(existing && existing.sets && existing.sets.length){
+        state.draftSets[id] = existing.sets.map(function(s){ return Object.assign({}, s); });
+        state.autoCalcInfo[id] = { type:"saved" };
+      } else {
+        state.draftSets[id] = buildDraftRows(ex, id);
+      }
+    }
+    render();
+  }
+
+  function isCombo(name){
+    return String(name).indexOf("/") !== -1;
+  }
+  function movementConstant(name){
+    var n = String(name).toLowerCase();
+    if(n.indexOf("penkki") !== -1) return 30;
+    if(n.indexOf("kyykky") !== -1) return 28;
+    if(n.indexOf("maasta") !== -1) return 40;
+    return 30;
+  }
+
+  function buildDraftRows(ex, id){
+    var explicitCount = parseInt(ex.sets, 10);
+
+    if(ex.intensity){
+      var percents = !ex.intensity.isMax ? ex.intensity.percents : [];
+      var count = (explicitCount && explicitCount > 0) ? explicitCount : (percents.length || 1);
+      var maxEntry = state.knownMax[ex.name.trim().toLowerCase()];
+      var usedMax = false;
+      var maxRows = [];
+      for(var i=0;i<count;i++){
+        var pct = percents.length ? (percents[i] !== undefined ? percents[i] : percents[percents.length-1]) : null;
+        var weightVal = "";
+        if(pct !== null && maxEntry && isFinite(maxEntry.weight)){
+          weightVal = String(roundToStep(maxEntry.weight * pct / 100, 2.5));
+          usedMax = true;
+        }
+        maxRows.push({ weight: weightVal, reps: ex.reps || "", notes: "" });
+      }
+      if(usedMax){ state.autoCalcInfo[id] = { type:"max", weight: maxEntry.weight, date: maxEntry.date }; }
+      else{ delete state.autoCalcInfo[id]; }
+      return maxRows;
+    }
+
+    var count2 = (explicitCount && explicitCount > 0) ? explicitCount : 1;
+
+    if(!isCombo(ex.name)){
+      var normName = ex.name.trim().toLowerCase();
+      var last = state.lastSet[normName];
+      if(last && last.sets && last.sets.length){
+        var refSet = last.sets[last.sets.length - 1];
+        var refReps = toNumber(refSet.reps);
+        var refWeight = toNumber(refSet.weight);
+        var targetReps = toNumber(ex.reps);
+        var sameReps = isFinite(targetReps) && isFinite(refReps) && targetReps === refReps;
+        if(sameReps && isFinite(refWeight)){
+          var sameRows = [];
+          for(var j=0;j<count2;j++){ sameRows.push({ weight: refSet.weight || "", reps: ex.reps || "", notes: "" }); }
+          state.autoCalcInfo[id] = { type:"same", date: last.date };
+          return sameRows;
+        }
+        if(isFinite(targetReps) && isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
+          var K = movementConstant(ex.name);
+          var computed = roundToStep(refWeight * (1 + refReps/K) / (1 + targetReps/K), 2.5);
+          var formulaRows = [];
+          for(var k=0;k<count2;k++){ formulaRows.push({ weight: String(computed), reps: ex.reps || "", notes: "" }); }
+          state.autoCalcInfo[id] = { type:"formula", refWeight: refWeight, refReps: refReps, date: last.date };
+          return formulaRows;
+        }
+      }
+    }
+
+    delete state.autoCalcInfo[id];
+    var blankRows = [];
+    for(var m=0;m<count2;m++){ blankRows.push({ weight:"", reps: ex.reps || "", notes:"" }); }
+    return blankRows;
+  }
+
+  async function saveExerciseLog(id){
+    var ex = findExerciseById(id);
+    if(!ex) return;
+    var sets = (state.draftSets[id] || []).filter(function(s){ return s.weight || s.reps || s.notes; });
+    if(sets.length === 0){ showToast("Lisää vähintään yksi sarja ennen tallennusta"); return; }
+    if(!state.todayEntry) state.todayEntry = { date: state.draftDate, exercises: {} };
+    var kind = "plain";
+    if(ex.intensity){ kind = ex.intensity.isMax ? "max" : "percent"; }
+    state.todayEntry.exercises[id] = { name: ex.name, sets: sets, loggedAt: new Date().toISOString(), kind: kind };
+    var maxUpdated = false;
+    if(ex.intensity && ex.intensity.isMax){
+      var best = 0, bestReps = null;
+      sets.forEach(function(s){
+        var w = toNumber(s.weight);
+        if(isFinite(w) && w > best){ best = w; var r = toNumber(s.reps); bestReps = isFinite(r) ? r : null; }
+      });
+      if(best > 0){
+        state.knownMax[ex.name.trim().toLowerCase()] = { weight: best, reps: bestReps, date: state.draftDate };
+        await saveKnownMax();
+        maxUpdated = true;
+      }
+    }
+    if(!isCombo(ex.name)){
+      state.lastSet[ex.name.trim().toLowerCase()] = {
+        sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }),
+        date: state.draftDate
+      };
+      await saveLastSet();
+    }
+    try{
+      await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry));
+      delete state.dirtySets[id];
+      state.kehitys = undefined;
+      showToast(maxUpdated ? "Tallennettu — uusi maksimi tallennettu" : "Merkintä tallennettu");
+      state.openExercise = null;
+      render();
+    }catch(e){
+      state.lastError = (e && e.message) ? e.message : String(e);
+      showToast("Tallennus epäonnistui: " + state.lastError, 4500);
+    }
+  }
+
+  function calculateOneRepMax(name){
+    var norm = name.trim().toLowerCase();
+    var K = movementConstant(name);
+    var maxEntry = state.knownMax[norm];
+    if(maxEntry && isFinite(maxEntry.weight)){
+      var maxReps = isFinite(maxEntry.reps) ? maxEntry.reps : 1;
+      var value = (maxReps === 1) ? maxEntry.weight : roundToStep(maxEntry.weight * (1 + maxReps/K) / (1 + 1/K), 2.5);
+      return { value: value, date: maxEntry.date, basis: "max" };
+    }
+    var lastEntry = state.lastSet[norm];
+    if(lastEntry && lastEntry.sets && lastEntry.sets.length){
+      var refSet = lastEntry.sets[lastEntry.sets.length - 1];
+      var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
+      if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
+        var computed = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
+        return { value: computed, date: lastEntry.date, basis: "lastset" };
+      }
+    }
+    return null;
+  }
+
+  async function buildAllOneRepMaxSeries(){
+    var seriesByName = {};
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
+      for(var i=0;i<dates.length;i++){
+        var date = dates[i];
+        var entry = await loadEntry(date);
+        var exKeys = Object.keys(entry.exercises || {});
+        for(var j=0;j<exKeys.length;j++){
+          var ek = exKeys[j];
+          var data = entry.exercises[ek];
+          var name = (data.name || "").trim();
+          if(!name || isCombo(name)) continue;
+          var norm = name.toLowerCase();
+          var kind;
+          if("kind" in data){ kind = data.kind; }
+          else{ var srcEx = findExerciseById(ek); kind = (srcEx && srcEx.intensity) ? (srcEx.intensity.isMax ? "max" : "percent") : "plain"; }
+          if(kind === "percent") continue;
+          var K = movementConstant(name);
+          var value = null;
+          if(kind === "max"){
+            var best = 0, bestReps = null;
+            (data.sets || []).forEach(function(s){
+              var w = toNumber(s.weight);
+              if(isFinite(w) && w > best){ best = w; var r = toNumber(s.reps); bestReps = isFinite(r) ? r : null; }
+            });
+            if(best > 0){
+              var reps1 = (bestReps === null) ? 1 : bestReps;
+              value = (reps1 === 1) ? best : roundToStep(best * (1 + reps1/K) / (1 + 1/K), 2.5);
+            }
+          } else {
+            var sets = data.sets || [];
+            if(sets.length){
+              var refSet = sets[sets.length - 1];
+              var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
+              if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
+                value = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
+              }
+            }
+          }
+          if(value === null) continue;
+          if(!seriesByName[norm]) seriesByName[norm] = { displayName: name, points: [] };
+          seriesByName[norm].points.push({ date: date, value: value, at: data.loggedAt || date });
+        }
+      }
+      Object.keys(seriesByName).forEach(function(norm){
+        seriesByName[norm].points.sort(function(a,b){ return a.at < b.at ? -1 : (a.at > b.at ? 1 : 0); });
+      });
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return seriesByName;
+  }
+
+  function computeProgress(points){
+    if(!points || points.length < 2) return null;
+    var current = points[points.length - 1].value;
+    var currentDate = points[points.length - 1].date;
+    var previous = points[points.length - 2].value;
+    function valueAsOf(cutoffISO){
+      var found = null;
+      for(var i=0;i<points.length;i++){
+        if(points[i].date <= cutoffISO) found = points[i].value; else break;
+      }
+      return found;
+    }
+    return {
+      current: current,
+      currentDate: currentDate,
+      previous: previous,
+      month: valueAsOf(daysAgoISO(30)),
+      halfYear: valueAsOf(daysAgoISO(182)),
+      year: valueAsOf(daysAgoISO(365)),
+      allTime: points[0].value
+    };
+  }
+
+  async function loadKehitys(){
+    state.kehitysLoading = true; render();
+    try{
+      var seriesByName = await buildAllOneRepMaxSeries();
+      var names = Object.keys(seriesByName).sort();
+      var results = [];
+      names.forEach(function(norm){
+        var series = seriesByName[norm];
+        var progress = computeProgress(series.points);
+        if(progress){ results.push({ name: capitalize(series.displayName), progress: progress }); }
+      });
+      state.kehitys = results;
+    }catch(e){ state.kehitys = []; }
+    state.kehitysLoading = false;
+    render();
+  }
+
+  async function rebuildTrackersForName(name){
+    var norm = name.trim().toLowerCase();
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var bestSet = null, bestSetAt = "";
+      var bestMax = null, bestMaxAt = "";
+      for(var i=0;i<keys.length;i++){
+        var date = keys[i].replace("entries:", "");
+        var entry = await loadEntry(date);
+        var exKeys = Object.keys(entry.exercises || {});
+        for(var j=0;j<exKeys.length;j++){
+          var ek = exKeys[j];
+          var data = entry.exercises[ek];
+          if((data.name || "").trim().toLowerCase() !== norm) continue;
+          var at = data.loggedAt || date;
+          if(at > bestSetAt){ bestSetAt = at; bestSet = { sets: data.sets, date: date }; }
+          var isMaxBlock;
+          if("kind" in data){ isMaxBlock = data.kind === "max"; }
+          else{ var srcEx = findExerciseById(ek); isMaxBlock = !!(srcEx && srcEx.intensity && srcEx.intensity.isMax); }
+          if(isMaxBlock){
+            var best = 0, bestReps = null;
+            (data.sets || []).forEach(function(s){
+              var w = toNumber(s.weight);
+              if(isFinite(w) && w > best){ best = w; var r = toNumber(s.reps); bestReps = isFinite(r) ? r : null; }
+            });
+            if(best > 0 && at > bestMaxAt){ bestMaxAt = at; bestMax = { weight: best, reps: bestReps, date: date }; }
+          }
+        }
+      }
+      if(bestSet){ state.lastSet[norm] = bestSet; } else { delete state.lastSet[norm]; }
+      if(bestMax){ state.knownMax[norm] = bestMax; } else { delete state.knownMax[norm]; }
+      await saveLastSet();
+      await saveKnownMax();
+    }catch(e){ /* hiljainen virhe, ei kriittinen */ }
+  }
+
+  async function changeLogDate(newDate){
+    state.draftDate = newDate;
+    state.draftSets = {};
+    state.dirtySets = {};
+    state.openExercise = null;
+    state.todayEntry = await loadEntry(newDate);
+    render();
+  }
+
+  async function loadHistory(){
+    state.historyLoading = true; render();
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      state.historyDates = keys.map(function(k){ return k.replace("entries:", ""); }).sort().reverse();
+    }catch(e){ state.historyDates = []; }
+    state.historyLoading = false;
+    render();
+  }
+
+  async function toggleHistoryDate(date){
+    if(state.expandedHistoryDate === date){ state.expandedHistoryDate = null; state.confirmingDeleteDate = null; render(); return; }
+    state.expandedHistoryDate = date;
+    state.confirmingDeleteDate = null;
+    if(!state.historyCache[date]){ state.historyCache[date] = await loadEntry(date); }
+    render();
+  }
+
+  async function deleteHistoryEntry(date){
+    try{
+      var entry = state.historyCache[date] || await loadEntry(date);
+      var exKeys = Object.keys(entry.exercises || {});
+      var namesToRebuild = {};
+      exKeys.forEach(function(ek){
+        var data = entry.exercises[ek];
+        var nm = (data.name || "").trim().toLowerCase();
+        if(nm) namesToRebuild[nm] = true;
+        delete state.draftSets[ek];
+        delete state.dirtySets[ek];
+        delete state.autoCalcInfo[ek];
+      });
+
+      await storeDelete("entries:" + date);
+      state.historyDates = state.historyDates.filter(function(d){ return d !== date; });
+      delete state.historyCache[date];
+      state.expandedHistoryDate = null;
+      state.confirmingDeleteDate = null;
+
+      if(state.draftDate === date){
+        state.todayEntry = { date: date, exercises: {} };
+      }
+
+      var names = Object.keys(namesToRebuild);
+      for(var i=0;i<names.length;i++){ await rebuildTrackersForName(names[i]); }
+      state.kehitys = undefined;
+
+      showToast("Merkintä poistettu");
+      render();
+    }catch(e){ showToast("Poisto epäonnistui"); }
+  }
+
+  async function exportAllCSV(){
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi"]];
+      for(var i=0;i<keys.length;i++){
+        var date = keys[i].replace("entries:", "");
+        var entry = await loadEntry(date);
+        Object.keys(entry.exercises || {}).forEach(function(exKey){
+          var data = entry.exercises[exKey];
+          var exName = data.name || exKey;
+          var kind = data.kind || "plain";
+          (data.sets || []).forEach(function(s, idx){
+            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", (s.notes || "").replace(/"/g,'""'), kind]);
+          });
+        });
+      }
+      var csv = rows.map(function(r){ return r.map(function(v){ return '"' + String(v) + '"'; }).join(","); }).join("\n");
+      var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "treenipaivakirja_" + todayISO() + ".csv";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Vienti valmis");
+    }catch(e){ showToast("Viennin luonti epäonnistui"); }
+  }
+
+  function parseEntriesCSV(text){
+    text = text.replace(/^\uFEFF/, "");
+    var rows = parseCSV(text);
+    if(rows.length === 0) throw new Error("Tiedosto on tyhjä.");
+    var headers = Object.keys(rows[0]);
+    function findCol(cands){
+      return headers.find(function(h){ return cands.some(function(c){ return h === c || h.indexOf(c) !== -1; }); });
+    }
+    var cDate = findCol(["päivämäärä","paivamaara","date","pvm"]);
+    var cName = findCol(["liike","exercise","harjoitus"]);
+    var cSet  = findCol(["sarja","set"]);
+    var cW    = findCol(["paino","weight","kg"]);
+    var cReps = findCol(["toistot","toistoa","reps"]);
+    var cNote = findCol(["huomiot","huomio","notes","kommentti"]);
+    var cKind = findCol(["tyyppi","kind"]);
+    if(!cDate || !cName) throw new Error("Tiedostosta puuttuu päivämäärä- tai liikesarake. Käytä tällä sovelluksella tehtyä vientitiedostoa.");
+
+    var byDate = {};
+    var counters = {};
+    rows.forEach(function(row){
+      var date = (row[cDate] || "").trim();
+      var name = (row[cName] || "").trim();
+      if(!date || !name) return;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      var kind = cKind ? ((row[cKind] || "").trim().toLowerCase() || "plain") : "plain";
+      if(["max","percent","plain"].indexOf(kind) === -1) kind = "plain";
+      var setNo = cSet ? parseInt(row[cSet], 10) : NaN;
+
+      if(!byDate[date]) { byDate[date] = []; counters[date] = null; }
+      var blocks = byDate[date];
+      var lastBlock = blocks.length ? blocks[blocks.length-1] : null;
+      var startsNew = !lastBlock || lastBlock.name !== name || lastBlock.kind !== kind ||
+                      (isFinite(setNo) && setNo === 1);
+      if(startsNew){
+        lastBlock = { name: name, kind: kind, sets: [] };
+        blocks.push(lastBlock);
+      }
+      lastBlock.sets.push({
+        weight: cW ? String(row[cW] || "").trim() : "",
+        reps: cReps ? String(row[cReps] || "").trim() : "",
+        notes: cNote ? String(row[cNote] || "").trim() : ""
+      });
+    });
+    return byDate;
+  }
+
+  async function importEntriesFile(file){
+    var text;
+    try{ text = await file.text(); }
+    catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
+
+    var byDate;
+    try{ byDate = parseEntriesCSV(text); }
+    catch(e){ showToast(e.message || "Tuonti epäonnistui", 4500); return; }
+
+    var dates = Object.keys(byDate);
+    if(dates.length === 0){ showToast("Tiedostosta ei löytynyt tuotavia merkintöjä", 4000); return; }
+
+    var addedBlocks = 0, skippedBlocks = 0, touchedNames = {}, failedDates = 0;
+    for(var i=0;i<dates.length;i++){
+      var date = dates[i];
+      var entry = await loadEntry(date);
+      if(!entry.exercises) entry.exercises = {};
+      var existingKeys = Object.keys(entry.exercises);
+      var signatures = {};
+      existingKeys.forEach(function(k){
+        var d = entry.exercises[k];
+        var sig = (d.name || "").trim().toLowerCase() + "|" + (d.kind || "plain") + "|" +
+          (d.sets || []).map(function(s){ return (s.weight||"") + "x" + (s.reps||""); }).join(";");
+        signatures[sig] = true;
+      });
+
+      var counter = 0;
+      byDate[date].forEach(function(block){
+        var sig = block.name.trim().toLowerCase() + "|" + block.kind + "|" +
+          block.sets.map(function(s){ return (s.weight||"") + "x" + (s.reps||""); }).join(";");
+        if(signatures[sig]){ skippedBlocks++; return; }
+        var newId;
+        do { newId = "imp-" + date + "-" + (counter++); } while(entry.exercises.hasOwnProperty(newId));
+        entry.exercises[newId] = {
+          name: block.name,
+          sets: block.sets,
+          kind: block.kind,
+          loggedAt: date + "T12:00:00.000Z"
+        };
+        signatures[sig] = true;
+        touchedNames[block.name.trim().toLowerCase()] = block.name;
+        addedBlocks++;
+      });
+
+      try{ await storeSet("entries:" + date, JSON.stringify(entry)); }
+      catch(e){ failedDates++; }
+    }
+
+    var names = Object.keys(touchedNames);
+    for(var j=0;j<names.length;j++){ await rebuildTrackersForName(touchedNames[names[j]]); }
+
+    state.historyDates = undefined;
+    state.historyCache = {};
+    state.kehitys = undefined;
+    state.draftSets = {};
+    state.dirtySets = {};
+    state.autoCalcInfo = {};
+    state.openExercise = null;
+    state.todayEntry = await loadEntry(state.draftDate);
+
+    var msg = "Tuotu " + addedBlocks + " merkintää";
+    if(skippedBlocks > 0) msg += ", ohitettu " + skippedBlocks + " jo olemassa olevaa";
+    if(failedDates > 0) msg += " — " + failedDates + " päivän tallennus epäonnistui";
+    showToast(msg, 4500);
+    render();
+  }
+
+  async function resetAll(){
+    try{
+      await storeDelete(STORAGE_PROGRAM_KEY);
+      await storeDelete(STORAGE_MAX_KEY);
+      await storeDelete(STORAGE_LASTSET_KEY);
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      for(var i=0;i<keys.length;i++){ await storeDelete(keys[i]); }
+    }catch(e){}
+    state.program = null;
+    state.manualExercises = [];
+    state.draftSets = {};
+    state.openExercise = null;
+    state.historyDates = undefined;
+    state.historyCache = {};
+    state.confirmingReset = false;
+    state.knownMax = {};
+    state.lastSet = {};
+    state.autoCalcInfo = {};
+    state.dirtySets = {};
+    state.kehitys = undefined;
+    state.view = "ohjelma";
+    showToast("Kaikki tiedot tyhjennetty");
+    render();
+  }
+
+  function showToast(msg, durationMs){
+    var t = document.getElementById("toast");
+    if(!t){ t = document.createElement("div"); t.id = "toast"; t.className = "toast"; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(function(){ t.classList.remove("show"); }, durationMs || 2200);
+  }
+
+  // ---------- render ----------
+  function renderHeader(){
+    var html = '<div class="header"><div class="eyebrow">Treenipäiväkirja</div><div class="date">' +
+      capitalize(formatDateFI(todayISO())) + '</div></div>';
+    if(state.storageMode === "local"){
+      html += '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
+        '<b style="color:var(--brass);">Varatallennus käytössä.</b> Claude-tallennus ei vastannut tässä ympäristössä, joten merkinnät tallennetaan tämän selaimen omaan muistiin. ' +
+        'Ne säilyvät normaalisti tällä laitteella ja tässä selaimessa, mutta eivät siirry muille laitteille. Ota varmuuskopio Asetukset-välilehden CSV-viennillä.' +
+        '</div>';
+    } else if(state.storageMode === "memory"){
+      html += '<div style="background:rgba(193,99,60,0.15); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px; font-size:13px; line-height:1.5; color:var(--chalk);">' +
+        '<b style="color:var(--danger);">Merkinnät eivät säily.</b> Tallennus ei toimi tässä ympäristössä, joten tiedot katoavat, kun suljet sivun. ' +
+        'Kokeile avata treenipäiväkirja Claude-sovelluksen kautta tai salli selaimen tallennustila (yksityinen selaus ja evästeiden esto estävät tallennuksen).' +
+        (state.lastError ? '<div style="margin-top:8px; font-size:11px; color:var(--mist); font-family:ui-monospace,monospace;">Virhe: ' + escapeHtml(state.lastError) + '</div>' : '') +
+        '</div>';
+    }
+    if(state.program && !state.loading) html += renderTabs();
+    return html;
+  }
+  function renderTabs(){
+    var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["asetukset","Asetukset"]];
+    return '<div class="tabs">' + tabs.map(function(t){
+      return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '">' + t[1] + '</div>';
+    }).join("") + '</div>';
+  }
+  function renderBody(){
+    if(state.loading) return '<div class="empty">Ladataan…</div>';
+    if(!state.program) return renderUpload();
+    if(state.view === "historia") return renderHistoria();
+    if(state.view === "kehitys") return renderKehitys();
+    if(state.view === "asetukset") return renderAsetukset();
+    return renderOhjelma();
+  }
+  function renderUpload(){
+    return '<div class="upload-box">' +
+      '<p>Tuo treeniohjelmasi CSV-tiedostona aloittaaksesi. Ainoa pakollinen sarake on liikkeen nimi; muut tunnistetaan automaattisesti sekä suomeksi että englanniksi.</p>' +
+      '<div class="csv-example">Päivä,Liike,Sarjat,Toistot,Paino,Huomiot<br>Maanantai,Penkkipunnerrus,4,5,100,</div>' +
+      '<input type="file" accept=".csv" id="csv-input-initial">' +
+      '</div>';
+  }
+  function renderOhjelma(){
+    var html = '<div class="date-picker-row"><label for="log-date">Kirjataan päivälle</label>' +
+      '<input type="date" id="log-date" value="' + state.draftDate + '"></div>';
+    state.program.days.forEach(function(day){
+      html += '<div class="day-heading">' + escapeHtml(day.name) + '</div>';
+      day.exercises.forEach(function(ex){ html += renderExercise(ex); });
+    });
+    if(state.manualExercises.length){
+      html += '<div class="day-heading">Lisätyt liikkeet</div>';
+      state.manualExercises.forEach(function(ex){ html += renderExercise(ex); });
+    }
+    html += '<div class="exercise" style="padding:14px 16px;">' +
+      '<input type="text" id="manual-name" class="ledger-input" placeholder="Lisää liike, jota ei ole ohjelmassa" style="margin-bottom:8px;">' +
+      '<button class="btn-secondary" id="add-manual-btn" type="button">Lisää liikelistaan</button>' +
+      '</div>';
+    return html;
+  }
+  function renderExercise(ex){
+    var open = state.openExercise === ex.id;
+    var parts = [];
+    if(ex.sets) parts.push(ex.sets + " sarjaa");
+    if(ex.reps) parts.push(ex.reps + (ex.unit ? " " + ex.unit : ""));
+    if(ex.weight) parts.push(ex.weight + " kg");
+    if(ex.notes) parts.push(ex.notes);
+    var target = parts.join(" · ");
+    return '<div class="exercise ' + (open ? "open" : "") + '">' +
+      '<div class="exercise-head" data-toggle-ex data-id="' + ex.id + '">' +
+      '<div><div class="exercise-name">' + escapeHtml(ex.name) + '</div>' +
+      (target ? '<div class="exercise-target">' + escapeHtml(target) + '</div>' : '') +
+      '</div><div class="chevron">›</div></div>' +
+      (open ? renderLedger(ex) : '') +
+      '</div>';
+  }
+  function autoCalcHint(info, id){
+    if(!info) return "";
+    var text;
+    if(info.type === "max"){
+      text = "Painot laskettu maksimista " + String(info.weight).replace(".", ",") + " kg (" + info.date + ") — muokattavissa.";
+    } else if(info.type === "same"){
+      text = "Sama paino kuin edellisellä kerralla (" + info.date + ") — muokattavissa.";
+    } else if(info.type === "formula"){
+      text = "Paino arvioitu edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + ") sarjapainolaskurin kaavalla — muokattavissa.";
+    } else if(info.type === "saved"){
+      text = "Tämä merkintä on jo tallennettu tälle päivälle — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
+    } else {
+      return "";
+    }
+    var html = '<div style="font-size:11.5px; color:var(--mist); margin-bottom:10px; line-height:1.4;">' + text;
+    if(info.type === "saved"){
+      html += '<button class="btn-secondary" data-recalc data-id="' + id + '" type="button" style="margin-top:8px; padding:8px; font-size:12px; width:auto; display:block;">Poista merkintä ja laske uudelleen</button>';
+    }
+    html += '</div>';
+    return html;
+  }
+  function renderLedger(ex){
+    var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"" }];
+    var hint = autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
+    var rows = sets.map(function(s, idx){
+      return '<div class="ledger-row">' +
+        '<div class="set-num">' + (idx+1) + '</div>' +
+        '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+        '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
+        '<input class="ledger-input" type="text" placeholder="huom." data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
+        '<button class="remove-set" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja">×</button>' +
+        '</div>';
+    }).join("");
+    var total = sets.reduce(function(sum, s){
+      var w = parseFloat(String(s.weight).replace(",", ".")), r = parseFloat(String(s.reps).replace(",", "."));
+      return sum + ((isFinite(w) && isFinite(r)) ? w*r : 0);
+    }, 0);
+    return '<div class="ledger">' +
+      hint +
+      '<div class="ledger-row ledger-head"><div></div><div>Paino</div><div>Toistot</div><div>Huom.</div><div></div></div>' +
+      rows +
+      '<button class="add-set-btn" data-add-set data-id="' + ex.id + '" type="button">+ Lisää sarja</button>' +
+      '<div class="subtotal"><span>Nostettu yhteensä</span><b>' + (total>0 ? total.toLocaleString("fi-FI") : "0") + ' kg</b></div>' +
+      '<button class="save-btn" data-save-ex data-id="' + ex.id + '" type="button">Tallenna merkintä</button>' +
+      '</div>';
+  }
+  function renderOneRepMaxSection(){
+    var namesMap = {};
+    Object.keys(state.knownMax).forEach(function(k){ namesMap[k] = true; });
+    Object.keys(state.lastSet).forEach(function(k){ namesMap[k] = true; });
+    var names = Object.keys(namesMap).sort();
+    if(names.length === 0) return "";
+    var rows = names.map(function(name){
+      var result = calculateOneRepMax(name);
+      if(!result) return "";
+      return '<div class="ledger-row" style="grid-template-columns:1fr auto; border-bottom:1px dashed var(--line); padding:8px 0;">' +
+        '<div><div style="font-size:14px;">' + escapeHtml(capitalize(name)) + '</div>' +
+        '<div style="font-size:11px; color:var(--mist); margin-top:2px;">' + result.date + '</div></div>' +
+        '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:15px;">' + String(result.value).replace(".", ",") + ' kg</div>' +
+        '</div>';
+    }).join("");
+    return '<div class="day-heading">Laskennalliset 1 toiston maksimit</div>' +
+      '<div class="exercise" style="padding:16px; margin-bottom:14px;">' +
+      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän tallennetun merkinnän perusteella.</p>' +
+      rows +
+      '</div>';
+  }
+  function renderHistoria(){
+    var section = renderOneRepMaxSection();
+    if(state.historyLoading) return section + '<div class="empty">Ladataan historiaa…</div>';
+    var dates = state.historyDates || [];
+    if(dates.length === 0) return section + '<div class="empty">Ei vielä merkintöjä. Kirjaa ensimmäinen treenisi Ohjelma-välilehdellä.</div>';
+    return section + dates.map(function(date){ return renderHistoryDate(date); }).join("");
+  }
+  function fmtSignedKg(diff){
+    var rounded = Math.round(diff * 10) / 10;
+    var abs = Math.abs(rounded);
+    var str = (Math.round(abs * 10) % 10 === 0) ? String(Math.round(abs)) : String(abs.toFixed(1));
+    str = str.replace(".", ",");
+    if(rounded > 0) return "+" + str + " kg";
+    if(rounded < 0) return "−" + str + " kg";
+    return "0 kg";
+  }
+  function fmtSignedPct(pct){
+    if(pct === null || !isFinite(pct)) return "";
+    var rounded = Math.round(pct * 10) / 10;
+    var abs = Math.abs(rounded);
+    var str = (Math.round(abs * 10) % 10 === 0) ? String(Math.round(abs)) : String(abs.toFixed(1));
+    str = str.replace(".", ",");
+    if(rounded > 0) return " (+" + str + " %)";
+    if(rounded < 0) return " (−" + str + " %)";
+    return " (0 %)";
+  }
+  function renderDeltaValue(current, past){
+    if(past === null || past === undefined){
+      return '<span style="color:var(--mist);">Ei dataa</span>';
+    }
+    var diff = current - past;
+    var pct = (past !== 0) ? (diff / past * 100) : null;
+    var color = diff > 0 ? "var(--brass)" : (diff < 0 ? "var(--danger)" : "var(--mist)");
+    return '<span style="color:' + color + '; font-variant-numeric:tabular-nums; font-weight:600;">' + fmtSignedKg(diff) + fmtSignedPct(pct) + '</span>';
+  }
+  function renderKehitysCard(item){
+    var p = item.progress;
+    var entries = [
+      ["Edelliseen treeniin", renderDeltaValue(p.current, p.previous)],
+      ["Kuukauden aikana", renderDeltaValue(p.current, p.month)],
+      ["Puolen vuoden aikana", renderDeltaValue(p.current, p.halfYear)],
+      ["Vuoden aikana", renderDeltaValue(p.current, p.year)],
+      ["Koko historian aikana", renderDeltaValue(p.current, p.allTime)]
+    ];
+    var rows = entries.map(function(e, idx){
+      var border = (idx === entries.length - 1) ? "border-bottom:none;" : "border-bottom:1px dashed var(--line);";
+      return '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:13px; ' + border + '">' +
+        '<span style="color:var(--mist);">' + e[0] + '</span><span>' + e[1] + '</span></div>';
+    }).join("");
+    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">' +
+      '<div style="font-weight:600; font-size:15px;">' + escapeHtml(item.name) + '</div>' +
+      '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:800; font-size:16px;">' + String(p.current).replace(".", ",") + ' kg</div>' +
+      '</div>' +
+      '<div style="font-size:11px; color:var(--mist); margin-bottom:10px;">Laskennallinen 1RM, viimeksi ' + p.currentDate + '</div>' +
+      rows +
+      '</div>';
+  }
+  function renderKehitys(){
+    if(state.kehitysLoading) return '<div class="empty">Lasketaan kehitystä…</div>';
+    var data = state.kehitys;
+    if(!data || data.length === 0) return '<div class="empty">Ei vielä riittävästi merkintöjä kehityksen laskemiseen. Tarvitset vähintään kaksi kirjattua kertaa samalle liikkeelle.</div>';
+    return data.map(function(item){ return renderKehitysCard(item); }).join("");
+  }
+  function renderHistoryDate(date){
+    var expanded = state.expandedHistoryDate === date;
+    var inner = "";
+    if(expanded){
+      var entry = state.historyCache[date] || { exercises:{} };
+      var keys = Object.keys(entry.exercises || {});
+      if(keys.length === 0){
+        inner = '<div style="color:var(--mist); font-size:13px; margin-top:8px;">Ei kirjattuja liikkeitä.</div>';
+      } else {
+        inner = keys.map(function(key){
+          var data = entry.exercises[key];
+          var name = data.name || key;
+          var setsStr = (data.sets || []).map(function(s, i){
+            return (i+1) + ": " + (s.weight || "–") + "kg × " + (s.reps || "–") + (s.notes ? " (" + escapeHtml(s.notes) + ")" : "");
+          }).join(" · ");
+          return '<div style="margin-top:10px;"><div style="font-weight:600; font-size:14px;">' + escapeHtml(name) + '</div>' +
+            '<div style="color:var(--mist); font-size:13px; font-variant-numeric:tabular-nums; margin-top:2px;">' + setsStr + '</div></div>';
+        }).join("");
+      }
+      inner += '<button class="btn-secondary" style="margin-top:14px; color:var(--danger); border-color:var(--danger);" data-delete-history data-date="' + date + '" type="button">' +
+        (state.confirmingDeleteDate === date ? "Vahvista poisto" : "Poista merkintä") + '</button>';
+    }
+    return '<div class="history-date">' +
+      '<div class="history-date-head" data-history-date data-date="' + date + '">' +
+      '<span>' + capitalize(formatDateFI(date)) + '</span>' +
+      '<span class="chevron" style="display:inline-block;' + (expanded ? "transform:rotate(90deg);color:var(--brass);" : "") + '">›</span>' +
+      '</div>' + inner + '</div>';
+  }
+  function renderKnownMaxList(){
+    var names = Object.keys(state.knownMax);
+    if(names.length === 0){
+      return '<div style="color:var(--mist); font-size:13px; margin-bottom:6px;">Ei vielä tallennettuja maksimeja.</div>';
+    }
+    return names.sort().map(function(key){
+      var entry = state.knownMax[key];
+      return '<div class="ledger-row" style="grid-template-columns:1fr auto 24px; border-bottom:1px dashed var(--line); padding:8px 0;">' +
+        '<div style="font-size:14px;">' + escapeHtml(capitalize(key)) + '</div>' +
+        '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:14px; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>' +
+        '<button class="remove-set" data-delete-max data-name="' + escapeHtml(key) + '" type="button" aria-label="Poista maksimi">' + (state.confirmingDeleteMax === key ? "✓" : "×") + '</button>' +
+        '</div>';
+    }).join("");
+  }
+  function renderAsetukset(){
+    return '<div class="day-heading">Ohjelma</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Tuo uusi CSV korvataksesi nykyisen ohjelman. Aiemmat merkinnät säilyvät ennallaan.</p>' +
+      '<input type="file" accept=".csv" id="csv-input-settings">' +
+      '</div>' +
+      '<div class="day-heading">Liikkeiden maksimit</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Kun kirjaat MAX-tehoisen sarjan, sen paino tallentuu tähän automaattisesti ja sitä käytetään prosenttitehoisten sarjojen painojen laskennassa. Voit myös lisätä tai korjata maksimin käsin.</p>' +
+      renderKnownMaxList() +
+      '<div style="display:flex; gap:8px; margin-top:12px;">' +
+      '<input type="text" id="max-name-input" class="ledger-input" placeholder="Liikkeen nimi" style="flex:1.4;">' +
+      '<input type="text" id="max-weight-input" class="ledger-input" inputmode="decimal" placeholder="kg" style="flex:0.8;">' +
+      '</div>' +
+      '<button class="btn-secondary" id="save-max-btn" type="button" style="margin-top:10px;">Tallenna maksimi</button>' +
+      '</div>' +
+      '<div class="day-heading">Vienti ja tuonti</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Lataa kaikki kirjatut treenit CSV-tiedostona varmuuskopioksi.</p>' +
+      '<button class="btn-secondary" id="export-btn" type="button">Vie merkinnät CSV:nä</button>' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Palauta aiemmin viety varmuuskopio tai siirrä historiasi toiselta laitteelta. Jo olemassa olevat merkinnät ohitetaan, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.</p>' +
+      '<input type="file" accept=".csv" id="import-entries-input">' +
+      '</div>' +
+      '<div class="day-heading">Vaarallinen alue</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Poistaa ohjelman ja kaikki kirjatut merkinnät pysyvästi.</p>' +
+      '<button class="btn-secondary" id="reset-btn" type="button" style="color:var(--danger); border-color:var(--danger);">' +
+      (state.confirmingReset ? "Vahvista tyhjennys" : "Tyhjennä kaikki tiedot") + '</button>' +
+      '</div>';
+  }
+
+  function render(){
+    var app = document.getElementById("app");
+    app.innerHTML = renderHeader() + renderBody();
+  }
+
+  // ---------- events (delegated, attached once) ----------
+  var app = document.getElementById("app");
+
+  app.addEventListener("click", async function(e){
+    var el;
+    if((el = e.target.closest("[data-tab]"))){
+      state.view = el.dataset.tab;
+      state.confirmingReset = false;
+      if(state.view === "historia" && state.historyDates === undefined){ await loadHistory(); }
+      else if(state.view === "kehitys" && state.kehitys === undefined){ await loadKehitys(); }
+      else render();
+      return;
+    }
+    if((el = e.target.closest("[data-toggle-ex]"))){ await toggleExercise(el.dataset.id); return; }
+    if((el = e.target.closest("[data-add-set]"))){
+      var id1 = el.dataset.id;
+      if(!state.draftSets[id1]) state.draftSets[id1] = [];
+      state.draftSets[id1].push({ weight:"", reps:"", notes:"" });
+      state.dirtySets[id1] = true;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-remove-set]"))){
+      var id2 = el.dataset.id, idx2 = parseInt(el.dataset.idx, 10);
+      if(state.draftSets[id2]){
+        state.draftSets[id2].splice(idx2, 1);
+        if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"" });
+        state.dirtySets[id2] = true;
+      }
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-save-ex]"))){ await saveExerciseLog(el.dataset.id); return; }
+    if((el = e.target.closest("[data-recalc]"))){
+      var rid = el.dataset.id;
+      var rex = findExerciseById(rid);
+      if(state.todayEntry && state.todayEntry.exercises[rid]){
+        delete state.todayEntry.exercises[rid];
+        try{ await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry)); }
+        catch(e){ showToast("Poisto epäonnistui"); return; }
+      }
+      if(rex){ await rebuildTrackersForName(rex.name); }
+      delete state.draftSets[rid];
+      delete state.dirtySets[rid];
+      delete state.autoCalcInfo[rid];
+      if(rex){ state.draftSets[rid] = buildDraftRows(rex, rid); }
+      showToast("Merkintä poistettu, ehdotus laskettu uudelleen");
+      render();
+      return;
+    }
+    if((el = e.target.closest("#add-manual-btn"))){
+      var input = document.getElementById("manual-name");
+      var name = input.value.trim();
+      if(!name){ showToast("Kirjoita liikkeen nimi"); return; }
+      var newId = "manual-" + Date.now();
+      var manualEx = { id:newId, name:name, sets:"", reps:"", weight:"", notes:"" };
+      state.manualExercises.push(manualEx);
+      state.openExercise = newId;
+      state.draftSets[newId] = buildDraftRows(manualEx, newId);
+      render();
+      return;
+    }
+    if((el = e.target.closest("#export-btn"))){ await exportAllCSV(); return; }
+    if((el = e.target.closest("#reset-btn"))){
+      if(!state.confirmingReset){ state.confirmingReset = true; render(); }
+      else{ await resetAll(); }
+      return;
+    }
+    if((el = e.target.closest("[data-history-date]"))){ await toggleHistoryDate(el.dataset.date); return; }
+    if((el = e.target.closest("[data-delete-history]"))){
+      var d = el.dataset.date;
+      if(state.confirmingDeleteDate !== d){ state.confirmingDeleteDate = d; render(); }
+      else{ await deleteHistoryEntry(d); }
+      return;
+    }
+    if((el = e.target.closest("#save-max-btn"))){
+      var nameInput = document.getElementById("max-name-input");
+      var weightInput = document.getElementById("max-weight-input");
+      var mName = nameInput.value.trim();
+      var mWeight = toNumber(weightInput.value);
+      if(!mName){ showToast("Kirjoita liikkeen nimi"); return; }
+      if(!isFinite(mWeight) || mWeight <= 0){ showToast("Kirjoita kelvollinen paino"); return; }
+      state.knownMax[mName.toLowerCase()] = { weight: mWeight, date: todayISO() };
+      await saveKnownMax();
+      nameInput.value = ""; weightInput.value = "";
+      showToast("Maksimi tallennettu");
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-delete-max]"))){
+      var mKey = el.dataset.name;
+      if(state.confirmingDeleteMax !== mKey){ state.confirmingDeleteMax = mKey; render(); return; }
+      delete state.knownMax[mKey];
+      await saveKnownMax();
+      state.confirmingDeleteMax = null;
+      showToast("Maksimi poistettu");
+      render();
+      return;
+    }
+  });
+
+  app.addEventListener("change", function(e){
+    if(e.target.id === "csv-input-initial" || e.target.id === "csv-input-settings"){
+      var file = e.target.files[0];
+      if(file) handleFile(file);
+      return;
+    }
+    if(e.target.id === "import-entries-input"){
+      var impFile = e.target.files[0];
+      if(impFile){ showToast("Tuodaan merkintöjä…"); importEntriesFile(impFile); }
+      e.target.value = "";
+      return;
+    }
+    if(e.target.id === "log-date"){ changeLogDate(e.target.value); return; }
+  });
+
+  app.addEventListener("input", function(e){
+    var field = e.target.closest("[data-set-field]");
+    if(field){
+      var id = field.dataset.id, idx = parseInt(field.dataset.idx, 10), key = field.dataset.field;
+      if(state.draftSets[id] && state.draftSets[id][idx]){
+        state.draftSets[id][idx][key] = field.value;
+        state.dirtySets[id] = true;
+      }
+    }
+  });
+
+  // ---------- init ----------
+  render();
+  (async function init(){
+    if(!window.storage || typeof window.storage.get !== "function" || typeof window.storage.set !== "function"){
+      demoteStorage(new Error("Claude-tallennusrajapintaa ei löydy"));
+    } else {
+      await storeSet("storage-check", "ok");
+    }
+    state.storageMode = storageMode;
+    try{
+      var res = await storeGet(STORAGE_PROGRAM_KEY);
+      if(res && res.value) state.program = JSON.parse(res.value);
+    }catch(e){}
+    if(state.program && state.program.days){
+      var migrated = false;
+      state.program.days.forEach(function(day){
+        (day.exercises || []).forEach(function(ex){
+          if(!("intensity" in ex)){
+            ex.intensity = parseIntensity(ex.notes);
+            migrated = true;
+          }
+          if(!("unit" in ex)){ ex.unit = ""; migrated = true; }
+        });
+      });
+      if(migrated){
+        try{ await saveProgram(); }catch(e){}
+      }
+    }
+    try{
+      var maxRes = await storeGet(STORAGE_MAX_KEY);
+      if(maxRes && maxRes.value) state.knownMax = JSON.parse(maxRes.value);
+    }catch(e){}
+    try{
+      var lastRes = await storeGet(STORAGE_LASTSET_KEY);
+      if(lastRes && lastRes.value) state.lastSet = JSON.parse(lastRes.value);
+    }catch(e){}
+    if(state.program){
+      try{ state.todayEntry = await loadEntry(state.draftDate); }
+      catch(e){ state.todayEntry = { date: state.draftDate, exercises:{} }; }
+    }
+    state.loading = false;
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
