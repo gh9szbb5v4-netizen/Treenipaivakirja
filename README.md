@@ -1,5 +1,4 @@
 # Treenipaivakirja
-# Treenipäiväkirja
 
 Selaimessa toimiva treenipäiväkirja, joka lukee treeniohjelman CSV-tiedostosta, tallentaa sarjakohtaiset merkinnät ja laskee seuraavien treenien sarjapainot automaattisesti. Koko sovellus on yhdessä `index.html`-tiedostossa: ei asennusta, ei palvelinta, ei riippuvuuksia.
 
