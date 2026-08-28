@@ -91,6 +91,7 @@
 
   var STORAGE_PROGRAM_KEY = "workout-program";
   var STORAGE_LASTSET_KEY = "last-set-log";
+  var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
 
   var ALIASES = {
     week: ["viikko","week","vko"],
@@ -120,8 +121,10 @@
     confirmingReset: false,
     confirmingDeleteDate: null,
     lastSet: {},
+    manualMax: {},
     autoCalcInfo: {},
     dirtySets: {},
+    confirmingDeleteMax: null,
     kehitys: undefined,
     kehitysLoading: false,
     storageMode: "claude",
@@ -132,8 +135,12 @@
   };
 
   // ---------- utils ----------
-  function todayISO(){ var d = new Date(); return d.toISOString().slice(0,10); }
-  function daysAgoISO(n){ var d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0,10); }
+  function pad2(n){ return n < 10 ? "0" + n : String(n); }
+  // Paikallinen kalenteripäivä, ei UTC — toISOString() siirtäisi päivämäärän
+  // väärään päivään esim. heti keskiyön jälkeen UTC:tä edellä olevissa aikavyöhykkeissä.
+  function toLocalISO(d){ return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate()); }
+  function todayISO(){ return toLocalISO(new Date()); }
+  function daysAgoISO(n){ var d = new Date(); d.setDate(d.getDate() - n); return toLocalISO(d); }
   function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
   function formatDateFI(iso){
     var d = new Date(iso + "T00:00:00");
@@ -146,6 +153,18 @@
   function roundToStep(value, step){
     var r = Math.round(value / step) * step;
     return Math.round(r * 100) / 100;
+  }
+  function parseIntensity(raw){
+    if(!raw) return null;
+    var s = String(raw).trim();
+    if(!s) return null;
+    if(/^max$/i.test(s)) return { isMax: true, percents: [] };
+    var matches = s.match(/\d+(?:[.,]\d+)?\s*%/g);
+    if(matches && matches.length){
+      var percents = matches.map(function(m){ return toNumber(m.replace("%", "")); }).filter(function(n){ return isFinite(n); });
+      if(percents.length) return { isMax: false, percents: percents };
+    }
+    return null;
   }
   function escapeHtml(str){
     return String(str == null ? "" : str).replace(/[&<>"']/g, function(c){
@@ -220,6 +239,7 @@
         dayMap.set(groupName, { week: weekVal || null, exercises: [] });
         if(weekVal && weekOrder.indexOf(weekVal) === -1) weekOrder.push(weekVal);
       }
+      var intensityRaw = map.intensity ? row[map.intensity] : (map.notes ? row[map.notes] : "");
       dayMap.get(groupName).exercises.push({
         id: "ex-" + idx,
         name: row[map.exercise] || "Nimetön liike",
@@ -227,7 +247,8 @@
         reps: map.reps ? row[map.reps] : "",
         unit: map.unit ? row[map.unit] : "",
         weight: map.weight ? row[map.weight] : "",
-        notes: map.notes ? row[map.notes] : (map.intensity ? row[map.intensity] : "")
+        notes: map.notes ? row[map.notes] : (map.intensity ? row[map.intensity] : ""),
+        intensity: parseIntensity(intensityRaw)
       });
     });
     var days = [];
@@ -343,6 +364,10 @@
     try{ await storeSet(STORAGE_LASTSET_KEY, JSON.stringify(state.lastSet)); }
     catch(e){ /* hiljainen virhe, ei kriittinen */ }
   }
+  async function saveManualMax(){
+    try{ await storeSet(STORAGE_MANUAL_MAX_KEY, JSON.stringify(state.manualMax)); }
+    catch(e){ showToast("1RM:n tallennus epäonnistui"); }
+  }
 
   // ---------- data helpers ----------
   function allExercises(){
@@ -408,6 +433,34 @@
 
   function buildDraftRows(ex, id){
     var explicitCount = parseInt(ex.sets, 10);
+
+    // Liikkeet, joille on määritelty teho (MAX tai prosentti), eivät kuulu
+    // toistopainolaskurin progressiologiikkaan: niiden painoehdotus perustuu
+    // aina liikkeen manuaalisesti syötettyyn 1RM-arvoon.
+    if(ex.intensity){
+      var percents = !ex.intensity.isMax ? ex.intensity.percents : [];
+      var count = (explicitCount && explicitCount > 0) ? explicitCount : (percents.length || 1);
+      var maxEntry = state.manualMax[ex.name.trim().toLowerCase()];
+      var usedMax = false;
+      var maxRows = [];
+      for(var i=0;i<count;i++){
+        var weightVal = "";
+        if(maxEntry && isFinite(maxEntry.weight)){
+          if(ex.intensity.isMax){
+            weightVal = String(maxEntry.weight);
+          } else {
+            var pct = percents.length ? (percents[i] !== undefined ? percents[i] : percents[percents.length-1]) : null;
+            if(pct !== null) weightVal = String(roundToStep(maxEntry.weight * pct / 100, 2.5));
+          }
+          usedMax = true;
+        }
+        maxRows.push({ weight: weightVal, reps: ex.reps || "", notes: "" });
+      }
+      if(usedMax){ state.autoCalcInfo[id] = { type:"max", weight: maxEntry.weight, isMax: ex.intensity.isMax, percents: percents }; }
+      else{ delete state.autoCalcInfo[id]; }
+      return maxRows;
+    }
+
     var count2 = (explicitCount && explicitCount > 0) ? explicitCount : 1;
 
     if(!isCombo(ex.name)){
@@ -471,12 +524,13 @@
 
   function calculateOneRepMax(name){
     // Sama sääntö jokaiselle liikkeelle: yhden toiston arvio lasketaan aina
-    // toistopainolaskurin kaavalla siitä, mitä liikkeestä on viimeksi kirjattu.
+    // toistopainolaskurin kaavalla liikkeen viimeisimmän merkinnän ENSIMMÄISESTÄ
+    // sarjasta — saman päivän muita sarjoja ei oteta laskennassa huomioon.
     var norm = name.trim().toLowerCase();
     var K = movementConstant(name);
     var lastEntry = state.lastSet[norm];
     if(lastEntry && lastEntry.sets && lastEntry.sets.length){
-      var refSet = lastEntry.sets[lastEntry.sets.length - 1];
+      var refSet = lastEntry.sets[0];
       var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
       if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
         var computed = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
@@ -504,11 +558,12 @@
           var norm = name.toLowerCase();
           // Sama toistopainolaskurin kaava jokaiselle merkinnälle riippumatta siitä,
           // oliko sen teho MAX, prosentti vai vapaa — ei erillistä MAX-oikotietä.
+          // Vain päivän ENSIMMÄINEN sarja lasketaan mukaan, ei muita saman päivän sarjoja.
           var K = movementConstant(name);
           var value = null;
           var sets = data.sets || [];
           if(sets.length){
-            var refSet = sets[sets.length - 1];
+            var refSet = sets[0];
             var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
             if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
               value = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
@@ -842,6 +897,7 @@
     try{
       await storeDelete(STORAGE_PROGRAM_KEY);
       await storeDelete(STORAGE_LASTSET_KEY);
+      await storeDelete(STORAGE_MANUAL_MAX_KEY);
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
       for(var i=0;i<keys.length;i++){ await storeDelete(keys[i]); }
@@ -854,6 +910,7 @@
     state.historyCache = {};
     state.confirmingReset = false;
     state.lastSet = {};
+    state.manualMax = {};
     state.autoCalcInfo = {};
     state.dirtySets = {};
     state.kehitys = undefined;
@@ -980,7 +1037,15 @@
   function autoCalcHint(info, id){
     if(!info) return "";
     var text;
-    if(info.type === "same"){
+    if(info.type === "max"){
+      var maxWeightStr = String(info.weight).replace(".", ",") + " kg";
+      if(info.isMax){
+        text = "Paino perustuu manuaalisesti syötettyyn 1RM:ään (" + maxWeightStr + ") — muokattavissa.";
+      } else {
+        var pctStr = (info.percents || []).map(function(p){ return String(p).replace(".", ",") + " %"; }).join(" / ");
+        text = "Paino laskettu " + pctStr + " liikkeen 1RM:stä (" + maxWeightStr + ") — muokattavissa.";
+      }
+    } else if(info.type === "same"){
       text = "Sama paino kuin edellisellä kerralla (" + info.date + ") — muokattavissa.";
     } else if(info.type === "formula"){
       text = "Paino arvioitu edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + ") sarjapainolaskurin kaavalla — muokattavissa.";
@@ -1035,7 +1100,7 @@
     }).join("");
     return '<div class="day-heading">Laskennalliset 1 toiston maksimit</div>' +
       '<div class="exercise" style="padding:16px; margin-bottom:14px;">' +
-      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän tallennetun merkinnän perusteella.</p>' +
+      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän tallennetun merkinnän ensimmäisen sarjan perusteella.</p>' +
       rows +
       '</div>';
   }
@@ -1131,11 +1196,35 @@
       '<span class="chevron" style="display:inline-block;' + (expanded ? "transform:rotate(90deg);color:var(--brass);" : "") + '">›</span>' +
       '</div>' + inner + '</div>';
   }
+  function renderManualMaxList(){
+    var names = Object.keys(state.manualMax);
+    if(names.length === 0){
+      return '<div style="color:var(--mist); font-size:13px; margin-bottom:6px;">Ei vielä tallennettuja 1RM-arvoja.</div>';
+    }
+    return names.sort().map(function(key){
+      var entry = state.manualMax[key];
+      return '<div class="ledger-row" style="grid-template-columns:1fr auto 24px; border-bottom:1px dashed var(--line); padding:8px 0;">' +
+        '<div><div style="font-size:14px;">' + escapeHtml(capitalize(key)) + '</div></div>' +
+        '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:14px; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>' +
+        '<button class="remove-set" data-delete-max data-name="' + escapeHtml(key) + '" type="button" aria-label="Poista 1RM">' + (state.confirmingDeleteMax === key ? "✓" : "×") + '</button>' +
+        '</div>';
+    }).join("");
+  }
   function renderAsetukset(){
     return '<div class="day-heading">Ohjelma</div>' +
       '<div class="exercise" style="padding:16px;">' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Tuo uusi CSV korvataksesi nykyisen ohjelman. Aiemmat merkinnät säilyvät ennallaan.</p>' +
       '<input type="file" accept=".csv" id="csv-input-settings">' +
+      '</div>' +
+      '<div class="day-heading">Liikkeiden 1RM</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Liikkeille, joille ohjelmassa on määritelty teho (MAX tai prosentti), painoehdotus lasketaan tästä manuaalisesti syötetystä 1RM-arvosta — ei aiemmista merkinnöistä.</p>' +
+      renderManualMaxList() +
+      '<div style="display:flex; gap:8px; margin-top:12px;">' +
+      '<input type="text" id="max-name-input" class="ledger-input" placeholder="Liikkeen nimi" style="flex:1.4;">' +
+      '<input type="text" id="max-weight-input" class="ledger-input" inputmode="decimal" placeholder="kg" style="flex:0.8;">' +
+      '</div>' +
+      '<button class="btn-secondary" id="save-max-btn" type="button" style="margin-top:10px;">Tallenna 1RM</button>' +
       '</div>' +
       '<div class="day-heading">Vienti ja tuonti</div>' +
       '<div class="exercise" style="padding:16px;">' +
@@ -1245,6 +1334,30 @@
       else{ await deleteHistoryEntry(d); }
       return;
     }
+    if((el = e.target.closest("#save-max-btn"))){
+      var nameInput = document.getElementById("max-name-input");
+      var weightInput = document.getElementById("max-weight-input");
+      var mName = nameInput.value.trim();
+      var mWeight = toNumber(weightInput.value);
+      if(!mName){ showToast("Kirjoita liikkeen nimi"); return; }
+      if(!isFinite(mWeight) || mWeight <= 0){ showToast("Kirjoita kelvollinen paino"); return; }
+      state.manualMax[mName.toLowerCase()] = { weight: mWeight, date: todayISO() };
+      await saveManualMax();
+      nameInput.value = ""; weightInput.value = "";
+      showToast("1RM tallennettu");
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-delete-max]"))){
+      var mKey = el.dataset.name;
+      if(state.confirmingDeleteMax !== mKey){ state.confirmingDeleteMax = mKey; render(); return; }
+      delete state.manualMax[mKey];
+      await saveManualMax();
+      state.confirmingDeleteMax = null;
+      showToast("1RM poistettu");
+      render();
+      return;
+    }
   });
 
   app.addEventListener("change", function(e){
@@ -1296,6 +1409,10 @@
         }
         (day.exercises || []).forEach(function(ex){
           if(!("unit" in ex)){ ex.unit = ""; migrated = true; }
+          if(!("intensity" in ex)){
+            ex.intensity = parseIntensity(ex.notes);
+            migrated = true;
+          }
         });
       });
       if(!state.program.weeks){
@@ -1311,6 +1428,10 @@
     try{
       var lastRes = await storeGet(STORAGE_LASTSET_KEY);
       if(lastRes && lastRes.value) state.lastSet = JSON.parse(lastRes.value);
+    }catch(e){}
+    try{
+      var manualMaxRes = await storeGet(STORAGE_MANUAL_MAX_KEY);
+      if(manualMaxRes && manualMaxRes.value) state.manualMax = JSON.parse(manualMaxRes.value);
     }catch(e){}
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
