@@ -218,8 +218,12 @@
     });
     return map;
   }
-  function parseProgramCSV(text){
+  function parseProgramCSV(text, idPrefix){
     text = text.replace(/^\uFEFF/, "");
+    // Jokainen tuonti saa oman, uniikin id-etuliitteen: nain uuden CSV:n rivit eivat
+    // koskaan tormaa saman rivijarjestyksen (esim. "ex-0") kautta vanhaan, jo kirjattuun
+    // historiaan, joka aiemmin saattoi liittaa vanhan merkinnan vaaraan, uuteen liikkeeseen.
+    var prefix = idPrefix || "ex-" + Date.now();
     var rows = parseCSV(text);
     if(rows.length === 0) throw new Error("CSV-tiedosto on tyhjä.");
     var headers = Object.keys(rows[0]);
@@ -241,7 +245,7 @@
       }
       var intensityRaw = map.intensity ? row[map.intensity] : (map.notes ? row[map.notes] : "");
       dayMap.get(groupName).exercises.push({
-        id: "ex-" + idx,
+        id: prefix + "-" + idx,
         name: row[map.exercise] || "Nimetön liike",
         sets: map.sets ? row[map.sets] : "",
         reps: map.reps ? row[map.reps] : "",
