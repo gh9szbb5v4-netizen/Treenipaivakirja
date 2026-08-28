@@ -529,22 +529,27 @@
   function calculateOneRepMax(name){
     var norm = name.trim().toLowerCase();
     var K = movementConstant(name);
+    var maxResult = null;
     var maxEntry = state.knownMax[norm];
     if(maxEntry && isFinite(maxEntry.weight)){
       var maxReps = isFinite(maxEntry.reps) ? maxEntry.reps : 1;
       var value = (maxReps === 1) ? maxEntry.weight : roundToStep(maxEntry.weight * (1 + maxReps/K) / (1 + 1/K), 2.5);
-      return { value: value, date: maxEntry.date, basis: "max", manual: (maxEntry.source === "manual") };
+      maxResult = { value: value, date: maxEntry.date, basis: "max", manual: (maxEntry.source === "manual") };
     }
+    var lastResult = null;
     var lastEntry = state.lastSet[norm];
     if(lastEntry && lastEntry.sets && lastEntry.sets.length){
       var refSet = lastEntry.sets[lastEntry.sets.length - 1];
       var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
       if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
         var computed = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
-        return { value: computed, date: lastEntry.date, basis: "lastset" };
+        lastResult = { value: computed, date: lastEntry.date, basis: "lastset" };
       }
     }
-    return null;
+    // Käytetään sitä perustaa, joka on viimeksi tallennettu — muuten maksimi
+    // jää junnaamaan vanhaan MAX-merkintään, vaikka uudempi sarja kertoisi enemmän.
+    if(lastResult && (!maxResult || lastResult.date > maxResult.date)) return lastResult;
+    return maxResult;
   }
 
   async function buildAllOneRepMaxSeries(){
