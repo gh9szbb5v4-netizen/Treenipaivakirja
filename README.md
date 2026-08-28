@@ -63,7 +63,7 @@ Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punner
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina. Liike näkyy, kun sille on vähintään kaksi merkintää.
 
-**Asetukset.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys.
+**Asetukset.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
 ## Tietojen tallennus
 

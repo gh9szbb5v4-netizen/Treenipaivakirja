@@ -1206,17 +1206,37 @@
       '<span class="chevron" style="display:inline-block;' + (expanded ? "transform:rotate(90deg);color:var(--brass);" : "") + '">›</span>' +
       '</div>' + inner + '</div>';
   }
+  function maxExerciseNames(){
+    var names = {};
+    allExercises().forEach(function(ex){
+      if(ex.intensity && ex.intensity.isMax){
+        var norm = ex.name.trim().toLowerCase();
+        if(!names[norm]) names[norm] = ex.name.trim();
+      }
+    });
+    return names;
+  }
   function renderManualMaxList(){
-    var names = Object.keys(state.manualMax);
+    var displayNames = maxExerciseNames();
+    Object.keys(state.manualMax).forEach(function(key){
+      if(!displayNames[key]) displayNames[key] = key;
+    });
+    var names = Object.keys(displayNames);
     if(names.length === 0){
-      return '<div style="color:var(--mist); font-size:13px; margin-bottom:6px;">Ei vielä tallennettuja 1RM-arvoja.</div>';
+      return '<div style="color:var(--mist); font-size:13px; margin-bottom:6px;">Ei vielä ohjelmassa liikkeitä, joille on merkitty teho MAX.</div>';
     }
     return names.sort().map(function(key){
       var entry = state.manualMax[key];
+      var weightHtml = entry
+        ? '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:14px; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>'
+        : '<div style="color:var(--mist); font-size:12.5px; padding-right:6px;">Ei vielä asetettu</div>';
+      var deleteBtn = entry
+        ? '<button class="remove-set" data-delete-max data-name="' + escapeHtml(key) + '" type="button" aria-label="Poista 1RM">' + (state.confirmingDeleteMax === key ? "✓" : "×") + '</button>'
+        : '';
       return '<div class="ledger-row" style="grid-template-columns:1fr auto 24px; border-bottom:1px dashed var(--line); padding:8px 0;">' +
-        '<div><div style="font-size:14px;">' + escapeHtml(capitalize(key)) + '</div></div>' +
-        '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:14px; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>' +
-        '<button class="remove-set" data-delete-max data-name="' + escapeHtml(key) + '" type="button" aria-label="Poista 1RM">' + (state.confirmingDeleteMax === key ? "✓" : "×") + '</button>' +
+        '<div><div style="font-size:14px;">' + escapeHtml(capitalize(displayNames[key])) + '</div></div>' +
+        weightHtml +
+        deleteBtn +
         '</div>';
     }).join("");
   }
