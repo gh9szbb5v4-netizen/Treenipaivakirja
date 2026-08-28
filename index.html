@@ -173,6 +173,22 @@
   }
 
   // ---------- CSV parsing ----------
+  // Monet Excel-vientityökalut (etenkin suomenkielisellä Windowsilla) tallentavat CSV:n
+  // Windows-1252/ANSI-koodauksella, ei UTF-8:lla. Jos tiukka UTF-8-tulkinta epäonnistuu,
+  // luetaan tiedosto Windows-1252:na, jotta ä/ö eivät korruptoidu eivätkä siten myöskään
+  // sarakeotsikoiden tai liikkeiden nimien tunnistus.
+  function decodeFileBuffer(buffer){
+    try{ return new TextDecoder("utf-8", { fatal: true }).decode(buffer); }
+    catch(e){ return new TextDecoder("windows-1252").decode(buffer); }
+  }
+  function readFileAsText(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(e){ resolve(decodeFileBuffer(e.target.result)); };
+      reader.onerror = function(){ reject(new Error("Tiedoston luku epäonnistui")); };
+      reader.readAsArrayBuffer(file);
+    });
+  }
   function detectDelimiter(headerLine){
     var semi = (headerLine.match(/;/g) || []).length;
     var comma = (headerLine.match(/,/g) || []).length;
@@ -211,9 +227,14 @@
     var map = {};
     Object.keys(ALIASES).forEach(function(key){
       var aliases = ALIASES[key];
-      var found = headers.find(function(h){
-        return aliases.some(function(a){ return h === a || h.indexOf(a) !== -1; });
-      });
+      // Tarkka täsmäys ensin: esim. "Liikejärjestys"-sarake ei saa varastaa "Liike"-saraketta
+      // vain siksi, että se sisältää "liike"-aliaksen alkuosanaan.
+      var found = headers.find(function(h){ return aliases.indexOf(h) !== -1; });
+      if(!found){
+        found = headers.find(function(h){
+          return aliases.some(function(a){ return h.indexOf(a) !== -1; });
+        });
+      }
       if(found) map[key] = found;
     });
     return map;
@@ -382,29 +403,27 @@
   function findExerciseById(id){ return allExercises().find(function(e){ return e.id === id; }); }
 
   // ---------- actions ----------
-  function handleFile(file){
-    var reader = new FileReader();
-    reader.onload = async function(e){
-      try{
-        var program = parseProgramCSV(e.target.result);
-        state.program = program;
-        state.manualExercises = [];
-        state.draftSets = {};
-        state.dirtySets = {};
-        state.openExercise = null;
-        state.showAllWeeks = false;
-        await saveProgram();
-        await computeDefaultActiveWeek();
-        state.todayEntry = await loadEntry(state.draftDate);
-        state.view = "ohjelma";
-        showToast("Ohjelma tuotu onnistuneesti");
-        render();
-      }catch(err){
-        showToast(err.message || "CSV:n luku epäonnistui");
-      }
-    };
-    reader.onerror = function(){ showToast("Tiedoston luku epäonnistui"); };
-    reader.readAsText(file, "UTF-8");
+  async function handleFile(file){
+    var text;
+    try{ text = await readFileAsText(file); }
+    catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
+    try{
+      var program = parseProgramCSV(text);
+      state.program = program;
+      state.manualExercises = [];
+      state.draftSets = {};
+      state.dirtySets = {};
+      state.openExercise = null;
+      state.showAllWeeks = false;
+      await saveProgram();
+      await computeDefaultActiveWeek();
+      state.todayEntry = await loadEntry(state.draftDate);
+      state.view = "ohjelma";
+      showToast("Ohjelma tuotu onnistuneesti");
+      render();
+    }catch(err){
+      showToast(err.message || "CSV:n luku epäonnistui");
+    }
   }
 
   async function toggleExercise(id){
@@ -842,7 +861,7 @@
 
   async function importEntriesFile(file){
     var text;
-    try{ text = await file.text(); }
+    try{ text = await readFileAsText(file); }
     catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
 
     var byDate;
