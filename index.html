@@ -90,7 +90,6 @@
   "use strict";
 
   var STORAGE_PROGRAM_KEY = "workout-program";
-  var STORAGE_MAX_KEY = "known-max";
   var STORAGE_LASTSET_KEY = "last-set-log";
 
   var ALIASES = {
@@ -120,11 +119,9 @@
     expandedHistoryDate: null,
     confirmingReset: false,
     confirmingDeleteDate: null,
-    knownMax: {},
     lastSet: {},
     autoCalcInfo: {},
     dirtySets: {},
-    confirmingDeleteMax: null,
     kehitys: undefined,
     kehitysLoading: false,
     storageMode: "claude",
@@ -149,18 +146,6 @@
   function roundToStep(value, step){
     var r = Math.round(value / step) * step;
     return Math.round(r * 100) / 100;
-  }
-  function parseIntensity(raw){
-    if(!raw) return null;
-    var s = String(raw).trim();
-    if(!s) return null;
-    if(/^max$/i.test(s)) return { isMax: true, percents: [] };
-    var matches = s.match(/\d+(?:[.,]\d+)?\s*%/g);
-    if(matches && matches.length){
-      var percents = matches.map(function(m){ return toNumber(m.replace("%", "")); }).filter(function(n){ return isFinite(n); });
-      if(percents.length) return { isMax: false, percents: percents };
-    }
-    return null;
   }
   function escapeHtml(str){
     return String(str == null ? "" : str).replace(/[&<>"']/g, function(c){
@@ -235,7 +220,6 @@
         dayMap.set(groupName, { week: weekVal || null, exercises: [] });
         if(weekVal && weekOrder.indexOf(weekVal) === -1) weekOrder.push(weekVal);
       }
-      var intensityRaw = map.intensity ? row[map.intensity] : (map.notes ? row[map.notes] : "");
       dayMap.get(groupName).exercises.push({
         id: "ex-" + idx,
         name: row[map.exercise] || "Nimetön liike",
@@ -243,8 +227,7 @@
         reps: map.reps ? row[map.reps] : "",
         unit: map.unit ? row[map.unit] : "",
         weight: map.weight ? row[map.weight] : "",
-        notes: map.notes ? row[map.notes] : (map.intensity ? row[map.intensity] : ""),
-        intensity: parseIntensity(intensityRaw)
+        notes: map.notes ? row[map.notes] : (map.intensity ? row[map.intensity] : "")
       });
     });
     var days = [];
@@ -356,10 +339,6 @@
     try{ await storeSet(STORAGE_PROGRAM_KEY, JSON.stringify(state.program)); }
     catch(e){ state.lastError = (e && e.message) ? e.message : String(e); showToast("Ohjelman tallennus epäonnistui: " + state.lastError, 4500); }
   }
-  async function saveKnownMax(){
-    try{ await storeSet(STORAGE_MAX_KEY, JSON.stringify(state.knownMax)); }
-    catch(e){ showToast("Maksimin tallennus epäonnistui"); }
-  }
   async function saveLastSet(){
     try{ await storeSet(STORAGE_LASTSET_KEY, JSON.stringify(state.lastSet)); }
     catch(e){ /* hiljainen virhe, ei kriittinen */ }
@@ -429,27 +408,6 @@
 
   function buildDraftRows(ex, id){
     var explicitCount = parseInt(ex.sets, 10);
-
-    if(ex.intensity){
-      var percents = !ex.intensity.isMax ? ex.intensity.percents : [];
-      var count = (explicitCount && explicitCount > 0) ? explicitCount : (percents.length || 1);
-      var maxEntry = state.knownMax[ex.name.trim().toLowerCase()];
-      var usedMax = false;
-      var maxRows = [];
-      for(var i=0;i<count;i++){
-        var pct = percents.length ? (percents[i] !== undefined ? percents[i] : percents[percents.length-1]) : null;
-        var weightVal = "";
-        if(pct !== null && maxEntry && isFinite(maxEntry.weight)){
-          weightVal = String(roundToStep(maxEntry.weight * pct / 100, 2.5));
-          usedMax = true;
-        }
-        maxRows.push({ weight: weightVal, reps: ex.reps || "", notes: "" });
-      }
-      if(usedMax){ state.autoCalcInfo[id] = { type:"max", weight: maxEntry.weight, date: maxEntry.date }; }
-      else{ delete state.autoCalcInfo[id]; }
-      return maxRows;
-    }
-
     var count2 = (explicitCount && explicitCount > 0) ? explicitCount : 1;
 
     if(!isCombo(ex.name)){
@@ -490,22 +448,7 @@
     var sets = (state.draftSets[id] || []).filter(function(s){ return s.weight || s.reps || s.notes; });
     if(sets.length === 0){ showToast("Lisää vähintään yksi sarja ennen tallennusta"); return; }
     if(!state.todayEntry) state.todayEntry = { date: state.draftDate, exercises: {} };
-    var kind = "plain";
-    if(ex.intensity){ kind = ex.intensity.isMax ? "max" : "percent"; }
-    state.todayEntry.exercises[id] = { name: ex.name, sets: sets, loggedAt: new Date().toISOString(), kind: kind };
-    var maxUpdated = false;
-    if(ex.intensity && ex.intensity.isMax){
-      var best = 0, bestReps = null;
-      sets.forEach(function(s){
-        var w = toNumber(s.weight);
-        if(isFinite(w) && w > best){ best = w; var r = toNumber(s.reps); bestReps = isFinite(r) ? r : null; }
-      });
-      if(best > 0){
-        state.knownMax[ex.name.trim().toLowerCase()] = { weight: best, reps: bestReps, date: state.draftDate, source: "logged" };
-        await saveKnownMax();
-        maxUpdated = true;
-      }
-    }
+    state.todayEntry.exercises[id] = { name: ex.name, sets: sets, loggedAt: new Date().toISOString() };
     if(!isCombo(ex.name)){
       state.lastSet[ex.name.trim().toLowerCase()] = {
         sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }),
@@ -517,7 +460,7 @@
       await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry));
       delete state.dirtySets[id];
       state.kehitys = undefined;
-      showToast(maxUpdated ? "Tallennettu — uusi maksimi tallennettu" : "Merkintä tallennettu");
+      showToast("Merkintä tallennettu");
       state.openExercise = null;
       render();
     }catch(e){
@@ -527,9 +470,8 @@
   }
 
   function calculateOneRepMax(name){
-    // Ei käytetä MAX-tehon tallentamaa raakaa maksimia eikä prosenttitehon kaavaa suoraan:
-    // yhden toiston arvio lasketaan aina toistopainolaskurin kaavalla siitä, mitä liikkeestä
-    // on tosiasiassa viimeksi kirjattu — riippumatta siitä, mikä sen päivän teho oli.
+    // Sama sääntö jokaiselle liikkeelle: yhden toiston arvio lasketaan aina
+    // toistopainolaskurin kaavalla siitä, mitä liikkeestä on viimeksi kirjattu.
     var norm = name.trim().toLowerCase();
     var K = movementConstant(name);
     var lastEntry = state.lastSet[norm];
@@ -640,7 +582,6 @@
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
       var bestSet = null, bestSetAt = "";
-      var bestMax = null, bestMaxAt = "";
       for(var i=0;i<keys.length;i++){
         var date = keys[i].replace("entries:", "");
         var entry = await loadEntry(date);
@@ -649,25 +590,12 @@
           var ek = exKeys[j];
           var data = entry.exercises[ek];
           if((data.name || "").trim().toLowerCase() !== norm) continue;
-          var kind;
-          if("kind" in data){ kind = data.kind; }
-          else{ var srcEx = findExerciseById(ek); kind = (srcEx && srcEx.intensity) ? (srcEx.intensity.isMax ? "max" : "percent") : "plain"; }
           var at = data.loggedAt || date;
           if(at > bestSetAt){ bestSetAt = at; bestSet = { sets: data.sets, date: date }; }
-          if(kind === "max"){
-            var best = 0, bestReps = null;
-            (data.sets || []).forEach(function(s){
-              var w = toNumber(s.weight);
-              if(isFinite(w) && w > best){ best = w; var r = toNumber(s.reps); bestReps = isFinite(r) ? r : null; }
-            });
-            if(best > 0 && at > bestMaxAt){ bestMaxAt = at; bestMax = { weight: best, reps: bestReps, date: date, source: "logged" }; }
-          }
         }
       }
       if(bestSet){ state.lastSet[norm] = bestSet; } else { delete state.lastSet[norm]; }
-      if(bestMax){ state.knownMax[norm] = bestMax; } else { delete state.knownMax[norm]; }
       await saveLastSet();
-      await saveKnownMax();
     }catch(e){ /* hiljainen virhe, ei kriittinen */ }
   }
 
@@ -913,7 +841,6 @@
   async function resetAll(){
     try{
       await storeDelete(STORAGE_PROGRAM_KEY);
-      await storeDelete(STORAGE_MAX_KEY);
       await storeDelete(STORAGE_LASTSET_KEY);
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
@@ -926,7 +853,6 @@
     state.historyDates = undefined;
     state.historyCache = {};
     state.confirmingReset = false;
-    state.knownMax = {};
     state.lastSet = {};
     state.autoCalcInfo = {};
     state.dirtySets = {};
@@ -1054,9 +980,7 @@
   function autoCalcHint(info, id){
     if(!info) return "";
     var text;
-    if(info.type === "max"){
-      text = "Painot laskettu maksimista " + String(info.weight).replace(".", ",") + " kg (" + info.date + ") — muokattavissa.";
-    } else if(info.type === "same"){
+    if(info.type === "same"){
       text = "Sama paino kuin edellisellä kerralla (" + info.date + ") — muokattavissa.";
     } else if(info.type === "formula"){
       text = "Paino arvioitu edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + ") sarjapainolaskurin kaavalla — muokattavissa.";
@@ -1207,38 +1131,11 @@
       '<span class="chevron" style="display:inline-block;' + (expanded ? "transform:rotate(90deg);color:var(--brass);" : "") + '">›</span>' +
       '</div>' + inner + '</div>';
   }
-  function renderKnownMaxList(){
-    var names = Object.keys(state.knownMax);
-    if(names.length === 0){
-      return '<div style="color:var(--mist); font-size:13px; margin-bottom:6px;">Ei vielä tallennettuja maksimeja.</div>';
-    }
-    return names.sort().map(function(key){
-      var entry = state.knownMax[key];
-      var manualTag = (entry.source === "manual")
-        ? '<div style="font-size:10.5px; color:var(--mist); margin-top:1px;">Käsin syötetty</div>'
-        : '';
-      return '<div class="ledger-row" style="grid-template-columns:1fr auto 24px; border-bottom:1px dashed var(--line); padding:8px 0;">' +
-        '<div><div style="font-size:14px;">' + escapeHtml(capitalize(key)) + '</div>' + manualTag + '</div>' +
-        '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:14px; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>' +
-        '<button class="remove-set" data-delete-max data-name="' + escapeHtml(key) + '" type="button" aria-label="Poista maksimi">' + (state.confirmingDeleteMax === key ? "✓" : "×") + '</button>' +
-        '</div>';
-    }).join("");
-  }
   function renderAsetukset(){
     return '<div class="day-heading">Ohjelma</div>' +
       '<div class="exercise" style="padding:16px;">' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Tuo uusi CSV korvataksesi nykyisen ohjelman. Aiemmat merkinnät säilyvät ennallaan.</p>' +
       '<input type="file" accept=".csv" id="csv-input-settings">' +
-      '</div>' +
-      '<div class="day-heading">Liikkeiden maksimit</div>' +
-      '<div class="exercise" style="padding:16px;">' +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Kun kirjaat MAX-tehoisen sarjan, sen paino tallentuu tähän automaattisesti ja sitä käytetään prosenttitehoisten sarjojen painojen laskennassa. Voit myös lisätä tai korjata maksimin käsin.</p>' +
-      renderKnownMaxList() +
-      '<div style="display:flex; gap:8px; margin-top:12px;">' +
-      '<input type="text" id="max-name-input" class="ledger-input" placeholder="Liikkeen nimi" style="flex:1.4;">' +
-      '<input type="text" id="max-weight-input" class="ledger-input" inputmode="decimal" placeholder="kg" style="flex:0.8;">' +
-      '</div>' +
-      '<button class="btn-secondary" id="save-max-btn" type="button" style="margin-top:10px;">Tallenna maksimi</button>' +
       '</div>' +
       '<div class="day-heading">Vienti ja tuonti</div>' +
       '<div class="exercise" style="padding:16px;">' +
@@ -1348,30 +1245,6 @@
       else{ await deleteHistoryEntry(d); }
       return;
     }
-    if((el = e.target.closest("#save-max-btn"))){
-      var nameInput = document.getElementById("max-name-input");
-      var weightInput = document.getElementById("max-weight-input");
-      var mName = nameInput.value.trim();
-      var mWeight = toNumber(weightInput.value);
-      if(!mName){ showToast("Kirjoita liikkeen nimi"); return; }
-      if(!isFinite(mWeight) || mWeight <= 0){ showToast("Kirjoita kelvollinen paino"); return; }
-      state.knownMax[mName.toLowerCase()] = { weight: mWeight, date: todayISO(), source: "manual" };
-      await saveKnownMax();
-      nameInput.value = ""; weightInput.value = "";
-      showToast("Maksimi tallennettu");
-      render();
-      return;
-    }
-    if((el = e.target.closest("[data-delete-max]"))){
-      var mKey = el.dataset.name;
-      if(state.confirmingDeleteMax !== mKey){ state.confirmingDeleteMax = mKey; render(); return; }
-      delete state.knownMax[mKey];
-      await saveKnownMax();
-      state.confirmingDeleteMax = null;
-      showToast("Maksimi poistettu");
-      render();
-      return;
-    }
   });
 
   app.addEventListener("change", function(e){
@@ -1422,10 +1295,6 @@
           migrated = true;
         }
         (day.exercises || []).forEach(function(ex){
-          if(!("intensity" in ex)){
-            ex.intensity = parseIntensity(ex.notes);
-            migrated = true;
-          }
           if(!("unit" in ex)){ ex.unit = ""; migrated = true; }
         });
       });
@@ -1439,10 +1308,6 @@
         try{ await saveProgram(); }catch(e){}
       }
     }
-    try{
-      var maxRes = await storeGet(STORAGE_MAX_KEY);
-      if(maxRes && maxRes.value) state.knownMax = JSON.parse(maxRes.value);
-    }catch(e){}
     try{
       var lastRes = await storeGet(STORAGE_LASTSET_KEY);
       if(lastRes && lastRes.value) state.lastSet = JSON.parse(lastRes.value);
