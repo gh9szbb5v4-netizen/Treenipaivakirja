@@ -92,6 +92,9 @@
   var STORAGE_PROGRAM_KEY = "workout-program";
   var STORAGE_LASTSET_KEY = "last-set-log";
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
+  var STORAGE_SIMULATION_KEY = "simulation-state";
+  var SIMULATION_GROWTH = 0.30;
+  var SIMULATION_DAY_SPACING = 2;
 
   var ALIASES = {
     week: ["viikko","week","vko"],
@@ -125,6 +128,8 @@
     autoCalcInfo: {},
     dirtySets: {},
     confirmingDeleteMax: null,
+    simulation: { active: false, dates: [] },
+    simulationBusy: false,
     kehitys: undefined,
     kehitysLoading: false,
     storageMode: "claude",
@@ -392,6 +397,10 @@
   async function saveManualMax(){
     try{ await storeSet(STORAGE_MANUAL_MAX_KEY, JSON.stringify(state.manualMax)); }
     catch(e){ showToast("1RM:n tallennus epäonnistui"); }
+  }
+  async function saveSimulationState(){
+    try{ await storeSet(STORAGE_SIMULATION_KEY, JSON.stringify(state.simulation)); }
+    catch(e){ /* hiljainen virhe, ei kriittinen */ }
   }
 
   // ---------- data helpers ----------
@@ -687,6 +696,165 @@
     }catch(e){ /* hiljainen virhe, ei kriittinen */ }
   }
 
+  async function rebuildManualMaxForName(name){
+    var norm = name.trim().toLowerCase();
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var bestMax = null, bestMaxAt = "";
+      for(var i=0;i<keys.length;i++){
+        var date = keys[i].replace("entries:", "");
+        var entry = await loadEntry(date);
+        var exKeys = Object.keys(entry.exercises || {});
+        for(var j=0;j<exKeys.length;j++){
+          var ek = exKeys[j];
+          var data = entry.exercises[ek];
+          if((data.name || "").trim().toLowerCase() !== norm) continue;
+          var srcEx = findExerciseById(ek);
+          if(!(srcEx && srcEx.intensity && srcEx.intensity.isMax)) continue;
+          var best = 0;
+          (data.sets || []).forEach(function(s){ var w = toNumber(s.weight); if(isFinite(w) && w > best) best = w; });
+          var at = data.loggedAt || date;
+          if(best > 0 && at > bestMaxAt){ bestMaxAt = at; bestMax = { weight: best, date: date }; }
+        }
+      }
+      if(bestMax){ state.manualMax[norm] = bestMax; } else { delete state.manualMax[norm]; }
+    }catch(e){ /* hiljainen virhe, ei kriittinen */ }
+  }
+
+  // ---------- simulointi ----------
+  // Täyttää koko ohjelman synteettisillä merkinnöillä, jotta Historia- ja
+  // Kehitys-näkymiä voi tarkastella ilman että treenejä oikeasti kirjaa.
+  // Painot kasvavat lineaarisesti ohjelman ensimmäisestä päivästä viimeiseen
+  // niin, että viimeinen päivä on SIMULATION_GROWTH (30 %) korkeampi kuin
+  // ensimmäinen — sama kaava jota sovellus muutenkin käyttää (MAX-teholle
+  // suoraan arvo, prosenttiteholle osuus siitä, tehottomalle liikkeelle
+  // kasvava paino samalla toistomäärällä kuin ohjelmassa on tavoitteena).
+  function simulationBaseline(name){
+    var n = String(name).toLowerCase();
+    if(n.indexOf("penkki") !== -1 || n.indexOf("bench") !== -1) return 60;
+    if(n.indexOf("kyykky") !== -1 || n.indexOf("squat") !== -1) return 90;
+    if(n.indexOf("maasta") !== -1 || n.indexOf("deadlift") !== -1) return 110;
+    var hash = 0;
+    for(var i=0;i<n.length;i++){ hash = (hash*31 + n.charCodeAt(i)) >>> 0; }
+    return 15 + (hash % 26);
+  }
+  async function runSimulation(){
+    if(state.simulationBusy) return;
+    if(!state.program || !state.program.days || state.program.days.length === 0){
+      showToast("Tuo ensin treeniohjelma");
+      return;
+    }
+    state.simulationBusy = true;
+    render();
+    try{
+      var res = await storeList("entries:");
+      var existing = (res && res.keys) || [];
+      if(existing.length > 0){
+        showToast("Simulointia ei voi käynnistää, koska merkintöjä on jo tallennettu.", 4200);
+        return;
+      }
+      var days = state.program.days;
+      var total = days.length;
+      var todayD = new Date();
+      var simDates = [];
+      for(var i=0;i<total;i++){
+        var day = days[i];
+        var offsetDays = (total - 1 - i) * SIMULATION_DAY_SPACING;
+        var d = new Date(todayD);
+        d.setDate(d.getDate() - offsetDays);
+        var dateISO = toLocalISO(d);
+        var growth = 1 + SIMULATION_GROWTH * (total > 1 ? (i / (total - 1)) : 1);
+        var entry = { date: dateISO, exercises: {} };
+        var hasAny = false;
+        day.exercises.forEach(function(ex){
+          if(isCombo(ex.name)) return;
+          var normName = ex.name.trim().toLowerCase();
+          var explicitCount = parseInt(ex.sets, 10);
+          var count = (explicitCount && explicitCount > 0) ? explicitCount : 1;
+          var targetReps = toNumber(ex.reps);
+          var repsVal = isFinite(targetReps) ? targetReps : 1;
+          var sets = [];
+          if(ex.intensity && ex.intensity.isMax){
+            var weight = roundToStep(simulationBaseline(ex.name) * growth, 2.5);
+            for(var k=0;k<count;k++){ sets.push({ weight: String(weight), reps: String(repsVal), notes: "" }); }
+            state.manualMax[normName] = { weight: weight, date: dateISO };
+          } else if(ex.intensity){
+            var maxEntry = state.manualMax[normName];
+            if(!maxEntry) return;
+            var percents = ex.intensity.percents || [];
+            for(var k2=0;k2<count;k2++){
+              var pct = percents.length ? (percents[k2] !== undefined ? percents[k2] : percents[percents.length-1]) : 100;
+              sets.push({ weight: String(roundToStep(maxEntry.weight * pct / 100, 2.5)), reps: String(repsVal), notes: "" });
+            }
+          } else {
+            var weight2 = roundToStep(simulationBaseline(ex.name) * growth, 2.5);
+            for(var k3=0;k3<count;k3++){ sets.push({ weight: String(weight2), reps: String(repsVal), notes: "" }); }
+          }
+          if(sets.length === 0) return;
+          entry.exercises[ex.id] = { name: ex.name, sets: sets, loggedAt: dateISO + "T12:00:00.000Z" };
+          if(!isCombo(ex.name)){
+            state.lastSet[normName] = { sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }), date: dateISO };
+          }
+          hasAny = true;
+        });
+        if(hasAny){
+          await storeSet("entries:" + dateISO, JSON.stringify(entry));
+          simDates.push(dateISO);
+        }
+      }
+      await saveLastSet();
+      await saveManualMax();
+      state.simulation = { active: true, dates: simDates };
+      await saveSimulationState();
+      state.historyDates = undefined;
+      state.historyCache = {};
+      state.kehitys = undefined;
+      state.todayEntry = await loadEntry(state.draftDate);
+      showToast("Simulointi käynnistetty — " + simDates.length + " päivää täytetty");
+    }catch(e){
+      showToast("Simulointi epäonnistui: " + ((e && e.message) || String(e)), 4200);
+    }finally{
+      state.simulationBusy = false;
+      render();
+    }
+  }
+  async function stopSimulation(){
+    if(state.simulationBusy) return;
+    state.simulationBusy = true;
+    render();
+    try{
+      var dates = (state.simulation && state.simulation.dates) || [];
+      var names = {};
+      for(var i=0;i<dates.length;i++){
+        var entry = await loadEntry(dates[i]);
+        Object.keys(entry.exercises || {}).forEach(function(ek){
+          var nm = (entry.exercises[ek].name || "").trim().toLowerCase();
+          if(nm) names[nm] = true;
+        });
+        await storeDelete("entries:" + dates[i]);
+      }
+      var nameList = Object.keys(names);
+      for(var j=0;j<nameList.length;j++){
+        await rebuildTrackersForName(nameList[j]);
+        await rebuildManualMaxForName(nameList[j]);
+      }
+      await saveManualMax();
+      state.simulation = { active: false, dates: [] };
+      await saveSimulationState();
+      state.historyDates = undefined;
+      state.historyCache = {};
+      state.kehitys = undefined;
+      state.todayEntry = await loadEntry(state.draftDate);
+      showToast("Simulointi sammutettu ja poistettu");
+    }catch(e){
+      showToast("Simuloinnin sammutus epäonnistui: " + ((e && e.message) || String(e)), 4200);
+    }finally{
+      state.simulationBusy = false;
+      render();
+    }
+  }
+
   async function changeLogDate(newDate){
     state.draftDate = newDate;
     state.draftSets = {};
@@ -931,6 +1099,7 @@
       await storeDelete(STORAGE_PROGRAM_KEY);
       await storeDelete(STORAGE_LASTSET_KEY);
       await storeDelete(STORAGE_MANUAL_MAX_KEY);
+      await storeDelete(STORAGE_SIMULATION_KEY);
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
       for(var i=0;i<keys.length;i++){ await storeDelete(keys[i]); }
@@ -944,6 +1113,7 @@
     state.confirmingReset = false;
     state.lastSet = {};
     state.manualMax = {};
+    state.simulation = { active: false, dates: [] };
     state.autoCalcInfo = {};
     state.dirtySets = {};
     state.kehitys = undefined;
@@ -1365,6 +1535,15 @@
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Palauta aiemmin viety varmuuskopio tai siirrä historiasi toiselta laitteelta. Jo olemassa olevat merkinnät ohitetaan, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.</p>' +
       '<input type="file" accept=".csv" id="import-entries-input">' +
       '</div>' +
+      '<div class="day-heading">Simulointi</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Täyttää koko ohjelman synteettisillä merkinnöillä, joissa treenattavan fyysinen kunto kasvaa noin 30 % ohjelman ensimmäisestä päivästä viimeiseen. Kätevä Historian ja Kehityksen kokeiluun ilman oikeaa kirjaamista.</p>' +
+      (state.simulation.active
+        ? '<p style="color:var(--brass); font-size:12.5px; line-height:1.5; margin:0 0 12px;">Simulointi on käynnissä (' + state.simulation.dates.length + ' päivää täytetty). Sammuttaminen poistaa kaikki simuloidut merkinnät.</p>'
+        : '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 0 12px;">Käynnistäminen onnistuu vain, jos yhtään merkintää ei ole vielä tallennettu.</p>') +
+      '<button class="btn-secondary" id="simulation-toggle-btn" type="button"' + (state.simulationBusy ? ' disabled' : '') + (state.simulation.active ? ' style="color:var(--danger); border-color:var(--danger);"' : '') + '>' +
+      (state.simulationBusy ? "Käsitellään…" : (state.simulation.active ? "Sammuta simulointi" : "Käynnistä simulointi")) + '</button>' +
+      '</div>' +
       '<div class="day-heading">Vaarallinen alue</div>' +
       '<div class="exercise" style="padding:16px;">' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Poistaa ohjelman ja kaikki kirjatut merkinnät pysyvästi.</p>' +
@@ -1454,6 +1633,12 @@
       return;
     }
     if((el = e.target.closest("#export-btn"))){ await exportAllCSV(); return; }
+    if((el = e.target.closest("#simulation-toggle-btn"))){
+      if(state.simulationBusy) return;
+      if(state.simulation.active){ await stopSimulation(); }
+      else{ await runSimulation(); }
+      return;
+    }
     if((el = e.target.closest("#reset-btn"))){
       if(!state.confirmingReset){ state.confirmingReset = true; render(); }
       else{ await resetAll(); }
@@ -1564,6 +1749,10 @@
     try{
       var manualMaxRes = await storeGet(STORAGE_MANUAL_MAX_KEY);
       if(manualMaxRes && manualMaxRes.value) state.manualMax = JSON.parse(manualMaxRes.value);
+    }catch(e){}
+    try{
+      var simRes = await storeGet(STORAGE_SIMULATION_KEY);
+      if(simRes && simRes.value) state.simulation = JSON.parse(simRes.value);
     }catch(e){}
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
