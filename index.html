@@ -475,12 +475,13 @@
 
   function calculateOneRepMax(name){
     // Sama sääntö jokaiselle liikkeelle: yhden toiston arvio lasketaan aina
-    // toistopainolaskurin kaavalla siitä, mitä liikkeestä on viimeksi kirjattu.
+    // toistopainolaskurin kaavalla liikkeen viimeisimmän merkinnän ENSIMMÄISESTÄ
+    // sarjasta — saman päivän muita sarjoja ei oteta laskennassa huomioon.
     var norm = name.trim().toLowerCase();
     var K = movementConstant(name);
     var lastEntry = state.lastSet[norm];
     if(lastEntry && lastEntry.sets && lastEntry.sets.length){
-      var refSet = lastEntry.sets[lastEntry.sets.length - 1];
+      var refSet = lastEntry.sets[0];
       var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
       if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
         var computed = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
@@ -508,11 +509,12 @@
           var norm = name.toLowerCase();
           // Sama toistopainolaskurin kaava jokaiselle merkinnälle riippumatta siitä,
           // oliko sen teho MAX, prosentti vai vapaa — ei erillistä MAX-oikotietä.
+          // Vain päivän ENSIMMÄINEN sarja lasketaan mukaan, ei muita saman päivän sarjoja.
           var K = movementConstant(name);
           var value = null;
           var sets = data.sets || [];
           if(sets.length){
-            var refSet = sets[sets.length - 1];
+            var refSet = sets[0];
             var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
             if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
               value = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
@@ -1039,7 +1041,7 @@
     }).join("");
     return '<div class="day-heading">Laskennalliset 1 toiston maksimit</div>' +
       '<div class="exercise" style="padding:16px; margin-bottom:14px;">' +
-      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän tallennetun merkinnän perusteella.</p>' +
+      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän tallennetun merkinnän ensimmäisen sarjan perusteella.</p>' +
       rows +
       '</div>';
   }
