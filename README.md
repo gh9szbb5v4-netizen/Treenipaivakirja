@@ -39,7 +39,9 @@ Viikko;Treenipäivä;Liike;Sarjat;Toistot;Yksiköt;Teho
 
 Sovellus ehdottaa painon kahdella eri säännöllä sen mukaan, onko liikkeelle määritelty teho. Ehdotus on aina muokattavissa, ja ledgerin yläpuolella kerrotaan, mihin se perustuu.
 
-**Liikkeellä on teho (MAX tai prosentti).** Painoehdotus lasketaan Asetukset-välilehdellä manuaalisesti syötetystä liikkeen 1RM-arvosta — ei liikkeen aiemmista merkinnöistä. `MAX`-teholle ehdotetaan suoraan 1RM:ää; prosenttiteholle (esim. `90 %`) ehdotetaan kyseinen prosenttiosuus 1RM:stä. Jos liikkeelle ei ole syötetty 1RM-arvoa, ehdotus jää tyhjäksi.
+**Liikkeellä on teho (MAX tai prosentti).** Painoehdotus lasketaan liikkeen 1RM-arvosta — ei liikkeen aiemmista merkinnöistä. `MAX`-teholle ehdotetaan suoraan 1RM:ää; prosenttiteholle (esim. `90 %`) ehdotetaan kyseinen prosenttiosuus 1RM:stä. Jos liikkeelle ei ole vielä 1RM-arvoa, ehdotus jää tyhjäksi.
+
+1RM-arvoa voi muokata milloin tahansa käsin Asetukset-välilehdellä, mutta se päivittyy myös automaattisesti: kun kirjaat merkinnän `MAX`-teholliselle liikkeelle, sen ensimmäisen sarjan paino tallentuu 1RM:ksi ja korvaa Asetuksiin aiemmin tallennetun arvon.
 
 **Liikkeellä ei ole tehoa.** Ehdotus perustuu liikkeen **viimeksi kirjattuun sarjaan**. Jos sen toistomäärä vastaa ohjelman tavoitetta, ehdotetaan samaa painoa. Jos toistoja tuli enemmän tai vähemmän, uusi paino lasketaan kaavalla
 

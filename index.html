@@ -509,11 +509,21 @@
       };
       await saveLastSet();
     }
+    var maxUpdated = false;
+    if(ex.intensity && ex.intensity.isMax){
+      var maxWeight = toNumber(sets[0].weight);
+      if(isFinite(maxWeight) && maxWeight > 0){
+        // Uusi kirjattu MAX-arvo korvaa aina Asetuksiin tallennetun vanhan 1RM:n.
+        state.manualMax[ex.name.trim().toLowerCase()] = { weight: maxWeight, date: state.draftDate };
+        await saveManualMax();
+        maxUpdated = true;
+      }
+    }
     try{
       await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry));
       delete state.dirtySets[id];
       state.kehitys = undefined;
-      showToast("Merkintä tallennettu");
+      showToast(maxUpdated ? "Tallennettu — 1RM päivitetty Asetuksiin" : "Merkintä tallennettu");
       state.openExercise = null;
       render();
     }catch(e){
