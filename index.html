@@ -506,7 +506,7 @@
         maxUpdated = true;
       }
     }
-    if(!isCombo(ex.name)){
+    if(!isCombo(ex.name) && kind === "plain"){
       state.lastSet[ex.name.trim().toLowerCase()] = {
         sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }),
         date: state.draftDate
@@ -527,29 +527,21 @@
   }
 
   function calculateOneRepMax(name){
+    // Todellinen testattu maksimi (MAX-teho) ja siitä lasketut prosenttisarjat eivät kelpaa
+    // tähän: ne eivät ole riippumatonta näyttöä, joten yhden toiston arvio lasketaan aina
+    // toistopainolaskurin kaavalla liikkeen viimeisimmästä ilman tehoarvoa kirjatusta sarjasta.
     var norm = name.trim().toLowerCase();
     var K = movementConstant(name);
-    var maxResult = null;
-    var maxEntry = state.knownMax[norm];
-    if(maxEntry && isFinite(maxEntry.weight)){
-      var maxReps = isFinite(maxEntry.reps) ? maxEntry.reps : 1;
-      var value = (maxReps === 1) ? maxEntry.weight : roundToStep(maxEntry.weight * (1 + maxReps/K) / (1 + 1/K), 2.5);
-      maxResult = { value: value, date: maxEntry.date, basis: "max", manual: (maxEntry.source === "manual") };
-    }
-    var lastResult = null;
     var lastEntry = state.lastSet[norm];
     if(lastEntry && lastEntry.sets && lastEntry.sets.length){
       var refSet = lastEntry.sets[lastEntry.sets.length - 1];
       var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
       if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
         var computed = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
-        lastResult = { value: computed, date: lastEntry.date, basis: "lastset" };
+        return { value: computed, date: lastEntry.date, basis: "lastset" };
       }
     }
-    // Käytetään sitä perustaa, joka on viimeksi tallennettu — muuten maksimi
-    // jää junnaamaan vanhaan MAX-merkintään, vaikka uudempi sarja kertoisi enemmän.
-    if(lastResult && (!maxResult || lastResult.date > maxResult.date)) return lastResult;
-    return maxResult;
+    return null;
   }
 
   async function buildAllOneRepMaxSeries(){
@@ -571,26 +563,17 @@
           var kind;
           if("kind" in data){ kind = data.kind; }
           else{ var srcEx = findExerciseById(ek); kind = (srcEx && srcEx.intensity) ? (srcEx.intensity.isMax ? "max" : "percent") : "plain"; }
+          // MAX-sarjat ja niistä lasketut prosenttisarjat eivät kelpaa kehityksen
+          // laskentaan — vain ilman tehoarvoa kirjatut sarjat käyvät toistopainolaskurille.
+          if(kind !== "plain") continue;
           var K = movementConstant(name);
           var value = null;
-          if(kind === "max"){
-            var best = 0, bestReps = null;
-            (data.sets || []).forEach(function(s){
-              var w = toNumber(s.weight);
-              if(isFinite(w) && w > best){ best = w; var r = toNumber(s.reps); bestReps = isFinite(r) ? r : null; }
-            });
-            if(best > 0){
-              var reps1 = (bestReps === null) ? 1 : bestReps;
-              value = (reps1 === 1) ? best : roundToStep(best * (1 + reps1/K) / (1 + 1/K), 2.5);
-            }
-          } else {
-            var sets = data.sets || [];
-            if(sets.length){
-              var refSet = sets[sets.length - 1];
-              var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
-              if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
-                value = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
-              }
+          var sets = data.sets || [];
+          if(sets.length){
+            var refSet = sets[sets.length - 1];
+            var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
+            if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
+              value = (refReps === 1) ? refWeight : roundToStep(refWeight * (1 + refReps/K) / (1 + 1/K), 2.5);
             }
           }
           if(value === null) continue;
@@ -670,12 +653,12 @@
           var ek = exKeys[j];
           var data = entry.exercises[ek];
           if((data.name || "").trim().toLowerCase() !== norm) continue;
+          var kind;
+          if("kind" in data){ kind = data.kind; }
+          else{ var srcEx = findExerciseById(ek); kind = (srcEx && srcEx.intensity) ? (srcEx.intensity.isMax ? "max" : "percent") : "plain"; }
           var at = data.loggedAt || date;
-          if(at > bestSetAt){ bestSetAt = at; bestSet = { sets: data.sets, date: date }; }
-          var isMaxBlock;
-          if("kind" in data){ isMaxBlock = data.kind === "max"; }
-          else{ var srcEx = findExerciseById(ek); isMaxBlock = !!(srcEx && srcEx.intensity && srcEx.intensity.isMax); }
-          if(isMaxBlock){
+          if(kind === "plain" && at > bestSetAt){ bestSetAt = at; bestSet = { sets: data.sets, date: date }; }
+          if(kind === "max"){
             var best = 0, bestReps = null;
             (data.sets || []).forEach(function(s){
               var w = toNumber(s.weight);
@@ -1119,23 +1102,20 @@
       '</div>';
   }
   function renderOneRepMaxSection(){
-    var namesMap = {};
-    Object.keys(state.knownMax).forEach(function(k){ namesMap[k] = true; });
-    Object.keys(state.lastSet).forEach(function(k){ namesMap[k] = true; });
-    var names = Object.keys(namesMap).sort();
+    var names = Object.keys(state.lastSet).sort();
     if(names.length === 0) return "";
     var rows = names.map(function(name){
       var result = calculateOneRepMax(name);
       if(!result) return "";
       return '<div class="ledger-row" style="grid-template-columns:1fr auto; border-bottom:1px dashed var(--line); padding:8px 0;">' +
         '<div><div style="font-size:14px;">' + escapeHtml(capitalize(name)) + '</div>' +
-        '<div style="font-size:11px; color:var(--mist); margin-top:2px;">' + result.date + (result.manual ? " · Käsin syötetty" : "") + '</div></div>' +
+        '<div style="font-size:11px; color:var(--mist); margin-top:2px;">' + result.date + '</div></div>' +
         '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:15px;">' + String(result.value).replace(".", ",") + ' kg</div>' +
         '</div>';
     }).join("");
     return '<div class="day-heading">Laskennalliset 1 toiston maksimit</div>' +
       '<div class="exercise" style="padding:16px; margin-bottom:14px;">' +
-      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän tallennetun merkinnän perusteella.</p>' +
+      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän ilman tehoarvoa kirjatun merkinnän perusteella. MAX-sarjat ja niistä lasketut prosenttisarjat eivät vaikuta tähän arvioon.</p>' +
       rows +
       '</div>';
   }
