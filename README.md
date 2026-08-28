@@ -24,24 +24,21 @@ Ainoa pakollinen sarake on liikkeen nimi. Muut sarakkeet tunnistetaan automaatti
 | Sarjat | `Sarjat`, `Sets` | Ledgeriin luotavien rivien määrä |
 | Toistot | `Toistot`, `Reps` | Tavoitetoistot |
 | Yksiköt | `Yksiköt`, `Unit` | Esim. `toistoa`, `min`, `käsi` |
-| Teho | `Teho`, `Intensity` | `MAX` tai prosentti, esim. `90 %` |
+| Teho | `Teho`, `Intensity` | Vapaa huomautusteksti (esim. `MAX`, `90 %`) — näytetään liikkeen yhteydessä, ei vaikuta laskentaan |
 
 Esimerkki:
 
 ```csv
-Viikko;Treenipäivä;Liike;Sarjat;Toistot;Yksiköt;Teho
-1;1;Penkkipunnerrus;1;1;toistoa;MAX
-1;1;Penkkipunnerrus;2;2;toistoa;90 %
-1;1;Peck deck;3;10;toistoa;
+Viikko;Treenipäivä;Liike;Sarjat;Toistot;Yksiköt
+1;1;Penkkipunnerrus;4;5;toistoa
+1;1;Peck deck;3;10;toistoa
 ```
 
 ## Sarjapainojen laskenta
 
-Sovellus ehdottaa painot automaattisesti kahdella eri logiikalla. Ehdotukset ovat aina muokattavissa, ja ledgerin yläpuolella kerrotaan, mihin kukin ehdotus perustuu.
+Sovellus ehdottaa painon samalla säännöllä jokaiselle liikkeelle, riippumatta siitä mitä liikkeestä on aiemmin kirjattu. Ehdotus on aina muokattavissa, ja ledgerin yläpuolella kerrotaan, mihin se perustuu.
 
-**Teho ilmoitettu prosenttina.** Paino lasketaan prosenttiosuutena *toteutuneesta* maksimista eli siitä painosta, jonka olet itse kirjannut liikkeen `MAX`-sarjaan. Laskennallista arviota ei tässä käytetä. Jos maksimi on testattu useammalla kuin yhdellä toistolla, se normalisoidaan ensin yhteen toistoon.
-
-**Ei tehotietoa.** Paino perustuu edellisen merkinnän **viimeiseen sarjaan**. Jos sen toistomäärä vastaa ohjelman tavoitetta, ehdotetaan samaa painoa. Jos toistoja tuli enemmän tai vähemmän, uusi paino lasketaan kaavalla
+Ehdotus perustuu liikkeen **viimeksi kirjattuun sarjaan**. Jos sen toistomäärä vastaa ohjelman tavoitetta, ehdotetaan samaa painoa. Jos toistoja tuli enemmän tai vähemmän, uusi paino lasketaan kaavalla
 
 ```
 paino = MROUND( edellinen_paino × (1 + edelliset_toistot / K) / (1 + tavoitetoistot / K) , 2,5 )
@@ -49,17 +46,19 @@ paino = MROUND( edellinen_paino × (1 + edelliset_toistot / K) / (1 + tavoitetoi
 
 jossa `K` määräytyy liikkeen mukaan: penkki 30, kyykky 28, maastaveto 40, muut liikkeet 30.
 
+Sama kaava on myös Historia- ja Kehitys-välilehtien laskennallisen 1 toiston maksimin perusta: se lasketaan aina liikkeen viimeksi kirjatusta sarjasta, samalla säännöllä jokaiselle liikkeelle.
+
 Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punnerrus / Burpee, 12 min`), jätetään automaattilaskennan ulkopuolelle kokonaan.
 
 ## Välilehdet
 
 **Ohjelma.** Liikkeet viikoittain ja päivittäin. Liikkeen avaamalla kirjaat painot, toistot ja huomiot sarjoittain, ja näet nostetun kokonaispainon. Merkinnän voi kirjata myös takautuvasti päivämäärävalitsimella, ja ohjelmaan kuulumattoman liikkeen voi lisätä käsin.
 
-**Historia.** Merkinnät päivittäin sekä laskennalliset yhden toiston maksimit jokaiselle seuratulle liikkeelle. Yksittäisen päivän voi poistaa, jolloin maksimit ja painoehdotukset lasketaan uudelleen jäljellä olevasta historiasta.
+**Historia.** Merkinnät päivittäin sekä laskennalliset yhden toiston maksimit jokaiselle seuratulle liikkeelle. Yksittäisen päivän voi poistaa, jolloin painoehdotukset ja laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina. Liike näkyy, kun sille on vähintään kaksi merkintää.
 
-**Asetukset.** Uuden ohjelman tuonti, liikekohtaisten maksimien hallinta, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys.
+**Asetukset.** Uuden ohjelman tuonti, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys.
 
 ## Tietojen tallennus
 
@@ -67,7 +66,7 @@ Merkinnät tallennetaan selaimen omaan tallennustilaan ja säilyvät sovelluksen
 
 Tallennustila on laite- ja osoitekohtainen, joten merkinnät eivät siirry toiseen selaimeen, laitteeseen tai osoitteeseen automaattisesti. Siirto ja varmuuskopiointi tehdään Asetukset-välilehden vienti- ja tuontitoiminnoilla. Tuonti yhdistää tiedot olemassa oleviin merkintöihin ja ohittaa jo tallennetut, joten saman tiedoston voi tuoda turvallisesti useaan kertaan.
 
-Uuden treeniohjelman tuonti ei poista historiaa: merkinnät, maksimit ja painoehdotukset säilyvät liikkeen nimen perusteella, joten uusi ohjelmajakso jatkaa siitä mihin edellinen jäi.
+Uuden treeniohjelman tuonti ei poista historiaa: merkinnät ja painoehdotukset säilyvät liikkeen nimen perusteella, joten uusi ohjelmajakso jatkaa siitä mihin edellinen jäi.
 
 ## Rajoitukset
 
