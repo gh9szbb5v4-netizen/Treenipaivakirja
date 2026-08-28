@@ -65,6 +65,8 @@ Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punner
 
 **Asetukset.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
+**Ohje.** Tiivis käyttöohje: CSV:n muoto ja tuonti, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista välilehdistä. Näkyy myös ennen ensimmäistä CSV-tuontia linkkinä etusivulla.
+
 ## Tietojen tallennus
 
 Merkinnät tallennetaan selaimen omaan tallennustilaan ja säilyvät sovelluksen sulkemisen jälkeen. Mitään ei lähetetä palvelimelle — data ei koskaan poistu laitteeltasi, ja julkaistu sivu on pelkkä staattinen tiedosto.

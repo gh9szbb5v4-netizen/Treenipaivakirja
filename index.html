@@ -36,8 +36,8 @@
   .eyebrow{text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--brass); font-weight:700;}
   .date{font-size:26px; font-weight:800; letter-spacing:-0.01em; margin-top:5px; font-variant-numeric:tabular-nums;}
 
-  .tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px;}
-  .tab{flex:1; text-align:center; padding:10px 4px; font-size:12px; font-weight:700; color:var(--mist); text-transform:uppercase; letter-spacing:.08em; border-bottom:2px solid transparent; cursor:pointer;}
+  .tabs{display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:18px;}
+  .tab{flex:1; min-width:0; text-align:center; padding:10px 2px; font-size:10.5px; font-weight:700; color:var(--mist); text-transform:uppercase; letter-spacing:.02em; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .tab.active{color:var(--chalk); border-bottom-color:var(--brass);}
 
   .day-heading{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--mist); margin:20px 2px 8px; font-weight:700;}
@@ -983,24 +983,90 @@
     return html;
   }
   function renderTabs(){
-    var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["asetukset","Asetukset"]];
+    var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["asetukset","Asetukset"],["ohje","Ohje"]];
     return '<div class="tabs">' + tabs.map(function(t){
       return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '">' + t[1] + '</div>';
     }).join("") + '</div>';
   }
   function renderBody(){
     if(state.loading) return '<div class="empty">Ladataan…</div>';
+    if(state.view === "ohje") return renderOhje();
     if(!state.program) return renderUpload();
     if(state.view === "historia") return renderHistoria();
     if(state.view === "kehitys") return renderKehitys();
     if(state.view === "asetukset") return renderAsetukset();
     return renderOhjelma();
   }
+  function ohjeSection(title, bodyHtml){
+    return '<div class="day-heading">' + title + '</div>' +
+      '<div class="exercise" style="padding:16px;">' + bodyHtml + '</div>';
+  }
+  function ohjeP(text){
+    return '<p style="color:var(--mist); font-size:13px; line-height:1.6; margin:0 0 10px;">' + text + '</p>';
+  }
+  function ohjeList(items){
+    return '<ul style="color:var(--mist); font-size:13px; line-height:1.6; margin:0 0 10px; padding-left:18px;">' +
+      items.map(function(i){ return '<li>' + i + '</li>'; }).join("") + '</ul>';
+  }
+  function renderOhje(){
+    var html = '';
+    if(!state.program){
+      html += '<div style="margin-bottom:18px;"><span data-tab="ohjelma" style="color:var(--mist); font-size:13px; text-decoration:underline; cursor:pointer;">‹ Takaisin</span></div>';
+    }
+    html += ohjeSection("Mikä tämä on", ohjeP(
+      "Treenipäiväkirja lukee treeniohjelmasi CSV-tiedostosta, tallentaa jokaisen sarjan painot ja toistot, ja ehdottaa seuraavan kerran painot automaattisesti. Kaikki tieto tallentuu <b style=\"color:var(--chalk);\">tähän selaimeen tähän laitteeseen</b> — mitään ei lähetetä palvelimelle."
+    ));
+
+    html += ohjeSection("1. Tuo treeniohjelma", ohjeP(
+      "Lataa Asetukset-välilehdeltä (tai ensimmäisellä käyttökerralla suoraan etusivulta) treeniohjelmasi CSV-tiedostona. Ainoa pakollinen sarake on <b style=\"color:var(--chalk);\">liikkeen nimi</b> — muut tunnistetaan otsikon perusteella automaattisesti."
+    ) + ohjeList([
+      "<b style=\"color:var(--chalk);\">Viikko</b> ja <b style=\"color:var(--chalk);\">Treenipäivä</b> ryhmittelevät ohjelman.",
+      "<b style=\"color:var(--chalk);\">Sarjat</b> ja <b style=\"color:var(--chalk);\">Toistot</b> määrittävät kirjattavien rivien määrän ja tavoitteen.",
+      "<b style=\"color:var(--chalk);\">Teho</b>-sarakkeeseen <code>MAX</code> tai prosentti (esim. <code>90 %</code>) — ks. kohta 3.",
+      "Uusi CSV-tuonti korvaa ohjelman, mutta säilyttää kaiken jo kirjatun historian."
+    ]) + ohjeP(
+      "Jos liikkeiden nimet eivät näy tuonnin jälkeen, tarkista ettei mikään muu sarake (esim. \"Liikejärjestys\") satu alkamaan samalla sanalla kuin liike-sarakkeen otsikko."
+    ));
+
+    html += ohjeSection("2. Kirjaa treeni", ohjeP(
+      "Avaa liike Ohjelma-välilehdellä ja täytä kunkin sarjan paino ja toistot. Paino on aina valmiiksi ehdotettu ja muokattavissa. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen."
+    ) + ohjeP(
+      "Merkinnän voi kirjata myös takautuvasti vaihtamalla päivämäärää yläreunan valitsimesta, ja ohjelmaan kuulumattoman liikkeen voi lisätä listan alta kohdasta \"Lisää liikelistaan\"."
+    ));
+
+    html += ohjeSection("3. Painoehdotukset", ohjeP(
+      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus perustuu viime kerran viimeiseen sarjaan. Jos teit enemmän tai vähemmän toistoja kuin tavoite, paino lasketaan automaattisesti ylös- tai alaspäin."
+    ) + ohjeP(
+      "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
+    ));
+
+    html += ohjeSection("4. Historia ja Kehitys", ohjeP(
+      "<b style=\"color:var(--chalk);\">Historia</b> näyttää kaikki kirjatut päivät sekä laskennallisen yhden toiston maksimin jokaiselle liikkeelle. Yksittäisen päivän voi poistaa avaamalla sen."
+    ) + ohjeP(
+      "<b style=\"color:var(--chalk);\">Kehitys</b> näyttää jokaiselle liikkeelle muutoksen edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna. Näkyy kun liikkeelle on vähintään kaksi merkintää."
+    ));
+
+    html += ohjeSection("5. Asetukset", ohjeList([
+      "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
+      "<b style=\"color:var(--chalk);\">Vie merkinnät CSV:nä</b> — ota säännöllisesti varmuuskopio, sillä data on vain tässä selaimessa.",
+      "<b style=\"color:var(--chalk);\">Tuo merkinnät</b> — palauta varmuuskopio tai siirrä historia toiselle laitteelle.",
+      "<b style=\"color:var(--chalk);\">Tyhjennä kaikki tiedot</b> — poistaa pysyvästi kaiken. Kysyy vahvistuksen."
+    ]));
+
+    html += ohjeSection("Vinkkejä", ohjeList([
+      "Lisää sivu iPhonen Koti-valikkoon Safarin jakopainikkeesta — se avautuu kuin oma sovellus.",
+      "Tiedot eivät siirry laitteesta tai selaimesta toiseen automaattisesti — käytä vientiä ja tuontia.",
+      "Yksityinen selaus tai evästeiden esto voi estää tallennuksen; sovellus varoittaa tästä ruudun yläreunassa."
+    ]));
+
+    return html;
+  }
   function renderUpload(){
     return '<div class="upload-box">' +
       '<p>Tuo treeniohjelmasi CSV-tiedostona aloittaaksesi. Ainoa pakollinen sarake on liikkeen nimi; muut tunnistetaan automaattisesti sekä suomeksi että englanniksi.</p>' +
-      '<div class="csv-example">Päivä,Liike,Sarjat,Toistot,Paino,Huomiot<br>Maanantai,Penkkipunnerrus,4,5,100,</div>' +
+      '<div class="csv-example">Viikko;Treenipäivä;Liike;Sarjat;Toistot;Teho<br>1;1;Penkkipunnerrus;1;1;MAX<br>1;1;Penkkipunnerrus;2;3;90 %<br>1;1;Peck deck;3;10;</div>' +
       '<input type="file" accept=".csv" id="csv-input-initial">' +
+      '<div style="margin-top:14px; text-align:center;"><span data-tab="ohje" style="color:var(--mist); font-size:13px; text-decoration:underline; cursor:pointer;">Lue tarkemmat käyttöohjeet</span></div>' +
       '</div>';
   }
   function renderWeekStepper(){
