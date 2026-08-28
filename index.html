@@ -506,7 +506,7 @@
         maxUpdated = true;
       }
     }
-    if(!isCombo(ex.name) && kind === "plain"){
+    if(!isCombo(ex.name)){
       state.lastSet[ex.name.trim().toLowerCase()] = {
         sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }),
         date: state.draftDate
@@ -527,9 +527,9 @@
   }
 
   function calculateOneRepMax(name){
-    // Todellinen testattu maksimi (MAX-teho) ja siitä lasketut prosenttisarjat eivät kelpaa
-    // tähän: ne eivät ole riippumatonta näyttöä, joten yhden toiston arvio lasketaan aina
-    // toistopainolaskurin kaavalla liikkeen viimeisimmästä ilman tehoarvoa kirjatusta sarjasta.
+    // Ei käytetä MAX-tehon tallentamaa raakaa maksimia eikä prosenttitehon kaavaa suoraan:
+    // yhden toiston arvio lasketaan aina toistopainolaskurin kaavalla siitä, mitä liikkeestä
+    // on tosiasiassa viimeksi kirjattu — riippumatta siitä, mikä sen päivän teho oli.
     var norm = name.trim().toLowerCase();
     var K = movementConstant(name);
     var lastEntry = state.lastSet[norm];
@@ -560,12 +560,8 @@
           var name = (data.name || "").trim();
           if(!name || isCombo(name)) continue;
           var norm = name.toLowerCase();
-          var kind;
-          if("kind" in data){ kind = data.kind; }
-          else{ var srcEx = findExerciseById(ek); kind = (srcEx && srcEx.intensity) ? (srcEx.intensity.isMax ? "max" : "percent") : "plain"; }
-          // MAX-sarjat ja niistä lasketut prosenttisarjat eivät kelpaa kehityksen
-          // laskentaan — vain ilman tehoarvoa kirjatut sarjat käyvät toistopainolaskurille.
-          if(kind !== "plain") continue;
+          // Sama toistopainolaskurin kaava jokaiselle merkinnälle riippumatta siitä,
+          // oliko sen teho MAX, prosentti vai vapaa — ei erillistä MAX-oikotietä.
           var K = movementConstant(name);
           var value = null;
           var sets = data.sets || [];
@@ -657,7 +653,7 @@
           if("kind" in data){ kind = data.kind; }
           else{ var srcEx = findExerciseById(ek); kind = (srcEx && srcEx.intensity) ? (srcEx.intensity.isMax ? "max" : "percent") : "plain"; }
           var at = data.loggedAt || date;
-          if(kind === "plain" && at > bestSetAt){ bestSetAt = at; bestSet = { sets: data.sets, date: date }; }
+          if(at > bestSetAt){ bestSetAt = at; bestSet = { sets: data.sets, date: date }; }
           if(kind === "max"){
             var best = 0, bestReps = null;
             (data.sets || []).forEach(function(s){
@@ -1115,7 +1111,7 @@
     }).join("");
     return '<div class="day-heading">Laskennalliset 1 toiston maksimit</div>' +
       '<div class="exercise" style="padding:16px; margin-bottom:14px;">' +
-      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän ilman tehoarvoa kirjatun merkinnän perusteella. MAX-sarjat ja niistä lasketut prosenttisarjat eivät vaikuta tähän arvioon.</p>' +
+      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Sarjapainolaskurin kaavalla laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän tallennetun merkinnän perusteella.</p>' +
       rows +
       '</div>';
   }
