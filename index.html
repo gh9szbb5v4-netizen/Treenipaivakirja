@@ -94,7 +94,6 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var SIMULATION_GROWTH = 0.30;
-  var SIMULATION_DAY_SPACING = 2;
 
   var ALIASES = {
     week: ["viikko","week","vko"],
@@ -758,11 +757,22 @@
       var total = days.length;
       var todayD = new Date();
       var simDates = [];
+      // Neljä treeniä per kalenteriviikko (esim. ma/ke/pe/la-tyyppinen jako), jotta
+      // ohjelma jakautuu realistisesti usealle viikolle ja Kehitys-näkymään saadaan
+      // dataa myös yli kuukauden takaa vertailua varten. Viimeinen treeni osuu tälle päivälle.
+      var weekOffsets = [0, 2, 4, 5];
+      var perWeek = weekOffsets.length;
+      var totalWeeksNeeded = Math.ceil(total / perWeek);
+      var lastPosInFinalWeek = (total - 1) % perWeek;
+      var finalWeekStart = new Date(todayD);
+      finalWeekStart.setDate(finalWeekStart.getDate() - weekOffsets[lastPosInFinalWeek]);
       for(var i=0;i<total;i++){
         var day = days[i];
-        var offsetDays = (total - 1 - i) * SIMULATION_DAY_SPACING;
-        var d = new Date(todayD);
-        d.setDate(d.getDate() - offsetDays);
+        var weekIdx = Math.floor(i / perWeek);
+        var posInWeek = i % perWeek;
+        var weeksBeforeFinal = (totalWeeksNeeded - 1) - weekIdx;
+        var d = new Date(finalWeekStart);
+        d.setDate(d.getDate() - weeksBeforeFinal * 7 + weekOffsets[posInWeek]);
         var dateISO = toLocalISO(d);
         var growth = 1 + SIMULATION_GROWTH * (total > 1 ? (i / (total - 1)) : 1);
         var entry = { date: dateISO, exercises: {} };
@@ -971,7 +981,9 @@
         });
       }
       var csv = rows.map(function(r){ return r.map(function(v){ return '"' + String(v) + '"'; }).join(","); }).join("\n");
-      var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      // UTF-8-BOM eteen, jotta Excel (etenkin Windowsilla) ei arvaa merkistöksi
+      // ANSI/Windows-1252:tä ja muuta ä/ö-merkkejä symboleiksi tiedostoa avattaessa.
+      var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url; a.download = "treenipaivakirja_" + todayISO() + ".csv";
