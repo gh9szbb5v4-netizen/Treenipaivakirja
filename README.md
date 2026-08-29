@@ -51,7 +51,13 @@ paino = MROUND( edellinen_paino × (1 + edelliset_toistot / K) / (1 + tavoitetoi
 
 jossa `K` määräytyy liikkeen mukaan: penkki 30, kyykky 28, maastaveto 40, muut liikkeet 30.
 
-Historia- ja Kehitys-välilehtien laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM: se lasketaan aina samalla toistopainolaskurin kaavalla liikkeen viimeisimmän merkintäpäivän **ensimmäisestä** sarjasta, riippumatta siitä mitä liikkeelle sinä päivänä oli ohjelmoitu.
+Historia- ja Kehitys-välilehtien laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina Epley-kaavalla
+
+```
+1RM = paino × (1 + toistot / 30)
+```
+
+liikkeen viimeisimmän merkintäpäivän **ensimmäisestä** sarjasta, riippumatta siitä mitä liikkeelle sinä päivänä oli ohjelmoitu. Kaava on sama jokaiselle liikkeelle — toisin kuin yllä olevassa painoehdotuksen kaavassa, tässä ei käytetä liikekohtaista `K`-vakiota.
 
 Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punnerrus / Burpee, 12 min`), jätetään automaattilaskennan ulkopuolelle kokonaan.
 
