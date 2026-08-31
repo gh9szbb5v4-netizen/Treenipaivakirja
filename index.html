@@ -54,7 +54,7 @@
   .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
 
   .ledger{padding:0 16px 16px;}
-  .ledger-row{display:grid; grid-template-columns:20px 1fr 1fr 1.3fr 32px; gap:6px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line);}
+  .ledger-row{display:grid; grid-template-columns:20px 1.5fr 0.55fr 1.3fr 32px; gap:6px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line);}
   .ledger-row:last-of-type{border-bottom:none;}
   .ledger-head{font-size:10px; text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
   .set-num{color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px;}
@@ -1440,8 +1440,8 @@
         '<div style="display:flex; align-items:center; gap:3px;">' +
         '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '" style="flex:1; min-width:0;">' +
         '<div style="display:flex; flex-direction:column; gap:2px; flex:none;">' +
-        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" style="min-height:16px; height:16px; min-width:20px; width:20px; padding:0; font-size:11px;" aria-label="Lisää 2,5 kg">+</button>' +
-        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" style="min-height:16px; height:16px; min-width:20px; width:20px; padding:0; font-size:11px;" aria-label="Vähennä 2,5 kg">−</button>' +
+        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" style="min-height:22px; height:22px; min-width:28px; width:28px; padding:0; font-size:16px; font-weight:700;" aria-label="Lisää 2,5 kg">+</button>' +
+        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" style="min-height:22px; height:22px; min-width:28px; width:28px; padding:0; font-size:16px; font-weight:700;" aria-label="Vähennä 2,5 kg">−</button>' +
         '</div>' +
         '</div>' +
         '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
