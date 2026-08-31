@@ -18,8 +18,9 @@
     --line:#333c48;
     --brass:#c9a227;
     --chalk:#eeeae2;
-    --mist:#8891a0;
+    --mist:#98a1b0;
     --danger:#c1633c;
+    --danger-text:#e08a5f;
     --success:#6fae6f;
     --radius:14px;
     --radius-sm:8px;
@@ -59,6 +60,9 @@
   .ledger-head{font-size:10px; text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
   .set-num{color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px;}
   .ledger-input{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
+  /* Selaimen oletusvaalennus vihjetekstille jää alle kontrastivaatimuksen, joten väri asetetaan itse. */
+  .ledger-input::placeholder, .date-picker-row input[type=date]::placeholder{color:var(--mist); opacity:1;}
+  .ledger-input::-webkit-input-placeholder, .date-picker-row input[type=date]::-webkit-input-placeholder{color:var(--mist); opacity:1;}
   .remove-set{background:none; border:none; color:var(--mist); font-size:18px; cursor:pointer; padding:0; line-height:1; width:100%; min-height:44px; display:flex; align-items:center; justify-content:center;}
 
   .add-set-btn{width:100%; margin-top:10px; padding:11px; background:var(--surface-2); border:1px dashed var(--line); border-radius:var(--radius-sm); color:var(--mist); font-size:13px; font-weight:700; cursor:pointer;}
@@ -1344,7 +1348,7 @@
         '</div>';
     } else if(state.storageMode === "memory"){
       html += '<div style="background:rgba(193,99,60,0.15); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px; font-size:13px; line-height:1.5; color:var(--chalk);">' +
-        '<b style="color:var(--danger);">Merkinnät eivät säily.</b> Tallennus ei toimi tässä ympäristössä, joten tiedot katoavat, kun suljet sivun. ' +
+        '<b style="color:var(--danger-text);">Merkinnät eivät säily.</b> Tallennus ei toimi tässä ympäristössä, joten tiedot katoavat, kun suljet sivun. ' +
         'Kokeile avata treenipäiväkirja Claude-sovelluksen kautta tai salli selaimen tallennustila (yksityinen selaus ja evästeiden esto estävät tallennuksen).' +
         (state.lastError ? '<div style="margin-top:8px; font-size:11px; color:var(--mist); font-family:ui-monospace,monospace;">Virhe: ' + escapeHtml(state.lastError) + '</div>' : '') +
         '</div>';
@@ -1356,7 +1360,7 @@
   function renderTabs(){
     var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["asetukset","Asetukset"],["ohje","Ohje"]];
     return '<div class="tabs">' + tabs.map(function(t){
-      return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '">' + t[1] + '</div>';
+      return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '" role="button" tabindex="0"' + (state.view===t[0] ? ' aria-current="page"' : "") + '>' + t[1] + '</div>';
     }).join("") + '</div>';
   }
   function renderBody(){
@@ -1547,7 +1551,7 @@
       ? '<div title="Tallennettu" style="width:22px; height:22px; border-radius:50%; background:var(--success); color:var(--ink); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; margin-left:8px;">✓</div>'
       : '';
     return '<div class="exercise ' + (open ? "open" : "") + '" style="' + (isSaved ? "border-color:rgba(111,174,111,0.35);" : "") + '">' +
-      '<div class="exercise-head" data-toggle-ex data-id="' + ex.id + '">' +
+      '<div class="exercise-head" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' +
       '<div><div class="exercise-name">' + escapeHtml(ex.name) + tehoBadge(ex) + '</div>' +
       (target ? '<div class="exercise-target">' + escapeHtml(target) + '</div>' : '') +
       '</div><div style="display:flex; align-items:center;">' + badge + '<div class="chevron">›</div></div></div>' +
@@ -1662,7 +1666,7 @@
     }
     var diff = current - past;
     var pct = (past !== 0) ? (diff / past * 100) : null;
-    var color = diff > 0 ? "var(--brass)" : (diff < 0 ? "var(--danger)" : "var(--mist)");
+    var color = diff > 0 ? "var(--brass)" : (diff < 0 ? "var(--danger-text)" : "var(--mist)");
     return '<span style="color:' + color + '; font-variant-numeric:tabular-nums; font-weight:600;">' + fmtSignedKg(diff) + fmtSignedPct(pct) + '</span>';
   }
   function renderOneRepMaxChart(points, name){
@@ -1783,11 +1787,11 @@
             '<div style="color:var(--mist); font-size:13px; font-variant-numeric:tabular-nums; margin-top:2px;">' + setsStr + '</div></div>';
         }).join("");
       }
-      inner += '<button class="btn-secondary" style="margin-top:14px; color:var(--danger); border-color:var(--danger);" data-delete-history data-date="' + date + '" type="button">' +
+      inner += '<button class="btn-secondary" style="margin-top:14px; color:var(--danger-text); border-color:var(--danger);" data-delete-history data-date="' + date + '" type="button">' +
         (state.confirmingDeleteDate === date ? "Vahvista poisto" : "Poista merkintä") + '</button>';
     }
     return '<div class="history-date">' +
-      '<div class="history-date-head" data-history-date data-date="' + date + '">' +
+      '<div class="history-date-head" data-history-date data-date="' + date + '" role="button" tabindex="0" aria-expanded="' + (expanded ? "true" : "false") + '">' +
       '<span>' + capitalize(formatDateFI(date)) + '</span>' +
       '<span class="chevron" style="display:inline-block;' + (expanded ? "transform:rotate(90deg);color:var(--brass);" : "") + '">›</span>' +
       '</div>' + inner + '</div>';
@@ -1865,7 +1869,7 @@
       (state.simulation.active
         ? '<p style="color:var(--brass); font-size:12.5px; line-height:1.5; margin:0 0 12px;">Simulointi on käynnissä (' + state.simulation.dates.length + ' päivää täytetty). Sammuttaminen poistaa kaikki simuloidut merkinnät.</p>'
         : '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 0 12px;">Käynnistäminen onnistuu vain, jos yhtään merkintää ei ole vielä tallennettu.</p>') +
-      '<button class="btn-secondary" id="simulation-toggle-btn" type="button"' + (state.simulationBusy ? ' disabled' : '') + (state.simulation.active ? ' style="color:var(--danger); border-color:var(--danger);"' : '') + '>' +
+      '<button class="btn-secondary" id="simulation-toggle-btn" type="button"' + (state.simulationBusy ? ' disabled' : '') + (state.simulation.active ? ' style="color:var(--danger-text); border-color:var(--danger);"' : '') + '>' +
       (state.simulationBusy ? "Käsitellään…" : (state.simulation.active ? "Sammuta simulointi" : "Käynnistä simulointi")) + '</button>' +
       '</div>' +
       '<div class="day-heading">Palaute</div>' +
@@ -1877,7 +1881,7 @@
       '<div class="day-heading">Vaarallinen alue</div>' +
       '<div class="exercise" style="padding:16px;">' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Poistaa ohjelman ja kaikki kirjatut merkinnät pysyvästi.</p>' +
-      '<button class="btn-secondary" id="reset-btn" type="button" style="color:var(--danger); border-color:var(--danger);">' +
+      '<button class="btn-secondary" id="reset-btn" type="button" style="color:var(--danger-text); border-color:var(--danger);">' +
       (state.confirmingReset ? "Vahvista tyhjennys" : "Tyhjennä kaikki tiedot") + '</button>' +
       '</div>' +
       '<div style="text-align:center; font-size:11px; color:var(--mist); margin-top:20px; padding-top:14px; border-top:1px solid var(--line);">' +
@@ -2126,6 +2130,16 @@
         state.dirtySets[id] = true;
       }
     }
+  });
+
+  app.addEventListener("keydown", function(e){
+    // Välilehdet, liikeotsikot ja historian päivät ovat div-elementtejä, joten
+    // Enter ja välilyönti ohjataan olemassa olevaan click-käsittelijään.
+    if(e.key !== "Enter" && e.key !== " ") return;
+    var el = e.target.closest("[data-tab], [data-toggle-ex], [data-history-date]");
+    if(!el) return;
+    e.preventDefault();
+    el.click();
   });
 
   // ---------- init ----------
