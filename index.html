@@ -126,6 +126,9 @@
     showHomescreenHint: false,
     program: null,
     manualExercises: [],
+    manualNameDraft: "",
+    manualNameSuggestion: null,
+    importNameWarnings: [],
     view: "ohjelma",
     openExercise: null,
     draftSets: {},
@@ -161,6 +164,9 @@
   function todayISO(){ return toLocalISO(new Date()); }
   function daysAgoISO(n){ var d = new Date(); d.setDate(d.getDate() - n); return toLocalISO(d); }
   function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+  function normalizeName(s){
+    return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
+  }
   function formatDateFI(iso){
     var d = new Date(iso + "T00:00:00");
     return d.toLocaleDateString("fi-FI", { weekday:"long", day:"numeric", month:"long" });
@@ -437,6 +443,75 @@
   }
   function findExerciseById(id){ return allExercises().find(function(e){ return e.id === id; }); }
 
+  function knownExerciseNames(){
+    // Kaikki sovelluksen tuntemat liikenimet: ohjelma, käsin lisätyt sekä
+    // historiassa olevat nimet. Historian nimet ovat mukana siksi, että juuri
+    // niiden kohdalla eri kirjoitusasu aloittaisi historian huomaamatta alusta.
+    var seen = {};
+    var names = [];
+    function lisaa(display){
+      var norm = normalizeName(display);
+      if(!norm || seen[norm]) return;
+      seen[norm] = true;
+      names.push(display);
+    }
+    allExercises().forEach(function(ex){ if(ex && ex.name) lisaa(ex.name); });
+    Object.keys(state.lastSet).forEach(function(norm){ lisaa(capitalize(norm)); });
+    Object.keys(state.manualMax).forEach(function(norm){ lisaa(capitalize(norm)); });
+    names.sort(function(a, b){ return a.localeCompare(b, "fi"); });
+    return names;
+  }
+
+  function levenshtein(a, b){
+    // Tavallinen muokkausetäisyys yhdellä vierivällä rivillä.
+    var la = a.length, lb = b.length;
+    if(la === 0) return lb;
+    if(lb === 0) return la;
+    var row = [];
+    var i, j;
+    for(j=0;j<=lb;j++){ row[j] = j; }
+    for(i=1;i<=la;i++){
+      var prev = row[0];
+      row[0] = i;
+      for(j=1;j<=lb;j++){
+        var temp = row[j];
+        var cost = (a.charAt(i-1) === b.charAt(j-1)) ? 0 : 1;
+        var min = row[j] + 1;
+        if(row[j-1] + 1 < min) min = row[j-1] + 1;
+        if(prev + cost < min) min = prev + cost;
+        row[j] = min;
+        prev = temp;
+      }
+    }
+    return row[lb];
+  }
+
+  function findSimilarName(input, candidates){
+    var target = normalizeName(input);
+    if(!target || !candidates || !candidates.length) return null;
+    var i;
+    var norms = [];
+    for(i=0;i<candidates.length;i++){
+      var norm = normalizeName(candidates[i]);
+      if(norm === target) return null;
+      norms.push(norm);
+    }
+    // Pelkkä välilyöntien ero, esim. "Peckdeck" vs. "Peck deck".
+    var targetTight = target.replace(/\s+/g, "");
+    for(i=0;i<candidates.length;i++){
+      if(norms[i].replace(/\s+/g, "") === targetTight) return candidates[i];
+    }
+    var best = null, bestNorm = "", bestDist = 0;
+    for(i=0;i<candidates.length;i++){
+      var dist = levenshtein(target, norms[i]);
+      if(best === null || dist < bestDist){ best = candidates[i]; bestNorm = norms[i]; bestDist = dist; }
+    }
+    if(best === null) return null;
+    var longer = Math.max(target.length, bestNorm.length);
+    var limit = (longer >= 6) ? 2 : 1;
+    return (bestDist <= limit) ? best : null;
+  }
+
   // ---------- actions ----------
   async function handleFile(file){
     var isFirstImport = !state.program;
@@ -445,6 +520,29 @@
     catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
     try{
       var program = parseProgramCSV(text);
+      // Verrataan tuodun ohjelman liikenimiä historiassa jo oleviin nimiin: eri
+      // kirjoitusasu aloittaisi historian huomaamatta alusta. Vain huomautus,
+      // mitään ei nimetä uudelleen automaattisesti.
+      state.importNameWarnings = [];
+      var historyNorms = {};
+      Object.keys(state.lastSet).forEach(function(norm){ historyNorms[normalizeName(norm)] = true; });
+      Object.keys(state.manualMax).forEach(function(norm){ historyNorms[normalizeName(norm)] = true; });
+      var historyNames = Object.keys(historyNorms).map(function(norm){ return capitalize(norm); });
+      if(historyNames.length){
+        historyNames.sort(function(a, b){ return a.localeCompare(b, "fi"); });
+        var seenImport = {};
+        program.days.forEach(function(day){
+          (day.exercises || []).forEach(function(ex){
+            var impName = (ex.name || "").trim();
+            if(!impName) return;
+            var impNorm = normalizeName(impName);
+            if(!impNorm || seenImport[impNorm] || historyNorms[impNorm]) return;
+            seenImport[impNorm] = true;
+            var match = findSimilarName(impName, historyNames);
+            if(match){ state.importNameWarnings.push({ imported: impName, historical: match }); }
+          });
+        });
+      }
       state.program = program;
       state.manualExercises = [];
       state.draftSets = {};
@@ -461,6 +559,17 @@
     }catch(err){
       showToast(err.message || "CSV:n luku epäonnistui");
     }
+  }
+
+  function addManualExerciseByName(name){
+    // Sama lisäyslogiikka kuin ennen; jaettu, koska liike voidaan lisätä joko
+    // suoraan tai kirjoitusasuehdotuksen kautta.
+    var newId = "manual-" + Date.now();
+    var manualEx = { id:newId, name:name, sets:"", reps:"", weight:"", notes:"" };
+    state.manualExercises.push(manualEx);
+    state.openExercise = newId;
+    state.draftSets[newId] = buildDraftRows(manualEx, newId);
+    render();
   }
 
   async function toggleExercise(id){
@@ -1146,6 +1255,9 @@
     }catch(e){}
     state.program = null;
     state.manualExercises = [];
+    state.manualNameDraft = "";
+    state.manualNameSuggestion = null;
+    state.importNameWarnings = [];
     state.draftSets = {};
     state.openExercise = null;
     state.historyDates = undefined;
@@ -1342,8 +1454,40 @@
       '<button class="btn-secondary" data-week-nav="next" type="button" style="width:46px; padding:10px 0; font-size:16px;" ' + (idx>=weeks.length-1?"disabled":"") + '>›</button>' +
       '</div>';
   }
+  function renderExerciseNameDatalist(){
+    var names = knownExerciseNames();
+    if(!names.length) return "";
+    return '<datalist id="exercise-name-options">' +
+      names.map(function(n){ return '<option value="' + escapeHtml(n) + '"></option>'; }).join("") +
+      '</datalist>';
+  }
+  function renderImportNameWarnings(){
+    var warnings = state.importNameWarnings;
+    if(!warnings || !warnings.length) return "";
+    var rows = warnings.map(function(w){
+      return '<div style="margin-bottom:6px;">”' + escapeHtml(w.imported) + '” — historiassa on samankaltainen liike ”' + escapeHtml(w.historical) + '”.</div>';
+    }).join("");
+    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
+      '<b style="color:var(--brass);">Tarkista liikkeiden kirjoitusasu</b>' +
+      '<div style="margin-top:8px;">' + rows + '</div>' +
+      '<div style="margin-top:8px;">Liikkeet tunnistetaan nimen perusteella, joten eri kirjoitusasu aloittaa historian alusta. Korjaa nimi CSV-tiedostoon ja tuo ohjelma uudelleen, jos kyseessä on sama liike.</div>' +
+      '<button class="btn-secondary" data-dismiss-import-warning type="button" style="width:auto; padding:8px 14px; font-size:12.5px; margin-top:10px;">Sulje</button>' +
+      '</div>';
+  }
+  function renderManualNameSuggestion(){
+    var s = state.manualNameSuggestion;
+    if(!s) return "";
+    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:8px; font-size:12.5px; line-height:1.5;">' +
+      'Tarkoititko liikettä ”' + escapeHtml(s.suggested) + '”? Sama liike eri kirjoitusasulla kirjautuu kahdeksi eri liikkeeksi.' +
+      '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">' +
+      '<button class="btn-secondary" data-use-suggested-name type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Käytä nimeä ”' + escapeHtml(s.suggested) + '”</button>' +
+      '<button class="btn-secondary" data-keep-typed-name type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Lisää silti nimellä ”' + escapeHtml(s.typed) + '”</button>' +
+      '</div>' +
+      '</div>';
+  }
   function renderOhjelma(){
-    var html = '<div class="date-picker-row"><label for="log-date">Kirjataan päivälle</label>' +
+    var html = renderImportNameWarnings() +
+      '<div class="date-picker-row"><label for="log-date">Kirjataan päivälle</label>' +
       '<input type="date" id="log-date" value="' + state.draftDate + '"></div>';
 
     var hasWeeks = state.program.weeks && state.program.weeks.length > 0;
@@ -1370,7 +1514,9 @@
       state.manualExercises.forEach(function(ex){ html += renderExercise(ex); });
     }
     html += '<div class="exercise" style="padding:14px 16px;">' +
-      '<input type="text" id="manual-name" class="ledger-input" placeholder="Lisää liike, jota ei ole ohjelmassa" style="margin-bottom:8px;">' +
+      '<input type="text" id="manual-name" class="ledger-input" list="exercise-name-options" autocomplete="off" placeholder="Lisää liike, jota ei ole ohjelmassa" value="' + escapeHtml(state.manualNameDraft) + '" style="margin-bottom:8px;">' +
+      renderExerciseNameDatalist() +
+      renderManualNameSuggestion() +
       '<button class="btn-secondary" id="add-manual-btn" type="button">Lisää liikelistaan</button>' +
       '</div>';
     return html;
@@ -1691,9 +1837,10 @@
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Liikkeille, joille ohjelmassa on määritelty teho (MAX tai prosentti), painoehdotus lasketaan tästä manuaalisesti syötetystä 1RM-arvosta — ei aiemmista merkinnöistä.</p>' +
       renderManualMaxList() +
       '<div style="display:flex; gap:8px; margin-top:12px;">' +
-      '<input type="text" id="max-name-input" class="ledger-input" placeholder="Liikkeen nimi" style="flex:1.4;">' +
+      '<input type="text" id="max-name-input" class="ledger-input" list="exercise-name-options" autocomplete="off" placeholder="Liikkeen nimi" style="flex:1.4;">' +
       '<input type="text" id="max-weight-input" class="ledger-input" inputmode="decimal" placeholder="kg" style="flex:0.8;">' +
       '</div>' +
+      renderExerciseNameDatalist() +
       '<button class="btn-secondary" id="save-max-btn" type="button" style="margin-top:10px;">Tallenna 1RM</button>' +
       '</div>' +
       '<div class="day-heading">Lepoajastin</div>' +
@@ -1863,11 +2010,40 @@
       var input = document.getElementById("manual-name");
       var name = input.value.trim();
       if(!name){ showToast("Kirjoita liikkeen nimi"); return; }
-      var newId = "manual-" + Date.now();
-      var manualEx = { id:newId, name:name, sets:"", reps:"", weight:"", notes:"" };
-      state.manualExercises.push(manualEx);
-      state.openExercise = newId;
-      state.draftSets[newId] = buildDraftRows(manualEx, newId);
+      state.manualNameDraft = name;
+      if(state.manualNameSuggestion === null){
+        var similar = findSimilarName(name, knownExerciseNames());
+        if(similar){
+          state.manualNameSuggestion = { typed: name, suggested: similar };
+          render();
+          return;
+        }
+      }
+      state.manualNameDraft = "";
+      state.manualNameSuggestion = null;
+      addManualExerciseByName(name);
+      return;
+    }
+    if((el = e.target.closest("[data-use-suggested-name]"))){
+      if(!state.manualNameSuggestion) return;
+      var suggestedName = state.manualNameSuggestion.suggested;
+      state.manualNameDraft = suggestedName;
+      state.manualNameSuggestion = null;
+      state.manualNameDraft = "";
+      addManualExerciseByName(suggestedName);
+      return;
+    }
+    if((el = e.target.closest("[data-keep-typed-name]"))){
+      if(!state.manualNameSuggestion) return;
+      var typedName = state.manualNameSuggestion.typed;
+      state.manualNameDraft = typedName;
+      state.manualNameSuggestion = null;
+      state.manualNameDraft = "";
+      addManualExerciseByName(typedName);
+      return;
+    }
+    if((el = e.target.closest("[data-dismiss-import-warning]"))){
+      state.importNameWarnings = [];
       render();
       return;
     }
