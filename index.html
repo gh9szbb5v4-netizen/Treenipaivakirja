@@ -93,6 +93,8 @@
   var STORAGE_LASTSET_KEY = "last-set-log";
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
+  var STORAGE_APP_VERSION_KEY = "app-version";
+  var APP_VERSION = "0.1.0";
   var SIMULATION_GROWTH = 0.30;
 
   var ALIASES = {
@@ -391,6 +393,10 @@
   }
   async function saveLastSet(){
     try{ await storeSet(STORAGE_LASTSET_KEY, JSON.stringify(state.lastSet)); }
+    catch(e){ /* hiljainen virhe, ei kriittinen */ }
+  }
+  async function saveAppVersion(){
+    try{ await storeSet(STORAGE_APP_VERSION_KEY, APP_VERSION); }
     catch(e){ /* hiljainen virhe, ei kriittinen */ }
   }
   async function saveManualMax(){
@@ -1559,6 +1565,9 @@
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Poistaa ohjelman ja kaikki kirjatut merkinnät pysyvästi.</p>' +
       '<button class="btn-secondary" id="reset-btn" type="button" style="color:var(--danger); border-color:var(--danger);">' +
       (state.confirmingReset ? "Vahvista tyhjennys" : "Tyhjennä kaikki tiedot") + '</button>' +
+      '</div>' +
+      '<div style="text-align:center; font-size:11px; color:var(--mist); margin-top:20px; padding-top:14px; border-top:1px solid var(--line);">' +
+      'Versio ' + APP_VERSION + ' — © ' + new Date().getFullYear() + ' Jarkko Palokangas. Kaikki oikeudet pidätetään.' +
       '</div>';
   }
 
@@ -1763,6 +1772,11 @@
     try{
       var simRes = await storeGet(STORAGE_SIMULATION_KEY);
       if(simRes && simRes.value) state.simulation = JSON.parse(simRes.value);
+    }catch(e){}
+    try{
+      var versionRes = await storeGet(STORAGE_APP_VERSION_KEY);
+      state.storedAppVersion = (versionRes && versionRes.value) ? versionRes.value : null;
+      if(state.storedAppVersion !== APP_VERSION){ await saveAppVersion(); }
     }catch(e){}
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
