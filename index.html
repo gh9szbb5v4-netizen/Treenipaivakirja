@@ -97,6 +97,7 @@
   var STORAGE_APP_VERSION_KEY = "app-version";
   var APP_VERSION = "0.1.0";
   var STORAGE_CONSENT_KEY = "koekaytto-hyvaksytty";
+  var FEEDBACK_EMAIL = "jarkko_palokangas@hotmail.com";
   var SIMULATION_GROWTH = 0.30;
 
   var ALIASES = {
@@ -1564,6 +1565,12 @@
       '<button class="btn-secondary" id="simulation-toggle-btn" type="button"' + (state.simulationBusy ? ' disabled' : '') + (state.simulation.active ? ' style="color:var(--danger); border-color:var(--danger);"' : '') + '>' +
       (state.simulationBusy ? "Käsitellään…" : (state.simulation.active ? "Sammuta simulointi" : "Käynnistä simulointi")) + '</button>' +
       '</div>' +
+      '<div class="day-heading">Palaute</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Kerro havainnosta, virheestä tai ideasta — viesti avautuu sähköpostiisi.</p>' +
+      '<textarea id="feedback-text" class="ledger-input" style="height:90px; resize:vertical;" placeholder="Kirjoita palautteesi tähän"></textarea>' +
+      '<button class="btn-secondary" id="feedback-send-btn" type="button" style="margin-top:10px;">Lähetä palautetta sähköpostilla</button>' +
+      '</div>' +
       '<div class="day-heading">Vaarallinen alue</div>' +
       '<div class="exercise" style="padding:16px;">' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Poistaa ohjelman ja kaikki kirjatut merkinnät pysyvästi.</p>' +
@@ -1601,6 +1608,20 @@
       try{ await storeSet(STORAGE_CONSENT_KEY, "1"); }
       catch(e){ /* hiljainen virhe, ei kriittinen */ }
       render();
+      return;
+    }
+    if(e.target.closest("#feedback-send-btn")){
+      var feedbackInput = document.getElementById("feedback-text");
+      var feedbackText = feedbackInput ? feedbackInput.value.trim() : "";
+      if(!feedbackText){ showToast("Kirjoita palaute ennen lähettämistä"); return; }
+      var feedbackSubject = "Treenipäiväkirja – palaute (v" + APP_VERSION + ")";
+      var feedbackBody = feedbackText +
+        "\n\n---\nVersio: " + APP_VERSION +
+        "\nTallennustila: " + state.storageMode +
+        "\nSelain: " + navigator.userAgent;
+      window.location.href = "mailto:" + FEEDBACK_EMAIL +
+        "?subject=" + encodeURIComponent(feedbackSubject) +
+        "&body=" + encodeURIComponent(feedbackBody);
       return;
     }
     if((el = e.target.closest("[data-tab]"))){
