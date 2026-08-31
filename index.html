@@ -102,6 +102,7 @@
   var FEEDBACK_EMAIL = "jarkko_palokangas@hotmail.com";
   var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
   var REST_DURATION_SECONDS = 90;
+  var STORAGE_REST_DURATION_KEY = "rest-duration-seconds";
   var SIMULATION_GROWTH = 0.30;
 
   var ALIASES = {
@@ -121,6 +122,7 @@
     consentChecked: false,
     consentGiven: false,
     homescreenHintDismissed: false,
+    restDurationSeconds: REST_DURATION_SECONDS,
     showHomescreenHint: false,
     program: null,
     manualExercises: [],
@@ -414,6 +416,10 @@
     try{ await storeSet(STORAGE_MANUAL_MAX_KEY, JSON.stringify(state.manualMax)); }
     catch(e){ showToast("1RM:n tallennus epäonnistui"); }
   }
+  async function saveRestDuration(){
+    try{ await storeSet(STORAGE_REST_DURATION_KEY, String(state.restDurationSeconds)); }
+    catch(e){ showToast("Lepoajan tallennus epäonnistui"); }
+  }
   async function saveSimulationState(){
     try{ await storeSet(STORAGE_SIMULATION_KEY, JSON.stringify(state.simulation)); }
     catch(e){ /* hiljainen virhe, ei kriittinen */ }
@@ -574,7 +580,7 @@
       delete state.dirtySets[id];
       state.kehitys = undefined;
       showToast(maxUpdated ? "Tallennettu — 1RM päivitetty Asetuksiin" : "Merkintä tallennettu");
-      startRestTimer(REST_DURATION_SECONDS);
+      startRestTimer(state.restDurationSeconds);
       state.openExercise = null;
       render();
     }catch(e){
@@ -1297,6 +1303,7 @@
 
     html += ohjeSection("5. Asetukset", ohjeList([
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
+      "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie merkinnät CSV:nä</b> — ota säännöllisesti varmuuskopio, sillä data on vain tässä selaimessa.",
       "<b style=\"color:var(--chalk);\">Tuo merkinnät</b> — palauta varmuuskopio tai siirrä historia toiselle laitteelle.",
       "<b style=\"color:var(--chalk);\">Simulointi</b> — täyttää koko ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten. Toimii vain, jos yhtään oikeaa merkintää ei ole vielä tallennettu.",
@@ -1615,6 +1622,15 @@
       '</div>' +
       '<button class="btn-secondary" id="save-max-btn" type="button" style="margin-top:10px;">Tallenna 1RM</button>' +
       '</div>' +
+      '<div class="day-heading">Lepoajastin</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Kuinka pitkä lepo ehdotetaan sarjojen välissä uutta sarjaa lisätessä tai merkintää tallentaessa.</p>' +
+      '<div style="display:flex; align-items:center; gap:8px;">' +
+      '<input type="text" id="rest-duration-input" class="ledger-input" inputmode="numeric" placeholder="sekuntia" value="' + state.restDurationSeconds + '" style="flex:0.6;">' +
+      '<span style="color:var(--mist); font-size:13px;">sekuntia</span>' +
+      '</div>' +
+      '<button class="btn-secondary" id="save-rest-duration-btn" type="button" style="margin-top:10px;">Tallenna</button>' +
+      '</div>' +
       '<div class="day-heading">Vienti ja tuonti</div>' +
       '<div class="exercise" style="padding:16px;">' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Lataa kaikki kirjatut treenit CSV-tiedostona varmuuskopioksi.</p>' +
@@ -1725,7 +1741,7 @@
       if(!state.draftSets[id1]) state.draftSets[id1] = [];
       state.draftSets[id1].push({ weight:"", reps:"", notes:"" });
       state.dirtySets[id1] = true;
-      startRestTimer(REST_DURATION_SECONDS);
+      startRestTimer(state.restDurationSeconds);
       render();
       return;
     }
@@ -1811,6 +1827,16 @@
       await saveManualMax();
       nameInput.value = ""; weightInput.value = "";
       showToast("1RM tallennettu");
+      render();
+      return;
+    }
+    if((el = e.target.closest("#save-rest-duration-btn"))){
+      var restInput = document.getElementById("rest-duration-input");
+      var restSeconds = parseInt(restInput.value, 10);
+      if(!isFinite(restSeconds) || restSeconds <= 0){ showToast("Kirjoita kelvollinen aika sekunteina"); return; }
+      state.restDurationSeconds = restSeconds;
+      await saveRestDuration();
+      showToast("Lepoajastin tallennettu");
       render();
       return;
     }
@@ -1916,6 +1942,11 @@
     try{
       var homescreenHintRes = await storeGet(STORAGE_HOMESCREEN_HINT_KEY);
       if(homescreenHintRes && homescreenHintRes.value === "1"){ state.homescreenHintDismissed = true; }
+    }catch(e){}
+    try{
+      var restDurationRes = await storeGet(STORAGE_REST_DURATION_KEY);
+      var storedRestDuration = restDurationRes ? parseInt(restDurationRes.value, 10) : NaN;
+      if(isFinite(storedRestDuration) && storedRestDuration > 0){ state.restDurationSeconds = storedRestDuration; }
     }catch(e){}
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
