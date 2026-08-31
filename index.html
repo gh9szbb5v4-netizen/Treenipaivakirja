@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#12161d">
 <meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Treenipäiväkirja</title>
 <style>
   :root{
@@ -98,6 +100,7 @@
   var APP_VERSION = "0.1.0";
   var STORAGE_CONSENT_KEY = "koekaytto-hyvaksytty";
   var FEEDBACK_EMAIL = "jarkko_palokangas@hotmail.com";
+  var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
   var SIMULATION_GROWTH = 0.30;
 
   var ALIASES = {
@@ -116,6 +119,8 @@
     loading: true,
     consentChecked: false,
     consentGiven: false,
+    homescreenHintDismissed: false,
+    showHomescreenHint: false,
     program: null,
     manualExercises: [],
     view: "ohjelma",
@@ -423,6 +428,7 @@
 
   // ---------- actions ----------
   async function handleFile(file){
+    var isFirstImport = !state.program;
     var text;
     try{ text = await readFileAsText(file); }
     catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
@@ -439,6 +445,7 @@
       state.todayEntry = await loadEntry(state.draftDate);
       state.view = "ohjelma";
       showToast("Ohjelma tuotu onnistuneesti");
+      if(isFirstImport && !state.homescreenHintDismissed){ state.showHomescreenHint = true; }
       render();
     }catch(err){
       showToast(err.message || "CSV:n luku epäonnistui");
@@ -1155,6 +1162,12 @@
   }
 
   // ---------- render ----------
+  function renderHomescreenHint(){
+    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
+      '<b style="color:var(--brass);">Vinkki:</b> Merkinnät säilyvät luotettavimmin, kun lisäät sovelluksen Koti-valikkoon Safarin jakopainikkeesta. Pitkän käyttötauon jälkeen selain saattaa muuten poistaa tallennetut tiedot itsestään.' +
+      '<div style="margin-top:10px;"><button class="btn-secondary" data-dismiss-homescreen-hint type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Selvä, sain ohjeen</button></div>' +
+      '</div>';
+  }
   function renderHeader(){
     var html = '<div class="header"><div class="eyebrow">Treenipäiväkirja</div><div class="date">' +
       capitalize(formatDateFI(todayISO())) + '</div></div>';
@@ -1170,6 +1183,7 @@
         (state.lastError ? '<div style="margin-top:8px; font-size:11px; color:var(--mist); font-family:ui-monospace,monospace;">Virhe: ' + escapeHtml(state.lastError) + '</div>' : '') +
         '</div>';
     }
+    if(state.showHomescreenHint) html += renderHomescreenHint();
     if(state.program && !state.loading) html += renderTabs();
     return html;
   }
@@ -1612,6 +1626,14 @@
       render();
       return;
     }
+    if(e.target.closest("[data-dismiss-homescreen-hint]")){
+      state.showHomescreenHint = false;
+      state.homescreenHintDismissed = true;
+      try{ await storeSet(STORAGE_HOMESCREEN_HINT_KEY, "1"); }
+      catch(e){ /* hiljainen virhe, ei kriittinen */ }
+      render();
+      return;
+    }
     if(e.target.closest("#feedback-send-btn")){
       var feedbackInput = document.getElementById("feedback-text");
       var feedbackText = feedbackInput ? feedbackInput.value.trim() : "";
@@ -1828,6 +1850,10 @@
       if(consentRes && consentRes.value === "1"){ state.consentGiven = true; }
     }catch(e){}
     state.consentChecked = true;
+    try{
+      var homescreenHintRes = await storeGet(STORAGE_HOMESCREEN_HINT_KEY);
+      if(homescreenHintRes && homescreenHintRes.value === "1"){ state.homescreenHintDismissed = true; }
+    }catch(e){}
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
       catch(e){ state.todayEntry = { date: state.draftDate, exercises:{} }; }
