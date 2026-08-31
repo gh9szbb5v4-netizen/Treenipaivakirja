@@ -1431,9 +1431,11 @@
       return '<div class="ledger-row">' +
         '<div class="set-num">' + (idx+1) + '</div>' +
         '<div style="display:flex; align-items:center; gap:3px;">' +
-        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" style="min-height:32px; min-width:26px; width:26px; font-size:15px;" aria-label="Vähennä 2,5 kg">−</button>' +
-        '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
-        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" style="min-height:32px; min-width:26px; width:26px; font-size:15px;" aria-label="Lisää 2,5 kg">+</button>' +
+        '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '" style="flex:1; min-width:0;">' +
+        '<div style="display:flex; flex-direction:column; gap:2px; flex:none;">' +
+        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" style="min-height:16px; height:16px; min-width:20px; width:20px; padding:0; font-size:11px;" aria-label="Lisää 2,5 kg">+</button>' +
+        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" style="min-height:16px; height:16px; min-width:20px; width:20px; padding:0; font-size:11px;" aria-label="Vähennä 2,5 kg">−</button>' +
+        '</div>' +
         '</div>' +
         '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<input class="ledger-input" type="text" placeholder="huom." data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
