@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#12161d">
+<meta name="robots" content="noindex, nofollow">
 <title>Treenipäiväkirja</title>
 <style>
   :root{
@@ -95,6 +96,7 @@
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
   var APP_VERSION = "0.1.0";
+  var STORAGE_CONSENT_KEY = "koekaytto-hyvaksytty";
   var SIMULATION_GROWTH = 0.30;
 
   var ALIASES = {
@@ -111,6 +113,8 @@
 
   var state = {
     loading: true,
+    consentChecked: false,
+    consentGiven: false,
     program: null,
     manualExercises: [],
     view: "ohjelma",
@@ -1571,8 +1575,19 @@
       '</div>';
   }
 
+  function renderConsentGate(){
+    return '<div class="upload-box">' +
+      '<p>Tämä sovellus on tekijän omistama koekäyttöversio, ei julkinen julkaisu. Sisältöä ei saa kopioida, jakaa eteenpäin eikä käyttää kaupallisesti.</p>' +
+      '<p>Jatkamalla vahvistat, että olet tietoinen tästä ja käytät sovellusta vain tekijän luvalla.</p>' +
+      '<button class="save-btn" id="consent-accept-btn" type="button">Hyväksyn ja jatkan</button>' +
+      '</div>';
+  }
   function render(){
     var app = document.getElementById("app");
+    if(state.consentChecked && !state.consentGiven){
+      app.innerHTML = renderConsentGate();
+      return;
+    }
     app.innerHTML = renderHeader() + renderBody();
   }
 
@@ -1581,6 +1596,13 @@
 
   app.addEventListener("click", async function(e){
     var el;
+    if(e.target.closest("#consent-accept-btn")){
+      state.consentGiven = true;
+      try{ await storeSet(STORAGE_CONSENT_KEY, "1"); }
+      catch(e){ /* hiljainen virhe, ei kriittinen */ }
+      render();
+      return;
+    }
     if((el = e.target.closest("[data-tab]"))){
       state.view = el.dataset.tab;
       state.confirmingReset = false;
@@ -1778,6 +1800,11 @@
       state.storedAppVersion = (versionRes && versionRes.value) ? versionRes.value : null;
       if(state.storedAppVersion !== APP_VERSION){ await saveAppVersion(); }
     }catch(e){}
+    try{
+      var consentRes = await storeGet(STORAGE_CONSENT_KEY);
+      if(consentRes && consentRes.value === "1"){ state.consentGiven = true; }
+    }catch(e){}
+    state.consentChecked = true;
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
       catch(e){ state.todayEntry = { date: state.draftDate, exercises:{} }; }
