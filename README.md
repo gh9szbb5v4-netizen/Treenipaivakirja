@@ -6,7 +6,7 @@ Selaimessa toimiva treenipäiväkirja, joka lukee treeniohjelman CSV-tiedostosta
 
 Avaa julkaistu osoite selaimessa ja tuo treeniohjelmasi CSV-tiedostona. Ohjelma tallentuu selaimeen, joten tuonti tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan.
 
-iPhonella kannattaa lisätä sivu Koti-valikkoon Safarin jakopainikkeesta, jolloin se avautuu kuin natiivi sovellus.
+Kannattaa lisätä sivu laitteen aloitusnäytölle, jolloin se avautuu kuin natiivi sovellus: iPhonella Safarin jakopainikkeesta ("Lisää Koti-valikkoon"), Androidilla selaimen valikosta ("Lisää aloitusnäytölle" tai "Asenna sovellus").
 
 ### Julkaisu GitHub Pagesissa
 
