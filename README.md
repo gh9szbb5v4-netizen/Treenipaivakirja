@@ -43,21 +43,23 @@ Sovellus ehdottaa painon kahdella eri säännöllä sen mukaan, onko liikkeelle 
 
 1RM-arvoa voi muokata milloin tahansa käsin Asetukset-välilehdellä, mutta se päivittyy myös automaattisesti: kun kirjaat merkinnän `MAX`-teholliselle liikkeelle, sen ensimmäisen sarjan paino tallentuu 1RM:ksi ja korvaa Asetuksiin aiemmin tallennetun arvon.
 
-**Liikkeellä ei ole tehoa.** Ehdotus perustuu liikkeen **viimeksi kirjattuun sarjaan**. Jos sen toistomäärä vastaa ohjelman tavoitetta, ehdotetaan samaa painoa. Jos toistoja tuli enemmän tai vähemmän, uusi paino lasketaan kaavalla
+**Liikkeellä ei ole tehoa.** Ehdotus perustuu liikkeen **viimeksi kirjattuun sarjaan** ja Epley-kaavaan: edellisestä sarjasta arvioidaan 1RM, siihen sovelletaan progressiokerrointa, ja tuloksesta lasketaan takaisin paino tavoitetoistomäärälle.
 
 ```
-paino = MROUND( edellinen_paino × (1 + edelliset_toistot / K) / (1 + tavoitetoistot / K) , 2,5 )
+1RM_edellinen = edellinen_paino × (1 + edelliset_toistot / 30)
+1RM_tavoite   = 1RM_edellinen × progressiokerroin
+paino         = MROUND( 1RM_tavoite / (1 + tavoitetoistot / 30) , 2,5 )
 ```
 
-jossa `K` määräytyy liikkeen mukaan: penkki 30, kyykky 28, maastaveto 40, muut liikkeet 30.
+Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla. Jos tavoitetoistomäärä on sama kuin edellisellä kerralla, kaava supistuu muotoon `paino = MROUND( edellinen_paino × progressiokerroin , 2,5 )` — ehdotus siis nousee hieman aina, eikä jää koskaan täysin samaksi kuin viimeksi.
 
-Historia- ja Kehitys-välilehtien laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina Epley-kaavalla
+Historia- ja Kehitys-välilehtien laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
 
 ```
 1RM = paino × (1 + toistot / 30)
 ```
 
-liikkeen viimeisimmän merkintäpäivän **ensimmäisestä** sarjasta, riippumatta siitä mitä liikkeelle sinä päivänä oli ohjelmoitu. Kaava on sama jokaiselle liikkeelle — toisin kuin yllä olevassa painoehdotuksen kaavassa, tässä ei käytetä liikekohtaista `K`-vakiota.
+liikkeen viimeisimmän merkintäpäivän **ensimmäisestä** sarjasta, riippumatta siitä mitä liikkeelle sinä päivänä oli ohjelmoitu. Ero sarjapainolaskuriin on kahdessa kohdassa: Historia/Kehitys-laskenta perustuu aina viimeisimmän merkintäpäivän ensimmäiseen sarjaan eikä sisällä progressiokerrointa, kun taas sarjapainolaskuri perustuu edelliseen kirjattuun sarjaan ja sisältää progressiokertoimen.
 
 Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punnerrus / Burpee, 12 min`), jätetään automaattilaskennan ulkopuolelle kokonaan.
 
