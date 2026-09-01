@@ -64,7 +64,7 @@ Nämä muodostavat pohjan sille, että sovellusta voi ylipäätään jakaa halli
 
 ---
 
-## Vaihe 5 — Ajastimen pienentäminen
+## Vaihe 5 — Ajastimen pienentäminen - Tehty
 
 **Miksi tässä kohtaa:** Korjaus koskee Vaiheessa 3 rakennettua ajastinta ja edellyttää sitä teknisesti, mutta on rajattu ja itsenäinen korjaus, joka ei riipu myöhemmistä vaiheista — se kannattaa tehdä omana pienenä kokonaisuutenaan heti Vaiheiden 1–4 valmistuttua sen sijaan, että se sekoitettaisiin uuteen, laajempaan kehitystyöhön.
 
