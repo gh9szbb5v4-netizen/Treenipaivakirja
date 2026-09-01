@@ -17,6 +17,11 @@
     --surface:#1c222b;
     --surface-2:#262e39;
     --line:#333c48;
+    /* Interaktiivisten kontrollien (kentät, painikkeet, kytkin) reunaväri.
+       WCAG 1.4.11 vaatii 3:1 komponentin tunnistamiseen tarvittavalle
+       rajaukselle; --line jää koristeellisiin erottimiin ja korttien reunoihin.
+       Kontrastit: 3,67:1 korttia (--surface) ja 4,17:1 taustaa (--ink) vasten. */
+    --line-strong:#6e7a8c;
     --brass:#c9a227;
     --chalk:#eeeae2;
     --mist:#98a1b0;
@@ -43,7 +48,7 @@
   .eyebrow{text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--brass); font-weight:700;}
   .date{font-size:26px; font-weight:800; letter-spacing:-0.01em; margin:5px 0 0; font-variant-numeric:tabular-nums;}
   /* Asetukset ei ole enää välilehti vaan rataskuvake näkymän oikeassa yläkulmassa. */
-  .icon-btn{flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; padding:0; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--mist); cursor:pointer;}
+  .icon-btn{flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; padding:0; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--mist); cursor:pointer;}
   .icon-btn.active{color:var(--brass); border-color:var(--brass); background:rgba(201,162,39,0.12);}
 
   /* Kelluva alanavigaatio. Sama korttikieli kuin muualla sovelluksessa
@@ -82,29 +87,29 @@
   .set-done-btn{flex:0 0 auto; margin-left:auto; width:40px; height:36px; padding:0; font-size:19px; display:flex; align-items:center; justify-content:center; background:var(--brass); color:var(--ink); border:none; border-radius:var(--radius-sm); font-weight:500; cursor:pointer;}
   .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px; width:22px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
   .set-num.done{background:var(--success); color:var(--ink); font-size:14px;}
-  .ledger-input{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
+  .ledger-input{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
   /* Selaimen oletusvaalennus vihjetekstille jää alle kontrastivaatimuksen, joten väri asetetaan itse. */
   .ledger-input::placeholder, .date-picker-row input[type=date]::placeholder{color:var(--mist); opacity:1;}
   .ledger-input::-webkit-input-placeholder, .date-picker-row input[type=date]::-webkit-input-placeholder{color:var(--mist); opacity:1;}
   .remove-set{background:none; border:none; color:var(--mist); font-size:18px; cursor:pointer; padding:0; line-height:1; width:100%; min-height:44px; display:flex; align-items:center; justify-content:center;}
 
-  .add-set-btn{width:100%; margin-top:10px; padding:11px; background:var(--surface-2); border:1px dashed var(--line); border-radius:var(--radius-sm); color:var(--mist); font-size:13px; font-weight:700; cursor:pointer;}
+  .add-set-btn{width:100%; margin-top:10px; padding:11px; background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:var(--radius-sm); color:var(--mist); font-size:13px; font-weight:700; cursor:pointer;}
   .subtotal{display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px; color:var(--mist);}
   .subtotal b{color:var(--brass); font-variant-numeric:tabular-nums;}
   .save-btn{width:100%; margin-top:12px; padding:13px; background:var(--brass); border:none; border-radius:var(--radius-sm); color:var(--ink); font-weight:800; font-size:14px; cursor:pointer;}
   .save-btn:active{opacity:.85;}
 
-  .btn-secondary{background:var(--surface-2); border:1px solid var(--line); color:var(--chalk); padding:12px; border-radius:var(--radius-sm); font-weight:700; font-size:14px; width:100%; cursor:pointer;}
+  .btn-secondary{background:var(--surface-2); border:1px solid var(--line-strong); color:var(--chalk); padding:12px; border-radius:var(--radius-sm); font-weight:700; font-size:14px; width:100%; cursor:pointer;}
 
   .setting-row{display:flex; align-items:center; justify-content:space-between; gap:12px;}
-  .toggle-switch{position:relative; flex-shrink:0; width:46px; height:26px; padding:0; border:1px solid var(--line); border-radius:999px; background:var(--surface-2); cursor:pointer;}
+  .toggle-switch{position:relative; flex-shrink:0; width:46px; height:26px; padding:0; border:1px solid var(--line-strong); border-radius:999px; background:var(--surface-2); cursor:pointer;}
   .toggle-switch .toggle-thumb{position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--mist); transition:transform .2s, background-color .2s;}
   .toggle-switch.on{background:rgba(201,162,39,0.3); border-color:var(--brass);}
   .toggle-switch.on .toggle-thumb{transform:translateX(20px); background:var(--brass);}
   .setting-disabled{opacity:.45; pointer-events:none;}
 
   .date-picker-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:13px; color:var(--mist);}
-  .date-picker-row input[type=date]{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 10px; font-size:16px;}
+  .date-picker-row input[type=date]{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 10px; font-size:16px;}
 
   .upload-box{border:1px dashed var(--line); border-radius:var(--radius); padding:26px 18px; margin-top:6px;}
   .upload-box p{color:var(--mist); font-size:13px; line-height:1.55; margin:0 0 12px;}
@@ -1894,7 +1899,7 @@
     if(idx === -1) idx = 0;
     return '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; gap:8px;">' +
       '<button class="btn-secondary" data-week-nav="prev" type="button" style="width:46px; padding:10px 0; font-size:22px; line-height:1; font-weight:400;" ' + (idx<=0?"disabled":"") + '>‹</button>' +
-      '<div style="text-align:center; flex:0 0 auto; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:3px 18px;">' +
+      '<div style="text-align:center; flex:0 0 auto; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:3px 18px;">' +
       '<div style="font-weight:700; font-size:15px; line-height:1.2;">Viikko ' + escapeHtml(state.activeWeek) + '</div>' +
       '<div style="font-size:11px; color:var(--mist); line-height:1.2; margin-top:1px;">(' + (idx+1) + '/' + weeks.length + ')</div></div>' +
       '<button class="btn-secondary" data-week-nav="next" type="button" style="width:46px; padding:10px 0; font-size:22px; line-height:1; font-weight:400;" ' + (idx>=weeks.length-1?"disabled":"") + '>›</button>' +
