@@ -53,13 +53,13 @@ paino         = MROUND( 1RM_tavoite / (1 + tavoitetoistot / 30) , 2,5 )
 
 Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla. Jos tavoitetoistomäärä on sama kuin edellisellä kerralla, kaava supistuu muotoon `paino = MROUND( edellinen_paino × progressiokerroin , 2,5 )` — ehdotus siis nousee hieman aina, eikä jää koskaan täysin samaksi kuin viimeksi.
 
-Historia- ja Kehitys-välilehtien laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
+Kehitys-välilehden laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
 
 ```
 1RM = paino × (1 + toistot / 30)
 ```
 
-liikkeen viimeisimmän merkintäpäivän **ensimmäisestä** sarjasta, riippumatta siitä mitä liikkeelle sinä päivänä oli ohjelmoitu. Ero sarjapainolaskuriin on kahdessa kohdassa: Historia/Kehitys-laskenta perustuu aina viimeisimmän merkintäpäivän ensimmäiseen sarjaan eikä sisällä progressiokerrointa, kun taas sarjapainolaskuri perustuu edelliseen kirjattuun sarjaan ja sisältää progressiokertoimen.
+kunkin merkintäpäivän **raskaimmasta** sarjasta — sarjasta, joka antaa suurimman laskennallisen 1RM:n — riippumatta siitä mitä liikkeelle sinä päivänä oli ohjelmoitu tai missä järjestyksessä sarjat kirjattiin. Ero sarjapainolaskuriin on kahdessa kohdassa: Kehitys-laskenta perustuu aina päivän raskaimpaan sarjaan eikä sisällä progressiokerrointa, kun taas sarjapainolaskuri perustuu edelliseen kirjattuun sarjaan ja sisältää progressiokertoimen.
 
 Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punnerrus / Burpee, 12 min`), jätetään automaattilaskennan ulkopuolelle kokonaan.
 
@@ -71,7 +71,7 @@ Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punner
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea — toisesta merkinnästä lähtien käyrässä näkyy myös kehityssuunta. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
 
-**Asetukset.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
+**Asetukset.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
 **Ohje.** Tiivis käyttöohje: CSV:n muoto ja tuonti, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista välilehdistä. Näkyy myös ennen ensimmäistä CSV-tuontia linkkinä etusivulla.
 

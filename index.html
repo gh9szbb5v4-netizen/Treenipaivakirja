@@ -64,10 +64,13 @@
   /* 22px täyte + rivin 8px väli = 30px = sarjan numero -sarake (24px) + ledger-rivin
      oma 6px väli, jotta painikerivi alkaa täsmälleen painokentän vasemmasta reunasta. */
   .weight-step-spacer{flex:0 0 22px;}
-  .weight-step-btn{flex:0 0 auto; height:36px; padding:0 10px; font-size:12.5px; white-space:nowrap; display:flex; align-items:center; justify-content:center; background:var(--brass); color:var(--ink); border:none; border-radius:var(--radius-sm); font-weight:800; cursor:pointer;}
+  /* Pikasäätönapit ovat ääriviivatyyliä (läpinäkyvä tausta + messinkireunus),
+     jotta täytetty messinkipinta jää yksinomaan hyväksyntänapille ja
+     "Tallenna merkintä" -painikkeelle — ne ovat rivin varsinaiset toiminnot. */
+  .weight-step-btn{flex:0 0 auto; height:36px; padding:0 10px; font-size:12.5px; white-space:nowrap; display:flex; align-items:center; justify-content:center; background:transparent; color:var(--brass); border:1px solid var(--brass); border-radius:var(--radius-sm); font-weight:800; cursor:pointer;}
   /* margin-left:auto työntää Valmis-napin rivin oikeaan reunaan (Poista sarja
      -napin kohdalle) riippumatta -/+ -nappien kutistuneesta leveydestä. */
-  .set-done-btn{flex:0 0 auto; margin-left:auto; width:40px; height:36px; padding:0; font-size:17px; display:flex; align-items:center; justify-content:center; background:var(--brass); color:var(--ink); border:none; border-radius:var(--radius-sm); font-weight:800; cursor:pointer;}
+  .set-done-btn{flex:0 0 auto; margin-left:auto; width:40px; height:36px; padding:0; font-size:19px; display:flex; align-items:center; justify-content:center; background:var(--brass); color:var(--ink); border:none; border-radius:var(--radius-sm); font-weight:500; cursor:pointer;}
   .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px; width:22px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
   .set-num.done{background:var(--success); color:var(--ink); font-size:14px;}
   .ledger-input{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
@@ -83,6 +86,13 @@
   .save-btn:active{opacity:.85;}
 
   .btn-secondary{background:var(--surface-2); border:1px solid var(--line); color:var(--chalk); padding:12px; border-radius:var(--radius-sm); font-weight:700; font-size:14px; width:100%; cursor:pointer;}
+
+  .setting-row{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .toggle-switch{position:relative; flex-shrink:0; width:46px; height:26px; padding:0; border:1px solid var(--line); border-radius:999px; background:var(--surface-2); cursor:pointer;}
+  .toggle-switch .toggle-thumb{position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--mist); transition:transform .2s, background-color .2s;}
+  .toggle-switch.on{background:rgba(201,162,39,0.3); border-color:var(--brass);}
+  .toggle-switch.on .toggle-thumb{transform:translateX(20px); background:var(--brass);}
+  .setting-disabled{opacity:.45; pointer-events:none;}
 
   .date-picker-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:13px; color:var(--mist);}
   .date-picker-row input[type=date]{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 10px; font-size:16px;}
@@ -118,6 +128,7 @@
   var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
   var REST_DURATION_SECONDS = 90;
   var STORAGE_REST_DURATION_KEY = "rest-duration-seconds";
+  var STORAGE_REST_ENABLED_KEY = "rest-timer-enabled";
   var STORAGE_REST_TIMER_KEY = "rest-timer-state";
   var SIMULATION_GROWTH = 0.30;
   var PROGRESSION_COEFFICIENT = 1.0125; // Progressiokerroin p: 1,0125 = 1,25 % tavoiteltu kehitys per treenikerta
@@ -140,6 +151,7 @@
     consentGiven: false,
     homescreenHintDismissed: false,
     restDurationSeconds: REST_DURATION_SECONDS,
+    restTimerEnabled: true,
     restTimer: null,
     expandedDaySummaries: {},
     showHomescreenHint: false,
@@ -453,6 +465,10 @@
   async function saveRestDuration(){
     try{ await storeSet(STORAGE_REST_DURATION_KEY, String(state.restDurationSeconds)); }
     catch(e){ showToast("Lepoajan tallennus epäonnistui"); }
+  }
+  async function saveRestEnabled(){
+    try{ await storeSet(STORAGE_REST_ENABLED_KEY, state.restTimerEnabled ? "1" : "0"); }
+    catch(e){ /* hiljainen virhe, ei kriittinen */ }
   }
   async function saveSimulationState(){
     try{ await storeSet(STORAGE_SIMULATION_KEY, JSON.stringify(state.simulation)); }
@@ -794,14 +810,16 @@
           var norm = name.toLowerCase();
           // Sama Epley-kaava (1RM = w × (1 + r/30)) jokaiselle merkinnälle riippumatta
           // siitä, oliko sen teho MAX, prosentti vai vapaa — ei erillistä MAX-oikotietä.
-          // Vain päivän ENSIMMÄINEN sarja lasketaan mukaan, ei muita saman päivän sarjoja.
+          // Päivän RASKAIN sarja (suurin laskennallinen 1RM) määrittää päivän arvon,
+          // ei esim. ensimmäinen sarja — sarjat voivat olla nousujohteisia (esim.
+          // 40/60/70 kg), jolloin ensimmäinen sarja aliarvioisi liikkeen 1RM:n rajusti.
           var value = null;
           var sets = data.sets || [];
-          if(sets.length){
-            var refSet = sets[0];
-            var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
+          for(var s=0;s<sets.length;s++){
+            var refReps = toNumber(sets[s].reps), refWeight = toNumber(sets[s].weight);
             if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
-              value = roundToStep(refWeight * (1 + refReps/30), 2.5);
+              var setValue = roundToStep(refWeight * (1 + refReps/30), 2.5);
+              if(value === null || setValue > value){ value = setValue; }
             }
           }
           if(value === null) continue;
@@ -1409,7 +1427,7 @@
     if(el) return el;
     el = document.createElement("div");
     el.id = "rest-timer-mini";
-    el.style.cssText = "position:fixed; top:0; left:0; right:0; z-index:79; display:none; align-items:center; justify-content:center; gap:10px; padding:calc(10px + env(safe-area-inset-top)) 16px 10px; background:var(--brass); color:var(--ink); font-weight:800; font-size:15px; cursor:pointer;";
+    el.style.cssText = "position:fixed; bottom:0; left:0; right:0; z-index:79; display:none; align-items:center; justify-content:center; gap:10px; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); background:var(--brass); color:var(--ink); font-weight:800; font-size:15px; cursor:pointer;";
     el.setAttribute("role", "button");
     el.setAttribute("tabindex", "0");
     el.innerHTML =
@@ -1568,6 +1586,7 @@
   }
 
   function startRestTimer(seconds){
+    if(!state.restTimerEnabled) return;
     clearInterval(window.__restTimerInterval);
     state.restTimer = { endAt: Date.now() + seconds * 1000, seconds: seconds };
     persistRestTimer(state.restTimer);
@@ -1732,10 +1751,11 @@
     var idx = weeks.indexOf(state.activeWeek);
     if(idx === -1) idx = 0;
     return '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; gap:8px;">' +
-      '<button class="btn-secondary" data-week-nav="prev" type="button" style="width:46px; padding:10px 0; font-size:16px;" ' + (idx<=0?"disabled":"") + '>‹</button>' +
-      '<div style="text-align:center; flex:1;"><div style="font-weight:700; font-size:15px;">Viikko ' + escapeHtml(state.activeWeek) + '</div>' +
-      '<div style="font-size:11px; color:var(--mist); margin-top:2px;">' + (idx+1) + ' / ' + weeks.length + '</div></div>' +
-      '<button class="btn-secondary" data-week-nav="next" type="button" style="width:46px; padding:10px 0; font-size:16px;" ' + (idx>=weeks.length-1?"disabled":"") + '>›</button>' +
+      '<button class="btn-secondary" data-week-nav="prev" type="button" style="width:46px; padding:10px 0; font-size:22px; line-height:1; font-weight:400;" ' + (idx<=0?"disabled":"") + '>‹</button>' +
+      '<div style="text-align:center; flex:0 0 auto; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:3px 18px;">' +
+      '<div style="font-weight:700; font-size:15px; line-height:1.2;">Viikko ' + escapeHtml(state.activeWeek) + '</div>' +
+      '<div style="font-size:11px; color:var(--mist); line-height:1.2; margin-top:1px;">(' + (idx+1) + '/' + weeks.length + ')</div></div>' +
+      '<button class="btn-secondary" data-week-nav="next" type="button" style="width:46px; padding:10px 0; font-size:22px; line-height:1; font-weight:400;" ' + (idx>=weeks.length-1?"disabled":"") + '>›</button>' +
       '</div>';
   }
   function renderExerciseNameDatalist(){
@@ -1815,16 +1835,17 @@
   }
   function tehoBadge(ex){
     if(!ex.intensity) return "";
-    var label, bg, fg;
+    var label, bg, fg, bd;
     if(ex.intensity.isMax){
-      label = "MAX"; bg = "rgba(201,162,39,0.18)"; fg = "var(--brass)";
+      // MAX erottuu ääriviivamerkkinä, prosenttiteho täytettynä harmaana.
+      label = "MAX"; bg = "transparent"; fg = "var(--brass)"; bd = "var(--brass)";
     } else if(ex.intensity.percents && ex.intensity.percents.length){
       label = ex.intensity.percents.map(function(p){ return String(p).replace(".", ","); }).join("/") + " %";
-      bg = "rgba(136,145,160,0.2)"; fg = "var(--chalk)";
+      bg = "rgba(136,145,160,0.2)"; fg = "var(--chalk)"; bd = "transparent";
     } else {
       return "";
     }
-    return '<span style="display:inline-block; margin-left:8px; padding:2px 7px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.02em; background:' + bg + '; color:' + fg + '; vertical-align:middle;">' + escapeHtml(label) + '</span>';
+    return '<span style="display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.02em; background:' + bg + '; color:' + fg + '; border:1px solid ' + bd + '; vertical-align:middle;">' + escapeHtml(label) + '</span>';
   }
   function renderDaySummary(day){
     var totalKg = 0;
@@ -2173,12 +2194,19 @@
       '</div>' +
       '<div class="day-heading">Lepoajastin</div>' +
       '<div class="exercise" style="padding:16px;">' +
+      '<div class="setting-row">' +
+      '<div><div style="font-weight:600; font-size:14px;">Lepoajastin käytössä</div>' +
+      '<div style="color:var(--mist); font-size:12px; margin-top:2px;">Käynnistyy automaattisesti, kun sarja merkitään valmiiksi.</div></div>' +
+      '<button type="button" class="toggle-switch' + (state.restTimerEnabled ? " on" : "") + '" data-toggle-rest-enabled role="switch" aria-checked="' + (state.restTimerEnabled ? "true" : "false") + '" aria-label="Lepoajastin käytössä"><span class="toggle-thumb"></span></button>' +
+      '</div>' +
+      '<div class="' + (state.restTimerEnabled ? "" : "setting-disabled") + '" style="margin-top:14px;">' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Kuinka pitkä lepo ehdotetaan sarjojen välissä uutta sarjaa lisätessä tai merkintää tallentaessa.</p>' +
       '<div style="display:flex; align-items:center; gap:8px;">' +
       '<input type="text" id="rest-duration-input" class="ledger-input" inputmode="numeric" placeholder="sekuntia" value="' + state.restDurationSeconds + '" style="flex:0.6;">' +
       '<span style="color:var(--mist); font-size:13px;">sekuntia</span>' +
       '</div>' +
       '<button class="btn-secondary" id="save-rest-duration-btn" type="button" style="margin-top:10px;">Tallenna</button>' +
+      '</div>' +
       '</div>' +
       '<div class="day-heading">Vienti ja tuonti</div>' +
       '<div class="exercise" style="padding:16px;">' +
@@ -2455,6 +2483,18 @@
       render();
       return;
     }
+    if((el = e.target.closest("[data-toggle-rest-enabled]"))){
+      state.restTimerEnabled = !state.restTimerEnabled;
+      if(!state.restTimerEnabled && state.restTimer){
+        // Ajastimen kytkeminen pois käytöstä lopettaa myös juuri käynnissä
+        // olevan levon välittömästi, ei vasta seuraavasta sarjasta alkaen.
+        stopRestTimer();
+      }
+      await saveRestEnabled();
+      showToast(state.restTimerEnabled ? "Lepoajastin käytössä" : "Lepoajastin pois käytöstä");
+      render();
+      return;
+    }
     if((el = e.target.closest("#save-rest-duration-btn"))){
       var restInput = document.getElementById("rest-duration-input");
       var restSeconds = parseInt(restInput.value, 10);
@@ -2590,6 +2630,10 @@
       var restDurationRes = await storeGet(STORAGE_REST_DURATION_KEY);
       var storedRestDuration = restDurationRes ? parseInt(restDurationRes.value, 10) : NaN;
       if(isFinite(storedRestDuration) && storedRestDuration > 0){ state.restDurationSeconds = storedRestDuration; }
+    }catch(e){}
+    try{
+      var restEnabledRes = await storeGet(STORAGE_REST_ENABLED_KEY);
+      if(restEnabledRes && restEnabledRes.value === "0"){ state.restTimerEnabled = false; }
     }catch(e){}
     try{
       // Jos sivu ladataan kokonaan uudelleen kesken lepotauon (ei vain
