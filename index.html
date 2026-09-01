@@ -170,6 +170,7 @@
     importNameWarnings: [],
     view: "ohjelma",
     openExercise: null,
+    swapExercise: null,
     draftSets: {},
     draftDate: todayISO(),
     todayEntry: null,
@@ -679,6 +680,67 @@
   function dayKey(day){
     return String(day.week) + "|" + day.name;
   }
+  function isProgramExercise(id){
+    // Vain ohjelmaan kuuluvan liikkeen voi vaihtaa; käsin lisätyt ovat kertaluontoisia.
+    if(!state.program) return false;
+    for(var i=0;i<state.program.days.length;i++){
+      var list = state.program.days[i].exercises;
+      for(var j=0;j<list.length;j++){ if(list[j].id === id) return true; }
+    }
+    return false;
+  }
+  function programExerciseOccurrences(name){
+    // Sama liike toistuu tyypillisesti joka viikolla, joten vaihto voi koskea
+    // yhtä kohtaa tai kaikkia saman nimisiä.
+    var norm = String(name).trim().toLowerCase();
+    var list = [];
+    if(state.program){
+      state.program.days.forEach(function(day){
+        day.exercises.forEach(function(ex){
+          if(String(ex.name).trim().toLowerCase() === norm) list.push(ex);
+        });
+      });
+    }
+    return list;
+  }
+  async function swapProgramExercise(id){
+    var input = document.getElementById("swap-name-input");
+    var newName = input ? input.value.trim() : "";
+    if(!newName){ showToast("Kirjoita liikkeen nimi"); return; }
+    var ex = findExerciseById(id);
+    if(!ex) return;
+    var oldName = ex.name;
+    if(newName.toLowerCase() === String(oldName).trim().toLowerCase()){
+      state.swapExercise = null;
+      render();
+      return;
+    }
+    var allWeeksEl = document.getElementById("swap-all-weeks");
+    var targets = (allWeeksEl && allWeeksEl.checked) ? programExerciseOccurrences(oldName) : [ex];
+    var stamp = Date.now();
+    var newId = null;
+    targets.forEach(function(target, i){
+      // Uusi id jokaiselle vaihdetulle kohdalle: vanhaan id:hen sidottu tämän
+      // päivän merkintä ei saa siirtyä uudelle liikkeelle, vaan jää historiaan
+      // vanhalla nimellään. Samalla siivotaan vanhan id:n väliaikainen tila.
+      var targetId = "swap-" + stamp + "-" + i;
+      delete state.draftSets[target.id];
+      delete state.dirtySets[target.id];
+      delete state.autoCalcInfo[target.id];
+      if(target.id === id) newId = targetId;
+      target.id = targetId;
+      target.name = newName;
+    });
+    await saveProgram();
+    state.swapExercise = null;
+    // Vaihdettu liike jää auki, mutta sarjat lasketaan uudelleen uudelle nimelle.
+    state.openExercise = newId;
+    var swapped = newId ? findExerciseById(newId) : null;
+    if(swapped) state.draftSets[newId] = buildDraftRows(swapped, newId);
+    showToast(targets.length > 1 ? "Liike vaihdettu " + targets.length + " kohdassa" : "Liike vaihdettu");
+    render();
+  }
+
   function getExerciseGroupList(id){
     if(state.program){
       for(var i=0;i<state.program.days.length;i++){
@@ -1118,6 +1180,7 @@
     state.draftSets = {};
     state.dirtySets = {};
     state.openExercise = null;
+    state.swapExercise = null;
     state.expandedDaySummaries = {};
     state.todayEntry = await loadEntry(newDate);
     render();
@@ -1346,6 +1409,7 @@
     state.dirtySets = {};
     state.autoCalcInfo = {};
     state.openExercise = null;
+    state.swapExercise = null;
     state.todayEntry = await loadEntry(state.draftDate);
 
     var msg = "Tuotu " + addedBlocks + " merkintää";
@@ -1372,6 +1436,7 @@
     state.importNameWarnings = [];
     state.draftSets = {};
     state.openExercise = null;
+    state.swapExercise = null;
     state.expandedDaySummaries = {};
     state.historyDates = undefined;
     state.historyCache = {};
@@ -1729,6 +1794,8 @@
       "Avaa liike Ohjelma-välilehdellä ja täytä kunkin sarjan paino ja toistot. Paino on aina valmiiksi ehdotettu ja muokattavissa. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen."
     ) + ohjeP(
       "Merkinnän voi kirjata myös takautuvasti vaihtamalla päivämäärää yläreunan valitsimesta, ja ohjelmaan kuulumattoman liikkeen voi lisätä listan alta kohdasta \"Lisää liikelistaan\"."
+    ) + ohjeP(
+      "Jos et pysty tekemään ohjelman liikettä, avaa se ja valitse \"Vaihda liike toiseksi\". Sarjat, toistot ja teho säilyvät, ja voit vaihtaa joko vain tämän kohdan tai kaikki saman liikkeen esiintymät ohjelmassa. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä, joten CSV:tä ei tarvitse tuoda uudelleen."
     ));
 
     html += ohjeSection("3. Painoehdotukset", ohjeP(
@@ -1976,7 +2043,29 @@
       '<div class="subtotal"><span>Nostettu yhteensä</span><b>' + (total>0 ? total.toLocaleString("fi-FI") : "0") + ' kg</b></div>' +
       (allDone ? "" : '<div style="font-size:11.5px; color:var(--mist); margin-top:8px; text-align:center;">Merkitse jokainen sarja valmiiksi (✓) ennen tallennusta.</div>') +
       '<button class="save-btn" data-save-ex data-id="' + ex.id + '" type="button"' + (allDone ? "" : " disabled") + '>Tallenna merkintä</button>' +
+      renderSwapExercise(ex) +
       '</div>';
+  }
+  function renderSwapExercise(ex){
+    if(!isProgramExercise(ex.id)) return "";
+    if(state.swapExercise !== ex.id){
+      return '<div style="text-align:center; margin-top:12px;">' +
+        '<button data-swap-open data-id="' + ex.id + '" type="button" style="background:none; border:none; color:var(--mist); font-size:12px; text-decoration:underline; padding:4px; cursor:pointer;">Vaihda liike toiseksi</button></div>';
+    }
+    var occurrences = programExerciseOccurrences(ex.name).length;
+    var html = '<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">' +
+      '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 0 10px;">Korvaa <b style="color:var(--chalk);">' + escapeHtml(ex.name) + '</b> toisella liikkeellä. Sarjat, toistot ja teho säilyvät ennallaan. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä.</p>' +
+      '<input type="text" id="swap-name-input" class="ledger-input" list="exercise-name-options" autocomplete="off" placeholder="Uusi liike" value="">' +
+      renderExerciseNameDatalist();
+    if(occurrences > 1){
+      html += '<label style="display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--mist); font-size:12.5px; cursor:pointer;">' +
+        '<input type="checkbox" id="swap-all-weeks" checked style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
+        'Vaihda kaikissa viikoissa (' + occurrences + ' kohtaa)</label>';
+    }
+    return html + '<div style="display:flex; gap:8px; margin-top:12px;">' +
+      '<button class="btn-secondary" data-swap-cancel type="button">Peruuta</button>' +
+      '<button class="save-btn" data-swap-confirm data-id="' + ex.id + '" type="button" style="margin-top:0;">Vaihda</button>' +
+      '</div></div>';
   }
   function renderHistoria(){
     if(state.historyLoading) return '<div class="empty">Ladataan historiaa…</div>';
@@ -2336,6 +2425,22 @@
     if((el = e.target.closest("[data-toggle-week-view]"))){
       state.showAllWeeks = !state.showAllWeeks;
       render();
+      return;
+    }
+    if((el = e.target.closest("[data-swap-open]"))){
+      state.swapExercise = el.dataset.id;
+      render();
+      var swapInput = document.getElementById("swap-name-input");
+      if(swapInput) swapInput.focus();
+      return;
+    }
+    if((el = e.target.closest("[data-swap-cancel]"))){
+      state.swapExercise = null;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-swap-confirm]"))){
+      await swapProgramExercise(el.dataset.id);
       return;
     }
     if((el = e.target.closest("[data-close-ex]"))){

@@ -69,6 +69,8 @@ Ohjelma, Historia, Kehitys ja Ohje vaihdetaan näytön alareunassa kelluvasta va
 
 **Ohjelma.** Liikkeet viikoittain ja päivittäin. Liikkeen avaamalla kirjaat painot, toistot ja huomiot sarjoittain, ja näet nostetun kokonaispainon. Merkinnän voi kirjata myös takautuvasti päivämäärävalitsimella, ja ohjelmaan kuulumattoman liikkeen voi lisätä käsin.
 
+Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa liike ja valitse "Vaihda liike toiseksi". Sarjat, toistot ja teho säilyvät ennallaan, ja vaihdon voi kohdistaa joko vain kyseiseen kohtaan tai kaikkiin saman liikkeen esiintymiin ohjelmassa. Vaihdettu liike aloittaa oman historiansa uudella nimellä; vanhalla nimellä tallennetut merkinnät säilyvät Historiassa ennallaan.
+
 **Historia.** Merkinnät päivittäin. Yksittäisen päivän voi poistaa, jolloin painoehdotukset ja Kehitys-näkymän laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea — toisesta merkinnästä lähtien käyrässä näkyy myös kehityssuunta. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
