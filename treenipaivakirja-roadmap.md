@@ -85,7 +85,7 @@ Nämä muodostavat pohjan sille, että sovellusta voi ylipäätään jakaa halli
 
 ---
 
-## Vaihe 7 — Edistymisen visualisointi
+## Vaihe 7 — Edistymisen visualisointi — Tehty
 
 **Miksi tässä kohtaa:** Riippumaton Vaiheista 1–6 ja voidaan tehdä niiden jälkeen ilman, että aiempi työ pitää tehdä uudelleen. 1RM-tiedon siirto Historiasta Kehitykseen kannattaa tehdä ennen SVG-käyrän rakentamista, jotta käyrä rakennetaan heti oikean, lopullisen tietomallin päälle.
 
@@ -95,8 +95,6 @@ Nämä muodostavat pohjan sille, että sovellusta voi ylipäätään jakaa halli
 - Harkitse samaa kuvaajaa myös nostetun kokonaispainon kehitykselle, jos data koetaan hyödylliseksi ensimmäisen version jälkeen
 
 **Tulos:** kehitys näkyy heti ensimmäisestä merkinnästä alkaen, sekä lukuina että silmäiltävänä trendinä lukutaulukon sijaan.
-
-**Tila:** osittain tehty — SVG-viivakäyrä (`renderOneRepMaxChart`) on jo rakennettu, mutta Historian 1RM-listausta (`renderOneRepMaxSection`) ei ole vielä poistettu eikä `computeProgress`-funktion kahden merkinnän vähimmäisvaatimusta ole vielä poistettu.
 
 ---
 

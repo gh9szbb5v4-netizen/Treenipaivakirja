@@ -67,9 +67,9 @@ Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punner
 
 **Ohjelma.** Liikkeet viikoittain ja päivittäin. Liikkeen avaamalla kirjaat painot, toistot ja huomiot sarjoittain, ja näet nostetun kokonaispainon. Merkinnän voi kirjata myös takautuvasti päivämäärävalitsimella, ja ohjelmaan kuulumattoman liikkeen voi lisätä käsin.
 
-**Historia.** Merkinnät päivittäin sekä laskennalliset yhden toiston maksimit jokaiselle seuratulle liikkeelle. Yksittäisen päivän voi poistaa, jolloin painoehdotukset ja laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
+**Historia.** Merkinnät päivittäin. Yksittäisen päivän voi poistaa, jolloin painoehdotukset ja Kehitys-välilehden laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
 
-**Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina. Liike näkyy, kun sille on vähintään kaksi merkintää.
+**Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea — toisesta merkinnästä lähtien käyrässä näkyy myös kehityssuunta. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
 
 **Asetukset.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
