@@ -44,9 +44,8 @@
   *:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
 
-  .header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 2px 18px;}
-  .eyebrow{text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--brass); font-weight:700;}
-  .date{font-size:26px; font-weight:800; letter-spacing:-0.01em; margin:5px 0 0; font-variant-numeric:tabular-nums;}
+  .header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 2px 18px;}
+  .app-title{font-size:21px; font-weight:800; letter-spacing:-0.01em; margin:0;}
   /* Asetukset ei ole enää välilehti vaan rataskuvake näkymän oikeassa yläkulmassa. */
   .icon-btn{flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; padding:0; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--mist); cursor:pointer;}
   .icon-btn.active{color:var(--brass); border-color:var(--brass); background:rgba(201,162,39,0.12);}
@@ -1779,8 +1778,7 @@
   function renderHeader(){
     var showNav = !!(state.program && !state.loading);
     var html = '<div class="header">' +
-      '<div><div class="eyebrow">Treenipäiväkirja</div><h1 class="date">' +
-      capitalize(formatDateFI(todayISO())) + '</h1></div>' +
+      '<h1 class="app-title">Treenipäiväkirja</h1>' +
       (showNav ? '<button type="button" class="icon-btn' + (state.view === "asetukset" ? " active" : "") + '" data-tab="asetukset" aria-label="Asetukset"' +
         (state.view === "asetukset" ? ' aria-current="page"' : "") + '>' + gearIcon() + '</button>' : "") +
       '</div>';
