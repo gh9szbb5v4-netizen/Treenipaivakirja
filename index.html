@@ -1374,15 +1374,49 @@
       '<div id="rest-timer-count" style="color:var(--brass); font-weight:800; font-variant-numeric:tabular-nums; font-size:clamp(72px, 26vw, 200px); line-height:1; margin-top:4px;">--:--</div>' +
       '<div id="rest-timer-status" style="color:var(--chalk); font-size:19px; min-height:26px; margin-top:6px;"></div>' +
       '<div style="display:flex; gap:12px; margin-top:36px; width:100%; max-width:340px;">' +
-      '<button id="rest-timer-hide-btn" type="button" class="btn-secondary" style="min-height:44px;">Piilota</button>' +
+      '<button id="rest-timer-minimize-btn" type="button" class="btn-secondary" style="min-height:44px;">Pienennä</button>' +
       '<button id="rest-timer-stop-btn" type="button" class="btn-secondary" style="min-height:44px; color:var(--danger-text); border-color:var(--danger);">Lopeta lepo</button>' +
       '</div>';
     document.body.appendChild(el);
-    document.getElementById("rest-timer-hide-btn").addEventListener("click", function(){
-      el.style.display = "none";
+    document.getElementById("rest-timer-minimize-btn").addEventListener("click", function(){
+      minimizeRestTimer();
     });
     document.getElementById("rest-timer-stop-btn").addEventListener("click", function(){ stopRestTimer(); });
     return el;
+  }
+
+  function ensureRestTimerMiniBar(){
+    var el = document.getElementById("rest-timer-mini");
+    if(el) return el;
+    el = document.createElement("div");
+    el.id = "rest-timer-mini";
+    el.style.cssText = "position:fixed; top:0; left:0; right:0; z-index:79; display:none; align-items:center; justify-content:center; gap:10px; padding:calc(10px + env(safe-area-inset-top)) 16px 10px; background:var(--brass); color:var(--ink); font-weight:800; font-size:15px; cursor:pointer;";
+    el.setAttribute("role", "button");
+    el.setAttribute("tabindex", "0");
+    el.innerHTML =
+      '<span>Lepo · <span id="rest-timer-mini-count" style="font-variant-numeric:tabular-nums;">--:--</span></span>' +
+      '<span style="font-size:12px; text-decoration:underline;">Näytä</span>';
+    document.body.appendChild(el);
+    el.addEventListener("click", function(){ restoreRestTimer(); });
+    el.addEventListener("keydown", function(e){
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); restoreRestTimer(); }
+    });
+    return el;
+  }
+
+  function minimizeRestTimer(){
+    var el = document.getElementById("rest-timer-overlay");
+    if(el) el.style.display = "none";
+    var mini = ensureRestTimerMiniBar();
+    mini.style.display = "flex";
+    paintRestTimerCount(computeRestRemaining());
+  }
+
+  function restoreRestTimer(){
+    var mini = document.getElementById("rest-timer-mini");
+    if(mini) mini.style.display = "none";
+    var el = ensureRestTimerOverlay();
+    el.style.display = "flex";
   }
 
   function computeRestRemaining(){
@@ -1391,10 +1425,12 @@
   }
 
   function paintRestTimerCount(remaining){
-    var countEl = document.getElementById("rest-timer-count");
-    if(!countEl) return;
     var mins = Math.floor(remaining / 60), secs = remaining % 60;
-    countEl.textContent = mins + ":" + (secs < 10 ? "0" + secs : secs);
+    var text = mins + ":" + (secs < 10 ? "0" + secs : secs);
+    var countEl = document.getElementById("rest-timer-count");
+    if(countEl) countEl.textContent = text;
+    var miniCountEl = document.getElementById("rest-timer-mini-count");
+    if(miniCountEl) miniCountEl.textContent = text;
   }
 
   function updateRestTimerDisplay(){
@@ -1480,6 +1516,8 @@
     state.restTimer = null;
     persistRestTimer(null);
     releaseRestWakeLock();
+    var mini = document.getElementById("rest-timer-mini");
+    if(mini) mini.style.display = "none";
     var el = ensureRestTimerOverlay();
     el.style.display = "flex";
     el.style.background = "var(--brass)";
@@ -1510,6 +1548,8 @@
     releaseRestWakeLock();
     var el = document.getElementById("rest-timer-overlay");
     if(el){ el.style.display = "none"; el.style.background = "var(--ink)"; }
+    var mini = document.getElementById("rest-timer-mini");
+    if(mini) mini.style.display = "none";
     render();
   }
 
@@ -1527,6 +1567,8 @@
         Notification.requestPermission();
       }
     }catch(e){}
+    var mini = document.getElementById("rest-timer-mini");
+    if(mini) mini.style.display = "none";
     var el = ensureRestTimerOverlay();
     el.style.display = "flex";
     el.style.background = "var(--ink)";
