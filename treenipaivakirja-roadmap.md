@@ -2,15 +2,7 @@
 
 Tämä roadmap perustuu käytettävyys- ja ulkoasuarvioon, jossa verrattiin sovellusta markkinoilla oleviin vaihtoehtoihin (Hevy, Strong). Toteutetut vaiheet poistetaan roadmapista sitä mukaa kun ne on tehty, joten tässä näkyvät vain vielä tekemättömät vaiheet.
 
-Jokainen vaihe on rajattu niin, että se on toteutettavissa yhtenä tai muutamana Code-kehotteena aiempien esimerkkien tapaan. Kun olet valmis aloittamaan jonkin vaiheen, pyydä kehote juuri sille vaiheelle — kehote kannattaa laatia vasta silloin, jotta se voi viitata koodin sen hetkiseen todelliseen tilaan.
-
----
-
-## Ohjelman muokattavuus
-
-- Ohjelmaan kuuluva liike on voitava vaihtaa toiseksi suoraan ohjelmanäkymässä, ilman CSV:n uudelleentuontia
-
-**Tulos:** käyttäjä voi mukauttaa ohjelmaa yksittäisen liikkeen osalta ilman koko ohjelman uudelleentuontia.
+Kaikki suunnitellut vaiheet on nyt toteutettu. Jäljellä ovat enää alla olevat, kysynnän validointia odottavat kokonaisuudet.
 
 ---
 
