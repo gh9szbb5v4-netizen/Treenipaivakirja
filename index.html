@@ -59,6 +59,8 @@
   .ledger-row{display:grid; grid-template-columns:24px 1.5fr 0.55fr 1.3fr 32px; gap:6px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line);}
   .ledger-row:last-of-type{border-bottom:none;}
   .ledger-head{font-size:10px; text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
+  .weight-step-row{display:flex; gap:8px; margin:-4px 0 10px;}
+  .weight-step-btn{flex:1; min-height:44px; padding:8px; font-size:13px;}
   .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px; cursor:pointer; width:22px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
   .set-num.done{background:var(--success); color:var(--ink); font-size:14px;}
   .ledger-input{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
@@ -109,6 +111,7 @@
   var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
   var REST_DURATION_SECONDS = 90;
   var STORAGE_REST_DURATION_KEY = "rest-duration-seconds";
+  var STORAGE_REST_TIMER_KEY = "rest-timer-state";
   var SIMULATION_GROWTH = 0.30;
   var PROGRESSION_COEFFICIENT = 1.0125; // Progressiokerroin p: 1,0125 = 1,25 % tavoiteltu kehitys per treenikerta
 
@@ -130,6 +133,7 @@
     consentGiven: false,
     homescreenHintDismissed: false,
     restDurationSeconds: REST_DURATION_SECONDS,
+    restTimer: null,
     showHomescreenHint: false,
     program: null,
     manualExercises: [],
@@ -729,7 +733,6 @@
       delete state.dirtySets[id];
       state.kehitys = undefined;
       showToast(maxUpdated ? "Tallennettu — 1RM päivitetty Asetuksiin" : "Merkintä tallennettu");
-      startRestTimer(state.restDurationSeconds);
       state.openExercise = null;
       render();
     }catch(e){
@@ -1320,6 +1323,7 @@
     state.activeWeek = null;
     state.showAllWeeks = false;
     state.view = "ohjelma";
+    stopRestTimer();
     showToast("Kaikki tiedot tyhjennetty");
     render();
   }
@@ -1333,47 +1337,207 @@
     window.__toastTimer = setTimeout(function(){ t.classList.remove("show"); }, durationMs || 2200);
   }
 
-  function startRestTimer(seconds){
-    var el = document.getElementById("rest-timer");
-    if(!el){
-      el = document.createElement("div");
-      el.id = "rest-timer";
-      el.style.cssText = "position:fixed; left:50%; transform:translateX(-50%); bottom:calc(16px + env(safe-area-inset-bottom)); background:var(--surface); border:1px solid var(--brass); border-radius:999px; padding:10px 10px 10px 18px; display:flex; align-items:center; gap:10px; z-index:60; box-shadow:0 8px 24px rgba(0,0,0,.4); font-variant-numeric:tabular-nums;";
-      el.innerHTML = '<span id="rest-timer-label">Lepo</span>' +
-        '<span id="rest-timer-count" style="color:var(--brass); font-weight:800; font-size:16px;"></span>' +
-        '<button id="rest-timer-stop" type="button" style="background:none; border:none; color:var(--mist); font-size:18px; cursor:pointer; min-height:32px; min-width:32px;">×</button>';
-      document.body.appendChild(el);
-      document.getElementById("rest-timer-stop").addEventListener("click", function(){
-        clearInterval(window.__restTimerInterval);
-        clearTimeout(window.__restTimerHideTimeout);
-        el.style.display = "none";
-      });
+  // ---------- lepoajastin ----------
+  // Ajastin ei koskaan kutsu koko sovelluksen render()-funktiota tikityksen
+  // takia (se rakentaisi #app:n DOM:n uudelleen sekunnin välein ja rikkoisi
+  // esim. kesken olevan tekstikentän fokuksen). Ylivuoto piirretään suoraan
+  // document.body:hyn #app:n ulkopuolelle, samaan tapaan kuin showToast, joten
+  // render()-kutsut #app:lle eivät koskaan kosketa sitä. render() kutsutaan
+  // vain kolmessa merkittävässä tilasiirtymässä: käynnistys, pysäytys, päättyminen.
+  var wakeLockSentinel = null;
+
+  function ensureRestTimerOverlay(){
+    var el = document.getElementById("rest-timer-overlay");
+    if(el) return el;
+    el = document.createElement("div");
+    el.id = "rest-timer-overlay";
+    el.style.cssText = "position:fixed; inset:0; z-index:80; display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; background:var(--ink); transition:background-color .3s;";
+    el.innerHTML =
+      '<div style="color:var(--mist); font-size:16px; letter-spacing:.1em; text-transform:uppercase;">Lepo</div>' +
+      '<div id="rest-timer-count" style="color:var(--brass); font-weight:800; font-variant-numeric:tabular-nums; font-size:clamp(72px, 26vw, 200px); line-height:1; margin-top:4px;">--:--</div>' +
+      '<div id="rest-timer-status" style="color:var(--chalk); font-size:19px; min-height:26px; margin-top:6px;"></div>' +
+      '<div style="display:flex; gap:12px; margin-top:36px; width:100%; max-width:340px;">' +
+      '<button id="rest-timer-hide-btn" type="button" class="btn-secondary" style="min-height:44px;">Piilota</button>' +
+      '<button id="rest-timer-stop-btn" type="button" class="btn-secondary" style="min-height:44px; color:var(--danger-text); border-color:var(--danger);">Lopeta lepo</button>' +
+      '</div>';
+    document.body.appendChild(el);
+    document.getElementById("rest-timer-hide-btn").addEventListener("click", function(){
+      el.style.display = "none";
+    });
+    document.getElementById("rest-timer-stop-btn").addEventListener("click", function(){ stopRestTimer(); });
+    return el;
+  }
+
+  function computeRestRemaining(){
+    if(!state.restTimer) return 0;
+    return Math.max(0, Math.round((state.restTimer.endAt - Date.now()) / 1000));
+  }
+
+  function paintRestTimerCount(remaining){
+    var countEl = document.getElementById("rest-timer-count");
+    if(!countEl) return;
+    var mins = Math.floor(remaining / 60), secs = remaining % 60;
+    countEl.textContent = mins + ":" + (secs < 10 ? "0" + secs : secs);
+  }
+
+  function updateRestTimerDisplay(){
+    if(!state.restTimer) return;
+    var remaining = computeRestRemaining();
+    paintRestTimerCount(remaining);
+    if(remaining <= 0){ finishRestTimer(); }
+  }
+
+  async function persistRestTimer(data){
+    // Paras yritys -tallennus: jos se epäonnistuu, ajastin toimii silti tämän
+    // istunnon ajan setIntervalin ja state.restTimerin varassa.
+    try{
+      if(data){ await storeSet(STORAGE_REST_TIMER_KEY, JSON.stringify(data)); }
+      else{ await storeDelete(STORAGE_REST_TIMER_KEY); }
+    }catch(e){ /* hiljainen virhe, ei kriittinen */ }
+  }
+
+  async function requestRestWakeLock(){
+    // Wake Lock estää vain näytön automaattisen himmenemisen/sammumisen levon
+    // aikana — se EI estä käyttäjää itse lukitsemasta puhelinta virtapainikkeella
+    // eikä sovelluksesta poistumista, joten se ratkaisee vain osan ongelmasta.
+    try{
+      if(state.restTimer && "wakeLock" in navigator){
+        wakeLockSentinel = await navigator.wakeLock.request("screen");
+      }
+    }catch(e){ wakeLockSentinel = null; }
+  }
+  function releaseRestWakeLock(){
+    if(wakeLockSentinel){
+      try{ wakeLockSentinel.release(); }catch(e){}
+      wakeLockSentinel = null;
     }
+  }
+
+  function playRestTimerSound(){
+    try{
+      var AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if(!AudioCtx) return;
+      var ctx = new AudioCtx();
+      var beepAt = function(t){
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.4);
+      };
+      var now = ctx.currentTime;
+      beepAt(now); beepAt(now + 0.45); beepAt(now + 0.9);
+      setTimeout(function(){ try{ ctx.close(); }catch(e){} }, 1600);
+    }catch(e){ /* Web Audio ei käytettävissä, ei kriittinen */ }
+  }
+
+  function vibrateRestTimerEnd(){
+    // HUOM: iOS Safari ei tue Vibration API:a lainkaan — navigator.vibrate
+    // puuttuu tai ei tee mitään, joten värinä ei toimi iPhonella. Ääni yhdessä
+    // ruudun väriväläyksen kanssa on iOS:lla ainoa luotettava ilmoituskanava.
+    try{ if(navigator.vibrate){ navigator.vibrate([200,100,200,100,400]); } }catch(e){}
+  }
+
+  function notifyRestTimerEnd(){
+    // Parhaan yrityksen lisäominaisuus: iOS Safari ei pysty näyttämään
+    // ilmoitusta luotettavasti kun sovellusprosessi on kokonaan taustalla tai
+    // suljettu, koska se vaatisi push-palvelimen — sovelluksella ei ole eikä
+    // roadmapin/README:n mukaisesti tule olemaan palvelinpuolta. Toimii
+    // parhaiten Androidilla tai kun sivu on auki taustavälilehtenä.
+    try{
+      if("Notification" in window && Notification.permission === "granted"){
+        new Notification("Lepo ohi", { body: "Seuraava sarja odottaa.", tag: "treenipk-rest" });
+      }
+    }catch(e){}
+  }
+
+  function finishRestTimer(){
     clearInterval(window.__restTimerInterval);
     clearTimeout(window.__restTimerHideTimeout);
+    state.restTimer = null;
+    persistRestTimer(null);
+    releaseRestWakeLock();
+    var el = ensureRestTimerOverlay();
     el.style.display = "flex";
-    var labelEl = document.getElementById("rest-timer-label");
+    el.style.background = "var(--brass)";
+    paintRestTimerCount(0);
+    // Kirkkaalla taustavälähdyksellä lukemat ja teksti vaihtuvat tummiksi,
+    // jotta ne pysyvät luettavina — muuten ne sulautuisivat samaan brass-väriin.
     var countEl = document.getElementById("rest-timer-count");
-    var remaining = seconds;
-    labelEl.textContent = "Lepo";
-    var updateCount = function(){
-      var mins = Math.floor(remaining / 60);
-      var secs = remaining % 60;
-      countEl.textContent = mins + ":" + (secs < 10 ? "0" + secs : secs);
-    };
-    updateCount();
-    window.__restTimerInterval = setInterval(function(){
-      remaining--;
-      if(remaining <= 0){
-        clearInterval(window.__restTimerInterval);
-        countEl.textContent = "";
-        labelEl.textContent = "Lepo ohi";
-        window.__restTimerHideTimeout = setTimeout(function(){ el.style.display = "none"; }, 2000);
-        return;
-      }
-      updateCount();
-    }, 1000);
+    if(countEl) countEl.style.color = "var(--ink)";
+    var statusEl = document.getElementById("rest-timer-status");
+    if(statusEl){ statusEl.textContent = "Lepo ohi"; statusEl.style.color = "var(--ink)"; }
+    playRestTimerSound();
+    vibrateRestTimerEnd();
+    if(document.hidden) notifyRestTimerEnd();
+    window.__restTimerHideTimeout = setTimeout(function(){
+      el.style.display = "none";
+      el.style.background = "var(--ink)";
+      if(countEl) countEl.style.color = "var(--brass)";
+      if(statusEl) statusEl.style.color = "var(--chalk)";
+    }, 3000);
+    render();
   }
+
+  function stopRestTimer(){
+    clearInterval(window.__restTimerInterval);
+    clearTimeout(window.__restTimerHideTimeout);
+    state.restTimer = null;
+    persistRestTimer(null);
+    releaseRestWakeLock();
+    var el = document.getElementById("rest-timer-overlay");
+    if(el){ el.style.display = "none"; el.style.background = "var(--ink)"; }
+    render();
+  }
+
+  function startRestTimer(seconds){
+    clearInterval(window.__restTimerInterval);
+    clearTimeout(window.__restTimerHideTimeout);
+    state.restTimer = { endAt: Date.now() + seconds * 1000, seconds: seconds };
+    persistRestTimer(state.restTimer);
+    requestRestWakeLock();
+    // Ilmoituslupa kysytään vain ensimmäisellä käynnistyskerralla: jos selain on
+    // jo joskus vastannut (granted/denied), Notification.permission ei enää ole
+    // "default", joten kysely ei toistu uudestaan myöhemmillä käynnistyksillä.
+    try{
+      if("Notification" in window && Notification.permission === "default"){
+        Notification.requestPermission();
+      }
+    }catch(e){}
+    var el = ensureRestTimerOverlay();
+    el.style.display = "flex";
+    el.style.background = "var(--ink)";
+    // Palautetaan värit oletukseen, jos edellinen ajastin ehti juuri päättyä
+    // (var(--ink)-taustalla lukemat eivät saa jäädä tummiksi edellisen
+    // väläytyksen jäljiltä).
+    var countEl = document.getElementById("rest-timer-count");
+    if(countEl) countEl.style.color = "var(--brass)";
+    var statusEl = document.getElementById("rest-timer-status");
+    if(statusEl){ statusEl.textContent = ""; statusEl.style.color = "var(--chalk)"; }
+    updateRestTimerDisplay();
+    window.__restTimerInterval = setInterval(updateRestTimerDisplay, 1000);
+    render();
+  }
+
+  function handleRestTimerVisibilityChange(){
+    if(!state.restTimer) return;
+    // setInterval hidastuu tai pysähtyy kokonaan taustalla/lukitulla näytöllä,
+    // joten jäljellä oleva aika lasketaan aina uudelleen oikeasta kellonajasta
+    // sen sijaan että luotettaisiin tikityksen kertymään.
+    updateRestTimerDisplay();
+    if(state.restTimer && document.visibilityState === "visible"){
+      requestRestWakeLock();
+    }
+  }
+  document.addEventListener("visibilitychange", handleRestTimerVisibilityChange);
+  window.addEventListener("focus", handleRestTimerVisibilityChange);
+  window.addEventListener("pageshow", handleRestTimerVisibilityChange);
 
   // ---------- render ----------
   function renderHomescreenHint(){
@@ -1634,16 +1798,14 @@
     var rows = sets.map(function(s, idx){
       return '<div class="ledger-row">' +
         '<button type="button" class="set-num' + (s.done ? " done" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">' + (s.done ? "✓" : String(idx+1)) + '</button>' +
-        '<div style="display:flex; align-items:center; gap:3px;">' +
-        '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '" style="flex:1; min-width:0;">' +
-        '<div style="display:flex; flex-direction:column; gap:2px; flex:none;">' +
-        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" style="min-height:22px; height:22px; min-width:28px; width:28px; padding:0; font-size:16px; font-weight:700;" aria-label="Lisää 2,5 kg">+</button>' +
-        '<button class="remove-set" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" style="min-height:22px; height:22px; min-width:28px; width:28px; padding:0; font-size:16px; font-weight:700;" aria-label="Vähennä 2,5 kg">−</button>' +
-        '</div>' +
-        '</div>' +
+        '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
         '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<input class="ledger-input" type="text" placeholder="huom." data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
         '<button class="remove-set" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja">×</button>' +
+        '</div>' +
+        '<div class="weight-step-row">' +
+        '<button class="btn-secondary weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" aria-label="Vähennä painoa 2,5 kg">−2,5 kg</button>' +
+        '<button class="btn-secondary weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" aria-label="Lisää painoa 2,5 kg">+2,5 kg</button>' +
         '</div>';
     }).join("");
     var total = sets.reduce(function(sum, s){
@@ -2048,6 +2210,9 @@
         row4.done = false;
       } else if(isRowDoneEligible(ex4, row4)){
         row4.done = true;
+        // Ajastin käynnistyy heti kun sarja merkitään valmiiksi — ei odoteta
+        // koko liikkeen "Tallenna merkintä" -tallennusta.
+        startRestTimer(state.restDurationSeconds);
       } else {
         showToast("Syötä paino ennen kuin merkitset sarjan valmiiksi");
         return;
@@ -2293,6 +2458,25 @@
       var restDurationRes = await storeGet(STORAGE_REST_DURATION_KEY);
       var storedRestDuration = restDurationRes ? parseInt(restDurationRes.value, 10) : NaN;
       if(isFinite(storedRestDuration) && storedRestDuration > 0){ state.restDurationSeconds = storedRestDuration; }
+    }catch(e){}
+    try{
+      // Jos sivu ladataan kokonaan uudelleen kesken lepotauon (ei vain
+      // taustalle siirryttäessä), käynnissä ollut ajastin jatkuu tallennetusta
+      // päättymisajasta; jo umpeutunut ajastin siivotaan hiljaa pois.
+      var restTimerRes = await storeGet(STORAGE_REST_TIMER_KEY);
+      if(restTimerRes && restTimerRes.value){
+        var restored = JSON.parse(restTimerRes.value);
+        if(restored && isFinite(restored.endAt) && restored.endAt > Date.now()){
+          state.restTimer = restored;
+          var restoredEl = ensureRestTimerOverlay();
+          restoredEl.style.display = "flex";
+          updateRestTimerDisplay();
+          window.__restTimerInterval = setInterval(updateRestTimerDisplay, 1000);
+          requestRestWakeLock();
+        } else {
+          await persistRestTimer(null);
+        }
+      }
     }catch(e){}
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
