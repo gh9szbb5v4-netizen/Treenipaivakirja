@@ -54,14 +54,17 @@
   .exercise-target{font-size:12px; color:var(--mist); margin-top:3px; font-variant-numeric:tabular-nums;}
   .chevron{color:var(--mist); font-size:20px; transition:transform .2s, color .2s; flex-shrink:0; margin-left:10px;}
   .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
+  .chevron-btn{background:none; border:none; padding:0; margin:0; cursor:pointer; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; flex-shrink:0;}
 
   .ledger{padding:0 16px 16px;}
   .ledger-row{display:grid; grid-template-columns:24px 1.5fr 0.55fr 1.3fr 32px; gap:6px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line);}
   .ledger-row:last-of-type{border-bottom:none;}
   .ledger-head{font-size:10px; text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
   .weight-step-row{display:flex; gap:8px; margin:-4px 0 10px;}
-  .weight-step-btn{flex:1; min-height:44px; padding:8px; font-size:13px;}
-  .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px; cursor:pointer; width:22px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
+  .weight-step-btn{flex:0 0 25%; min-height:44px; padding:8px 4px; font-size:12.5px; white-space:nowrap;}
+  .set-done-btn{flex:1; min-height:44px; padding:8px; font-size:13px;}
+  .set-done-btn.done{background:var(--success); color:var(--ink); border-color:var(--success);}
+  .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px; width:22px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
   .set-num.done{background:var(--success); color:var(--ink); font-size:14px;}
   .ledger-input{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
   /* Selaimen oletusvaalennus vihjetekstille jää alle kontrastivaatimuksen, joten väri asetetaan itse. */
@@ -1512,7 +1515,6 @@
 
   function finishRestTimer(){
     clearInterval(window.__restTimerInterval);
-    clearTimeout(window.__restTimerHideTimeout);
     state.restTimer = null;
     persistRestTimer(null);
     releaseRestWakeLock();
@@ -1524,6 +1526,9 @@
     paintRestTimerCount(0);
     // Kirkkaalla taustavälähdyksellä lukemat ja teksti vaihtuvat tummiksi,
     // jotta ne pysyvät luettavina — muuten ne sulautuisivat samaan brass-väriin.
+    // Ilmoitus EI sulkeudu itsestään (aiemmin 3 sekunnin setTimeout) — käyttäjän
+    // on suljettava se itse "Pienennä"- tai "Lopeta lepo" -painikkeesta, jotta
+    // ilmoitus ei ehdi jäädä huomaamatta ennen katoamistaan.
     var countEl = document.getElementById("rest-timer-count");
     if(countEl) countEl.style.color = "var(--ink)";
     var statusEl = document.getElementById("rest-timer-status");
@@ -1531,18 +1536,11 @@
     playRestTimerSound();
     vibrateRestTimerEnd();
     if(document.hidden) notifyRestTimerEnd();
-    window.__restTimerHideTimeout = setTimeout(function(){
-      el.style.display = "none";
-      el.style.background = "var(--ink)";
-      if(countEl) countEl.style.color = "var(--brass)";
-      if(statusEl) statusEl.style.color = "var(--chalk)";
-    }, 3000);
     render();
   }
 
   function stopRestTimer(){
     clearInterval(window.__restTimerInterval);
-    clearTimeout(window.__restTimerHideTimeout);
     state.restTimer = null;
     persistRestTimer(null);
     releaseRestWakeLock();
@@ -1555,7 +1553,6 @@
 
   function startRestTimer(seconds){
     clearInterval(window.__restTimerInterval);
-    clearTimeout(window.__restTimerHideTimeout);
     state.restTimer = { endAt: Date.now() + seconds * 1000, seconds: seconds };
     persistRestTimer(state.restTimer);
     requestRestWakeLock();
@@ -1846,11 +1843,16 @@
     var badge = isSaved
       ? '<div title="Tallennettu" style="width:22px; height:22px; border-radius:50%; background:var(--success); color:var(--ink); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; margin-left:8px;">✓</div>'
       : '';
+    // Avoinna oleva liike suljetaan aina nuolesta erikseen, koskematta
+    // tallennustilaan — muuten (kiinni) koko otsikkorivi avaa liikkeen.
+    var chevronHtml = open
+      ? '<button type="button" class="chevron-btn" data-close-ex data-id="' + ex.id + '" aria-label="Sulje liike"><span class="chevron">›</span></button>'
+      : '<div class="chevron">›</div>';
     return '<div class="exercise ' + (open ? "open" : "") + '" style="' + (isSaved ? "border-color:rgba(111,174,111,0.35);" : "") + '">' +
       '<div class="exercise-head" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' +
       '<div><div class="exercise-name">' + escapeHtml(ex.name) + tehoBadge(ex) + '</div>' +
       (target ? '<div class="exercise-target">' + escapeHtml(target) + '</div>' : '') +
-      '</div><div style="display:flex; align-items:center;">' + badge + '<div class="chevron">›</div></div></div>' +
+      '</div><div style="display:flex; align-items:center;">' + badge + chevronHtml + '</div></div>' +
       (open ? renderLedger(ex) : '') +
       '</div>';
   }
@@ -1884,8 +1886,11 @@
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
     var hint = autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     var rows = sets.map(function(s, idx){
+      // Sarjan numero on pelkkä visuaalinen merkki — hyväksyntä tehdään aina
+      // erillisestä, selvästi nimetystä painikkeesta pikasäätönappien rivillä,
+      // koska numeron toimiminen myös hyväksyntäpainikkeena ei ollut selvää.
       return '<div class="ledger-row">' +
-        '<button type="button" class="set-num' + (s.done ? " done" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">' + (s.done ? "✓" : String(idx+1)) + '</button>' +
+        '<div class="set-num' + (s.done ? " done" : "") + '" aria-hidden="true">' + (s.done ? "✓" : String(idx+1)) + '</div>' +
         '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
         '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<input class="ledger-input" type="text" placeholder="huom." data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
@@ -1894,6 +1899,7 @@
         '<div class="weight-step-row">' +
         '<button class="btn-secondary weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" aria-label="Vähennä painoa 2,5 kg">−2,5 kg</button>' +
         '<button class="btn-secondary weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" aria-label="Lisää painoa 2,5 kg">+2,5 kg</button>' +
+        '<button type="button" class="btn-secondary set-done-btn' + (s.done ? " done" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">' + (s.done ? "✓ Valmis" : "Valmis") + '</button>' +
         '</div>';
     }).join("");
     var total = sets.reduce(function(sum, s){
@@ -2252,6 +2258,14 @@
     }
     if((el = e.target.closest("[data-toggle-week-view]"))){
       state.showAllWeeks = !state.showAllWeeks;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-close-ex]"))){
+      // Nuolesta sulkeminen on pelkkä näkymän piilotus — ei koske
+      // draftSets/dirtySets/todayEntry-tilaan, joten tallennustila säilyy
+      // täsmälleen sellaisena kuin se oli ennen sulkemista.
+      state.openExercise = null;
       render();
       return;
     }
