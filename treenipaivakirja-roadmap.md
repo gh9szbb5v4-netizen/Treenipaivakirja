@@ -53,7 +53,7 @@ Nämä muodostavat pohjan sille, että sovellusta voi ylipäätään jakaa halli
 
 ---
 
-## Vaihe 4 — Treenipäivän niputtaminen
+## Vaihe 4 — Treenipäivän niputtaminen — Tehty
 
 **Miksi tässä kohtaa:** Edellyttää Vaihe 2:ssa rakennettua liikekohtaista valmiustilaa — sovelluksen on tiedettävä luotettavasti, milloin jokainen päivän liike on merkitty tehdyksi, ennen kuin näitä voidaan niputtaa yhdeksi koosteeksi.
 

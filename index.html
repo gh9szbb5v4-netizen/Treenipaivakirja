@@ -134,6 +134,7 @@
     homescreenHintDismissed: false,
     restDurationSeconds: REST_DURATION_SECONDS,
     restTimer: null,
+    expandedDaySummaries: {},
     showHomescreenHint: false,
     program: null,
     manualExercises: [],
@@ -632,6 +633,20 @@
     for(var i=0;i<rows.length;i++){ if(!rows[i].done) return false; }
     return true;
   }
+  function isExerciseSavedToday(ex){
+    return !!(state.todayEntry && state.todayEntry.exercises && state.todayEntry.exercises[ex.id]);
+  }
+  function isDayFullyDone(day){
+    // Koko treenipäivä lasketaan tehdyksi vasta kun jokainen sen liike on
+    // tallennettu draftSets-tilan sarjakohtaisen valmiiksi-merkinnän kautta
+    // (ei riitä, että liike on ollut tallennettu jonain aiempana päivänä).
+    if(!day.exercises || !day.exercises.length) return false;
+    for(var i=0;i<day.exercises.length;i++){ if(!isExerciseSavedToday(day.exercises[i])) return false; }
+    return true;
+  }
+  function dayKey(day){
+    return String(day.week) + "|" + day.name;
+  }
   function getExerciseGroupList(id){
     if(state.program){
       for(var i=0;i<state.program.days.length;i++){
@@ -1058,6 +1073,7 @@
     state.draftSets = {};
     state.dirtySets = {};
     state.openExercise = null;
+    state.expandedDaySummaries = {};
     state.todayEntry = await loadEntry(newDate);
     render();
   }
@@ -1311,6 +1327,7 @@
     state.importNameWarnings = [];
     state.draftSets = {};
     state.openExercise = null;
+    state.expandedDaySummaries = {};
     state.historyDates = undefined;
     state.historyCache = {};
     state.confirmingReset = false;
@@ -1719,7 +1736,15 @@
     }
     groupsToShow.forEach(function(day){
       html += '<div class="day-heading">' + escapeHtml(day.name) + '</div>';
-      day.exercises.forEach(function(ex){ html += renderExercise(ex); });
+      var fullyDone = isDayFullyDone(day);
+      if(fullyDone && !state.expandedDaySummaries[dayKey(day)]){
+        html += renderDaySummary(day);
+      } else {
+        if(fullyDone){
+          html += '<div style="text-align:center; margin:-2px 0 10px;"><button data-toggle-day-summary data-key="' + escapeHtml(dayKey(day)) + '" type="button" style="background:none; border:none; color:var(--mist); font-size:12px; text-decoration:underline; padding:4px;">Piilota valmiit liikkeet</button></div>';
+        }
+        day.exercises.forEach(function(ex){ html += renderExercise(ex); });
+      }
     });
     if(state.manualExercises.length){
       html += '<div class="day-heading">Lisätyt liikkeet</div>';
@@ -1745,6 +1770,27 @@
       return "";
     }
     return '<span style="display:inline-block; margin-left:8px; padding:2px 7px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.02em; background:' + bg + '; color:' + fg + '; vertical-align:middle;">' + escapeHtml(label) + '</span>';
+  }
+  function renderDaySummary(day){
+    var totalKg = 0;
+    day.exercises.forEach(function(ex){
+      var data = state.todayEntry.exercises[ex.id];
+      (data.sets || []).forEach(function(s){
+        var w = toNumber(s.weight), r = toNumber(s.reps);
+        if(isFinite(w) && isFinite(r)) totalKg += w * r;
+      });
+    });
+    var dateStr = capitalize(formatDateFI(state.todayEntry.date || state.draftDate));
+    var detailParts = [dateStr, day.exercises.length + " liikettä"];
+    if(totalKg > 0) detailParts.push(totalKg.toLocaleString("fi-FI") + " kg nostettu");
+    return '<div class="exercise" style="border-color:rgba(111,174,111,0.35);">' +
+      '<div class="exercise-head" data-toggle-day-summary data-key="' + escapeHtml(dayKey(day)) + '" role="button" tabindex="0" aria-expanded="false">' +
+      '<div style="display:flex; align-items:center; gap:10px;">' +
+      '<div style="width:26px; height:26px; border-radius:50%; background:var(--success); color:var(--ink); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0;">✓</div>' +
+      '<div><div class="exercise-name">Treeni merkitty tehdyksi</div>' +
+      '<div class="exercise-target">' + escapeHtml(detailParts.join(" · ")) + '</div></div>' +
+      '</div><div class="chevron">›</div></div>' +
+      '</div>';
   }
   function renderExercise(ex){
     var open = state.openExercise === ex.id;
@@ -2168,6 +2214,12 @@
       return;
     }
     if((el = e.target.closest("[data-toggle-ex]"))){ await toggleExercise(el.dataset.id); return; }
+    if((el = e.target.closest("[data-toggle-day-summary]"))){
+      var summaryKey = el.dataset.key;
+      state.expandedDaySummaries[summaryKey] = !state.expandedDaySummaries[summaryKey];
+      render();
+      return;
+    }
     if((el = e.target.closest("[data-add-set]"))){
       var id1 = el.dataset.id;
       if(!state.draftSets[id1]) state.draftSets[id1] = [];
@@ -2383,7 +2435,7 @@
     // Välilehdet, liikeotsikot ja historian päivät ovat div-elementtejä, joten
     // Enter ja välilyönti ohjataan olemassa olevaan click-käsittelijään.
     if(e.key !== "Enter" && e.key !== " ") return;
-    var el = e.target.closest("[data-tab], [data-toggle-ex], [data-history-date]");
+    var el = e.target.closest("[data-tab], [data-toggle-ex], [data-history-date], [data-toggle-day-summary]");
     if(!el) return;
     e.preventDefault();
     el.click();
