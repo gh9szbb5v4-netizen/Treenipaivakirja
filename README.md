@@ -41,7 +41,7 @@ Sovellus ehdottaa painon kahdella eri säännöllä sen mukaan, onko liikkeelle 
 
 **Liikkeellä on teho (MAX tai prosentti).** Painoehdotus lasketaan liikkeen 1RM-arvosta — ei liikkeen aiemmista merkinnöistä. `MAX`-teholle ehdotetaan suoraan 1RM:ää; prosenttiteholle (esim. `90 %`) ehdotetaan kyseinen prosenttiosuus 1RM:stä. Jos liikkeelle ei ole vielä 1RM-arvoa, ehdotus jää tyhjäksi.
 
-1RM-arvoa voi muokata milloin tahansa käsin Asetukset-välilehdellä, mutta se päivittyy myös automaattisesti: kun kirjaat merkinnän `MAX`-teholliselle liikkeelle, sen ensimmäisen sarjan paino tallentuu 1RM:ksi ja korvaa Asetuksiin aiemmin tallennetun arvon.
+1RM-arvoa voi muokata milloin tahansa käsin Asetuksissa (rataskuvake oikeassa yläkulmassa), mutta se päivittyy myös automaattisesti: kun kirjaat merkinnän `MAX`-teholliselle liikkeelle, sen ensimmäisen sarjan paino tallentuu 1RM:ksi ja korvaa Asetuksiin aiemmin tallennetun arvon.
 
 **Liikkeellä ei ole tehoa.** Ehdotus perustuu liikkeen **viimeksi kirjattuun sarjaan** ja Epley-kaavaan: edellisestä sarjasta arvioidaan 1RM, siihen sovelletaan progressiokerrointa, ja tuloksesta lasketaan takaisin paino tavoitetoistomäärälle.
 
@@ -53,7 +53,7 @@ paino         = MROUND( 1RM_tavoite / (1 + tavoitetoistot / 30) , 2,5 )
 
 Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla. Jos tavoitetoistomäärä on sama kuin edellisellä kerralla, kaava supistuu muotoon `paino = MROUND( edellinen_paino × progressiokerroin , 2,5 )` — ehdotus siis nousee hieman aina, eikä jää koskaan täysin samaksi kuin viimeksi.
 
-Kehitys-välilehden laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
+Kehitys-näkymän laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
 
 ```
 1RM = paino × (1 + toistot / 30)
@@ -63,23 +63,25 @@ kunkin merkintäpäivän **raskaimmasta** sarjasta — sarjasta, joka antaa suur
 
 Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punnerrus / Burpee, 12 min`), jätetään automaattilaskennan ulkopuolelle kokonaan.
 
-## Välilehdet
+## Näkymät
+
+Ohjelma, Historia, Kehitys ja Ohje vaihdetaan näytön alareunassa kelluvasta valikosta. Asetukset avataan näkymän oikean yläkulman rataskuvakkeesta.
 
 **Ohjelma.** Liikkeet viikoittain ja päivittäin. Liikkeen avaamalla kirjaat painot, toistot ja huomiot sarjoittain, ja näet nostetun kokonaispainon. Merkinnän voi kirjata myös takautuvasti päivämäärävalitsimella, ja ohjelmaan kuulumattoman liikkeen voi lisätä käsin.
 
-**Historia.** Merkinnät päivittäin. Yksittäisen päivän voi poistaa, jolloin painoehdotukset ja Kehitys-välilehden laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
+**Historia.** Merkinnät päivittäin. Yksittäisen päivän voi poistaa, jolloin painoehdotukset ja Kehitys-näkymän laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea — toisesta merkinnästä lähtien käyrässä näkyy myös kehityssuunta. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
 
-**Asetukset.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
+**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
-**Ohje.** Tiivis käyttöohje: CSV:n muoto ja tuonti, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista välilehdistä. Näkyy myös ennen ensimmäistä CSV-tuontia linkkinä etusivulla.
+**Ohje.** Tiivis käyttöohje: CSV:n muoto ja tuonti, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä CSV-tuontia linkkinä etusivulla.
 
 ## Tietojen tallennus
 
 Merkinnät tallennetaan selaimen omaan tallennustilaan ja säilyvät sovelluksen sulkemisen jälkeen. Mitään ei lähetetä palvelimelle — data ei koskaan poistu laitteeltasi, ja julkaistu sivu on pelkkä staattinen tiedosto.
 
-Tallennustila on laite- ja osoitekohtainen, joten merkinnät eivät siirry toiseen selaimeen, laitteeseen tai osoitteeseen automaattisesti. Siirto ja varmuuskopiointi tehdään Asetukset-välilehden vienti- ja tuontitoiminnoilla. Tuonti yhdistää tiedot olemassa oleviin merkintöihin ja ohittaa jo tallennetut, joten saman tiedoston voi tuoda turvallisesti useaan kertaan.
+Tallennustila on laite- ja osoitekohtainen, joten merkinnät eivät siirry toiseen selaimeen, laitteeseen tai osoitteeseen automaattisesti. Siirto ja varmuuskopiointi tehdään Asetusten vienti- ja tuontitoiminnoilla. Tuonti yhdistää tiedot olemassa oleviin merkintöihin ja ohittaa jo tallennetut, joten saman tiedoston voi tuoda turvallisesti useaan kertaan.
 
 Uuden treeniohjelman tuonti ei poista historiaa: merkinnät ja painoehdotukset säilyvät liikkeen nimen perusteella, joten uusi ohjelmajakso jatkaa siitä mihin edellinen jäi.
 

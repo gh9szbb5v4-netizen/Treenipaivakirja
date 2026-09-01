@@ -34,16 +34,24 @@
     min-height:100vh;
   }
   #app{max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 48px);}
+  /* Kelluvan alanavigaation alle jäävä tila, jotta sisällön loppu ei jää palkin taakse. */
+  #app.has-bottom-nav{padding-bottom:calc(env(safe-area-inset-bottom) + 100px);}
   *:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
 
-  .header{padding:6px 2px 18px;}
+  .header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 2px 18px;}
   .eyebrow{text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--brass); font-weight:700;}
   .date{font-size:26px; font-weight:800; letter-spacing:-0.01em; margin-top:5px; font-variant-numeric:tabular-nums;}
+  /* Asetukset ei ole enää välilehti vaan rataskuvake näkymän oikeassa yläkulmassa. */
+  .icon-btn{flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; padding:0; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--mist); cursor:pointer;}
+  .icon-btn.active{color:var(--brass); border-color:var(--brass); background:rgba(201,162,39,0.12);}
 
-  .tabs{display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:18px;}
-  .tab{flex:1; min-width:0; text-align:center; padding:10px 2px; font-size:10.5px; font-weight:700; color:var(--mist); text-transform:uppercase; letter-spacing:.02em; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .tab.active{color:var(--chalk); border-bottom-color:var(--brass);}
+  /* Kelluva alanavigaatio. Sama korttikieli kuin muualla sovelluksessa
+     (surface-2 + line + var(--radius)) ja samat pienet versaalit kuin
+     aiemmassa yläreunan välilehtirivissä — ei uutta ikonistoa. */
+  .bottom-nav{position:fixed; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom) + 12px); z-index:70; margin:0 auto; max-width:448px; display:flex; gap:2px; padding:6px; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 8px 24px rgba(0,0,0,.45);}
+  .tab{flex:1; min-width:0; display:flex; align-items:center; justify-content:center; min-height:44px; padding:6px 2px; border-radius:var(--radius-sm); text-align:center; font-size:10.5px; font-weight:700; color:var(--mist); text-transform:uppercase; letter-spacing:.02em; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .tab.active{color:var(--brass); background:rgba(201,162,39,0.12);}
 
   .day-heading{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--mist); margin:20px 2px 8px; font-weight:700;}
   .day-heading:first-of-type{margin-top:0;}
@@ -1427,7 +1435,8 @@
     if(el) return el;
     el = document.createElement("div");
     el.id = "rest-timer-mini";
-    el.style.cssText = "position:fixed; bottom:0; left:0; right:0; z-index:79; display:none; align-items:center; justify-content:center; gap:10px; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); background:var(--brass); color:var(--ink); font-weight:800; font-size:15px; cursor:pointer;";
+    // Asettuu kelluvan alanavigaation yläpuolelle (navi: 12px + 58px korkea).
+    el.style.cssText = "position:fixed; bottom:calc(env(safe-area-inset-bottom) + 82px); left:16px; right:16px; margin:0 auto; max-width:448px; z-index:79; display:none; align-items:center; justify-content:center; gap:10px; padding:10px 16px; border-radius:var(--radius); background:var(--brass); color:var(--ink); font-weight:800; font-size:15px; cursor:pointer;";
     el.setAttribute("role", "button");
     el.setAttribute("tabindex", "0");
     el.innerHTML =
@@ -1637,13 +1646,26 @@
       '<div style="margin-top:10px;"><button class="btn-secondary" data-dismiss-homescreen-hint type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Selvä, sain ohjeen</button></div>' +
       '</div>';
   }
+  function gearIcon(){
+    // Yksinkertainen itse piirretty ratas: kehä, napa ja kahdeksan hammasta.
+    return '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" focusable="false">' +
+      '<circle cx="12" cy="12" r="6.2"></circle><circle cx="12" cy="12" r="2.6"></circle>' +
+      '<path d="M12 3.6v2.2M12 18.2v2.2M3.6 12h2.2M18.2 12h2.2' +
+      'M6.06 6.06l1.56 1.56M16.38 16.38l1.56 1.56M17.94 6.06l-1.56 1.56M7.62 16.38l-1.56 1.56"></path>' +
+      '</svg>';
+  }
   function renderHeader(){
-    var html = '<div class="header"><div class="eyebrow">Treenipäiväkirja</div><div class="date">' +
-      capitalize(formatDateFI(todayISO())) + '</div></div>';
+    var showNav = !!(state.program && !state.loading);
+    var html = '<div class="header">' +
+      '<div><div class="eyebrow">Treenipäiväkirja</div><div class="date">' +
+      capitalize(formatDateFI(todayISO())) + '</div></div>' +
+      (showNav ? '<button type="button" class="icon-btn' + (state.view === "asetukset" ? " active" : "") + '" data-tab="asetukset" aria-label="Asetukset"' +
+        (state.view === "asetukset" ? ' aria-current="page"' : "") + '>' + gearIcon() + '</button>' : "") +
+      '</div>';
     if(state.storageMode === "local" && state.storageWarn){
       html += '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
         '<b style="color:var(--brass);">Varatallennus käytössä.</b> Claude-tallennus ei vastannut tässä ympäristössä, joten merkinnät tallennetaan tämän selaimen omaan muistiin. ' +
-        'Ne säilyvät normaalisti tällä laitteella ja tässä selaimessa, mutta eivät siirry muille laitteille. Ota varmuuskopio Asetukset-välilehden CSV-viennillä.' +
+        'Ne säilyvät normaalisti tällä laitteella ja tässä selaimessa, mutta eivät siirry muille laitteille. Ota varmuuskopio Asetusten (rataskuvake oikeassa yläkulmassa) CSV-viennillä.' +
         '</div>';
     } else if(state.storageMode === "memory"){
       html += '<div style="background:rgba(193,99,60,0.15); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px; font-size:13px; line-height:1.5; color:var(--chalk);">' +
@@ -1653,14 +1675,15 @@
         '</div>';
     }
     if(state.showHomescreenHint) html += renderHomescreenHint();
-    if(state.program && !state.loading) html += renderTabs();
+    if(showNav) html += renderTabs();
     return html;
   }
   function renderTabs(){
-    var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["asetukset","Asetukset"],["ohje","Ohje"]];
-    return '<div class="tabs">' + tabs.map(function(t){
+    // Asetukset ei ole listassa — se avataan otsikkorivin rataskuvakkeesta.
+    var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["ohje","Ohje"]];
+    return '<nav class="bottom-nav" aria-label="Päänavigaatio">' + tabs.map(function(t){
       return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '" role="button" tabindex="0"' + (state.view===t[0] ? ' aria-current="page"' : "") + '>' + t[1] + '</div>';
-    }).join("") + '</div>';
+    }).join("") + '</nav>';
   }
   function renderBody(){
     if(state.loading) return '<div class="empty">Ladataan…</div>';
@@ -1692,7 +1715,7 @@
     ));
 
     html += ohjeSection("1. Tuo treeniohjelma", ohjeP(
-      "Lataa Asetukset-välilehdeltä (tai ensimmäisellä käyttökerralla suoraan etusivulta) treeniohjelmasi CSV-tiedostona. Ainoa pakollinen sarake on <b style=\"color:var(--chalk);\">liikkeen nimi</b> — muut tunnistetaan otsikon perusteella automaattisesti."
+      "Lataa Asetuksista — oikean yläkulman rataskuvakkeesta — (tai ensimmäisellä käyttökerralla suoraan etusivulta) treeniohjelmasi CSV-tiedostona. Ainoa pakollinen sarake on <b style=\"color:var(--chalk);\">liikkeen nimi</b> — muut tunnistetaan otsikon perusteella automaattisesti."
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Viikko</b> ja <b style=\"color:var(--chalk);\">Treenipäivä</b> ryhmittelevät ohjelman.",
       "<b style=\"color:var(--chalk);\">Sarjat</b> ja <b style=\"color:var(--chalk);\">Toistot</b> määrittävät kirjattavien rivien määrän ja tavoitteen.",
@@ -1720,7 +1743,7 @@
       "<b style=\"color:var(--chalk);\">Kehitys</b> näyttää jokaiselle liikkeelle muutoksen edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna. Näkyy kun liikkeelle on vähintään kaksi merkintää."
     ));
 
-    html += ohjeSection("5. Asetukset", ohjeList([
+    html += ohjeSection("5. Asetukset (rataskuvake oikeassa yläkulmassa)", ohjeList([
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie merkinnät CSV:nä</b> — ota säännöllisesti varmuuskopio, sillä data on vain tässä selaimessa.",
@@ -2251,9 +2274,12 @@
   function render(){
     var app = document.getElementById("app");
     if(state.consentChecked && !state.consentGiven){
+      app.className = "";
       app.innerHTML = renderConsentGate();
       return;
     }
+    // Alanavigaatio on kelluva ja peittäisi sisällön lopun ilman lisätilaa.
+    app.className = (state.program && !state.loading) ? "has-bottom-nav" : "";
     app.innerHTML = renderHeader() + renderBody();
   }
 
