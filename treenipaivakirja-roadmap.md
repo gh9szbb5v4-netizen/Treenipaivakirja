@@ -64,7 +64,18 @@ Nämä muodostavat pohjan sille, että sovellusta voi ylipäätään jakaa halli
 
 ---
 
-## Vaihe 5 — Ohjelman muokattavuus
+## Vaihe 5 — Ajastimen pienentäminen
+
+**Miksi tässä kohtaa:** Korjaus koskee Vaiheessa 3 rakennettua ajastinta ja edellyttää sitä teknisesti, mutta on rajattu ja itsenäinen korjaus, joka ei riipu myöhemmistä vaiheista — se kannattaa tehdä omana pienenä kokonaisuutenaan heti Vaiheiden 1–4 valmistuttua sen sijaan, että se sekoitettaisiin uuteen, laajempaan kehitystyöhön.
+
+- Nykyinen "Piilota"-toiminto korvataan "Pienennä"-toiminnolla: ajastimen ollessa päällä sen saa pienennettyä pieneksi näkymäksi näkymän yläreunaan sen sijaan, että se katoaisi kokonaan ja jäisi palauttamattomaksi
+- Pienennettyä ajastinta painamalla näkymä palautuu takaisin koko näytön ajastimeksi
+
+**Tulos:** käynnissä olevaa ajastinta ei voi enää kadottaa vahingossa näkyvistä; se on aina joko täysikokoisena tai pienennettynä nähtävissä.
+
+---
+
+## Vaihe 6 — Ohjelman muokattavuus
 
 **Miksi tässä kohtaa:** Itsenäinen ominaisuus, joka ei riipu edeltävistä vaiheista teknisesti, mutta on luontevaa rakentaa vasta kun ydin-kirjaustyönkulku (Vaiheet 2–4) on vakiintunut — muutoin liikkeen vaihto-toiminto jouduttaisiin sovittamaan uudelleen näiden muutosten päälle.
 
@@ -74,9 +85,9 @@ Nämä muodostavat pohjan sille, että sovellusta voi ylipäätään jakaa halli
 
 ---
 
-## Vaihe 6 — Edistymisen visualisointi
+## Vaihe 7 — Edistymisen visualisointi
 
-**Miksi tässä kohtaa:** Riippumaton Vaiheista 1–5 ja voidaan tehdä niiden jälkeen ilman, että aiempi työ pitää tehdä uudelleen. 1RM-tiedon siirto Historiasta Kehitykseen kannattaa tehdä ennen SVG-käyrän rakentamista, jotta käyrä rakennetaan heti oikean, lopullisen tietomallin päälle.
+**Miksi tässä kohtaa:** Riippumaton Vaiheista 1–6 ja voidaan tehdä niiden jälkeen ilman, että aiempi työ pitää tehdä uudelleen. 1RM-tiedon siirto Historiasta Kehitykseen kannattaa tehdä ennen SVG-käyrän rakentamista, jotta käyrä rakennetaan heti oikean, lopullisen tietomallin päälle.
 
 - Laskennalliset 1RM-maksimit poistetaan Historia-näkymästä ja siirretään näytettäväksi Kehitys-näkymässä
 - Kehitys-näkymän näyttölogiikka muutetaan: liikekohtainen merkintä tulee näkyviin heti, kun liikkeelle voidaan laskea 1RM — nykyinen vaatimus vähintään kahdesta merkinnästä poistuu
@@ -85,11 +96,13 @@ Nämä muodostavat pohjan sille, että sovellusta voi ylipäätään jakaa halli
 
 **Tulos:** kehitys näkyy heti ensimmäisestä merkinnästä alkaen, sekä lukuina että silmäiltävänä trendinä lukutaulukon sijaan.
 
+**Tila:** osittain tehty — SVG-viivakäyrä (`renderOneRepMaxChart`) on jo rakennettu, mutta Historian 1RM-listausta (`renderOneRepMaxSection`) ei ole vielä poistettu eikä `computeProgress`-funktion kahden merkinnän vähimmäisvaatimusta ole vielä poistettu.
+
 ---
 
-## Vaihe 7 — Liikkeiden yhtenäisyys
+## Vaihe 8 — Liikkeiden yhtenäisyys — Tehty
 
-**Miksi tässä kohtaa:** Tämä on pienempi, kokemuksellinen parannus, joka kannattaa tehdä vasta kun isommat puutteet (Vaiheet 1–6) on korjattu, koska sen hyöty riippuu siitä, että käyttäjällä on jo kertynyttä historiaa jota hyödyntää.
+**Miksi tässä kohtaa:** Tämä on pienempi, kokemuksellinen parannus, joka kannattaa tehdä vasta kun isommat puutteet (Vaiheet 1–7) on korjattu, koska sen hyöty riippuu siitä, että käyttäjällä on jo kertynyttä historiaa jota hyödyntää.
 
 - Autocomplete liikkeen nimikentälle (manuaalinen lisäys ja mahdollinen CSV-tuonnin jälkeinen tarkistus) perustuen `allExercises()`-dataan, jotta esim. "Peck deck" ja "Pec dec" eivät jää kahdeksi eri liikkeeksi
 
@@ -97,20 +110,7 @@ Nämä muodostavat pohjan sille, että sovellusta voi ylipäätään jakaa halli
 
 ---
 
-## Vaihe 8 — Sarjapainokaavan kerroin näkyväksi ja muokattavaksi
-
-**Miksi tässä kohtaa:** Ominaisuus ei edellytä teknisesti mitään aiempaa vaihetta, mutta sen hyöty realisoituu vasta, kun ydin-kirjaustyönkulku (Vaiheet 0–6) on ollut aidossa käytössä riittävän kauan, jotta testaaja ehtii huomata tapauksia, joissa sarjapainojen laskentakaavan oletuskerroin ei tuota osuvaa ehdotusta juuri hänen liikkeilleen. Sijoitetaan Vaihe 7:n (liikkeiden nimien yhtenäisyys) jälkeen samaan hienosäätöjoukkoon ja ennen Vaihe 9:n saavutettavuusauditointia, jotta myös tämä uusi Asetukset-osio tulee sen tarkistuksen piiriin.
-
-- Lisää Asetukset-välilehdelle osio, joka näyttää README:n "Sarjapainojen laskenta" -kaavassa käytettävän K-kertoimen nykyiset oletusarvot liiketyypeittäin (penkki 30, kyykky 28, maastaveto 40, muut liikkeet 30) ja millä liikkeen nimen tunnistuksella (esim. "penkki"-alkuiset nimet) mikin arvo tällä hetkellä kohdistetaan
-- Jokainen kerroin on oltava muokattavissa käsin, samaan tapaan kuin liikkeiden 1RM-arvoja jo hallitaan Asetuksissa
-- Muutettu kerroin vaikuttaa heti seuraavaan laskettavaan painoehdotukseen (`buildDraftRows`), mutta ei saa muuttaa takautuvasti jo tallennettuja merkintöjä
-- Osion yhteyteen lyhyt selite siitä, että kerroin vaikuttaa vain niiden liikkeiden painoehdotukseen, joille ei ole määritelty tehoa (MAX tai %) — ei Historia- ja Kehitys-näkymien laskennalliseen 1RM:ään, joka lasketaan aina kiinteällä Epley-kaavalla riippumatta tästä kertoimesta
-
-**Tulos:** käyttäjä voi hienosäätää sarjapainojen automaattista ehdotuslogiikkaa oman liikekokemuksensa perusteella ilman koodimuutosta, ja kertoimen vaikutusalue on sovelluksessa läpinäkyvästi näkyvissä.
-
----
-
-## Vaihe 9 — Saavutettavuuden viimeistely
+## Vaihe 9 — Saavutettavuuden viimeistely — Tehty
 
 **Miksi viimeisenä tässä listassa:** Tämä on auditointi- ja hienosäätövaihe, joka kannattaa tehdä, kun näkymien sisältö on jo vakiintunut Vaiheiden 1–8 jälkeen — muuten samat tarkistukset joutuu tekemään useaan kertaan.
 
