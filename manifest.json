@@ -2,7 +2,9 @@
   "name": "Treenipäiväkirja",
   "short_name": "Treeni",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "lang": "fi",
   "background_color": "#12161d",
   "theme_color": "#12161d",
   "icons": [
