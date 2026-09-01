@@ -56,10 +56,11 @@
   .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
 
   .ledger{padding:0 16px 16px;}
-  .ledger-row{display:grid; grid-template-columns:20px 1.5fr 0.55fr 1.3fr 32px; gap:6px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line);}
+  .ledger-row{display:grid; grid-template-columns:24px 1.5fr 0.55fr 1.3fr 32px; gap:6px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line);}
   .ledger-row:last-of-type{border-bottom:none;}
   .ledger-head{font-size:10px; text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
-  .set-num{color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px;}
+  .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px; cursor:pointer; width:22px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
+  .set-num.done{background:var(--success); color:var(--ink); font-size:14px;}
   .ledger-input{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
   /* Selaimen oletusvaalennus vihjetekstille jää alle kontrastivaatimuksen, joten väri asetetaan itse. */
   .ledger-input::placeholder, .date-picker-row input[type=date]::placeholder{color:var(--mist); opacity:1;}
@@ -582,14 +583,24 @@
   }
 
   async function toggleExercise(id){
-    if(state.openExercise === id){ state.openExercise = null; render(); return; }
+    if(state.openExercise === id){
+      var openEx = findExerciseById(id);
+      if(openEx && !isExerciseFullyDone(openEx, id)){
+        showToast("Merkitse kaikki sarjat valmiiksi ennen sulkemista");
+        return;
+      }
+      await completeAndAdvance(id);
+      return;
+    }
     var ex = findExerciseById(id);
     if(!ex) return;
     state.openExercise = id;
     if(!state.draftSets[id] || !state.dirtySets[id]){
       var existing = state.todayEntry && state.todayEntry.exercises[id];
       if(existing && existing.sets && existing.sets.length){
-        state.draftSets[id] = existing.sets.map(function(s){ return Object.assign({}, s); });
+        // Aiemmin tallennettu merkintä: sarjat näytetään jo valmiiksi merkittyinä,
+        // mutta arvoja voi silti muokata (ks. isRowDoneEligible/data-set-field).
+        state.draftSets[id] = existing.sets.map(function(s){ return Object.assign({}, s, { done: true }); });
         state.autoCalcInfo[id] = { type:"saved" };
       } else {
         state.draftSets[id] = buildDraftRows(ex, id);
@@ -600,6 +611,31 @@
 
   function isCombo(name){
     return String(name).indexOf("/") !== -1;
+  }
+  function exerciseRequiresWeightForDone(ex){
+    // Yhdistelmäliikkeet (esim. "Cardiolaite / Punnerrus / Burpee, 12 min") eivät
+    // muutenkaan kuulu painoon perustuvaan logiikkaan (ks. lastSet/1RM-käsittely),
+    // joten niille "kirjattu" tarkoittaa samaa kuin saveExerciseLog:n data-tarkistus.
+    return !isCombo(ex.name);
+  }
+  function isRowDoneEligible(ex, row){
+    return exerciseRequiresWeightForDone(ex) ? !!row.weight : !!(row.weight || row.reps || row.notes);
+  }
+  function isExerciseFullyDone(ex, id){
+    var rows = state.draftSets[id];
+    if(!rows || !rows.length) return false;
+    for(var i=0;i<rows.length;i++){ if(!rows[i].done) return false; }
+    return true;
+  }
+  function getExerciseGroupList(id){
+    if(state.program){
+      for(var i=0;i<state.program.days.length;i++){
+        var day = state.program.days[i];
+        for(var j=0;j<day.exercises.length;j++){ if(day.exercises[j].id === id) return day.exercises; }
+      }
+    }
+    for(var k=0;k<state.manualExercises.length;k++){ if(state.manualExercises[k].id === id) return state.manualExercises; }
+    return null;
   }
   function movementConstant(name){
     var n = String(name).toLowerCase();
@@ -632,7 +668,7 @@
           }
           usedMax = true;
         }
-        maxRows.push({ weight: weightVal, reps: ex.reps || "", notes: "" });
+        maxRows.push({ weight: weightVal, reps: ex.reps || "", notes: "", done: false });
       }
       if(usedMax){ state.autoCalcInfo[id] = { type:"max", weight: maxEntry.weight, isMax: ex.intensity.isMax, percents: percents }; }
       else{ delete state.autoCalcInfo[id]; }
@@ -652,7 +688,7 @@
         var sameReps = isFinite(targetReps) && isFinite(refReps) && targetReps === refReps;
         if(sameReps && isFinite(refWeight)){
           var sameRows = [];
-          for(var j=0;j<count2;j++){ sameRows.push({ weight: refSet.weight || "", reps: ex.reps || "", notes: "" }); }
+          for(var j=0;j<count2;j++){ sameRows.push({ weight: refSet.weight || "", reps: ex.reps || "", notes: "", done: false }); }
           state.autoCalcInfo[id] = { type:"same", date: last.date };
           return sameRows;
         }
@@ -660,7 +696,7 @@
           var K = movementConstant(ex.name);
           var computed = roundToStep(refWeight * (1 + refReps/K) / (1 + targetReps/K), 2.5);
           var formulaRows = [];
-          for(var k=0;k<count2;k++){ formulaRows.push({ weight: String(computed), reps: ex.reps || "", notes: "" }); }
+          for(var k=0;k<count2;k++){ formulaRows.push({ weight: String(computed), reps: ex.reps || "", notes: "", done: false }); }
           state.autoCalcInfo[id] = { type:"formula", refWeight: refWeight, refReps: refReps, date: last.date };
           return formulaRows;
         }
@@ -669,7 +705,7 @@
 
     delete state.autoCalcInfo[id];
     var blankRows = [];
-    for(var m=0;m<count2;m++){ blankRows.push({ weight:"", reps: ex.reps || "", notes:"" }); }
+    for(var m=0;m<count2;m++){ blankRows.push({ weight:"", reps: ex.reps || "", notes:"", done: false }); }
     return blankRows;
   }
 
@@ -709,6 +745,18 @@
       state.lastError = (e && e.message) ? e.message : String(e);
       showToast("Tallennus epäonnistui: " + state.lastError, 4500);
     }
+  }
+
+  async function completeAndAdvance(id){
+    // Kutsutaan vasta kun kaikki liikkeen sarjat on merkitty valmiiksi: tallentaa
+    // (saveExerciseLog sulkee liikkeen state.openExercise = null onnistuessaan) ja
+    // avaa sen jälkeen automaattisesti seuraavan liikkeen samasta päivän ryhmästä.
+    var groupList = getExerciseGroupList(id);
+    var idx = -1;
+    if(groupList){ for(var i=0;i<groupList.length;i++){ if(groupList[i].id === id){ idx = i; break; } } }
+    var nextEx = (groupList && idx !== -1 && idx + 1 < groupList.length) ? groupList[idx + 1] : null;
+    await saveExerciseLog(id);
+    if(state.openExercise === null && nextEx){ await toggleExercise(nextEx.id); }
   }
 
   function calculateOneRepMax(name){
@@ -1591,11 +1639,11 @@
     return html;
   }
   function renderLedger(ex){
-    var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"" }];
+    var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
     var hint = autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     var rows = sets.map(function(s, idx){
       return '<div class="ledger-row">' +
-        '<div class="set-num">' + (idx+1) + '</div>' +
+        '<button type="button" class="set-num' + (s.done ? " done" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">' + (s.done ? "✓" : String(idx+1)) + '</button>' +
         '<div style="display:flex; align-items:center; gap:3px;">' +
         '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '" style="flex:1; min-width:0;">' +
         '<div style="display:flex; flex-direction:column; gap:2px; flex:none;">' +
@@ -1612,13 +1660,15 @@
       var w = parseFloat(String(s.weight).replace(",", ".")), r = parseFloat(String(s.reps).replace(",", "."));
       return sum + ((isFinite(w) && isFinite(r)) ? w*r : 0);
     }, 0);
+    var allDone = isExerciseFullyDone(ex, ex.id);
     return '<div class="ledger">' +
       hint +
       '<div class="ledger-row ledger-head"><div></div><div>Paino</div><div>Toistot</div><div>Huom.</div><div></div></div>' +
       rows +
       '<button class="add-set-btn" data-add-set data-id="' + ex.id + '" type="button">+ Lisää sarja</button>' +
       '<div class="subtotal"><span>Nostettu yhteensä</span><b>' + (total>0 ? total.toLocaleString("fi-FI") : "0") + ' kg</b></div>' +
-      '<button class="save-btn" data-save-ex data-id="' + ex.id + '" type="button">Tallenna merkintä</button>' +
+      (allDone ? "" : '<div style="font-size:11.5px; color:var(--mist); margin-top:8px; text-align:center;">Merkitse jokainen sarja valmiiksi (✓) ennen tallennusta.</div>') +
+      '<button class="save-btn" data-save-ex data-id="' + ex.id + '" type="button"' + (allDone ? "" : " disabled") + '>Tallenna merkintä</button>' +
       '</div>';
   }
   function renderOneRepMaxSection(){
@@ -1969,7 +2019,7 @@
     if((el = e.target.closest("[data-add-set]"))){
       var id1 = el.dataset.id;
       if(!state.draftSets[id1]) state.draftSets[id1] = [];
-      state.draftSets[id1].push({ weight:"", reps:"", notes:"" });
+      state.draftSets[id1].push({ weight:"", reps:"", notes:"", done:false });
       state.dirtySets[id1] = true;
       startRestTimer(state.restDurationSeconds);
       render();
@@ -1979,9 +2029,11 @@
       var id2 = el.dataset.id, idx2 = parseInt(el.dataset.idx, 10);
       if(state.draftSets[id2]){
         state.draftSets[id2].splice(idx2, 1);
-        if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"" });
+        if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"", done:false });
         state.dirtySets[id2] = true;
       }
+      var ex2 = findExerciseById(id2);
+      if(ex2 && isExerciseFullyDone(ex2, id2)){ await completeAndAdvance(id2); return; }
       render();
       return;
     }
@@ -1997,7 +2049,34 @@
       render();
       return;
     }
-    if((el = e.target.closest("[data-save-ex]"))){ await saveExerciseLog(el.dataset.id); return; }
+    if((el = e.target.closest("[data-toggle-done]"))){
+      var id4 = el.dataset.id, idx4 = parseInt(el.dataset.idx, 10);
+      var ex4 = findExerciseById(id4);
+      var row4 = state.draftSets[id4] && state.draftSets[id4][idx4];
+      if(!ex4 || !row4){ return; }
+      if(row4.done){
+        row4.done = false;
+      } else if(isRowDoneEligible(ex4, row4)){
+        row4.done = true;
+      } else {
+        showToast("Syötä paino ennen kuin merkitset sarjan valmiiksi");
+        return;
+      }
+      state.dirtySets[id4] = true;
+      if(isExerciseFullyDone(ex4, id4)){ await completeAndAdvance(id4); return; }
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-save-ex]"))){
+      var saveId = el.dataset.id;
+      var saveEx = findExerciseById(saveId);
+      if(saveEx && !isExerciseFullyDone(saveEx, saveId)){
+        showToast("Merkitse kaikki sarjat valmiiksi ennen tallennusta");
+        return;
+      }
+      await completeAndAdvance(saveId);
+      return;
+    }
     if((el = e.target.closest("[data-recalc]"))){
       var rid = el.dataset.id;
       var rex = findExerciseById(rid);
@@ -2130,9 +2209,17 @@
     var field = e.target.closest("[data-set-field]");
     if(field){
       var id = field.dataset.id, idx = parseInt(field.dataset.idx, 10), key = field.dataset.field;
-      if(state.draftSets[id] && state.draftSets[id][idx]){
-        state.draftSets[id][idx][key] = field.value;
+      var row = state.draftSets[id] && state.draftSets[id][idx];
+      if(row){
+        row[key] = field.value;
         state.dirtySets[id] = true;
+        // Jos muokkaus vie sarjan pois "valmis"-kelpoisuudesta (esim. paino
+        // tyhjennetään), valmiiksi-merkintä puretaan. Ei render()-kutsua, jotta
+        // fokus ei katoa kirjoitettaessa — merkki päivittyy seuraavassa piirrossa.
+        if(row.done){
+          var fieldEx = findExerciseById(id);
+          if(fieldEx && !isRowDoneEligible(fieldEx, row)) row.done = false;
+        }
       }
     }
   });
