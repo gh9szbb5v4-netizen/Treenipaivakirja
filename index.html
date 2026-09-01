@@ -67,8 +67,7 @@
   .weight-step-btn{flex:0 0 auto; height:36px; padding:0 10px; font-size:12.5px; white-space:nowrap; display:flex; align-items:center; justify-content:center; background:var(--brass); color:var(--ink); border:none; border-radius:var(--radius-sm); font-weight:800; cursor:pointer;}
   /* margin-left:auto työntää Valmis-napin rivin oikeaan reunaan (Poista sarja
      -napin kohdalle) riippumatta -/+ -nappien kutistuneesta leveydestä. */
-  .set-done-btn{flex:0 0 auto; margin-left:auto; height:36px; padding:0 14px; font-size:13px; display:flex; align-items:center; justify-content:center; background:var(--brass); color:var(--ink); border:none; border-radius:var(--radius-sm); font-weight:800; cursor:pointer;}
-  .set-done-btn.done{background:var(--success); color:var(--ink);}
+  .set-done-btn{flex:0 0 auto; margin-left:auto; width:40px; height:36px; padding:0; font-size:17px; display:flex; align-items:center; justify-content:center; background:var(--brass); color:var(--ink); border:none; border-radius:var(--radius-sm); font-weight:800; cursor:pointer;}
   .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:13px; width:22px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
   .set-num.done{background:var(--success); color:var(--ink); font-size:14px;}
   .ledger-input{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
@@ -1917,7 +1916,7 @@
         '<div class="weight-step-spacer" aria-hidden="true"></div>' +
         '<button class="weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" aria-label="Vähennä painoa 2,5 kg">−2,5 kg</button>' +
         '<button class="weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" aria-label="Lisää painoa 2,5 kg">+2,5 kg</button>' +
-        '<button type="button" class="set-done-btn' + (s.done ? " done" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">' + (s.done ? "✓ Valmis" : "Valmis") + '</button>' +
+        '<button type="button" class="set-done-btn" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">✓</button>' +
         '</div>';
     }).join("");
     var total = sets.reduce(function(sum, s){
