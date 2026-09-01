@@ -2292,8 +2292,6 @@
         if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"", done:false });
         state.dirtySets[id2] = true;
       }
-      var ex2 = findExerciseById(id2);
-      if(ex2 && isExerciseFullyDone(ex2, id2)){ await completeAndAdvance(id2); return; }
       render();
       return;
     }
@@ -2326,7 +2324,10 @@
         return;
       }
       state.dirtySets[id4] = true;
-      if(isExerciseFullyDone(ex4, id4)){ await completeAndAdvance(id4); return; }
+      // Kaikkien sarjojen valmiiksi merkitseminen EI enää sulje/tallenna liikettä
+      // automaattisesti — liike jää auki "Tallenna merkintä" -painike aktiivisena,
+      // ja käyttäjä päättää itse milloin tallentaa (ks. completeAndAdvance vain
+      // data-save-ex-käsittelijässä ja avatun liikkeen otsikon klikkauksessa).
       render();
       return;
     }
