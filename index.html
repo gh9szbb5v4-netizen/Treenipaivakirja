@@ -163,6 +163,7 @@
     simulation: { active: false, dates: [] },
     simulationBusy: false,
     kehitys: undefined,
+    kehitysTotalWeight: undefined,
     kehitysLoading: false,
     storageMode: "claude",
     storageWarn: false,
@@ -701,7 +702,7 @@
         var refWeight = toNumber(refSet.weight);
         var targetReps = toNumber(ex.reps);
         if(isFinite(targetReps) && isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
-          // Epley-kaava (sama vakio 30 kuin calculateOneRepMax/buildAllOneRepMaxSeries)
+          // Epley-kaava (sama vakio 30 kuin buildAllOneRepMaxSeries)
           // edellisen sarjan 1RM-arviolle, kerrottuna progressiokertoimella, ja
           // takaisin tavoitetoistomäärän painoksi. Kun targetReps === refReps,
           // tämä supistuu muotoon refWeight * PROGRESSION_COEFFICIENT.
@@ -771,23 +772,6 @@
     if(state.openExercise === null && nextEx){ await toggleExercise(nextEx.id); }
   }
 
-  function calculateOneRepMax(name){
-    // Sama sääntö jokaiselle liikkeelle: yhden toiston arvio lasketaan aina
-    // Epley-kaavalla (1RM = w × (1 + r/30)) liikkeen viimeisimmän merkinnän
-    // ENSIMMÄISESTÄ sarjasta — saman päivän muita sarjoja ei oteta huomioon.
-    var norm = name.trim().toLowerCase();
-    var lastEntry = state.lastSet[norm];
-    if(lastEntry && lastEntry.sets && lastEntry.sets.length){
-      var refSet = lastEntry.sets[0];
-      var refReps = toNumber(refSet.reps), refWeight = toNumber(refSet.weight);
-      if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
-        var computed = roundToStep(refWeight * (1 + refReps/30), 2.5);
-        return { value: computed, date: lastEntry.date, basis: "lastset" };
-      }
-    }
-    return null;
-  }
-
   async function buildAllOneRepMaxSeries(){
     var seriesByName = {};
     try{
@@ -838,11 +822,38 @@
     return seriesByName;
   }
 
+  async function buildTotalWeightSeries(){
+    // Sama tietolähde kuin buildAllOneRepMaxSeries, mutta liikkeen 1RM:n sijaan
+    // summataan koko treenipäivän nostettu kokonaispaino (paino × toistot,
+    // kaikki sarjat kaikista liikkeistä yhteen laskettuna).
+    var points = [];
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
+      for(var i=0;i<dates.length;i++){
+        var date = dates[i];
+        var entry = await loadEntry(date);
+        var total = 0;
+        var exKeys = Object.keys(entry.exercises || {});
+        for(var j=0;j<exKeys.length;j++){
+          var sets = entry.exercises[exKeys[j]].sets || [];
+          for(var k=0;k<sets.length;k++){
+            var w = toNumber(sets[k].weight), r = toNumber(sets[k].reps);
+            if(isFinite(w) && isFinite(r)) total += w * r;
+          }
+        }
+        if(total > 0) points.push({ date: date, value: Math.round(total * 10) / 10 });
+      }
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return points;
+  }
+
   function computeProgress(points){
-    if(!points || points.length < 2) return null;
+    if(!points || points.length === 0) return null;
     var current = points[points.length - 1].value;
     var currentDate = points[points.length - 1].date;
-    var previous = points[points.length - 2].value;
+    var previous = points.length >= 2 ? points[points.length - 2].value : null;
     function valueAsOf(cutoffISO){
       var found = null;
       for(var i=0;i<points.length;i++){
@@ -873,7 +884,8 @@
         if(progress){ results.push({ name: capitalize(series.displayName), progress: progress, points: series.points }); }
       });
       state.kehitys = results;
-    }catch(e){ state.kehitys = []; }
+      state.kehitysTotalWeight = await buildTotalWeightSeries();
+    }catch(e){ state.kehitys = []; state.kehitysTotalWeight = []; }
     state.kehitysLoading = false;
     render();
   }
@@ -1917,30 +1929,11 @@
       '<button class="save-btn" data-save-ex data-id="' + ex.id + '" type="button"' + (allDone ? "" : " disabled") + '>Tallenna merkintä</button>' +
       '</div>';
   }
-  function renderOneRepMaxSection(){
-    var names = Object.keys(state.lastSet).sort();
-    if(names.length === 0) return "";
-    var rows = names.map(function(name){
-      var result = calculateOneRepMax(name);
-      if(!result) return "";
-      return '<div class="ledger-row" style="grid-template-columns:1fr auto; border-bottom:1px dashed var(--line); padding:8px 0;">' +
-        '<div><div style="font-size:14px;">' + escapeHtml(capitalize(name)) + '</div>' +
-        '<div style="font-size:11px; color:var(--mist); margin-top:2px;">' + capitalize(formatDateFI(result.date)) + '</div></div>' +
-        '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:15px;">' + String(result.value).replace(".", ",") + ' kg</div>' +
-        '</div>';
-    }).join("");
-    return '<div class="day-heading">Laskennalliset 1 toiston maksimit</div>' +
-      '<div class="exercise" style="padding:16px; margin-bottom:14px;">' +
-      '<p style="color:var(--mist); font-size:12px; line-height:1.5; margin:0 0 10px;">Epley-kaavalla (1RM = paino × (1 + toistot / 30)) laskettu arvio jokaisen seuratun liikkeen yhden toiston maksimista, viimeisimmän tallennetun merkinnän ensimmäisen sarjan perusteella.</p>' +
-      rows +
-      '</div>';
-  }
   function renderHistoria(){
-    var section = renderOneRepMaxSection();
-    if(state.historyLoading) return section + '<div class="empty">Ladataan historiaa…</div>';
+    if(state.historyLoading) return '<div class="empty">Ladataan historiaa…</div>';
     var dates = state.historyDates || [];
-    if(dates.length === 0) return section + '<div class="empty">Ei vielä merkintöjä. Kirjaa ensimmäinen treenisi Ohjelma-välilehdellä.</div>';
-    return section + dates.map(function(date){ return renderHistoryDate(date); }).join("");
+    if(dates.length === 0) return '<div class="empty">Ei vielä merkintöjä. Kirjaa ensimmäinen treenisi Ohjelma-välilehdellä.</div>';
+    return dates.map(function(date){ return renderHistoryDate(date); }).join("");
   }
   function fmtSignedKg(diff){
     var rounded = Math.round(diff * 10) / 10;
@@ -1971,9 +1964,16 @@
     return '<span style="color:' + color + '; font-variant-numeric:tabular-nums; font-weight:600;">' + fmtSignedKg(diff) + fmtSignedPct(pct) + '</span>';
   }
   function renderOneRepMaxChart(points, name){
-    // Staattinen SVG-käyrä laskennallisesta 1RM:stä. Vaaka-akseli skaalataan
-    // todellisen ajan mukaan, jotta treenitauot näkyvät käyrässä.
-    if(!points || points.length < 2) return "";
+    return renderProgressChart(points, name + " — laskennallinen 1RM", "kg");
+  }
+  function renderProgressChart(points, titlePrefix, unit){
+    // Staattinen, yleiskäyttöinen SVG-viivakäyrä (käytetään sekä liikkeen
+    // laskennalliselle 1RM:lle että treenipäivän kokonaispainolle). Vaaka-akseli
+    // skaalataan todellisen ajan mukaan, jotta treenitauot näkyvät käyrässä.
+    // Toimii myös yhden pisteen sarjalla: silloin piirretään pelkkä keskitetty
+    // piste ilman viivaa (polyline/polygon jäävät ilman pinta-alaa yhdellä
+    // koordinaatilla).
+    if(!points || points.length === 0) return "";
     var i;
     var times = [], values = [];
     for(i=0;i<points.length;i++){
@@ -2021,10 +2021,17 @@
     }
     dots += '<circle cx="' + last.x + '" cy="' + last.y + '" r="3.5" fill="var(--brass)" stroke="none"></circle>';
 
-    var label = name + " — laskennallinen 1RM " +
-      formatDateShortFI(points[0].date) + "–" + formatDateShortFI(points[points.length - 1].date) + ", " +
-      fmtValue(values[0]) + " kg → " + fmtValue(values[values.length - 1]) + " kg";
+    var label = (points.length === 1)
+      ? titlePrefix + " " + formatDateShortFI(points[0].date) + ", " + fmtValue(values[0]) + " " + unit
+      : titlePrefix + " " +
+        formatDateShortFI(points[0].date) + "–" + formatDateShortFI(points[points.length - 1].date) + ", " +
+        fmtValue(values[0]) + " " + unit + " → " + fmtValue(values[values.length - 1]) + " " + unit;
     var safeLabel = escapeHtml(label);
+
+    var xAxisLabels = (points.length === 1)
+      ? '<text x="175" y="126" text-anchor="middle" font-size="9" fill="var(--mist)">' + escapeHtml(formatDateShortFI(points[0].date)) + '</text>'
+      : '<text x="40" y="126" text-anchor="start" font-size="9" fill="var(--mist)">' + escapeHtml(formatDateShortFI(points[0].date)) + '</text>' +
+        '<text x="310" y="126" text-anchor="end" font-size="9" fill="var(--mist)">' + escapeHtml(formatDateShortFI(points[points.length - 1].date)) + '</text>';
 
     return '<svg viewBox="0 0 320 130" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block; height:auto; margin:2px 0 12px;" role="img" aria-label="' + safeLabel + '">' +
       '<title>' + safeLabel + '</title>' +
@@ -2035,8 +2042,7 @@
       dots +
       '<text x="34" y="' + round1(yAt(vMax) + 3) + '" text-anchor="end" font-size="9" fill="var(--mist)">' + fmtValue(vMax) + '</text>' +
       '<text x="34" y="' + round1(yAt(vMin) + 3) + '" text-anchor="end" font-size="9" fill="var(--mist)">' + fmtValue(vMin) + '</text>' +
-      '<text x="40" y="126" text-anchor="start" font-size="9" fill="var(--mist)">' + escapeHtml(formatDateShortFI(points[0].date)) + '</text>' +
-      '<text x="310" y="126" text-anchor="end" font-size="9" fill="var(--mist)">' + escapeHtml(formatDateShortFI(points[points.length - 1].date)) + '</text>' +
+      xAxisLabels +
       '</svg>';
   }
   function renderKehitysCard(item){
@@ -2063,11 +2069,23 @@
       rows +
       '</div>';
   }
+  function renderTotalWeightCard(points){
+    if(!points || points.length === 0) return "";
+    var last = points[points.length - 1];
+    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">' +
+      '<div style="font-weight:600; font-size:15px;">Nostettu kokonaispaino</div>' +
+      '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:800; font-size:16px;">' + String(last.value).replace(".", ",") + ' kg</div>' +
+      '</div>' +
+      '<div style="font-size:11px; color:var(--mist); margin-bottom:10px;">Treenipäivän nostettu kokonaispaino, viimeksi ' + capitalize(formatDateFI(last.date)) + '</div>' +
+      renderProgressChart(points, "Nostettu kokonaispaino", "kg") +
+      '</div>';
+  }
   function renderKehitys(){
     if(state.kehitysLoading) return '<div class="empty">Lasketaan kehitystä…</div>';
     var data = state.kehitys;
-    if(!data || data.length === 0) return '<div class="empty">Ei vielä riittävästi merkintöjä kehityksen laskemiseen. Tarvitset vähintään kaksi kirjattua kertaa samalle liikkeelle.</div>';
-    return data.map(function(item){ return renderKehitysCard(item); }).join("");
+    if(!data || data.length === 0) return '<div class="empty">Ei vielä merkintöjä kehityksen laskemiseen. Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.</div>';
+    return renderTotalWeightCard(state.kehitysTotalWeight) + data.map(function(item){ return renderKehitysCard(item); }).join("");
   }
   function renderHistoryDate(date){
     var expanded = state.expandedHistoryDate === date;
