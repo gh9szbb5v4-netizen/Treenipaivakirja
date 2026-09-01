@@ -110,6 +110,7 @@
   var REST_DURATION_SECONDS = 90;
   var STORAGE_REST_DURATION_KEY = "rest-duration-seconds";
   var SIMULATION_GROWTH = 0.30;
+  var PROGRESSION_COEFFICIENT = 1.0125; // Progressiokerroin p: 1,0125 = 1,25 % tavoiteltu kehitys per treenikerta
 
   var ALIASES = {
     week: ["viikko","week","vko"],
@@ -637,14 +638,6 @@
     for(var k=0;k<state.manualExercises.length;k++){ if(state.manualExercises[k].id === id) return state.manualExercises; }
     return null;
   }
-  function movementConstant(name){
-    var n = String(name).toLowerCase();
-    if(n.indexOf("penkki") !== -1) return 30;
-    if(n.indexOf("kyykky") !== -1) return 28;
-    if(n.indexOf("maasta") !== -1) return 40;
-    return 30;
-  }
-
   function buildDraftRows(ex, id){
     var explicitCount = parseInt(ex.sets, 10);
 
@@ -685,19 +678,17 @@
         var refReps = toNumber(refSet.reps);
         var refWeight = toNumber(refSet.weight);
         var targetReps = toNumber(ex.reps);
-        var sameReps = isFinite(targetReps) && isFinite(refReps) && targetReps === refReps;
-        if(sameReps && isFinite(refWeight)){
-          var sameRows = [];
-          for(var j=0;j<count2;j++){ sameRows.push({ weight: refSet.weight || "", reps: ex.reps || "", notes: "", done: false }); }
-          state.autoCalcInfo[id] = { type:"same", date: last.date };
-          return sameRows;
-        }
         if(isFinite(targetReps) && isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
-          var K = movementConstant(ex.name);
-          var computed = roundToStep(refWeight * (1 + refReps/K) / (1 + targetReps/K), 2.5);
+          // Epley-kaava (sama vakio 30 kuin calculateOneRepMax/buildAllOneRepMaxSeries)
+          // edellisen sarjan 1RM-arviolle, kerrottuna progressiokertoimella, ja
+          // takaisin tavoitetoistomäärän painoksi. Kun targetReps === refReps,
+          // tämä supistuu muotoon refWeight * PROGRESSION_COEFFICIENT.
+          var estimatedOneRepMax = refWeight * (1 + refReps/30);
+          var targetOneRepMax = estimatedOneRepMax * PROGRESSION_COEFFICIENT;
+          var computed = roundToStep(targetOneRepMax / (1 + targetReps/30), 2.5);
           var formulaRows = [];
           for(var k=0;k<count2;k++){ formulaRows.push({ weight: String(computed), reps: ex.reps || "", notes: "", done: false }); }
-          state.autoCalcInfo[id] = { type:"formula", refWeight: refWeight, refReps: refReps, date: last.date };
+          state.autoCalcInfo[id] = { type:"formula", refWeight: refWeight, refReps: refReps, date: last.date, progressionPercent: (PROGRESSION_COEFFICIENT - 1) * 100 };
           return formulaRows;
         }
       }
@@ -1622,10 +1613,9 @@
         var pctStr = (info.percents || []).map(function(p){ return String(p).replace(".", ",") + " %"; }).join(" / ");
         text = "Paino laskettu " + pctStr + " liikkeen 1RM:stä (" + maxWeightStr + ") — muokattavissa.";
       }
-    } else if(info.type === "same"){
-      text = "Sama paino kuin edellisellä kerralla (" + info.date + ") — muokattavissa.";
     } else if(info.type === "formula"){
-      text = "Paino arvioitu edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + ") sarjapainolaskurin kaavalla — muokattavissa.";
+      var progressionStr = String(Math.round(info.progressionPercent * 100) / 100).replace(".", ",");
+      text = "Paino laskettu Epley-kaavalla edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + "), tavoitteena " + progressionStr + " % kehitys — muokattavissa.";
     } else if(info.type === "saved"){
       text = "Tämä merkintä on jo tallennettu tälle päivälle — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
     } else {
