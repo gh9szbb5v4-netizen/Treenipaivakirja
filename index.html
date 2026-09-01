@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Treenipäiväkirja">
 <meta name="theme-color" content="#12161d">
 <meta name="robots" content="noindex, nofollow">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Treenipäiväkirja</title>
 <style>
   :root{
@@ -168,6 +169,10 @@
   function todayISO(){ return toLocalISO(new Date()); }
   function daysAgoISO(n){ var d = new Date(); d.setDate(d.getDate() - n); return toLocalISO(d); }
   function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+  function isStandaloneDisplay(){
+    return (window.navigator.standalone === true) ||
+      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  }
   function normalizeName(s){
     return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
   }
@@ -558,7 +563,7 @@
       state.todayEntry = await loadEntry(state.draftDate);
       state.view = "ohjelma";
       showToast("Ohjelma tuotu onnistuneesti");
-      if(isFirstImport && !state.homescreenHintDismissed){ state.showHomescreenHint = true; }
+      if(isFirstImport && !state.homescreenHintDismissed && !isStandaloneDisplay()){ state.showHomescreenHint = true; }
       render();
     }catch(err){
       showToast(err.message || "CSV:n luku epäonnistui");
@@ -1334,7 +1339,7 @@
   // ---------- render ----------
   function renderHomescreenHint(){
     return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
-      '<b style="color:var(--brass);">Vinkki:</b> Merkinnät säilyvät luotettavimmin, kun lisäät sovelluksen laitteesi aloitusnäytölle — iPhonella Safarin jakopainikkeesta, Androidilla selaimen valikosta (\"Lisää aloitusnäytölle\" tai \"Asenna sovellus\"). Pitkän käyttötauon jälkeen selain saattaa muuten poistaa tallennetut tiedot itsestään.' +
+      '<b style="color:var(--brass);">Vinkki:</b> Lisää sovellus laitteesi aloitusnäytölle — iPhonella Safarin jakopainikkeesta (\"Lisää Koti-valikkoon\"), Androidilla selaimen valikosta (\"Lisää aloitusnäytölle\" tai \"Asenna sovellus\"). Safari saattaa poistaa tavallisena selainvälilehtenä käytetyn sivun tallennetut tiedot noin seitsemän päivän käyttämättömyyden jälkeen, mutta Koti-valikkoon lisätty, itsenäisenä avautuva versio on tästä vapautettu.' +
       '<div style="margin-top:10px;"><button class="btn-secondary" data-dismiss-homescreen-hint type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Selvä, sain ohjeen</button></div>' +
       '</div>';
   }

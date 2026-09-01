@@ -6,11 +6,11 @@ Selaimessa toimiva treenipäiväkirja, joka lukee treeniohjelman CSV-tiedostosta
 
 Avaa julkaistu osoite selaimessa ja tuo treeniohjelmasi CSV-tiedostona. Ohjelma tallentuu selaimeen, joten tuonti tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan.
 
-Kannattaa lisätä sivu laitteen aloitusnäytölle, jolloin se avautuu kuin natiivi sovellus: iPhonella Safarin jakopainikkeesta ("Lisää Koti-valikkoon"), Androidilla selaimen valikosta ("Lisää aloitusnäytölle" tai "Asenna sovellus").
+Kannattaa lisätä sivu laitteen aloitusnäytölle, jolloin se avautuu kuin natiivi sovellus eikä tavallisena selainvälilehtenä: iPhonella Safarin jakopainikkeesta ("Lisää Koti-valikkoon"), Androidilla selaimen valikosta ("Lisää aloitusnäytölle" tai "Asenna sovellus"). Tämä ei ole pelkkä kosmeettinen ero — Safari saattaa poistaa tavallisena selainvälilehtenä pidetyn sivun paikallisesti tallennetut tiedot noin seitsemän päivän käyttämättömyyden jälkeen, kun taas Koti-valikkoon lisätty, itsenäisenä avautuva versio on tästä vapautettu. Sovellus muistuttaa tästä kerran ensimmäisen CSV-tuonnin jälkeen, ellei se jo tuolloin ole käynnissä aloitusnäytöltä avattuna.
 
 ### Julkaisu GitHub Pagesissa
 
-Lisää `index.html` repositorion `main`-haaraan, mene kohtaan **Settings → Pages**, valitse lähteeksi *Deploy from a branch*, haaraksi `main` ja kansioksi `/ (root)`. Sivu julkaistaan osoitteeseen `https://<käyttäjätunnus>.github.io/<repositorio>/` yleensä parissa minuutissa. Repositorion tulee olla julkinen, ellei tilisi ole maksullinen.
+Lisää `index.html`, `manifest.json` sekä kuvaketiedostot (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`) samaan kansioon repositorion `main`-haaraan, mene kohtaan **Settings → Pages**, valitse lähteeksi *Deploy from a branch*, haaraksi `main` ja kansioksi `/ (root)`. Sivu julkaistaan osoitteeseen `https://<käyttäjätunnus>.github.io/<repositorio>/` yleensä parissa minuutissa. Repositorion tulee olla julkinen, ellei tilisi ole maksullinen. `manifest.json` ja kuvakkeet on tärkeää julkaista `index.html`:n rinnalla samalla polulla, sillä ilman niitä Koti-valikkoon lisätty sivu saa oletusruudunkaappauksen omana kuvakkeenaan eikä avaudu itsenäisenä sovelluksena.
 
 ## CSV-muoto
 
