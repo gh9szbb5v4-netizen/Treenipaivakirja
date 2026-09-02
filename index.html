@@ -180,6 +180,12 @@
     draftSets: {},
     draftDate: todayISO(),
     todayEntry: null,
+    // Liikkeen id -> { date, data } sille päivälle, jolle liike on viimeksi
+    // tallennettu — riippumatta siitä onko kyseinen päivä tänään. Tämän avulla
+    // Ohjelma-näkymä tietää minkä liikkeiden kohdalla merkintä on jo tehty,
+    // vaikka vuorokausi vaihtuisi eikä valittu päivämäärä (draftDate) enää
+    // osu samaan päivään jolloin liike tallennettiin.
+    exerciseLogIndex: {},
     historyDates: undefined,
     historyLoading: false,
     historyCache: {},
@@ -461,6 +467,29 @@
       return { date: date, exercises: {} };
     }
   }
+  async function buildExerciseLogIndex(){
+    // Kokoaa jokaiselle liikkeen id:lle sen päivän, jolle liike on viimeksi
+    // tallennettu, käymällä läpi koko historian (sama kuvio kuin
+    // computeDefaultActiveWeek/buildAllOneRepMaxSeries jo tekevät). Jos sama
+    // id löytyy useammalta päivältä (esim. merkintä korjattu jälkikäteen
+    // takautuvalla päivämäärällä), viimeisin päivämäärä voittaa.
+    var index = {};
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
+      for(var i=0;i<dates.length;i++){
+        var date = dates[i];
+        var entry = await loadEntry(date);
+        var exKeys = Object.keys(entry.exercises || {});
+        for(var j=0;j<exKeys.length;j++){
+          var ek = exKeys[j];
+          index[ek] = { date: date, data: entry.exercises[ek] };
+        }
+      }
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return index;
+  }
   async function saveProgram(){
     try{ await storeSet(STORAGE_PROGRAM_KEY, JSON.stringify(state.program)); }
     catch(e){ state.lastError = (e && e.message) ? e.message : String(e); showToast("Ohjelman tallennus epäonnistui: " + state.lastError, 4500); }
@@ -607,6 +636,7 @@
       await saveProgram();
       await computeDefaultActiveWeek();
       state.todayEntry = await loadEntry(state.draftDate);
+      state.exerciseLogIndex = await buildExerciseLogIndex();
       state.view = "ohjelma";
       showToast("Ohjelma tuotu onnistuneesti");
       if(isFirstImport && !state.homescreenHintDismissed && !isStandaloneDisplay()){ state.showHomescreenHint = true; }
@@ -641,12 +671,16 @@
     if(!ex) return;
     state.openExercise = id;
     if(!state.draftSets[id] || !state.dirtySets[id]){
-      var existing = state.todayEntry && state.todayEntry.exercises[id];
+      // exerciseLogIndex kattaa merkinnän riippumatta siitä, minä päivänä se on
+      // tallennettu — sama liike avataan aina valmiiksi merkittynä, ei vain
+      // silloin kun se sattuu olemaan tallennettu juuri tälle valitulle päivälle.
+      var logged = state.exerciseLogIndex[id];
+      var existing = logged && logged.data;
       if(existing && existing.sets && existing.sets.length){
         // Aiemmin tallennettu merkintä: sarjat näytetään jo valmiiksi merkittyinä,
         // mutta arvoja voi silti muokata (ks. isRowDoneEligible/data-set-field).
         state.draftSets[id] = existing.sets.map(function(s){ return Object.assign({}, s, { done: true }); });
-        state.autoCalcInfo[id] = { type:"saved" };
+        state.autoCalcInfo[id] = { type:"saved", date: logged.date };
       } else {
         state.draftSets[id] = buildDraftRows(ex, id);
       }
@@ -672,15 +706,17 @@
     for(var i=0;i<rows.length;i++){ if(!rows[i].done) return false; }
     return true;
   }
-  function isExerciseSavedToday(ex){
-    return !!(state.todayEntry && state.todayEntry.exercises && state.todayEntry.exercises[ex.id]);
+  function isExerciseLogged(ex){
+    // Liike on merkitty tehdyksi riippumatta siltä, minä päivänä se on
+    // tallennettu — vuorokauden vaihtuminen ei saa "unohtaa" jo tehtyä treeniä.
+    return !!(state.exerciseLogIndex && state.exerciseLogIndex[ex.id]);
   }
   function isDayFullyDone(day){
-    // Koko treenipäivä lasketaan tehdyksi vasta kun jokainen sen liike on
-    // tallennettu draftSets-tilan sarjakohtaisen valmiiksi-merkinnän kautta
-    // (ei riitä, että liike on ollut tallennettu jonain aiempana päivänä).
+    // Koko treenipäivä lasketaan tehdyksi kun jokainen sen liike löytyy
+    // exerciseLogIndexistä eli on tallennettu jollekin päivälle — ei väliä
+    // onko se sama päivä kuin nyt valittu draftDate.
     if(!day.exercises || !day.exercises.length) return false;
-    for(var i=0;i<day.exercises.length;i++){ if(!isExerciseSavedToday(day.exercises[i])) return false; }
+    for(var i=0;i<day.exercises.length;i++){ if(!isExerciseLogged(day.exercises[i])) return false; }
     return true;
   }
   function dayKey(day){
@@ -847,6 +883,9 @@
       await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry));
       delete state.dirtySets[id];
       state.kehitys = undefined;
+      // Päivitetään indeksi suoraan tähän tallennukseen — ei tarvitse skannata
+      // koko historiaa uudelleen jokaisen tallennuksen jälkeen.
+      state.exerciseLogIndex[id] = { date: state.draftDate, data: state.todayEntry.exercises[id] };
       showToast(maxUpdated ? "Tallennettu — 1RM päivitetty Asetuksiin" : "Merkintä tallennettu");
       state.openExercise = null;
       render();
@@ -1137,6 +1176,7 @@
       state.historyCache = {};
       state.kehitys = undefined;
       state.todayEntry = await loadEntry(state.draftDate);
+      state.exerciseLogIndex = await buildExerciseLogIndex();
       showToast("Simulointi käynnistetty — " + simDates.length + " päivää täytetty");
     }catch(e){
       showToast("Simulointi epäonnistui: " + ((e && e.message) || String(e)), 4200);
@@ -1172,6 +1212,7 @@
       state.historyCache = {};
       state.kehitys = undefined;
       state.todayEntry = await loadEntry(state.draftDate);
+      state.exerciseLogIndex = await buildExerciseLogIndex();
       showToast("Simulointi sammutettu ja poistettu");
     }catch(e){
       showToast("Simuloinnin sammutus epäonnistui: " + ((e && e.message) || String(e)), 4200);
@@ -1275,6 +1316,7 @@
       var names = Object.keys(namesToRebuild);
       for(var i=0;i<names.length;i++){ await rebuildTrackersForName(names[i]); }
       state.kehitys = undefined;
+      state.exerciseLogIndex = await buildExerciseLogIndex();
 
       showToast("Merkintä poistettu");
       render();
@@ -1417,6 +1459,7 @@
     state.openExercise = null;
     state.swapExercise = null;
     state.todayEntry = await loadEntry(state.draftDate);
+    state.exerciseLogIndex = await buildExerciseLogIndex();
 
     var msg = "Tuotu " + addedBlocks + " merkintää";
     if(skippedBlocks > 0) msg += ", ohitettu " + skippedBlocks + " jo olemassa olevaa";
@@ -1455,6 +1498,7 @@
     state.kehitys = undefined;
     state.activeWeek = null;
     state.showAllWeeks = false;
+    state.exerciseLogIndex = {};
     state.view = "ohjelma";
     stopRestTimer();
     showToast("Kaikki tiedot tyhjennetty");
@@ -1491,21 +1535,25 @@
     if(el) return el;
     el = document.createElement("div");
     el.id = "rest-timer-overlay";
-    el.style.cssText = "position:fixed; inset:0; z-index:80; display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; background:var(--ink); transition:background-color .3s;";
+    // Tausta peittää koko näytön (fokusansan ja taustan himmennyksen vuoksi),
+    // mutta itse ajastin on neliönmuotoinen, näytön levyinen kortti keskellä.
+    el.style.cssText = "position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; background:rgba(18,22,29,.82); transition:background-color .3s;";
     // Modaali: ruudunlukija tunnistaa dialogiksi eikä lue taustan sisältöä.
     el.setAttribute("role", "dialog");
     el.setAttribute("aria-modal", "true");
     el.setAttribute("aria-label", "Lepoajastin");
     el.setAttribute("tabindex", "-1");
     el.innerHTML =
+      '<div id="rest-timer-card" style="width:100%; max-width:480px; aspect-ratio:1/1; box-sizing:border-box; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; background:var(--surface); border-radius:28px; box-shadow:0 8px 24px rgba(0,0,0,.45); transition:background-color .3s;">' +
       '<div style="color:var(--mist); font-size:16px; letter-spacing:.1em; text-transform:uppercase;">Lepo</div>' +
       // Sekunneittain muuttuvaa lukemaa ei lueta ääneen (olisi jatkuvaa hälyä);
       // päättymisestä kerrotaan erikseen status-alueen kautta.
-      '<div id="rest-timer-count" aria-hidden="true" style="color:var(--brass); font-weight:800; font-variant-numeric:tabular-nums; font-size:clamp(72px, 26vw, 200px); line-height:1; margin-top:4px;">--:--</div>' +
-      '<div id="rest-timer-status" role="status" aria-live="polite" style="color:var(--chalk); font-size:19px; min-height:26px; margin-top:6px;"></div>' +
-      '<div style="display:flex; gap:12px; margin-top:36px; width:100%; max-width:340px;">' +
+      '<div id="rest-timer-count" aria-hidden="true" style="color:var(--brass); font-weight:800; font-variant-numeric:tabular-nums; font-size:clamp(56px, 18vw, 120px); line-height:1; margin-top:4px;">--:--</div>' +
+      '<div id="rest-timer-status" role="status" aria-live="polite" style="color:var(--chalk); font-size:16px; min-height:22px; margin-top:6px;"></div>' +
+      '<div style="display:flex; gap:12px; margin-top:28px; width:100%; max-width:340px;">' +
       '<button id="rest-timer-minimize-btn" type="button" class="btn-secondary" style="min-height:44px;">Pienennä</button>' +
       '<button id="rest-timer-stop-btn" type="button" class="btn-secondary" style="min-height:44px; color:var(--danger-text); border-color:var(--danger);">Lopeta lepo</button>' +
+      '</div>' +
       '</div>';
     document.body.appendChild(el);
     document.getElementById("rest-timer-minimize-btn").addEventListener("click", function(){
@@ -1685,7 +1733,8 @@
     var el = ensureRestTimerOverlay();
     el.style.display = "flex";
     activateRestTimerOverlay(el);
-    el.style.background = "var(--brass)";
+    var flashCard = document.getElementById("rest-timer-card");
+    if(flashCard) flashCard.style.background = "var(--brass)";
     paintRestTimerCount(0);
     // Kirkkaalla taustavälähdyksellä lukemat ja teksti vaihtuvat tummiksi,
     // jotta ne pysyvät luettavina — muuten ne sulautuisivat samaan brass-väriin.
@@ -1708,7 +1757,9 @@
     persistRestTimer(null);
     releaseRestWakeLock();
     var el = document.getElementById("rest-timer-overlay");
-    if(el){ el.style.display = "none"; el.style.background = "var(--ink)"; }
+    if(el) el.style.display = "none";
+    var card = document.getElementById("rest-timer-card");
+    if(card) card.style.background = "var(--surface)";
     var mini = document.getElementById("rest-timer-mini");
     if(mini) mini.style.display = "none";
     releaseRestTimerOverlay();
@@ -1734,9 +1785,10 @@
     var el = ensureRestTimerOverlay();
     el.style.display = "flex";
     activateRestTimerOverlay(el);
-    el.style.background = "var(--ink)";
+    var startCard = document.getElementById("rest-timer-card");
+    if(startCard) startCard.style.background = "var(--surface)";
     // Palautetaan värit oletukseen, jos edellinen ajastin ehti juuri päättyä
-    // (var(--ink)-taustalla lukemat eivät saa jäädä tummiksi edellisen
+    // (surface-taustalla lukemat eivät saa jäädä tummiksi edellisen
     // väläytyksen jäljiltä).
     var countEl = document.getElementById("rest-timer-count");
     if(countEl) countEl.style.color = "var(--brass)";
@@ -1995,14 +2047,17 @@
   }
   function renderDaySummary(day){
     var totalKg = 0;
+    var latestDate = null;
     day.exercises.forEach(function(ex){
-      var data = state.todayEntry.exercises[ex.id];
-      (data.sets || []).forEach(function(s){
+      var logged = state.exerciseLogIndex[ex.id];
+      if(!logged) return;
+      if(latestDate === null || logged.date > latestDate) latestDate = logged.date;
+      (logged.data.sets || []).forEach(function(s){
         var w = toNumber(s.weight), r = toNumber(s.reps);
         if(isFinite(w) && isFinite(r)) totalKg += w * r;
       });
     });
-    var dateStr = capitalize(formatDateFI(state.todayEntry.date || state.draftDate));
+    var dateStr = capitalize(formatDateFI(latestDate || state.draftDate));
     var detailParts = [dateStr, day.exercises.length + " liikettä"];
     if(totalKg > 0) detailParts.push(totalKg.toLocaleString("fi-FI") + " kg nostettu");
     return '<div class="exercise" style="border-color:rgba(111,174,111,0.35);">' +
@@ -2016,7 +2071,7 @@
   }
   function renderExercise(ex){
     var open = state.openExercise === ex.id;
-    var isSaved = !!(state.todayEntry && state.todayEntry.exercises && state.todayEntry.exercises[ex.id]);
+    var isSaved = isExerciseLogged(ex);
     var parts = [];
     if(ex.sets) parts.push(ex.sets + " sarjaa");
     if(ex.reps) parts.push(ex.reps + (ex.unit ? " " + ex.unit : ""));
@@ -2057,7 +2112,7 @@
       var progressionStr = String(Math.round(info.progressionPercent * 100) / 100).replace(".", ",");
       text = "Paino laskettu Epley-kaavalla edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + "), tavoitteena " + progressionStr + " % kehitys — muokattavissa.";
     } else if(info.type === "saved"){
-      text = "Tämä merkintä on jo tallennettu tälle päivälle — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
+      text = "Tämä merkintä on jo tallennettu (" + capitalize(formatDateFI(info.date)) + ") — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
     } else {
       return "";
     }
@@ -2587,10 +2642,18 @@
     if((el = e.target.closest("[data-recalc]"))){
       var rid = el.dataset.id;
       var rex = findExerciseById(rid);
-      if(state.todayEntry && state.todayEntry.exercises[rid]){
-        delete state.todayEntry.exercises[rid];
-        try{ await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry)); }
-        catch(e){ showToast("Poisto epäonnistui"); return; }
+      // Merkintä voi olla tallennettu millä päivälle tahansa (ei välttämättä
+      // draftDate:lle) — poistetaan siltä oikealta päivältä, ei aina "tältä
+      // päivältä", muuten poisto ei koskisi mitään ja vanha merkintä jäisi elämään.
+      var logged = state.exerciseLogIndex[rid];
+      if(logged){
+        try{
+          var entryToEdit = (logged.date === state.draftDate && state.todayEntry) ? state.todayEntry : await loadEntry(logged.date);
+          delete entryToEdit.exercises[rid];
+          await storeSet("entries:" + logged.date, JSON.stringify(entryToEdit));
+          if(logged.date === state.draftDate) state.todayEntry = entryToEdit;
+        }catch(e){ showToast("Poisto epäonnistui"); return; }
+        delete state.exerciseLogIndex[rid];
       }
       if(rex){ await rebuildTrackersForName(rex.name); }
       delete state.draftSets[rid];
@@ -2850,6 +2913,7 @@
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
       catch(e){ state.todayEntry = { date: state.draftDate, exercises:{} }; }
+      state.exerciseLogIndex = await buildExerciseLogIndex();
       await computeDefaultActiveWeek();
     }
     state.loading = false;
