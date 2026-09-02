@@ -180,6 +180,12 @@
     draftSets: {},
     draftDate: todayISO(),
     todayEntry: null,
+    // Liikkeen id -> { date, data } sille päivälle, jolle liike on viimeksi
+    // tallennettu — riippumatta siitä onko kyseinen päivä tänään. Tämän avulla
+    // Ohjelma-näkymä tietää minkä liikkeiden kohdalla merkintä on jo tehty,
+    // vaikka vuorokausi vaihtuisi eikä valittu päivämäärä (draftDate) enää
+    // osu samaan päivään jolloin liike tallennettiin.
+    exerciseLogIndex: {},
     historyDates: undefined,
     historyLoading: false,
     historyCache: {},
@@ -461,6 +467,29 @@
       return { date: date, exercises: {} };
     }
   }
+  async function buildExerciseLogIndex(){
+    // Kokoaa jokaiselle liikkeen id:lle sen päivän, jolle liike on viimeksi
+    // tallennettu, käymällä läpi koko historian (sama kuvio kuin
+    // computeDefaultActiveWeek/buildAllOneRepMaxSeries jo tekevät). Jos sama
+    // id löytyy useammalta päivältä (esim. merkintä korjattu jälkikäteen
+    // takautuvalla päivämäärällä), viimeisin päivämäärä voittaa.
+    var index = {};
+    try{
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
+      for(var i=0;i<dates.length;i++){
+        var date = dates[i];
+        var entry = await loadEntry(date);
+        var exKeys = Object.keys(entry.exercises || {});
+        for(var j=0;j<exKeys.length;j++){
+          var ek = exKeys[j];
+          index[ek] = { date: date, data: entry.exercises[ek] };
+        }
+      }
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return index;
+  }
   async function saveProgram(){
     try{ await storeSet(STORAGE_PROGRAM_KEY, JSON.stringify(state.program)); }
     catch(e){ state.lastError = (e && e.message) ? e.message : String(e); showToast("Ohjelman tallennus epäonnistui: " + state.lastError, 4500); }
@@ -607,6 +636,7 @@
       await saveProgram();
       await computeDefaultActiveWeek();
       state.todayEntry = await loadEntry(state.draftDate);
+      state.exerciseLogIndex = await buildExerciseLogIndex();
       state.view = "ohjelma";
       showToast("Ohjelma tuotu onnistuneesti");
       if(isFirstImport && !state.homescreenHintDismissed && !isStandaloneDisplay()){ state.showHomescreenHint = true; }
@@ -641,12 +671,16 @@
     if(!ex) return;
     state.openExercise = id;
     if(!state.draftSets[id] || !state.dirtySets[id]){
-      var existing = state.todayEntry && state.todayEntry.exercises[id];
+      // exerciseLogIndex kattaa merkinnän riippumatta siitä, minä päivänä se on
+      // tallennettu — sama liike avataan aina valmiiksi merkittynä, ei vain
+      // silloin kun se sattuu olemaan tallennettu juuri tälle valitulle päivälle.
+      var logged = state.exerciseLogIndex[id];
+      var existing = logged && logged.data;
       if(existing && existing.sets && existing.sets.length){
         // Aiemmin tallennettu merkintä: sarjat näytetään jo valmiiksi merkittyinä,
         // mutta arvoja voi silti muokata (ks. isRowDoneEligible/data-set-field).
         state.draftSets[id] = existing.sets.map(function(s){ return Object.assign({}, s, { done: true }); });
-        state.autoCalcInfo[id] = { type:"saved" };
+        state.autoCalcInfo[id] = { type:"saved", date: logged.date };
       } else {
         state.draftSets[id] = buildDraftRows(ex, id);
       }
@@ -672,15 +706,17 @@
     for(var i=0;i<rows.length;i++){ if(!rows[i].done) return false; }
     return true;
   }
-  function isExerciseSavedToday(ex){
-    return !!(state.todayEntry && state.todayEntry.exercises && state.todayEntry.exercises[ex.id]);
+  function isExerciseLogged(ex){
+    // Liike on merkitty tehdyksi riippumatta siltä, minä päivänä se on
+    // tallennettu — vuorokauden vaihtuminen ei saa "unohtaa" jo tehtyä treeniä.
+    return !!(state.exerciseLogIndex && state.exerciseLogIndex[ex.id]);
   }
   function isDayFullyDone(day){
-    // Koko treenipäivä lasketaan tehdyksi vasta kun jokainen sen liike on
-    // tallennettu draftSets-tilan sarjakohtaisen valmiiksi-merkinnän kautta
-    // (ei riitä, että liike on ollut tallennettu jonain aiempana päivänä).
+    // Koko treenipäivä lasketaan tehdyksi kun jokainen sen liike löytyy
+    // exerciseLogIndexistä eli on tallennettu jollekin päivälle — ei väliä
+    // onko se sama päivä kuin nyt valittu draftDate.
     if(!day.exercises || !day.exercises.length) return false;
-    for(var i=0;i<day.exercises.length;i++){ if(!isExerciseSavedToday(day.exercises[i])) return false; }
+    for(var i=0;i<day.exercises.length;i++){ if(!isExerciseLogged(day.exercises[i])) return false; }
     return true;
   }
   function dayKey(day){
@@ -847,6 +883,9 @@
       await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry));
       delete state.dirtySets[id];
       state.kehitys = undefined;
+      // Päivitetään indeksi suoraan tähän tallennukseen — ei tarvitse skannata
+      // koko historiaa uudelleen jokaisen tallennuksen jälkeen.
+      state.exerciseLogIndex[id] = { date: state.draftDate, data: state.todayEntry.exercises[id] };
       showToast(maxUpdated ? "Tallennettu — 1RM päivitetty Asetuksiin" : "Merkintä tallennettu");
       state.openExercise = null;
       render();
@@ -1137,6 +1176,7 @@
       state.historyCache = {};
       state.kehitys = undefined;
       state.todayEntry = await loadEntry(state.draftDate);
+      state.exerciseLogIndex = await buildExerciseLogIndex();
       showToast("Simulointi käynnistetty — " + simDates.length + " päivää täytetty");
     }catch(e){
       showToast("Simulointi epäonnistui: " + ((e && e.message) || String(e)), 4200);
@@ -1172,6 +1212,7 @@
       state.historyCache = {};
       state.kehitys = undefined;
       state.todayEntry = await loadEntry(state.draftDate);
+      state.exerciseLogIndex = await buildExerciseLogIndex();
       showToast("Simulointi sammutettu ja poistettu");
     }catch(e){
       showToast("Simuloinnin sammutus epäonnistui: " + ((e && e.message) || String(e)), 4200);
@@ -1275,6 +1316,7 @@
       var names = Object.keys(namesToRebuild);
       for(var i=0;i<names.length;i++){ await rebuildTrackersForName(names[i]); }
       state.kehitys = undefined;
+      state.exerciseLogIndex = await buildExerciseLogIndex();
 
       showToast("Merkintä poistettu");
       render();
@@ -1417,6 +1459,7 @@
     state.openExercise = null;
     state.swapExercise = null;
     state.todayEntry = await loadEntry(state.draftDate);
+    state.exerciseLogIndex = await buildExerciseLogIndex();
 
     var msg = "Tuotu " + addedBlocks + " merkintää";
     if(skippedBlocks > 0) msg += ", ohitettu " + skippedBlocks + " jo olemassa olevaa";
@@ -1455,6 +1498,7 @@
     state.kehitys = undefined;
     state.activeWeek = null;
     state.showAllWeeks = false;
+    state.exerciseLogIndex = {};
     state.view = "ohjelma";
     stopRestTimer();
     showToast("Kaikki tiedot tyhjennetty");
@@ -1995,14 +2039,17 @@
   }
   function renderDaySummary(day){
     var totalKg = 0;
+    var latestDate = null;
     day.exercises.forEach(function(ex){
-      var data = state.todayEntry.exercises[ex.id];
-      (data.sets || []).forEach(function(s){
+      var logged = state.exerciseLogIndex[ex.id];
+      if(!logged) return;
+      if(latestDate === null || logged.date > latestDate) latestDate = logged.date;
+      (logged.data.sets || []).forEach(function(s){
         var w = toNumber(s.weight), r = toNumber(s.reps);
         if(isFinite(w) && isFinite(r)) totalKg += w * r;
       });
     });
-    var dateStr = capitalize(formatDateFI(state.todayEntry.date || state.draftDate));
+    var dateStr = capitalize(formatDateFI(latestDate || state.draftDate));
     var detailParts = [dateStr, day.exercises.length + " liikettä"];
     if(totalKg > 0) detailParts.push(totalKg.toLocaleString("fi-FI") + " kg nostettu");
     return '<div class="exercise" style="border-color:rgba(111,174,111,0.35);">' +
@@ -2016,7 +2063,7 @@
   }
   function renderExercise(ex){
     var open = state.openExercise === ex.id;
-    var isSaved = !!(state.todayEntry && state.todayEntry.exercises && state.todayEntry.exercises[ex.id]);
+    var isSaved = isExerciseLogged(ex);
     var parts = [];
     if(ex.sets) parts.push(ex.sets + " sarjaa");
     if(ex.reps) parts.push(ex.reps + (ex.unit ? " " + ex.unit : ""));
@@ -2057,7 +2104,7 @@
       var progressionStr = String(Math.round(info.progressionPercent * 100) / 100).replace(".", ",");
       text = "Paino laskettu Epley-kaavalla edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + "), tavoitteena " + progressionStr + " % kehitys — muokattavissa.";
     } else if(info.type === "saved"){
-      text = "Tämä merkintä on jo tallennettu tälle päivälle — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
+      text = "Tämä merkintä on jo tallennettu (" + capitalize(formatDateFI(info.date)) + ") — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
     } else {
       return "";
     }
@@ -2587,10 +2634,18 @@
     if((el = e.target.closest("[data-recalc]"))){
       var rid = el.dataset.id;
       var rex = findExerciseById(rid);
-      if(state.todayEntry && state.todayEntry.exercises[rid]){
-        delete state.todayEntry.exercises[rid];
-        try{ await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry)); }
-        catch(e){ showToast("Poisto epäonnistui"); return; }
+      // Merkintä voi olla tallennettu millä päivälle tahansa (ei välttämättä
+      // draftDate:lle) — poistetaan siltä oikealta päivältä, ei aina "tältä
+      // päivältä", muuten poisto ei koskisi mitään ja vanha merkintä jäisi elämään.
+      var logged = state.exerciseLogIndex[rid];
+      if(logged){
+        try{
+          var entryToEdit = (logged.date === state.draftDate && state.todayEntry) ? state.todayEntry : await loadEntry(logged.date);
+          delete entryToEdit.exercises[rid];
+          await storeSet("entries:" + logged.date, JSON.stringify(entryToEdit));
+          if(logged.date === state.draftDate) state.todayEntry = entryToEdit;
+        }catch(e){ showToast("Poisto epäonnistui"); return; }
+        delete state.exerciseLogIndex[rid];
       }
       if(rex){ await rebuildTrackersForName(rex.name); }
       delete state.draftSets[rid];
@@ -2850,6 +2905,7 @@
     if(state.program){
       try{ state.todayEntry = await loadEntry(state.draftDate); }
       catch(e){ state.todayEntry = { date: state.draftDate, exercises:{} }; }
+      state.exerciseLogIndex = await buildExerciseLogIndex();
       await computeDefaultActiveWeek();
     }
     state.loading = false;
