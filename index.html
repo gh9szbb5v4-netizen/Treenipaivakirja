@@ -905,6 +905,17 @@
     var nextEx = (groupList && idx !== -1 && idx + 1 < groupList.length) ? groupList[idx + 1] : null;
     await saveExerciseLog(id);
     if(state.openExercise === null && nextEx){ await toggleExercise(nextEx.id); }
+    // Kun koko treenipäivä valmistuu, se niputetaan takaisin kiinni omaksi
+    // "tehty"-kortikseen, vaikka käyttäjä olisi itse avannut sen aiemmin
+    // (muuten se jäisi auki listana, koska avaus jätti expandedDaySummaries-
+    // lipun päälle). saveExerciseLog on jo ehtinyt piirtää kerran tämän
+    // funktion sisällä, joten tarvitaan vielä oma render(), jotta kiinni
+    // menevä kortti näkyy heti.
+    var doneDay = findGroupForExerciseId(id);
+    if(doneDay && isDayFullyDone(doneDay) && state.expandedDaySummaries[dayKey(doneDay)]){
+      delete state.expandedDaySummaries[dayKey(doneDay)];
+      render();
+    }
   }
 
   async function buildAllOneRepMaxSeries(){
@@ -2009,13 +2020,16 @@
     }
     groupsToShow.forEach(function(day){
       html += '<div class="day-heading">' + escapeHtml(day.name) + '</div>';
+      // Jokainen treenipäivä niputetaan omaksi kortikseen riippumatta siitä,
+      // onko sen liikkeitä vielä tehty — ei enää vain valmiiksi merkityille
+      // päiville. Kortti on oletuksena kiinni (state.expandedDaySummaries
+      // avaa sen), jotta ohjelmanäkymä pysyy skannattavana useamman päivän
+      // ohjelmissa.
       var fullyDone = isDayFullyDone(day);
-      if(fullyDone && !state.expandedDaySummaries[dayKey(day)]){
-        html += renderDaySummary(day);
+      if(!state.expandedDaySummaries[dayKey(day)]){
+        html += renderDaySummary(day, fullyDone);
       } else {
-        if(fullyDone){
-          html += '<div style="text-align:center; margin:-2px 0 10px;"><button data-toggle-day-summary data-key="' + escapeHtml(dayKey(day)) + '" type="button" style="background:none; border:none; color:var(--mist); font-size:12px; text-decoration:underline; padding:6px 4px;">Piilota valmiit liikkeet</button></div>';
-        }
+        html += '<div style="text-align:center; margin:-2px 0 10px;"><button data-toggle-day-summary data-key="' + escapeHtml(dayKey(day)) + '" type="button" style="background:none; border:none; color:var(--mist); font-size:12px; text-decoration:underline; padding:6px 4px;">' + (fullyDone ? "Piilota valmiit liikkeet" : "Piilota liikkeet") + '</button></div>';
         day.exercises.forEach(function(ex){ html += renderExercise(ex); });
       }
     });
@@ -2045,26 +2059,44 @@
     }
     return '<span style="display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.02em; background:' + bg + '; color:' + fg + '; border:1px solid ' + bd + '; vertical-align:middle;">' + escapeHtml(label) + '</span>';
   }
-  function renderDaySummary(day){
+  function renderDaySummary(day, fullyDone){
     var totalKg = 0;
     var latestDate = null;
+    var doneCount = 0;
     day.exercises.forEach(function(ex){
       var logged = state.exerciseLogIndex[ex.id];
       if(!logged) return;
+      doneCount++;
       if(latestDate === null || logged.date > latestDate) latestDate = logged.date;
       (logged.data.sets || []).forEach(function(s){
         var w = toNumber(s.weight), r = toNumber(s.reps);
         if(isFinite(w) && isFinite(r)) totalKg += w * r;
       });
     });
-    var dateStr = capitalize(formatDateFI(latestDate || state.draftDate));
-    var detailParts = [dateStr, day.exercises.length + " liikettä"];
+    var total = day.exercises.length;
+    var title, badgeHtml, borderStyle;
+    if(fullyDone){
+      title = "Treeni merkitty tehdyksi";
+      borderStyle = "border-color:rgba(111,174,111,0.35);";
+      badgeHtml = '<div style="width:26px; height:26px; border-radius:50%; background:var(--success); color:var(--ink); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0;">✓</div>';
+    } else if(doneCount > 0){
+      title = "Treeni kesken";
+      borderStyle = "";
+      badgeHtml = '<div style="width:26px; height:26px; border-radius:50%; border:1.5px solid var(--brass); color:var(--brass); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0;">' + doneCount + "/" + total + '</div>';
+    } else {
+      title = "Treeniä ei vielä aloitettu";
+      borderStyle = "";
+      badgeHtml = '<div style="width:26px; height:26px; border-radius:50%; border:1.5px solid var(--line-strong); flex-shrink:0;"></div>';
+    }
+    var detailParts = [];
+    if(doneCount > 0) detailParts.push(capitalize(formatDateFI(latestDate || state.draftDate)));
+    detailParts.push(total + " liikettä");
     if(totalKg > 0) detailParts.push(totalKg.toLocaleString("fi-FI") + " kg nostettu");
-    return '<div class="exercise" style="border-color:rgba(111,174,111,0.35);">' +
+    return '<div class="exercise" style="' + borderStyle + '">' +
       '<div class="exercise-head" data-toggle-day-summary data-key="' + escapeHtml(dayKey(day)) + '" role="button" tabindex="0" aria-expanded="false">' +
       '<div style="display:flex; align-items:center; gap:10px;">' +
-      '<div style="width:26px; height:26px; border-radius:50%; background:var(--success); color:var(--ink); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0;">✓</div>' +
-      '<div><div class="exercise-name">Treeni merkitty tehdyksi</div>' +
+      badgeHtml +
+      '<div><div class="exercise-name">' + title + '</div>' +
       '<div class="exercise-target">' + escapeHtml(detailParts.join(" · ")) + '</div></div>' +
       '</div><div class="chevron">›</div></div>' +
       '</div>';
