@@ -209,6 +209,7 @@
     program: null,
     manualExercises: [],
     userExercises: [],
+    variantPicker: null,
     importNameWarnings: [],
     view: "ohjelma",
     openExercise: null,
@@ -630,6 +631,397 @@
     var longer = Math.max(target.length, bestNorm.length);
     var limit = (longer >= 6) ? 2 : 1;
     return (bestDist <= limit) ? best : null;
+  }
+
+// =============================================================================
+// LIIKEVARIAATIOT — liitettävä katkelma Treenipäiväkirjan index.html:n
+// olemassa olevaan <script>-lohkoon (ei erillinen tiedosto sovelluksessa
+// itsessään — sovellus pysyy yhtenä staattisena HTML-tiedostona, katso
+// perustelu keskustelussa: liite ei saa tuoda ajonaikaista latausta, koska
+// se olisi ristiriidassa tulevan PWA/service worker -vaiheen kanssa).
+//
+// Lähde: Kuntosaliliikkeet_ja_lihasryhmat_1.xlsm, välilehti "Liikkeet".
+// 211 riviä / 97 yksilöityä liikettä sen jälkeen kun 2 täysin identtistä
+// duplikaattiriviä poistettiin (Ojentajatalja/Hihnoilla, Ojentajatalja
+// maaten/Hihnoilla) ja liikkeiden nimien ympäriltä trimmattiin ylimääräiset
+// välilyönnit (mm. "Ranskalainen käsipainoilla " yhdistyi muihin
+// "Ranskalainen käsipainoilla" -riveihin).
+//
+// TARKISTA ENNEN KÄYTTÖÖNOTTOA:
+// "Ranskalainen käsipainoilla" -rivien lihasryhmä vaihtelee lähteessä
+// asennon mukaan (Maaten -> Ojentajat, Seisten/Per käsi -> Olkapäät,
+// Seisten/Molemmat kädet -> Ojentajat). Koodi käyttää lihasryhmää sellaisena
+// kuin se on ilmoitettu kullekin liike+variaatio+lisävariaatio-riville
+// erikseen, joten epäjohdonmukaisuus säilyy sellaisenaan, kunnes korjaat sen
+// lähteessä.
+//
+// TIETOISESTI RAJATTU POIS:
+// Alkuperäisen taulukon toinen, "PC:"-alkuinen lohko (Cardiolaite ym.
+// yhdistelmäliikkeet) ei ole mukana. Sen "Variaatio"-sarake tarkoittaa
+// kestoa (esim. "15 min"), ei varustevalintaa, eikä sillä ole
+// lisävariaatio-saraketta — se on eri tyyppistä tietoa eikä sovi tähän
+// katalogiin sellaisenaan.
+//
+// EXERCISE_VARIANTS on kehittäjän ylläpitämä, koodiin leivottu lähtödata —
+// siihen EI koskaan kirjoiteta ajossa. Käyttäjän itse lisäämät liikkeet
+// (kun listalta ei löydy sopivaa) tallentuvat erikseen state.userExercisiin
+// ja yhdistyvät kiinteään katalogiin vain allExerciseVariants()-funktion
+// kautta — kaikki muu koodi lukee AINA sitä, ei kumpaakaan listaa suoraan.
+//
+// Tämä koko katalogi on riippumaton CSV-ohjelman tuonnista, Historia/
+// Kehitys-näkymistä ja 1RM-logiikasta — pelkkä UI:n informaatio- ja
+// variaationvalintanäkymää varten oleva viitetaulukko. Mitään näistä ei
+// tarvitse koskea tätä ominaisuutta toteuttaessa.
+// =============================================================================
+
+  var EXERCISE_VARIANTS = [
+    { liike:"Alatalja muu kahva", variaatio:"Köydellä", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Alatalja muu kahva", variaatio:"Hihnoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Alatalja muu kahva", variaatio:"Lapiokahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Alatalja muu kahva", variaatio:"V-kahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Alatalja suora tanko", variaatio:"Kapea ote", lisavariaatio:"Myötäotteella", lihasryhma:"Selkä" },
+    { liike:"Alatalja suora tanko", variaatio:"Kapea ote", lisavariaatio:"Vastaotteella", lihasryhma:"Selkä" },
+    { liike:"Alatalja suora tanko", variaatio:"Leveä ote", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Askelkävely lisäpainolla", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Askelkävely lisäpainolla", variaatio:"Muu lisäpaino", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Askelkävely lisäpainolla", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Burpee", variaatio:"Kevennetty", lisavariaatio:null, lihasryhma:"Koko vartalo" },
+    { liike:"Burpee", variaatio:"Tangon yli", lisavariaatio:null, lihasryhma:"Koko vartalo" },
+    { liike:"Burpee", variaatio:null, lisavariaatio:null, lihasryhma:"Koko vartalo" },
+    { liike:"California press", variaatio:null, lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Devils press", variaatio:null, lisavariaatio:null, lihasryhma:"Koko vartalo" },
+    { liike:"Dippi", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Dippi, kevennetty", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Dragon flag", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Etunojapunnerrus", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Etunojapunnerrus, kevennetty", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Etunosto käsipainoilla", variaatio:null, lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Etunosto taljassa", variaatio:"Kahvalla", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Etunosto taljassa", variaatio:"Köydellä", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Etunosto taljassa", variaatio:"Hihnoilla", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Etunosto taljassa", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Flyes käsipainoilla", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Flyes ristitaljassa", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Hack-kyykky", variaatio:"Kapea asento", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Hack-kyykky", variaatio:"Leveä asento", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Hack-kyykky", variaatio:"Medium-asento", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Hauiskääntö koneessa", variaatio:null, lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö käsipainoilla", variaatio:"Hammerote", lisavariaatio:"Tasatahtiin", lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö käsipainoilla", variaatio:"Hammerote", lisavariaatio:"Vuorotahtiin", lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö käsipainoilla", variaatio:"Tasatahtiin", lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö käsipainoilla", variaatio:"Vuorotahtiin", lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Köydellä", lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Hihnoilla", lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Maaten", lisavariaatio:"Köydellä", lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Maaten", lisavariaatio:"Per käsi", lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Maaten", lisavariaatio:"Scott-kahva", lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Maaten", lisavariaatio:"Suorakahvalla", lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Per käsi", lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Ristitaljassa", lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Scott-kahva", lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö taljassa", variaatio:"Suorakahva", lisavariaatio:null, lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö tangolla", variaatio:"Scott-tanko", lisavariaatio:"Myötäotteella", lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö tangolla", variaatio:"Suoratanko", lisavariaatio:"Myötäotteella", lihasryhma:"Hauis" },
+    { liike:"Hauiskääntö tangolla", variaatio:"Suoratanko", lisavariaatio:"Vastaotteella", lihasryhma:"Hauis" },
+    { liike:"Istumaannousu", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Istumaannousu lisäpainolla", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Jalannosto maaten", variaatio:"Tasatahtiin", lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Jalannosto maaten", variaatio:"Vuorotahtiin", lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Jalkaprässi", variaatio:"Kapea asento", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Jalkaprässi", variaatio:"Leveä asento", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Jalkaprässi", variaatio:"Medium-asento", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"JM Press", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"JM Press", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"JM Press Smith-laitteessa", variaatio:null, lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Kulmasoutu käsipainoilla", variaatio:"Molemmat kädet", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu käsipainoilla", variaatio:"Per käsi", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu taljassa", variaatio:"H-kahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu taljassa", variaatio:"Suoratanko", lisavariaatio:"Myötäotteella", lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu taljassa", variaatio:"Suoratanko", lisavariaatio:"Vastaotteella", lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu taljassa", variaatio:"T-kahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu tangolla", variaatio:"H-kahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu tangolla", variaatio:"Scott", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu tangolla", variaatio:"Suoratanko", lisavariaatio:"Myötäotteella", lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu tangolla", variaatio:"Suoratanko", lisavariaatio:"Vastaotteella", lihasryhma:"Selkä" },
+    { liike:"Kulmasoutu tangolla", variaatio:"T-kahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Kyykky, bulgarialainen", variaatio:"Muu lisäpaino", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, bulgarialainen", variaatio:"Smith-laitteessa", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, bulgarialainen", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, etu", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, etu", variaatio:"Muu paino", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, etu", variaatio:"Pysäytyksin", lisavariaatio:"Käsipainoilla", lihasryhma:"Jalat" },
+    { liike:"Kyykky, etu", variaatio:"Pysäytyksin", lisavariaatio:"Tangolla", lihasryhma:"Jalat" },
+    { liike:"Kyykky, etu", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, etu, Smith-laitteessa", variaatio:"Pysäytyksin", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, etu, Smith-laitteessa", variaatio:null, lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, taka", variaatio:"Muu paino", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, taka", variaatio:"Pysäytyksin", lisavariaatio:"Tangolla", lihasryhma:"Jalat" },
+    { liike:"Kyykky, taka", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, taka, Smith-laitteessa", variaatio:"Pysäytyksin", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Kyykky, taka, Smith-laitteessa", variaatio:null, lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Lankku", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Lankku, kevennetty", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Lantionnosto laitteessa", variaatio:null, lisavariaatio:null, lihasryhma:"Pakara" },
+    { liike:"Lantionnosto tangolla", variaatio:null, lisavariaatio:null, lihasryhma:"Pakara" },
+    { liike:"Lattiasoutu", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Lattiasoutu", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Levypainotwist", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Maastaveto", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Maastaveto", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Maastaveto, korokkeelta", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Maastaveto, korokkeelta", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Maastaveto, suorinjaloin", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Maastaveto, suorinjaloin", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Maastaveto, suorinjaloin, korokkeelta", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Maastaveto, suorinjaloin, korokkeelta", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ojentajatalja", variaatio:"Hihnoilla", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ojentajatalja", variaatio:"Köydellä", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ojentajatalja", variaatio:"Lapiokahva", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ojentajatalja", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ojentajatalja maaten", variaatio:"Hihnoilla", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ojentajatalja maaten", variaatio:"Köydellä", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ojentajatalja maaten", variaatio:"Lapiokahva", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ojentajatalja maaten", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Pec dec", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus Smith-laitteessa", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus Smith-laitteessa, kapea", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, kapea", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, käsipainoilla", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, lattialta", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, lattialta", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino", variaatio:"10 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino", variaatio:"20 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino", variaatio:"30 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino Smith-laitteessa", variaatio:"10 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino, käsipainoilla", variaatio:"10 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino, käsipainoilla", variaatio:"20 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino, käsipainoilla", variaatio:"30 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino, Smith-laitteessa", variaatio:"20 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Penkkipunnerrus, vino, Smith-laitteessa", variaatio:"30 astetta", lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Pohjenousu koneessa", variaatio:"Istuen", lisavariaatio:"Molemmat jalat", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu koneessa", variaatio:"Istuen", lisavariaatio:"Per jalka", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu koneessa", variaatio:"Seisten", lisavariaatio:"Molemmat jalat", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu koneessa", variaatio:"Seisten", lisavariaatio:"Per jalka", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu prässissä", variaatio:"Molemmat jalat", lisavariaatio:null, lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu prässissä", variaatio:"Per jalka", lisavariaatio:null, lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu Smith-laitteessa", variaatio:"Istuen", lisavariaatio:"Molemmat jalat", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu Smith-laitteessa", variaatio:"Istuen", lisavariaatio:"Per jalka", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu Smith-laitteessa", variaatio:"Seisten", lisavariaatio:"Molemmat jalat", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu Smith-laitteessa", variaatio:"Seisten", lisavariaatio:"Per jalka", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu vapailla painoilla", variaatio:"Istuen", lisavariaatio:"Molemmat jalat", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu vapailla painoilla", variaatio:"Istuen", lisavariaatio:"Per jalka", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu vapailla painoilla", variaatio:"Seisten", lisavariaatio:"Molemmat jalat", lihasryhma:"Pohkeet" },
+    { liike:"Pohjenousu vapailla painoilla", variaatio:"Seisten", lisavariaatio:"Per jalka", lihasryhma:"Pohkeet" },
+    { liike:"Pystypunnerrus koneessa", variaatio:null, lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystypunnerrus käsipainoilla", variaatio:"Istuen", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystypunnerrus käsipainoilla", variaatio:"Seisten", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystypunnerrus Smith-laitteessa", variaatio:"Istuen", lisavariaatio:"Ilman tukea", lihasryhma:"Olkapäät" },
+    { liike:"Pystypunnerrus Smith-laitteessa", variaatio:"Istuen", lisavariaatio:"Selkä tuettuna", lihasryhma:"Olkapäät" },
+    { liike:"Pystypunnerrus Smith-laitteessa", variaatio:"Seisten", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystypunnerrus tangolla", variaatio:"Istuen", lisavariaatio:"Ilman tukea", lihasryhma:"Olkapäät" },
+    { liike:"Pystypunnerrus tangolla", variaatio:"Istuen", lisavariaatio:"Selkä tuettuna", lihasryhma:"Olkapäät" },
+    { liike:"Pystypunnerrus tangolla", variaatio:"Seisten", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystysoutu käsipainoilla", variaatio:null, lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystysoutu taljassa", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystysoutu taljassa", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystysoutu tangolla", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Pystysoutu tangolla", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Ranskalainen käsipainoilla", variaatio:"Maaten", lisavariaatio:"Molemmat kädet", lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen käsipainoilla", variaatio:"Maaten", lisavariaatio:"Per käsi", lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen käsipainoilla", variaatio:"Seisten", lisavariaatio:"Per käsi", lihasryhma:"Olkapäät" },
+    { liike:"Ranskalainen käsipainoilla", variaatio:"Seisten", lisavariaatio:"Molemmat kädet", lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen punnerrus koneessa", variaatio:null, lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen punnerrus käsipainoilla", variaatio:null, lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen punnerrus taljassa", variaatio:"Köydellä", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen punnerrus taljassa", variaatio:"Hihnoilla", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen punnerrus taljassa", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen punnerrus tangolla", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen punnerrus tangolla", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen taljassa maaten", variaatio:"Molemmat kädet", lisavariaatio:"Köydellä", lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen taljassa maaten", variaatio:"Per käsi", lisavariaatio:"Köydellä", lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen taljassa maaten", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen taljassa maaten", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen taljassa seisten", variaatio:"Molemmat kädet", lisavariaatio:"Köydellä", lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen taljassa seisten", variaatio:"Per käsi", lisavariaatio:"Köydellä", lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen taljassa seisten", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen taljassa seisten", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen tangolla maaten", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen tangolla maaten", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen tangolla seisten", variaatio:"Scott-tanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Ranskalainen tangolla seisten", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Ojentajat" },
+    { liike:"Reidenkoukistus laitteessa", variaatio:"Istuen", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Reidenkoukistus laitteessa", variaatio:"Maaten", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Reidenojennus laitteessa", variaatio:"Istuen", lisavariaatio:null, lihasryhma:"Jalat" },
+    { liike:"Rintaprässi", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Ristitalja", variaatio:null, lisavariaatio:null, lihasryhma:"Rinta" },
+    { liike:"Selänojennus penkissä", variaatio:null, lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Supermies", variaatio:null, lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Tempaus", variaatio:"Käsipainolla", lisavariaatio:null, lihasryhma:"Koko vartalo" },
+    { liike:"Tempaus", variaatio:"Levypainolla", lisavariaatio:null, lihasryhma:"Koko vartalo" },
+    { liike:"Tempaus", variaatio:"Tangolla", lisavariaatio:null, lihasryhma:"Koko vartalo" },
+    { liike:"Tuettu soutu käsipainoilla", variaatio:"Käsipainoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Tuettu soutu laitteessa", variaatio:null, lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Tuettu soutu tangolla", variaatio:null, lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Vatsarutistus", variaatio:"Maaten", lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Vatsarutistus", variaatio:"Taljassa", lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Vatsarutistus lattialla", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Vatsarutistus taljassa", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Vipunosto käsipainoilla", variaatio:"Per käsi", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Vipunosto käsipainoilla", variaatio:"Tasatahtiin", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Vipunosto taljassa", variaatio:"Per käsi", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Vipunosto taljassa", variaatio:"Ristitaljassa", lisavariaatio:null, lihasryhma:"Olkapäät" },
+    { liike:"Voimapyörä", variaatio:null, lisavariaatio:null, lihasryhma:"Vatsa ja keskivartalo" },
+    { liike:"Ylätalja, Legless, muu kahva", variaatio:"Köydellä", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, Legless, muu kahva", variaatio:"Hihnoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, Legless, muu kahva", variaatio:"Lapiokahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, Legless, muu kahva", variaatio:"V-kahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, Legless, suoratanko", variaatio:"Kapea ote", lisavariaatio:"Myötäotteella", lihasryhma:"Selkä" },
+    { liike:"Ylätalja, Legless, suoratanko", variaatio:"Kapea ote", lisavariaatio:"Vastaotteella", lihasryhma:"Selkä" },
+    { liike:"Ylätalja, Legless, suoratanko", variaatio:"Leveä ote", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, muu kahva", variaatio:"Köydellä", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, muu kahva", variaatio:"Hihnoilla", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, muu kahva", variaatio:"Lapiokahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, muu kahva", variaatio:"V-kahva", lisavariaatio:null, lihasryhma:"Selkä" },
+    { liike:"Ylätalja, suora tanko", variaatio:"Kapea ote", lisavariaatio:"Myötäotteella", lihasryhma:"Selkä" },
+    { liike:"Ylätalja, suora tanko", variaatio:"Kapea ote", lisavariaatio:"Vastaotteella", lihasryhma:"Selkä" },
+    { liike:"Ylätalja, suora tanko", variaatio:"Leveä ote", lisavariaatio:null, lihasryhma:"Selkä" }
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Tallennusavain käyttäjän itse lisäämille liikkeille. Sama nimeämiskaava
+  // kuin muilla STORAGE_*_KEY-vakioilla (STORAGE_PROGRAM_KEY,
+  // STORAGE_MANUAL_MAX_KEY jne.) — lisää tämä samaan kohtaan niiden kanssa.
+  // ---------------------------------------------------------------------------
+  var STORAGE_USER_EXERCISES_KEY = "user-exercises";
+
+  // ---------------------------------------------------------------------------
+  // Hakufunktiot katalogin päälle. Kaikki lukevat AINA allExerciseVariants()-
+  // funktion kautta, ei koskaan suoraan EXERCISE_VARIANTS:sta, jotta käyttäjän
+  // itse lisäämät liikkeet näkyvät kaikkialla samalla tavalla kuin valmiit.
+  // Ei arrow-funktioita, ei let/const — sama tyyli kuin muualla index.html:ssä.
+  // ---------------------------------------------------------------------------
+
+  function normLiikeName(s){
+    return String(s || "").trim().toLowerCase();
+  }
+
+  // state.userExercises alustetaan tyhjäksi taulukoksi state-oliossa ja
+  // ladataan storeGet(STORAGE_USER_EXERCISES_KEY):lla init()-funktiossa,
+  // samaan tapaan kuin state.manualMax jo ladataan.
+  function allExerciseVariants(){
+    return EXERCISE_VARIANTS.concat(state.userExercises || []);
+  }
+
+  function knownBaseExerciseNames(){
+    var seen = {};
+    var names = [];
+    allExerciseVariants().forEach(function(row){
+      var key = normLiikeName(row.liike);
+      if(!seen[key]){ seen[key] = true; names.push(row.liike); }
+    });
+    names.sort(function(a, b){ return a.localeCompare(b, "fi"); });
+    return names;
+  }
+
+  function variantRowsForLiike(liike){
+    var key = normLiikeName(liike);
+    return allExerciseVariants().filter(function(row){ return normLiikeName(row.liike) === key; });
+  }
+
+  // hasPlain: onko liikkeellä myös rivi ilman variaatiota (esim.
+  // "Kyykky, etu, Smith-laitteessa" perusversio Pysäytyksin-variantin rinnalla).
+  function variaatioOptionsFor(liike){
+    var rows = variantRowsForLiike(liike);
+    var seen = {};
+    var options = [];
+    var hasPlain = false;
+    rows.forEach(function(row){
+      if(!row.variaatio){ hasPlain = true; return; }
+      if(!seen[row.variaatio]){ seen[row.variaatio] = true; options.push(row.variaatio); }
+    });
+    return { options: options, hasPlain: hasPlain };
+  }
+
+  function lisavariaatioOptionsFor(liike, variaatio){
+    var key = normLiikeName(liike);
+    var rows = allExerciseVariants().filter(function(row){
+      return normLiikeName(row.liike) === key && row.variaatio === variaatio;
+    });
+    var seen = {};
+    var options = [];
+    var hasPlain = false;
+    rows.forEach(function(row){
+      if(!row.lisavariaatio){ hasPlain = true; return; }
+      if(!seen[row.lisavariaatio]){ seen[row.lisavariaatio] = true; options.push(row.lisavariaatio); }
+    });
+    return { options: options, hasPlain: hasPlain };
+  }
+
+  function findVariantRow(liike, variaatio, lisavariaatio){
+    var key = normLiikeName(liike);
+    var rows = allExerciseVariants();
+    for(var i=0;i<rows.length;i++){
+      var row = rows[i];
+      if(normLiikeName(row.liike) === key &&
+         (row.variaatio || null) === (variaatio || null) &&
+         (row.lisavariaatio || null) === (lisavariaatio || null)){
+        return row;
+      }
+    }
+    return null;
+  }
+
+  function composeVariantName(liike, variaatio, lisavariaatio){
+    var name = liike;
+    if(variaatio) name += ", " + variaatio;
+    if(lisavariaatio) name += ", " + lisavariaatio;
+    return name;
+  }
+
+  // Tunnistaa liikkeen nimestä (ohjelman ex.name) vastaavan katalogirivin,
+  // jotta tietopalkki ja variaatiovalitsin osaavat esitäyttyä oikein myös
+  // silloin kun liike on jo aiemmin vaihdettu variaatioksi.
+  function resolveCatalogMatch(name){
+    var trimmed = String(name || "").trim();
+    if(!trimmed) return null;
+    var normTarget = normLiikeName(trimmed);
+    var rows = allExerciseVariants();
+    for(var i=0;i<rows.length;i++){
+      var row = rows[i];
+      var composed = composeVariantName(row.liike, row.variaatio, row.lisavariaatio);
+      if(normLiikeName(composed) === normTarget){
+        return { liike: row.liike, variaatio: row.variaatio, lisavariaatio: row.lisavariaatio };
+      }
+    }
+    var baseNames = knownBaseExerciseNames();
+    for(var j=0;j<baseNames.length;j++){
+      if(normLiikeName(baseNames[j]) === normTarget){
+        return { liike: baseNames[j], variaatio: null, lisavariaatio: null };
+      }
+    }
+    return null;
+  }
+
+  // Lisää käyttäjän itse kirjoittaman uuden liikkeen/variaation paikalliseen,
+  // laitekohtaiseen listaan ja tallentaa sen selaimen tallennustilaan. Ei
+  // KOSKAAN kirjoita EXERCISE_VARIANTS-vakioon — se pysyy kehittäjän
+  // ylläpitämänä lähtödatana riippumatta siitä, mitä käyttäjä lisää ajossa.
+  // row: { liike (pakollinen), variaatio, lisavariaatio, lihasryhma } — vain
+  // liike on pakollinen, loput saa jättää null/tyhjäksi.
+  async function addUserExerciseVariant(row){
+    var clean = {
+      liike: String((row && row.liike) || "").trim(),
+      variaatio: (row && row.variaatio) ? String(row.variaatio).trim() : null,
+      lisavariaatio: (row && row.lisavariaatio) ? String(row.lisavariaatio).trim() : null,
+      lihasryhma: (row && row.lihasryhma) ? String(row.lihasryhma).trim() : null
+    };
+    if(!clean.liike) return null;
+    if(!state.userExercises) state.userExercises = [];
+    state.userExercises.push(clean);
+    try{ await storeSet(STORAGE_USER_EXERCISES_KEY, JSON.stringify(state.userExercises)); }
+    catch(e){ /* hiljainen virhe — liike jää silti käyttöön tämän istunnon ajaksi */ }
+    return clean;
   }
 
   // ---------- actions ----------
@@ -1530,6 +1922,7 @@
       await storeDelete(STORAGE_PROGRAM_KEY);
       await storeDelete(STORAGE_LASTSET_KEY);
       await storeDelete(STORAGE_MANUAL_MAX_KEY);
+      await storeDelete(STORAGE_USER_EXERCISES_KEY);
       await storeDelete(STORAGE_SIMULATION_KEY);
       await storeDelete(STORAGE_LAST_EXPORT_KEY);
       var res = await storeList("entries:");
@@ -1538,6 +1931,7 @@
     }catch(e){}
     state.program = null;
     state.manualExercises = [];
+    state.userExercises = [];
     state.importNameWarnings = [];
     state.draftSets = {};
     state.openExercise = null;
@@ -2213,9 +2607,23 @@
     html += '</div>';
     return html;
   }
+  function renderVariantInfo(ex){
+    // Näkyy aina kun liike tunnistetaan katalogista ja sillä on variaatioita —
+    // myös teholiikkeille, joilla ohjattua valintaa ei ole.
+    var match = resolveCatalogMatch(ex.name);
+    if(!match) return "";
+    var vOpts = variaatioOptionsFor(match.liike);
+    if(!vOpts.options.length) return "";
+    var row = findVariantRow(match.liike, match.variaatio, match.lisavariaatio);
+    var lihasryhma = (row && row.lihasryhma) ? row.lihasryhma : muscleGroupForLiike(match.liike);
+    return '<div style="color:var(--mist); font-size:11.5px; line-height:1.5; margin-bottom:10px;">' +
+      'Tunnetut variaatiot: ' + escapeHtml(vOpts.options.join(", ")) +
+      (lihasryhma ? '<br>Lihasryhmä: ' + escapeHtml(lihasryhma) : "") +
+      '</div>';
+  }
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
-    var hint = autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
+    var hint = renderVariantInfo(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     var rows = sets.map(function(s, idx){
       // Sarjan numero on pelkkä visuaalinen merkki — hyväksyntä tehdään aina
       // erillisestä, selvästi nimetystä painikkeesta pikasäätönappien rivillä,
@@ -2250,6 +2658,105 @@
       renderSwapExercise(ex) +
       '</div>';
   }
+  var VARIANT_ADD_NEW = "__addnew__";
+  var VARIANT_PLAIN = "__plain__";
+
+  function knownMuscleGroups(){
+    var seen = {};
+    var groups = [];
+    allExerciseVariants().forEach(function(row){
+      if(row.lihasryhma && !seen[row.lihasryhma]){ seen[row.lihasryhma] = true; groups.push(row.lihasryhma); }
+    });
+    groups.sort(function(a, b){ return a.localeCompare(b, "fi"); });
+    return groups;
+  }
+  function muscleGroupForLiike(liike){
+    // Liikkeen lihasryhmä on sen ensimmäisen katalogirivin mukainen.
+    var rows = variantRowsForLiike(liike);
+    return (rows.length && rows[0].lihasryhma) ? rows[0].lihasryhma : null;
+  }
+  function variantPickerValid(){
+    var p = state.variantPicker;
+    if(!p) return false;
+    if(p.addNew) return !!String(p.newLiike || "").trim();
+    if(!p.liike) return false;
+    // Kelvollinen valinta on sellainen, jota vastaava rivi löytyy katalogista:
+    // jos jokin taso on vielä valitsematta eikä liikkeellä ole sen tason
+    // perusversiota, riviä ei löydy eikä vaihtoa voi vahvistaa.
+    return !!findVariantRow(p.liike, p.variaatio, p.lisavariaatio);
+  }
+  function variantSelectOptions(list, selected, hasPlain, placeholder){
+    var html = '<option value=""' + (selected ? "" : " selected") + '>' + escapeHtml(placeholder) + '</option>';
+    if(hasPlain){
+      html += '<option value="' + VARIANT_PLAIN + '"' + (selected === VARIANT_PLAIN ? " selected" : "") + '>Ei variaatiota</option>';
+    }
+    list.forEach(function(opt){
+      html += '<option value="' + escapeHtml(opt) + '"' + (selected === opt ? " selected" : "") + '>' + escapeHtml(opt) + '</option>';
+    });
+    return html;
+  }
+  function renderVariantPickerAddNew(){
+    var p = state.variantPicker;
+    var groups = knownMuscleGroups();
+    var groupOptions = '<option value="">Lihasryhmä (valinnainen)</option>';
+    groups.forEach(function(g){
+      groupOptions += '<option value="' + escapeHtml(g) + '"' + (p.newLihasryhma === g ? " selected" : "") + '>' + escapeHtml(g) + '</option>';
+    });
+    return '<input type="text" class="ledger-input" data-variant-new-liike autocomplete="off" placeholder="Liikkeen nimi" aria-label="Uuden liikkeen nimi" value="' + escapeHtml(p.newLiike || "") + '" style="margin-bottom:8px;">' +
+      '<div id="variant-name-hint">' + (p.nameHint ? renderVariantNameHint(p.nameHint) : "") + '</div>' +
+      '<input type="text" class="ledger-input" data-variant-new-variaatio autocomplete="off" placeholder="Variaatio (valinnainen)" aria-label="Variaatio" value="' + escapeHtml(p.newVariaatio || "") + '" style="margin-bottom:8px;">' +
+      '<input type="text" class="ledger-input" data-variant-new-lisavariaatio autocomplete="off" placeholder="Lisävariaatio (valinnainen)" aria-label="Lisävariaatio" value="' + escapeHtml(p.newLisavariaatio || "") + '" style="margin-bottom:8px;">' +
+      '<select class="ledger-input" data-variant-new-lihasryhma aria-label="Lihasryhmä">' + groupOptions + '</select>' +
+      '<div style="margin-top:8px;"><button type="button" data-variant-cancel-new style="background:none; border:none; color:var(--mist); font-size:12px; text-decoration:underline; padding:6px 4px; cursor:pointer;">‹ Takaisin listaan</button></div>';
+  }
+  function renderVariantNameHint(similar){
+    // Sama sanamuoto ja tyyli kuin renderImportNameWarnings — ei estä tallennusta.
+    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:8px; font-size:12.5px; line-height:1.5;">' +
+      'Listalla on jo samankaltainen liike ”' + escapeHtml(similar) + '”. Liikkeet tunnistetaan nimen perusteella, joten eri kirjoitusasu aloittaa historian alusta.' +
+      '</div>';
+  }
+  function renderVariantPicker(){
+    var p = state.variantPicker;
+    if(p.addNew) return renderVariantPickerAddNew();
+    var html = '<select class="ledger-input" data-variant-liike aria-label="Liike" style="margin-bottom:8px;">' +
+      '<option value=""' + (p.liike ? "" : " selected") + '>Valitse liike…</option>';
+    var byGroup = {};
+    var groupOrder = [];
+    knownBaseExerciseNames().forEach(function(name){
+      var g = muscleGroupForLiike(name) || "Muut";
+      if(!byGroup[g]){ byGroup[g] = []; groupOrder.push(g); }
+      byGroup[g].push(name);
+    });
+    groupOrder.sort(function(a, b){ return a.localeCompare(b, "fi"); });
+    groupOrder.forEach(function(g){
+      html += '<optgroup label="' + escapeHtml(g) + '">';
+      byGroup[g].forEach(function(name){
+        html += '<option value="' + escapeHtml(name) + '"' + (p.liike === name ? " selected" : "") + '>' + escapeHtml(name) + '</option>';
+      });
+      html += '</optgroup>';
+    });
+    html += '<option value="' + VARIANT_ADD_NEW + '">+ Liike ei löydy listalta — lisää uusi</option>' +
+      '</select>';
+    if(p.liike){
+      var vOpts = variaatioOptionsFor(p.liike);
+      if(vOpts.options.length){
+        html += '<select class="ledger-input" data-variant-variaatio aria-label="Variaatio" style="margin-bottom:8px;">' +
+          variantSelectOptions(vOpts.options, p.variaatio === null ? (p.variaatioTouched ? VARIANT_PLAIN : "") : p.variaatio, vOpts.hasPlain, "Valitse variaatio…") +
+          '</select>';
+      }
+      var lOpts = lisavariaatioOptionsFor(p.liike, p.variaatio);
+      if(lOpts.options.length){
+        html += '<select class="ledger-input" data-variant-lisavariaatio aria-label="Lisävariaatio" style="margin-bottom:8px;">' +
+          variantSelectOptions(lOpts.options, p.lisavariaatio === null ? (p.lisavariaatioTouched ? VARIANT_PLAIN : "") : p.lisavariaatio, lOpts.hasPlain, "Valitse lisävariaatio…") +
+          '</select>';
+      }
+      var previewName = composeVariantName(p.liike, p.variaatio, p.lisavariaatio);
+      var previewRow = findVariantRow(p.liike, p.variaatio, p.lisavariaatio);
+      html += '<div style="color:var(--mist); font-size:12.5px; line-height:1.5; margin-top:2px;">Uusi nimi: <b style="color:var(--chalk);">' + escapeHtml(previewName) + '</b>' +
+        (previewRow && previewRow.lihasryhma ? ' · ' + escapeHtml(previewRow.lihasryhma) : "") + '</div>';
+    }
+    return html;
+  }
   function renderSwapExercise(ex){
     if(!isProgramExercise(ex.id)) return "";
     if(state.swapExercise !== ex.id){
@@ -2258,17 +2765,29 @@
     }
     var occurrences = programExerciseOccurrences(ex.name).length;
     var html = '<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">' +
-      '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 0 10px;">Korvaa <b style="color:var(--chalk);">' + escapeHtml(ex.name) + '</b> toisella liikkeellä. Sarjat, toistot ja teho säilyvät ennallaan. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä.</p>' +
-      '<input type="text" id="swap-name-input" class="ledger-input" list="exercise-name-options" autocomplete="off" placeholder="Uusi liike" aria-label="Korvaavan liikkeen nimi" value="">' +
-      renderExerciseNameDatalist();
+      '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 0 10px;">Korvaa <b style="color:var(--chalk);">' + escapeHtml(ex.name) + '</b> toisella liikkeellä. Sarjat, toistot ja teho säilyvät ennallaan. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä.</p>';
+    // Teholiikkeillä (MAX/prosentti) säilyy entinen vapaa tekstikenttä; muille
+    // näytetään ohjattu valinta liikekatalogista.
+    var guided = !ex.intensity;
+    if(guided){
+      html += renderVariantPicker();
+    } else {
+      html += '<input type="text" id="swap-name-input" class="ledger-input" list="exercise-name-options" autocomplete="off" placeholder="Uusi liike" aria-label="Korvaavan liikkeen nimi" value="">' +
+        renderExerciseNameDatalist();
+    }
     if(occurrences > 1){
+      // Ohjatussa valinnassa paneeli piirtyy uudelleen jokaisesta valinnasta,
+      // joten valintaruudun tila luetaan tilasta — muuten käyttäjän poisrasti
+      // palautuisi huomaamatta päälle seuraavassa piirrossa.
+      var allWeeksChecked = guided ? (state.variantPicker.allWeeks !== false) : true;
       html += '<label style="display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--mist); font-size:12.5px; cursor:pointer;">' +
-        '<input type="checkbox" id="swap-all-weeks" checked style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
+        '<input type="checkbox" id="swap-all-weeks"' + (allWeeksChecked ? " checked" : "") + ' style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
         'Vaihda kaikissa viikoissa (' + occurrences + ' kohtaa)</label>';
     }
     return html + '<div style="display:flex; gap:8px; margin-top:12px;">' +
       '<button class="btn-secondary" data-swap-cancel type="button">Peruuta</button>' +
-      '<button class="save-btn" data-swap-confirm data-id="' + ex.id + '" type="button" style="margin-top:0;">Vaihda</button>' +
+      '<button class="save-btn" data-swap-confirm data-id="' + ex.id + '" type="button" style="margin-top:0;"' +
+      ((guided && !variantPickerValid()) ? " disabled" : "") + '>Vaihda</button>' +
       '</div></div>';
   }
   function renderHistoria(){
@@ -2652,6 +3171,13 @@
     }
     if((el = e.target.closest("[data-swap-open]"))){
       state.swapExercise = el.dataset.id;
+      // Ohjattu valinta esitäytetään nykyisestä nimestä, jos se tunnistetaan
+      // katalogista — muuten aloitetaan tyhjästä.
+      var swapEx = findExerciseById(el.dataset.id);
+      var match = swapEx ? resolveCatalogMatch(swapEx.name) : null;
+      state.variantPicker = match
+        ? { liike: match.liike, variaatio: match.variaatio, lisavariaatio: match.lisavariaatio, addNew: false }
+        : { liike: null, variaatio: null, lisavariaatio: null, addNew: false };
       var swapTransition = render();
       // Näkymäsiirtymä päivittää DOM:in vasta omassa callbackissaan, joten
       // fokus siirretään vasta kun kenttä on varmasti olemassa.
@@ -2665,11 +3191,40 @@
     }
     if((el = e.target.closest("[data-swap-cancel]"))){
       state.swapExercise = null;
+      state.variantPicker = null;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-variant-cancel-new]"))){
+      // Takaisin listavalintaan; kirjoitetut kentät unohdetaan.
+      state.variantPicker = { liike: null, variaatio: null, lisavariaatio: null, addNew: false };
       render();
       return;
     }
     if((el = e.target.closest("[data-swap-confirm]"))){
-      await swapProgramExercise(el.dataset.id);
+      var confirmId = el.dataset.id;
+      var confirmEx = findExerciseById(confirmId);
+      if(confirmEx && !confirmEx.intensity && state.variantPicker){
+        var p = state.variantPicker;
+        if(!variantPickerValid()) return;
+        var chosen;
+        if(p.addNew){
+          chosen = await addUserExerciseVariant({
+            liike: p.newLiike,
+            variaatio: p.newVariaatio,
+            lisavariaatio: p.newLisavariaatio,
+            lihasryhma: p.newLihasryhma
+          });
+          if(!chosen) return;
+        } else {
+          chosen = { liike: p.liike, variaatio: p.variaatio, lisavariaatio: p.lisavariaatio };
+        }
+        var allWeeksBox = document.getElementById("swap-all-weeks");
+        state.variantPicker = null;
+        await applyExerciseSwap(confirmId, composeVariantName(chosen.liike, chosen.variaatio, chosen.lisavariaatio), !!(allWeeksBox && allWeeksBox.checked));
+        return;
+      }
+      await swapProgramExercise(confirmId);
       return;
     }
     if((el = e.target.closest("[data-close-ex]"))){
@@ -2865,6 +3420,41 @@
       return;
     }
     if(e.target.id === "log-date"){ changeLogDate(e.target.value); return; }
+    if(state.variantPicker){
+      var pv = state.variantPicker;
+      var val = e.target.value;
+      if(e.target.id === "swap-all-weeks"){ pv.allWeeks = e.target.checked; return; }
+      if(e.target.hasAttribute("data-variant-liike")){
+        if(val === VARIANT_ADD_NEW){
+          state.variantPicker = { liike: null, variaatio: null, lisavariaatio: null, addNew: true,
+            newLiike: "", newVariaatio: "", newLisavariaatio: "", newLihasryhma: "", nameHint: null };
+        } else {
+          // Ylemmän tason vaihto nollaa aina alemmat tasot.
+          pv.liike = val || null;
+          pv.variaatio = null; pv.lisavariaatio = null;
+          pv.variaatioTouched = false; pv.lisavariaatioTouched = false;
+        }
+        render();
+        return;
+      }
+      if(e.target.hasAttribute("data-variant-variaatio")){
+        pv.variaatio = (val && val !== VARIANT_PLAIN) ? val : null;
+        pv.variaatioTouched = !!val;
+        pv.lisavariaatio = null; pv.lisavariaatioTouched = false;
+        render();
+        return;
+      }
+      if(e.target.hasAttribute("data-variant-lisavariaatio")){
+        pv.lisavariaatio = (val && val !== VARIANT_PLAIN) ? val : null;
+        pv.lisavariaatioTouched = !!val;
+        render();
+        return;
+      }
+      if(e.target.hasAttribute("data-variant-new-lihasryhma")){
+        pv.newLihasryhma = val;
+        return;
+      }
+    }
   });
 
   app.addEventListener("input", function(e){
@@ -2883,7 +3473,32 @@
           if(fieldEx && !isRowDoneEligible(fieldEx, row)) row.done = false;
         }
       }
+      return;
     }
+    if(state.variantPicker && state.variantPicker.addNew){
+      // Kirjoitettu arvo talteen ilman render()-kutsua, jotta fokus säilyy.
+      // "Vaihda"-napin tila päivitetään suoraan, koska sekin riippuu nimestä.
+      var pi = state.variantPicker;
+      if(e.target.hasAttribute("data-variant-new-liike")) pi.newLiike = e.target.value;
+      else if(e.target.hasAttribute("data-variant-new-variaatio")) pi.newVariaatio = e.target.value;
+      else if(e.target.hasAttribute("data-variant-new-lisavariaatio")) pi.newLisavariaatio = e.target.value;
+      else return;
+      var confirmBtn = document.querySelector("[data-swap-confirm]");
+      if(confirmBtn) confirmBtn.disabled = !variantPickerValid();
+    }
+  });
+
+  // Kirjoitusasun tarkistus vasta kentästä poistuttaessa, ei joka
+  // näppäimenpainalluksella. Vihjerivi päivitetään suoraan DOM:iin, jotta
+  // uudelleenpiirto ei vie fokusta tai nappia klikkauksen alta.
+  app.addEventListener("focusout", function(e){
+    if(!state.variantPicker || !state.variantPicker.addNew) return;
+    if(!e.target.hasAttribute || !e.target.hasAttribute("data-variant-new-liike")) return;
+    var typed = String(e.target.value || "").trim();
+    var similar = typed ? findSimilarName(typed, knownBaseExerciseNames()) : null;
+    state.variantPicker.nameHint = similar;
+    var hintEl = document.getElementById("variant-name-hint");
+    if(hintEl) hintEl.innerHTML = similar ? renderVariantNameHint(similar) : "";
   });
 
   app.addEventListener("keydown", function(e){
@@ -2942,6 +3557,10 @@
     try{
       var manualMaxRes = await storeGet(STORAGE_MANUAL_MAX_KEY);
       if(manualMaxRes && manualMaxRes.value) state.manualMax = JSON.parse(manualMaxRes.value);
+    }catch(e){}
+    try{
+      var userExRes = await storeGet(STORAGE_USER_EXERCISES_KEY);
+      if(userExRes && userExRes.value) state.userExercises = JSON.parse(userExRes.value);
     }catch(e){}
     try{
       var simRes = await storeGet(STORAGE_SIMULATION_KEY);
