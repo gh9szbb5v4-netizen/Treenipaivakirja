@@ -169,6 +169,8 @@
   var STORAGE_CONSENT_KEY = "koekaytto-hyvaksytty";
   var FEEDBACK_EMAIL = "jarkko_palokangas@hotmail.com";
   var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
+  var STORAGE_LAST_EXPORT_KEY = "last-export-date";
+  var EXPORT_REMINDER_DAYS = 14;
   var REST_DURATION_SECONDS = 90;
   var STORAGE_REST_DURATION_KEY = "rest-duration-seconds";
   var STORAGE_REST_ENABLED_KEY = "rest-timer-enabled";
@@ -193,6 +195,8 @@
     consentChecked: false,
     consentGiven: false,
     homescreenHintDismissed: false,
+    lastExportDate: null,
+    exportReminderDismissed: false,
     restDurationSeconds: REST_DURATION_SECONDS,
     restTimerEnabled: true,
     restTimer: null,
@@ -667,6 +671,14 @@
       state.view = "ohjelma";
       showToast("Ohjelma tuotu onnistuneesti");
       if(isFirstImport && !state.homescreenHintDismissed && !isStandaloneDisplay()){ state.showHomescreenHint = true; }
+      if(isFirstImport){
+        // Varmuuskopiomuistutuksen kello lähtee käyntiin ensimmäisestä
+        // tuonnista, ei tyhjästä — muuten muistutus ei koskaan laukeaisi
+        // käyttäjälle, joka ei ole vielä kertaakaan vienyt merkintöjään.
+        state.lastExportDate = todayISO();
+        try{ await storeSet(STORAGE_LAST_EXPORT_KEY, state.lastExportDate); }
+        catch(e){ /* hiljainen virhe, ei kriittinen */ }
+      }
       render();
     }catch(err){
       showToast(err.message || "CSV:n luku epäonnistui");
@@ -1377,6 +1389,13 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
       showToast("Vienti valmis");
+      // render() tehdään tässä, jotta muistutusbanneri katoaa heti onnistuneen
+      // viennin jälkeen riippumatta siitä, piirtääkö kutsupaikka uudelleen.
+      state.lastExportDate = todayISO();
+      state.exportReminderDismissed = false;
+      try{ await storeSet(STORAGE_LAST_EXPORT_KEY, state.lastExportDate); }
+      catch(e){ /* hiljainen virhe, ei kriittinen */ }
+      render();
     }catch(e){ showToast("Viennin luonti epäonnistui"); }
   }
 
@@ -1501,6 +1520,7 @@
       await storeDelete(STORAGE_LASTSET_KEY);
       await storeDelete(STORAGE_MANUAL_MAX_KEY);
       await storeDelete(STORAGE_SIMULATION_KEY);
+      await storeDelete(STORAGE_LAST_EXPORT_KEY);
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
       for(var i=0;i<keys.length;i++){ await storeDelete(keys[i]); }
@@ -1515,6 +1535,8 @@
     state.historyDates = undefined;
     state.historyCache = {};
     state.confirmingReset = false;
+    state.lastExportDate = null;
+    state.exportReminderDismissed = false;
     state.lastSet = {};
     state.manualMax = {};
     state.simulation = { active: false, dates: [] };
@@ -1845,6 +1867,22 @@
       '<div style="margin-top:10px;"><button class="btn-secondary" data-dismiss-homescreen-hint type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Selvä, sain ohjeen</button></div>' +
       '</div>';
   }
+  function shouldShowExportReminder(){
+    // Merkkijonovertailu riittää: sekä lastExportDate että daysAgoISO() ovat
+    // toLocalISO()-muotoa (VVVV-KK-PP), joten aakkosjärjestys on aikajärjestys.
+    if(!state.program || state.exportReminderDismissed) return false;
+    if(!state.lastExportDate) return false;
+    return state.lastExportDate < daysAgoISO(EXPORT_REMINDER_DAYS);
+  }
+  function renderExportReminder(){
+    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
+      '<b style="color:var(--brass);">Varmuuskopio.</b> Viimeisimmästä varmuuskopiosta on jo yli ' + EXPORT_REMINDER_DAYS + ' päivää. Merkinnät ovat vain tässä selaimessa — kannattaa ottaa tuore CSV-vienti talteen.' +
+      '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">' +
+      '<button class="btn-secondary" data-export-reminder-now type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Vie nyt</button>' +
+      '<button class="btn-secondary" data-dismiss-export-reminder type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Muistuta myöhemmin</button>' +
+      '</div>' +
+      '</div>';
+  }
   function gearIcon(){
     // Yksinkertainen itse piirretty ratas: kehä, napa ja kahdeksan hammasta.
     return '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" focusable="false">' +
@@ -1871,6 +1909,10 @@
         'Kokeile avata treenipäiväkirja Claude-sovelluksen kautta tai salli selaimen tallennustila (yksityinen selaus ja evästeiden esto estävät tallennuksen).' +
         (state.lastError ? '<div style="margin-top:8px; font-size:11px; color:var(--mist); font-family:ui-monospace,monospace;">Virhe: ' + escapeHtml(state.lastError) + '</div>' : '') +
         '</div>';
+    } else if(shouldShowExportReminder()){
+      // Vasta viimeisenä: tallennusongelmasta kertova varoitus on aina
+      // tärkeämpi, eikä kahta banneria pinota päällekkäin.
+      html += renderExportReminder();
     }
     if(state.showHomescreenHint) html += renderHomescreenHint();
     if(showNav) html += renderTabs();
@@ -1946,7 +1988,7 @@
     html += ohjeSection("5. Asetukset (rataskuvake oikeassa yläkulmassa)", ohjeList([
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
-      "<b style=\"color:var(--chalk);\">Vie merkinnät CSV:nä</b> — ota säännöllisesti varmuuskopio, sillä data on vain tässä selaimessa.",
+      "<b style=\"color:var(--chalk);\">Vie merkinnät CSV:nä</b> — ota säännöllisesti varmuuskopio, sillä data on vain tässä selaimessa. Sovellus muistuttaa asiasta, jos edellisestä viennistä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
       "<b style=\"color:var(--chalk);\">Tuo merkinnät</b> — palauta varmuuskopio tai siirrä historia toiselle laitteelle.",
       "<b style=\"color:var(--chalk);\">Simulointi</b> — täyttää koko ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten. Toimii vain, jos yhtään oikeaa merkintää ei ole vielä tallennettu.",
       "<b style=\"color:var(--chalk);\">Palaute</b> — lähetä havainto, virhe tai idea suoraan tekijälle sähköpostitse.",
@@ -2551,6 +2593,17 @@
       render();
       return;
     }
+    if(e.target.closest("[data-export-reminder-now]")){
+      await exportAllCSV();
+      return;
+    }
+    if(e.target.closest("[data-dismiss-export-reminder]")){
+      // Vain kuluvaksi istunnoksi: ei tallenneta mitään, joten muistutus
+      // palaa sivun uudelleenlatauksen jälkeen jos kynnys on yhä ylitetty.
+      state.exportReminderDismissed = true;
+      render();
+      return;
+    }
     if(e.target.closest("#feedback-send-btn")){
       var feedbackInput = document.getElementById("feedback-text");
       var feedbackText = feedbackInput ? feedbackInput.value.trim() : "";
@@ -2896,6 +2949,10 @@
     try{
       var homescreenHintRes = await storeGet(STORAGE_HOMESCREEN_HINT_KEY);
       if(homescreenHintRes && homescreenHintRes.value === "1"){ state.homescreenHintDismissed = true; }
+    }catch(e){}
+    try{
+      var lastExportRes = await storeGet(STORAGE_LAST_EXPORT_KEY);
+      if(lastExportRes && lastExportRes.value){ state.lastExportDate = lastExportRes.value; }
     }catch(e){}
     try{
       var restDurationRes = await storeGet(STORAGE_REST_DURATION_KEY);
