@@ -101,6 +101,10 @@
   .set-num.done{background:var(--success); color:var(--ink); font-size:14px;}
   .ledger-input{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
   /* Selaimen oletusvaalennus vihjetekstille jää alle kontrastivaatimuksen, joten väri asetetaan itse. */
+  /* Ilman näitä pudotusvalikon sisältö renderöityy useassa selaimessa
+     järjestelmän vaalealla oletusvärillä tumman teeman päälle. */
+  .ledger-input option{background:var(--surface-2); color:var(--chalk);}
+  .ledger-input optgroup{color:var(--brass); font-weight:700;}
   .ledger-input::placeholder, .date-picker-row input[type=date]::placeholder{color:var(--mist); opacity:1;}
   .ledger-input::-webkit-input-placeholder, .date-picker-row input[type=date]::-webkit-input-placeholder{color:var(--mist); opacity:1;}
   .remove-set{background:none; border:none; color:var(--mist); font-size:18px; cursor:pointer; padding:0; line-height:1; width:100%; min-height:44px; display:flex; align-items:center; justify-content:center;}
@@ -204,6 +208,7 @@
     showHomescreenHint: false,
     program: null,
     manualExercises: [],
+    userExercises: [],
     importNameWarnings: [],
     view: "ohjelma",
     openExercise: null,
@@ -774,9 +779,16 @@
     return list;
   }
   async function swapProgramExercise(id){
+    // Ohut kääre: lukee lomakkeen kentät ja jättää varsinaisen vaihtologiikan
+    // applyExerciseSwap:lle, jota myös ohjattu variaatiovalinta käyttää.
     var input = document.getElementById("swap-name-input");
     var newName = input ? input.value.trim() : "";
     if(!newName){ showToast("Kirjoita liikkeen nimi"); return; }
+    var allWeeksEl = document.getElementById("swap-all-weeks");
+    await applyExerciseSwap(id, newName, !!(allWeeksEl && allWeeksEl.checked));
+  }
+
+  async function applyExerciseSwap(id, newName, allWeeks){
     var ex = findExerciseById(id);
     if(!ex) return;
     var oldName = ex.name;
@@ -785,8 +797,7 @@
       render();
       return;
     }
-    var allWeeksEl = document.getElementById("swap-all-weeks");
-    var targets = (allWeeksEl && allWeeksEl.checked) ? programExerciseOccurrences(oldName) : [ex];
+    var targets = allWeeks ? programExerciseOccurrences(oldName) : [ex];
     var stamp = Date.now();
     var newId = null;
     targets.forEach(function(target, i){
