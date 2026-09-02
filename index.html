@@ -134,6 +134,23 @@
 
   .toast{position:fixed; top:calc(12px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateY(-8px); max-width:calc(100% - 32px); text-align:center; background:var(--brass); color:var(--ink); padding:10px 18px; border-radius:999px; font-weight:800; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:50; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* Näkymäsiirtymät (View Transitions). Ylempi liikkeen vähentämistä koskeva
+     sääntö ei osu luotettavasti rajapinnan omiin pseudoelementteihin, joten
+     ne nollataan tässä erikseen. */
+  @media (prefers-reduced-motion: reduce){
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*){
+      animation: none !important;
+    }
+  }
+  /* Sama kesto ja käyrä kuin muissakin siirtymissä (chevron, kytkin). */
+  ::view-transition-old(root),
+  ::view-transition-new(root){
+    animation-duration: 0.22s;
+    animation-timing-function: ease;
+  }
 </style>
 </head>
 <body>
@@ -1863,7 +1880,7 @@
     // Asetukset ei ole listassa — se avataan otsikkorivin rataskuvakkeesta.
     var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["ohje","Ohje"]];
     return '<nav class="bottom-nav" aria-label="Päänavigaatio">' + tabs.map(function(t){
-      return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '" role="button" tabindex="0"' + (state.view===t[0] ? ' aria-current="page"' : "") + '>' + t[1] + '</div>';
+      return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '" role="button" tabindex="0"' + (state.view===t[0] ? ' aria-current="page" style="view-transition-name:active-tab;"' : "") + '>' + t[1] + '</div>';
     }).join("") + '</nav>';
   }
   function renderBody(){
@@ -2497,15 +2514,21 @@
   }
   function render(){
     var app = document.getElementById("app");
-    if(state.consentChecked && !state.consentGiven){
-      app.className = "";
-      app.innerHTML = '<main>' + renderConsentGate() + '</main>';
-      return;
-    }
-    // Alanavigaatio on kelluva ja peittäisi sisällön lopun ilman lisätilaa.
-    app.className = (state.program && !state.loading) ? "has-bottom-nav" : "";
-    // header/nav/main-maamerkit: ruudunlukijalla pääsee suoraan sisältöön.
-    app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>';
+    var apply = function(){
+      if(state.consentChecked && !state.consentGiven){
+        app.className = "";
+        app.innerHTML = '<main>' + renderConsentGate() + '</main>';
+        return;
+      }
+      // Alanavigaatio on kelluva ja peittäisi sisällön lopun ilman lisätilaa.
+      app.className = (state.program && !state.loading) ? "has-bottom-nav" : "";
+      // header/nav/main-maamerkit: ruudunlukijalla pääsee suoraan sisältöön.
+      app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>';
+    };
+    // Palautetaan siirtymäolio, jotta harvat kutsujat jotka lukevat juuri
+    // piirretyn DOM:in (ks. data-swap-open) voivat odottaa päivitystä.
+    if(document.startViewTransition){ return document.startViewTransition(apply); }
+    else{ apply(); }
   }
 
   // ---------- events (delegated, attached once) ----------
@@ -2565,9 +2588,15 @@
     }
     if((el = e.target.closest("[data-swap-open]"))){
       state.swapExercise = el.dataset.id;
-      render();
-      var swapInput = document.getElementById("swap-name-input");
-      if(swapInput) swapInput.focus();
+      var swapTransition = render();
+      // Näkymäsiirtymä päivittää DOM:in vasta omassa callbackissaan, joten
+      // fokus siirretään vasta kun kenttä on varmasti olemassa.
+      var focusSwapInput = function(){
+        var swapInput = document.getElementById("swap-name-input");
+        if(swapInput) swapInput.focus();
+      };
+      if(swapTransition && swapTransition.updateCallbackDone){ swapTransition.updateCallbackDone.then(focusSwapInput); }
+      else{ focusSwapInput(); }
       return;
     }
     if((el = e.target.closest("[data-swap-cancel]"))){
