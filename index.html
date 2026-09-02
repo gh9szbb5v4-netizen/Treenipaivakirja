@@ -647,13 +647,17 @@
 // välilyönnit (mm. "Ranskalainen käsipainoilla " yhdistyi muihin
 // "Ranskalainen käsipainoilla" -riveihin).
 //
-// TARKISTA ENNEN KÄYTTÖÖNOTTOA:
-// "Ranskalainen käsipainoilla" -rivien lihasryhmä vaihtelee lähteessä
-// asennon mukaan (Maaten -> Ojentajat, Seisten/Per käsi -> Olkapäät,
-// Seisten/Molemmat kädet -> Ojentajat). Koodi käyttää lihasryhmää sellaisena
-// kuin se on ilmoitettu kullekin liike+variaatio+lisävariaatio-riville
-// erikseen, joten epäjohdonmukaisuus säilyy sellaisenaan, kunnes korjaat sen
-// lähteessä.
+// KORJATTU LÄHTEESEEN NÄHDEN (1 rivi):
+// "Ranskalainen käsipainoilla" / Seisten / Per käsi oli lähteessä
+// lihasryhmällä "Olkapäät", kun liikkeen kolme muuta riviä (Maaten/Molemmat
+// kädet, Maaten/Per käsi, Seisten/Molemmat kädet) ovat "Ojentajat". Poikkeama
+// ei noudattanut asentosääntöä — jos asento ratkaisisi, myös Seisten/Molemmat
+// kädet olisi Olkapäät — eikä yhden käden versio muutu olkapääliikkeeksi, joten
+// kyseessä oli kirjausvirhe. Rivi on tässä katalogissa "Ojentajat". Tämä on
+// koko katalogin ainoa liike, jonka riveillä oli useampi eri lihasryhmä.
+// HUOM: lähdetaulukossa (Kuntosaliliikkeet_ja_lihasryhmat_1.xlsm) arvo on yhä
+// "Olkapäät" — korjaa se sinne, tai katalogin uudelleengenerointi palauttaa
+// virheen huomaamatta.
 //
 // TIETOISESTI RAJATTU POIS:
 // Alkuperäisen taulukon toinen, "PC:"-alkuinen lohko (Cardiolaite ym.
@@ -829,7 +833,7 @@
     { liike:"Pystysoutu tangolla", variaatio:"Suoratanko", lisavariaatio:null, lihasryhma:"Olkapäät" },
     { liike:"Ranskalainen käsipainoilla", variaatio:"Maaten", lisavariaatio:"Molemmat kädet", lihasryhma:"Ojentajat" },
     { liike:"Ranskalainen käsipainoilla", variaatio:"Maaten", lisavariaatio:"Per käsi", lihasryhma:"Ojentajat" },
-    { liike:"Ranskalainen käsipainoilla", variaatio:"Seisten", lisavariaatio:"Per käsi", lihasryhma:"Olkapäät" },
+    { liike:"Ranskalainen käsipainoilla", variaatio:"Seisten", lisavariaatio:"Per käsi", lihasryhma:"Ojentajat" },
     { liike:"Ranskalainen käsipainoilla", variaatio:"Seisten", lisavariaatio:"Molemmat kädet", lihasryhma:"Ojentajat" },
     { liike:"Ranskalainen punnerrus koneessa", variaatio:null, lisavariaatio:null, lihasryhma:"Ojentajat" },
     { liike:"Ranskalainen punnerrus käsipainoilla", variaatio:null, lisavariaatio:null, lihasryhma:"Ojentajat" },
