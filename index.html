@@ -183,8 +183,6 @@
     showHomescreenHint: false,
     program: null,
     manualExercises: [],
-    manualNameDraft: "",
-    manualNameSuggestion: null,
     importNameWarnings: [],
     view: "ohjelma",
     openExercise: null,
@@ -656,17 +654,6 @@
     }catch(err){
       showToast(err.message || "CSV:n luku epäonnistui");
     }
-  }
-
-  function addManualExerciseByName(name){
-    // Sama lisäyslogiikka kuin ennen; jaettu, koska liike voidaan lisätä joko
-    // suoraan tai kirjoitusasuehdotuksen kautta.
-    var newId = "manual-" + Date.now();
-    var manualEx = { id:newId, name:name, sets:"", reps:"", weight:"", notes:"" };
-    state.manualExercises.push(manualEx);
-    state.openExercise = newId;
-    state.draftSets[newId] = buildDraftRows(manualEx, newId);
-    render();
   }
 
   async function toggleExercise(id){
@@ -1503,8 +1490,6 @@
     }catch(e){}
     state.program = null;
     state.manualExercises = [];
-    state.manualNameDraft = "";
-    state.manualNameSuggestion = null;
     state.importNameWarnings = [];
     state.draftSets = {};
     state.openExercise = null;
@@ -1924,7 +1909,7 @@
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
       "Avaa liike Ohjelma-välilehdellä ja täytä kunkin sarjan paino ja toistot. Paino on aina valmiiksi ehdotettu ja muokattavissa. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen."
     ) + ohjeP(
-      "Merkinnän voi kirjata myös takautuvasti vaihtamalla päivämäärää yläreunan valitsimesta, ja ohjelmaan kuulumattoman liikkeen voi lisätä listan alta kohdasta \"Lisää liikelistaan\"."
+      "Merkinnän voi kirjata myös takautuvasti vaihtamalla päivämäärää yläreunan valitsimesta."
     ) + ohjeP(
       "Jos et pysty tekemään ohjelman liikettä, avaa se ja valitse \"Vaihda liike toiseksi\". Sarjat, toistot ja teho säilyvät, ja voit vaihtaa joko vain tämän kohdan tai kaikki saman liikkeen esiintymät ohjelmassa. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä, joten CSV:tä ei tarvitse tuoda uudelleen."
     ));
@@ -1999,17 +1984,6 @@
       '<button class="btn-secondary" data-dismiss-import-warning type="button" style="width:auto; padding:8px 14px; font-size:12.5px; margin-top:10px;">Sulje</button>' +
       '</div>';
   }
-  function renderManualNameSuggestion(){
-    var s = state.manualNameSuggestion;
-    if(!s) return "";
-    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:8px; font-size:12.5px; line-height:1.5;">' +
-      'Tarkoititko liikettä ”' + escapeHtml(s.suggested) + '”? Sama liike eri kirjoitusasulla kirjautuu kahdeksi eri liikkeeksi.' +
-      '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">' +
-      '<button class="btn-secondary" data-use-suggested-name type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Käytä nimeä ”' + escapeHtml(s.suggested) + '”</button>' +
-      '<button class="btn-secondary" data-keep-typed-name type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Lisää silti nimellä ”' + escapeHtml(s.typed) + '”</button>' +
-      '</div>' +
-      '</div>';
-  }
   function renderOhjelma(){
     var html = renderImportNameWarnings() +
       '<div class="date-picker-row"><label for="log-date">Kirjataan päivälle</label>' +
@@ -2045,16 +2019,18 @@
         day.exercises.forEach(function(ex){ html += renderExercise(ex); });
       }
     });
+    // Kenttä, josta ohjelmaan kuulumattoman liikkeen sai lisätä käsin, on
+    // poistettu näkymästä: yksittäisen liikkeen lisääminen ei ole hyödyllinen
+    // ilman laajempaa ohjelman muokkausta (lisää/poista/järjestä), joka on
+    // vasta suunnitteilla. Liikkeiden lukurakenne (state.manualExercises,
+    // allExercises, getExerciseGroupList) on jätetty koskematta, joten
+    // toiminnon palauttaminen vaatii vain syöttökentän ja sen käsittelijän
+    // palauttamisen. Lista renderöidään yhä, jos taulukkoon joskus tulee
+    // sisältöä muuta kautta.
     if(state.manualExercises.length){
       html += '<div class="day-heading">Lisätyt liikkeet</div>';
       state.manualExercises.forEach(function(ex){ html += renderExercise(ex); });
     }
-    html += '<div class="exercise" style="padding:14px 16px;">' +
-      '<input type="text" id="manual-name" class="ledger-input" list="exercise-name-options" autocomplete="off" placeholder="Lisää liike, jota ei ole ohjelmassa" value="' + escapeHtml(state.manualNameDraft) + '" style="margin-bottom:8px;">' +
-      renderExerciseNameDatalist() +
-      renderManualNameSuggestion() +
-      '<button class="btn-secondary" id="add-manual-btn" type="button">Lisää liikelistaan</button>' +
-      '</div>';
     return html;
   }
   function tehoBadge(ex){
@@ -2709,42 +2685,6 @@
       if(rex){ state.draftSets[rid] = buildDraftRows(rex, rid); }
       showToast("Merkintä poistettu, ehdotus laskettu uudelleen");
       render();
-      return;
-    }
-    if((el = e.target.closest("#add-manual-btn"))){
-      var input = document.getElementById("manual-name");
-      var name = input.value.trim();
-      if(!name){ showToast("Kirjoita liikkeen nimi"); return; }
-      state.manualNameDraft = name;
-      if(state.manualNameSuggestion === null){
-        var similar = findSimilarName(name, knownExerciseNames());
-        if(similar){
-          state.manualNameSuggestion = { typed: name, suggested: similar };
-          render();
-          return;
-        }
-      }
-      state.manualNameDraft = "";
-      state.manualNameSuggestion = null;
-      addManualExerciseByName(name);
-      return;
-    }
-    if((el = e.target.closest("[data-use-suggested-name]"))){
-      if(!state.manualNameSuggestion) return;
-      var suggestedName = state.manualNameSuggestion.suggested;
-      state.manualNameDraft = suggestedName;
-      state.manualNameSuggestion = null;
-      state.manualNameDraft = "";
-      addManualExerciseByName(suggestedName);
-      return;
-    }
-    if((el = e.target.closest("[data-keep-typed-name]"))){
-      if(!state.manualNameSuggestion) return;
-      var typedName = state.manualNameSuggestion.typed;
-      state.manualNameDraft = typedName;
-      state.manualNameSuggestion = null;
-      state.manualNameDraft = "";
-      addManualExerciseByName(typedName);
       return;
     }
     if((el = e.target.closest("[data-dismiss-import-warning]"))){

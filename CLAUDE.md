@@ -33,8 +33,10 @@ erillisenä tiedostona. Perustelu: sovelluksen koko idea on yksi tiedosto
 ilman ulkoisia riippuvuuksia tai tuontivaiheita; kiinteä referenssilista
 sopii tähän paremmin kuin uusi tuontimuoto, ja lista on heti käytettävissä
 ilman erillistä tuontiaskelta. Rakentajassa pitää silti sallia myös vapaa
-tekstikenttä liikkeen nimelle (kuten Ohjelma-välilehden "Lisää liike, jota
-ei ole ohjelmassa" toimii jo nyt) — lista on ehdotus, ei rajoite.
+tekstikenttä liikkeen nimelle — lista on ehdotus, ei rajoite. (Ohjelma-
+välilehdellä oli aiemmin vastaava "Lisää liike, jota ei ole ohjelmassa"
+-kenttä, mutta se on poistettu näkymästä, koska yksittäisen liikkeen
+lisääminen ei ole hyödyllinen ilman laajempaa ohjelman muokkausta.)
 
 **Tallennus:**
 "Valmis"-painike kirjoittaa koostetun rakenteen `state.program`-muuttujaan
