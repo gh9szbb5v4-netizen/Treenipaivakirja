@@ -13,4 +13,3 @@ Näitä ei kannata aloittaa ennen kuin koekäyttö ja mahdollinen ensimmäinen k
 - Palvelinpuolen tallennus ja laitteiden välinen synkronointi
 - Käyttäjätunnistus ja tilausmalli
 - Laajempi liikekirjasto kuvineen
-- Sujuvat siirtymäanimaatiot näkymien välillä (vaatisi luopumisen nykyisestä koko sovelluksen uudelleenpiirtävästä `render()`-mallista)
