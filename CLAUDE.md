@@ -177,9 +177,15 @@ enää tuonnin jälkeen missään.
 
 `applyBackupRestore()` palauttaa järjestyksessä omat liikkeet → 1RM → ohjelma →
 merkinnät. Järjestys on pakollinen: merkinnät sidotaan ohjelman liike-id:eihin,
-joten ohjelman on oltava paikallaan ensin. Ohjelman palautus korvaa nykyisen
-ohjelman, joten se vahvistetaan erikseen (`state.pendingRestore` +
-`renderRestoreConfirm()`); ilman ohjelmaosiota oleva tiedosto tuodaan suoraan.
+joten ohjelman on oltava paikallaan ensin. Ohjelmaosio sisältää kaikki
+kirjaston ohjelmat (sarakkeet `Ohjelman tunniste`, `Ohjelman nimi`,
+`Käytössä`; muistiinpanoilla `Ohjelman tunniste`), ja `parseBackupProgram()`
+palauttaa `{ programs, activeId }`. Palautus lisää puuttuvat ohjelmat
+kirjastoon (sama tunniste laitteella = ohitetaan), ottaa varmuuskopiossa
+käytössä olleen käyttöön ja siirtää laitteen nykyisen kirjastoon, joten se
+vahvistetaan erikseen (`state.pendingRestore` + `renderRestoreConfirm()`);
+ilman ohjelmaosiota oleva tiedosto tuodaan suoraan. Vanha tiedosto ilman
+ohjelmasarakkeita luetaan yhdeksi ohjelmaksi.
 
 `state.manualMax` on avaimenaan liikkeen nimi muodossa `nimi.trim().toLowerCase()`
 — sama sääntö kaikissa lukupaikoissa. Vienti kirjoittaa nimen ohjelman
@@ -324,4 +330,42 @@ Asetukset siirrettiin otsikkorivin rataskuvakkeesta valikon viimeiseksi
 kohdaksi käyttäjän pyynnöstä. Molemmat ovat tavallisia `[data-tab]`-
 kohteita, joten välilehtikäsittelijä (settingsSection- ja
 pendingRestore-nollaus, muokkaustilan esto) on sama.
+
+## Ohjelmakirjasto (toteutettu)
+
+Useita ohjelmia, yksi käytössä. `state.program` on käytössä oleva ohjelma
+(avain `workout-program`, kaikki vanha koodi lukee sitä ennallaan) ja
+`state.programs` muut ohjelmat (avain `programs`, `saveProgramLibrary()`).
+`allPrograms()` listaa käytössä olevan ensin. Ohjelmalla on `id`
+(`prog-<aikaleima>-<laskuri>`, `newProgramId()`) ja `name`;
+`ensureProgramShape()` täydentää molemmat vanhoihin tallennuksiin, CSV-
+jäsennin luo tunnisteen ja `handleFile()` antaa nimeksi tiedoston nimen
+(`fileBaseName`), PDF-tuonti ensimmäisen tiedoston nimen ja rakentaja
+"Oma ohjelma". Nimi on muokattavissa muokkaustilan yhteenvetokortissa
+(`[data-editor-program-name]`) ja kirjastossa (`renameProgram`).
+
+Uusi ohjelma ei koskaan korvaa käytössä olevaa ilman hyväksyntää.
+`applyImportedProgram()` siirtää käytössä olleen ohjelman kirjastoon (ei
+poista) ja poistaa uuden kirjastosta, jos se tuli sieltä. Kun ohjelma on jo
+käytössä, CSV-tuonti (`handleFile`) ja muokkaustilan Valmis uudessa ja
+tuontitilassa (`finishProgramEdit`) kutsuvat `offerNewProgram(program,
+source)`:ia, joka avaa pohjalevyn `state.sheet === "uusi-ohjelma"`
+(`state.pendingProgram`): `[data-new-program-activate]` →
+`acceptPendingProgram(true)` → `applyImportedProgram`;
+`[data-new-program-shelve]` → kirjastoon ilman vaihtoa;
+`[data-new-program-cancel]` ja `closeSheet()` → muokkaus jatkuu (luonnos on
+ennallaan, koska viimeistely tehtiin kopioon) tai CSV-tuonti perutaan.
+Ilman ohjelmaa tallennus kulkee suoraan kuten ennen.
+
+Kirjasto on Asetusten Ohjelma-osiossa (`renderProgramLibrary()`, `.lib-row`):
+`[data-program-activate]` → `activateProgram(id)` (sama
+`applyImportedProgram`-polku), `[data-program-rename]` /
+`[data-program-rename-save]` (`state.programRename`),
+`[data-program-delete]` kahdella painalluksella
+(`state.confirmingDeleteProgram`); käytössä olevaa ei voi poistaa. Ohjelma-
+näkymä näyttää `.program-row`-rivin (nimi ja `[data-open-settings="ohjelma"]`)
+vain, kun ohjelmia on useampi. Merkintöihin ei kosketa missään näistä:
+ne on sidottu liike-id:eihin, jotka ovat ohjelmakohtaisia, joten
+ohjelmaan palattaessa `buildExerciseLogIndex()` löytää sen tehty-tilan
+ennallaan. `resetAll()` poistaa myös kirjaston. Testit: `test_programs.js`.
 
