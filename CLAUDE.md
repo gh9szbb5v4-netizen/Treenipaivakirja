@@ -200,9 +200,9 @@ kun näkymiä käsitellään.
 
 Painikkeet: `.btn-primary` (täytetty messinki, ruudun päätoiminto),
 `.btn-secondary` (ääriviiva), `.btn-tertiary` (pelkkä teksti),
-`.btn-danger` (tuhoava); koot `.btn-sm`, leveys `.btn-auto`. `.save-btn` on
-alias `.btn-primary`:lle vanhojen kutsupaikkojen takia — älä käytä uudessa
-koodissa. Merkit `.chip` + `.chip-brass/-muted/-success`. Banneri
+`.btn-danger` (tuhoava); koot `.btn-sm`, leveys `.btn-auto`. Vanha
+`.save-btn`-alias on poistettu; kaikki kutsupaikat käyttävät `.btn-primary`-
+luokkaa. Merkit `.chip` + `.chip-brass/-muted/-success`. Banneri
 `renderBanner(kind, iconName, title, bodyHtml, actionsHtml)`, kind `""`,
 `"info"` tai `"danger"`; kaikki aiemmat ad hoc -laatikot käyttävät sitä.
 
@@ -258,8 +258,8 @@ se peitti sarjarivit heti kortin avautuessa, koska kortti on näyttöä
 korkeampi).
 
 Viikko/kaikki-valinta on `renderWeekModeSwitch()` (`[data-week-mode]`),
-samalla rivillä päivämääräsirpaleen kanssa; vanha `[data-toggle-week-view]`-
-käsittelijä on jäänyt koodiin vaarattomana. Näkyvä "Kirjataan päivälle"
+samalla rivillä päivämääräsirpaleen kanssa (vanha `[data-toggle-week-view]`-
+käsittelijä on poistettu). Näkyvä "Kirjataan päivälle"
 -teksti on ruudunlukijalle `.sr-only`-elementtinä.
 
 ## Asetukset, Historia ja Kehitys (toteutettu, UX-vaihe 4)

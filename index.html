@@ -194,21 +194,18 @@
        .btn-secondary  ääriviiva harmaalla — vaihtoehtoiset toiminnot
        .btn-tertiary   pelkkä teksti — vähäiset, toistuvat toiminnot
        .btn-danger     ääriviiva vaaravärillä — tuhoavat toiminnot
-     .save-btn on säilytetty aliaksena .btn-primary:lle, jotta vanhat
-     kutsupaikat toimivat ennallaan; uusi koodi käyttää .btn-primary-nimeä.
      Kokoa säätävät .btn-sm (40 px) ja leveyttä .btn-auto. */
-  .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger, .save-btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; padding:12px 18px; border-radius:999px; font:inherit; font-size:var(--fs-md); font-weight:700; line-height:1.2; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .08s, opacity .15s, background-color .15s, color .15s;}
-  .btn-primary, .save-btn{background:var(--brass); border:1px solid var(--brass); color:var(--ink); font-weight:800;}
-  .save-btn{margin-top:12px;}
+  .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger{display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; padding:12px 18px; border-radius:999px; font:inherit; font-size:var(--fs-md); font-weight:700; line-height:1.2; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .08s, opacity .15s, background-color .15s, color .15s;}
+  .btn-primary{background:var(--brass); border:1px solid var(--brass); color:var(--ink); font-weight:800;}
   .btn-secondary{background:var(--surface-2); border:1px solid var(--line-strong); color:var(--chalk);}
   .btn-tertiary{background:transparent; border:1px solid transparent; color:var(--mist); font-weight:600; min-height:40px; padding:8px 12px; width:auto;}
   .btn-tertiary:hover{color:var(--chalk);}
   .btn-danger{background:transparent; border:1px solid var(--danger); color:var(--danger-text);}
   .btn-sm{min-height:40px; padding:8px 14px; font-size:var(--fs-sm);}
   .btn-auto{width:auto;}
-  .btn-primary:active, .save-btn:active, .btn-secondary:active, .btn-danger:active{transform:scale(.98); opacity:.9;}
-  .btn-primary:disabled, .btn-secondary:disabled, .btn-tertiary:disabled, .btn-danger:disabled, .save-btn:disabled, .add-set-btn:disabled{opacity:.4; cursor:default; transform:none;}
-  .btn-primary svg, .btn-secondary svg, .btn-tertiary svg, .btn-danger svg, .save-btn svg{flex-shrink:0;}
+  .btn-primary:active, .btn-secondary:active, .btn-danger:active{transform:scale(.98); opacity:.9;}
+  .btn-primary:disabled, .btn-secondary:disabled, .btn-tertiary:disabled, .btn-danger:disabled, .add-set-btn:disabled{opacity:.4; cursor:default; transform:none;}
+  .btn-primary svg, .btn-secondary svg, .btn-tertiary svg, .btn-danger svg{flex-shrink:0;}
 
   /* ---------- Merkki (chip) ----------
      Pieni pyöristetty tilamerkki: teho (MAX, %), tila (Tehty, Kesken) ja
@@ -328,7 +325,7 @@
      vain juuri muuttuneelle merkille (state.justDone, justSavedEx,
      justDoneDay), ja liput nollataan seuraavan napautuksen alussa. Molemmat
      noudattavat prefers-reduced-motion-asetusta (yllä). */
-  .icon-btn, .editor-icon, .tab, .set-done-btn, .set-more, .pick-item, .weight-step-btn, .chevron-btn, .segmented button, .editor-title, .add-set-btn, .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger, .save-btn, .choice-card, .settings-row, .remove-set{transition:transform .08s ease, background-color .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;}
+  .icon-btn, .editor-icon, .tab, .set-done-btn, .set-more, .pick-item, .weight-step-btn, .chevron-btn, .segmented button, .editor-title, .add-set-btn, .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger, .choice-card, .settings-row, .remove-set{transition:transform .08s ease, background-color .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;}
   .icon-btn:active, .editor-icon:active, .tab:active, .set-done-btn:active, .set-more:active, .pick-item:active, .weight-step-btn:active, .chevron-btn:active, .segmented button:active, .editor-title:active, .add-set-btn:active, .btn-tertiary:active, .remove-set:active{transform:scale(.94);}
   .exercise-head-main:active, .day-card-main:active{opacity:.7;}
   @media (hover:hover){
@@ -384,7 +381,7 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.2.0";
+  var APP_VERSION = "0.3.0";
   // Sovelluksen logo otsikkorivillä. Upotettu data-URI:na, koska sovellus on
   // yhden tiedoston kokonaisuus ilman ulkoisia riippuvuuksia — sama merkki kuin
   // aloitusnäytön kuvakkeissa, mutta läpinäkyvällä taustalla.
@@ -4810,7 +4807,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     return html + '<div style="display:flex; gap:8px; margin-top:12px;">' +
       '<button class="btn-secondary" data-swap-cancel type="button">Peruuta</button>' +
-      '<button class="save-btn" data-swap-confirm data-id="' + ex.id + '" type="button" style="margin-top:0;"' +
+      '<button class="btn-primary" data-swap-confirm data-id="' + ex.id + '" type="button"' +
       ((guided && !variantPickerValid()) ? " disabled" : "") + '>Vaihda</button>' +
       '</div></div>';
   }
@@ -5748,11 +5745,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(curIdx === -1) curIdx = 0;
       var newIdx = curIdx + (el.dataset.weekNav === "next" ? 1 : -1);
       if(newIdx >= 0 && newIdx < weeks.length){ state.activeWeek = weeks[newIdx]; render(); }
-      return;
-    }
-    if((el = e.target.closest("[data-toggle-week-view]"))){
-      state.showAllWeeks = !state.showAllWeeks;
-      render();
       return;
     }
     if((el = e.target.closest("[data-swap-open]"))){
