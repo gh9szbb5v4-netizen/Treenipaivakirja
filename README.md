@@ -73,7 +73,7 @@ Rakenne etenee ylhäältä alas: **viikko** → **treenipäivä** → **liike**.
 
 "Kopioi viimeinen viikko uudeksi" (tai viikon ⋮-valikon Kopioi) monistaa viikon päivineen ja liikkeineen, joten toistuvan ohjelman voi rakentaa kerran ja monistaa loput. Uuden viikon numero ja treenipäivän oletusnimi ovat ensimmäinen vapaa numero.
 
-Ohjelma tallentuu vasta "Valmis"-painikkeesta, ja tallennus kulkee samaa polkua kuin CSV- ja PDF-tuonti: liikeoliot ovat täsmälleen samanmuotoisia, uusi ohjelma korvaa vanhan ja historia säilyy liikkeen nimen perusteella. Tallennus estyy selkeällä ilmoituksella, jos ohjelmassa ei ole yhtään liikettä, jos kaksi viikkoa on nimetty samoin tai jos saman viikon kaksi treenipäivää on nimetty samoin. Liikkeetön treenipäivä ja päivätön viikko jätetään pois tallennettavasta ohjelmasta. "Peruuta" palaa näkymään, josta rakentaja avattiin, ja kysyy vahvistuksen, jos luonnokseen on jo tehty muutoksia.
+Ohjelma tallentuu vasta "Valmis"-painikkeesta, ja tallennus kulkee samaa polkua kuin CSV- ja PDF-tuonti: liikeoliot ovat täsmälleen samanmuotoisia, ja jos jokin ohjelma on jo käytössä, sovellus kysyy, otetaanko uusi käyttöön vai jääkö se kirjastoon (ks. Useita ohjelmia). Historia säilyy liikkeen nimen perusteella. Tallennus estyy selkeällä ilmoituksella, jos ohjelmassa ei ole yhtään liikettä, jos kaksi viikkoa on nimetty samoin tai jos saman viikon kaksi treenipäivää on nimetty samoin. Liikkeetön treenipäivä ja päivätön viikko jätetään pois tallennettavasta ohjelmasta. "Peruuta" palaa näkymään, josta rakentaja avattiin, ja kysyy vahvistuksen, jos luonnokseen on jo tehty muutoksia.
 
 Rakentaja luo aina uuden ohjelman. Jo tallennettua ohjelmaa muokataan muokkaustilassa (seuraava kohta).
 
@@ -91,6 +91,14 @@ Liikkeen tehty-tila on sidottu liikkeen tunnisteeseen, historia ja painoehdotuks
 - Liikkeen, päivän ja viikon poisto vahvistetaan aina toisella painalluksella. Poistetun liikkeen merkinnät säilyvät Historiassa.
 
 Muutokset tallentuvat vasta "Valmis"-painikkeesta, ja siihen asti ne koskevat vain luonnosta; "Peruuta" kysyy vahvistuksen, jos muutoksia on tehty. Kopioidut ja lisätyt liikkeet ovat täsmälleen samanmuotoisia kuin tuonnin tuottamat, joten Historia, Kehitys ja 1RM-lista toimivat niille samalla tavalla — esimerkiksi MAX-teholla lisätty liike ilmestyy heti Asetusten 1RM-listaan. Viikkojen omat nimet ja päivien tunnisteet kulkevat myös varmuuskopion mukana.
+
+## Useita ohjelmia
+
+Sovelluksessa voi olla useita ohjelmia, mutta vain yksi on käytössä kerrallaan. Uusi ohjelma — tuotiin se tiedostosta tai rakennettiin sovelluksessa — ei koskaan korvaa käytössä olevaa ilman hyväksyntää: kun jokin ohjelma on jo käytössä, sovellus näyttää pohjalevyn, jossa valitaan "Ota uusi ohjelma käyttöön", "Tallenna kirjastoon, jatka nykyisellä" tai peruutus. Kummassakaan tapauksessa nykyinen ohjelma ei katoa, vaan se jää ohjelmakirjastoon.
+
+Ohjelmakirjasto on Asetusten Ohjelma-osiossa. Siellä ohjelman voi ottaa käyttöön, nimetä uudelleen ja poistaa; käytössä olevaa ohjelmaa ei voi poistaa ennen kuin toinen on otettu käyttöön. Kun kirjastossa on useampi ohjelma, Ohjelma-näkymän yläreunassa näkyy käytössä olevan ohjelman nimi ja "Vaihda"-painike. Ohjelman nimen voi antaa myös muokkaustilan yhteenvetokortissa; tuodun ohjelman nimeksi tulee tiedoston nimi.
+
+Ohjelman vaihto ei koske merkintöjä. Historia ja Kehitys näyttävät kaikki kirjatut treenit riippumatta siitä, mikä ohjelma on käytössä, ja koska merkinnät on sidottu ohjelmakohtaisiin liiketunnisteisiin, ohjelmaan palattaessa sen tehty-merkinnät ja keskeneräiset päivät löytyvät ennallaan. Myös ohjelman poisto kirjastosta jättää merkinnät Historiaan. Varmuuskopio sisältää kaikki ohjelmat, ja palautus lisää puuttuvat ohjelmat kirjastoon poistamatta mitään.
 
 ## Sarjapainojen laskenta
 
@@ -147,14 +155,14 @@ Asetusten "Vie varmuuskopio CSV:nä" tallentaa yhteen tiedostoon kaiken, mitä s
 | Osio | Sisältö |
 |---|---|
 | `#MERKINNÄT` | Kirjatut sarjat: päivämäärä, liike, sarjanumero, paino, toistot, huomiot, tyyppi ja liikkeen tunniste |
-| `#OHJELMA` | Ohjelman jokainen liike viikkoineen ja treenipäivineen, mukaan lukien tyyppi, menetelmä, sarjakohtaiset toistot ja menetelmäselite sekä viikon nimi, päivän tunniste ja päivän nimi |
-| `#OHJELMAN MUISTIINPANOT` | PDF-ohjelman mukana tullut ohjeteksti |
+| `#OHJELMA` | Kaikkien ohjelmien jokainen liike viikkoineen ja treenipäivineen, mukaan lukien tyyppi, menetelmä, sarjakohtaiset toistot ja menetelmäselite sekä viikon nimi, päivän tunniste ja päivän nimi; ohjelman tunniste, nimi ja Käytössä-sarake erottavat ohjelmat toisistaan |
+| `#OHJELMAN MUISTIINPANOT` | PDF-ohjelman mukana tullut ohjeteksti ohjelman tunnisteella varustettuna |
 | `#OMAT LIIKKEET` | Käyttäjän itse lisäämät liikkeet variaatioineen ja lihasryhmineen |
 | `#1RM` | Liikekohtaiset 1RM-arvot ja niiden päivitysajankohta |
 
 Merkintärivin **Tunniste** on liikkeen ohjelma-id. Sen ansiosta palautus sitoo jokaisen merkinnän täsmälleen samaan ohjelman liikkeeseen kuin varmuuskopion hetkellä, eikä liikkeiden nimien varaan jäävää arvausta tarvita. Vanhemmissa, ennen tätä tehdyissä vientitiedostoissa saraketta ei ole; ne tuodaan yhä entiseen tapaan nimien perusteella kohdistaen.
 
-Palautus näyttää ensin, mitä tiedosto sisältää, ja tekee muutokset vasta vahvistuksesta — varmuuskopion ohjelma nimittäin **korvaa nykyisen ohjelman**. Kaikki muu yhdistetään laitteella jo olevaan niin, että jo tallennettu voittaa eikä mitään poisteta: omat liikkeet lisätään ilman kaksoiskappaleita, merkinnöistä ohitetaan jo tallennetut, ja 1RM-arvo tuodaan vain liikkeille, joilla ei vielä ole arvoa. Näin vanhemman varmuuskopion palautus ei laske tuoreempaa 1RM:ää huomaamatta, ja saman tiedoston voi tuoda turvallisesti useaan kertaan. Pelkät merkinnät sisältävä vanha vientitiedosto tuodaan suoraan ilman vahvistusta, koska se ei voi korvata ohjelmaa.
+Palautus näyttää ensin, mitä tiedosto sisältää, ja tekee muutokset vasta vahvistuksesta, koska se vaihtaa käytössä olevan ohjelman: varmuuskopiossa käytössä ollut ohjelma otetaan käyttöön ja laitteen nykyinen ohjelma **jää kirjastoon**. Ohjelmat, jotka ovat laitteella jo (sama tunniste), ohitetaan. Kaikki muu yhdistetään laitteella jo olevaan niin, että jo tallennettu voittaa eikä mitään poisteta: omat liikkeet lisätään ilman kaksoiskappaleita, merkinnöistä ohitetaan jo tallennetut, ja 1RM-arvo tuodaan vain liikkeille, joilla ei vielä ole arvoa. Näin vanhemman varmuuskopion palautus ei laske tuoreempaa 1RM:ää huomaamatta, ja saman tiedoston voi tuoda turvallisesti useaan kertaan. Pelkät merkinnät sisältävä vanha vientitiedosto tuodaan suoraan ilman vahvistusta, koska se ei voi korvata ohjelmaa.
 
 1RM-osiossa liikkeen nimi kirjoitetaan ohjelman kirjoitusasussa ja luetaan takaisin pienin kirjaimin — se on avain, jolla painoehdotus etsii arvon, joten kirjoitusasun vaihtelu ei vaikuta palautukseen.
 
@@ -176,4 +184,4 @@ Sovellus ei myöskään toimi, jos `index.html` avataan suoraan laitteelta tiedo
 
 Liikkeet tunnistetaan nimen perusteella isot ja pienet kirjaimet sivuuttaen. Sama liike eri tavoin kirjoitettuna (`Peck deck` ja `Pec dec`) tulkitaan kahdeksi eri liikkeeksi, joten CSV:n kirjoitusasujen kannattaa olla yhtenäisiä.
 
-Rakentaja ja tuonti luovat aina uuden ohjelman, joka korvaa nykyisen. Jo tallennettua ohjelmaa muokataan muokkaustilassa; siellä liikkeen nimen muuttaminen aloittaa liikkeelle uuden historian, koska historia sidotaan liikkeen nimeen.
+Rakentaja ja tuonti luovat aina uuden ohjelman kirjastoon; käytössä olevaa ne eivät korvaa ilman hyväksyntää. Jo tallennettua ohjelmaa muokataan muokkaustilassa; siellä liikkeen nimen muuttaminen aloittaa liikkeelle uuden historian, koska historia sidotaan liikkeen nimeen.

@@ -214,7 +214,9 @@
   .chip{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.02em; border:1px solid transparent; vertical-align:middle; white-space:nowrap; line-height:1.3;}
   .chip-brass{color:var(--brass); border-color:var(--brass); background:transparent;}
   .chip-muted{background:rgba(136,145,160,0.2); color:var(--chalk);}
-  .chip-success{background:rgba(111,174,111,0.18); color:var(--success);}
+  /* Täytetty vihreä kuten valmis-rengas: vaalea vihreä teksti läpinäkyvällä
+     taustalla jäi alle 4,5:1-kontrastin 11 px:n koossa. */
+  .chip-success{background:var(--success); color:var(--ink);}
 
   /* ---------- Banneri ----------
      Yksi komponentti kolmella sävyllä korvaa aiemmat erilliset laatikot
@@ -309,6 +311,13 @@
   .history-date-head{display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px; font-variant-numeric:tabular-nums; cursor:pointer; min-height:32px;}
 
   .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:var(--fs-md); line-height:1.6;}
+  /* ---------- Ohjelmakirjasto ja käytössä olevan ohjelman rivi ---------- */
+  .lib-row{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 0; border-top:1px dashed var(--line);}
+  .lib-main{flex:1; min-width:0;}
+  .lib-title{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-weight:700;}
+  .lib-actions{display:flex; flex-wrap:wrap; align-items:center; gap:4px;}
+  .program-row{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .program-row-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-md);}
   /* ---------- Rakenteellinen tyhjä tila ----------
      Kuvake, otsikko, selite ja tarvittaessa toiminto: sama muoto Historiassa,
      Kehityksessä, tyhjällä viikolla, 1RM-listassa ja tabletin liikepaneelissa. */
@@ -378,6 +387,7 @@
   "use strict";
 
   var STORAGE_PROGRAM_KEY = "workout-program";
+  var STORAGE_PROGRAMS_KEY = "programs";
   var STORAGE_LASTSET_KEY = "last-set-log";
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
@@ -433,13 +443,18 @@
     // Avoinna oleva pohjalevy (esim. "csv" = CSV-muodon esimerkki) tai null.
     sheet: null,
     program: null,
+    // Ohjelmakirjasto: muut kuin käytössä oleva ohjelma (ks. allPrograms).
+    programs: [],
+    pendingProgram: null,
+    programRename: null,
+    confirmingDeleteProgram: null,
     // PDF-tuonnin jäsennystulos odottamassa käyttäjän hyväksyntää. Ohjelma
     // tallentuu vasta ”Valmis”-painikkeesta, ei suoraan tuonnista.
     pdfImportError: null,
     // Sovelluksessa rakennettava ohjelmaluonnos odottamassa ”Valmis”-painiketta.
     // Sama periaate kuin pdfImport-kentällä: mitään ei tallenneta ennen sitä.
-    // Luettu varmuuskopio odottamassa vahvistusta. Ohjelman palautus korvaa
-    // nykyisen ohjelman, joten sitä ei tehdä kysymättä.
+    // Luettu varmuuskopio odottamassa vahvistusta. Palautus vaihtaa käytössä
+    // olevan ohjelman (nykyinen jää kirjastoon), joten sitä ei tehdä kysymättä.
     pendingRestore: null,
     // Ohjelman muokkaustila: muokkaukset kohdistuvat vain programDraft-
     // syväkopioon, ja state.program vaihtuu vasta "Valmis"-painikkeesta.
@@ -547,6 +562,12 @@
   // day.name säilyy koostettuna näyttönimenä muiden lukupaikkojen takia.
   var dayIdCounter = 0;
   function newDayId(){ dayIdCounter++; return "day-" + Date.now() + "-" + dayIdCounter; }
+  // Ohjelman tunniste ja nimi ovat kirjaston kenttiä: tunnisteella ohjelma
+  // löydetään käytössä olevan ja kirjaston väliltä, nimi näytetään käyttäjälle.
+  var programIdCounter = 0;
+  function newProgramId(){ programIdCounter++; return "prog-" + Date.now() + "-" + programIdCounter; }
+  function programDisplayName(p){ return (p && p.name && String(p.name).trim()) ? String(p.name).trim() : "Ohjelma"; }
+  function fileBaseName(name){ return String(name || "").replace(/^.*[\\\/]/, "").replace(/\.[^.]+$/, "").trim(); }
   function dayLabelFromName(day){
     var name = String(day.name || "");
     if(day.week){
@@ -563,6 +584,8 @@
     var changed = false;
     if(!program) return false;
     if(!program.weekLabels){ program.weekLabels = {}; changed = true; }
+    if(!program.id){ program.id = newProgramId(); changed = true; }
+    if(!program.name){ program.name = "Ohjelma"; changed = true; }
     (program.days || []).forEach(function(day){
       if(!day.id){ day.id = newDayId(); changed = true; }
       if(!day.label){ day.label = dayLabelFromName(day); changed = true; }
@@ -711,7 +734,7 @@
     });
     var days = [];
     dayMap.forEach(function(group, name){ days.push({ id: group.id, label: group.label, name: name, week: group.week, exercises: group.exercises }); });
-    return { days: days, weeks: weekOrder, weekLabels: {} };
+    return { days: days, weeks: weekOrder, weekLabels: {}, id: newProgramId(), name: "" };
   }
 
 // ---------- PDF-ohjelmatuonnin jäsennin (prototyyppi) ----------
@@ -1847,6 +1870,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         });
       });
     }
+    ensureProgramShape(program);
+    // Käytössä ollut ohjelma siirtyy kirjastoon, ei katoa. Kirjastosta tuleva
+    // ohjelma poistetaan sieltä, jottei sama ohjelma ole kahdesti.
+    if(state.program && state.program.id !== program.id) state.programs.push(state.program);
+    state.programs = (state.programs || []).filter(function(p){ return p.id !== program.id; });
     state.program = program;
     state.manualExercises = [];
     state.draftSets = {};
@@ -1855,6 +1883,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.showAllWeeks = false;
     state.showProgramNotes = false;
     await saveProgram();
+    await saveProgramLibrary();
     await computeDefaultActiveWeek();
     state.todayEntry = await loadEntry(state.draftDate);
     state.exerciseLogIndex = await buildExerciseLogIndex();
@@ -1872,6 +1901,82 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     render();
   }
 
+  // ---------- Ohjelmakirjasto ----------
+  // state.program on käytössä oleva ohjelma (avain workout-program) ja
+  // state.programs muut ohjelmat (avain programs). Vain yksi on käytössä
+  // kerrallaan; vaihto siirtää ohjelman listasta toiseen. Merkintöihin ei
+  // kosketa koskaan: ne on sidottu liike-id:eihin, jotka ovat ohjelmakohtaisia,
+  // joten ohjelmaan palattaessa sen tehty-merkinnät löytyvät ennallaan.
+  async function saveProgramLibrary(){
+    try{ await storeSet(STORAGE_PROGRAMS_KEY, JSON.stringify(state.programs || [])); }
+    catch(e){ showToast("Ohjelmakirjaston tallennus epäonnistui"); }
+  }
+  // Käytössä oleva ensin, sitten kirjaston ohjelmat.
+  function allPrograms(){
+    var list = [];
+    if(state.program) list.push(state.program);
+    return list.concat(state.programs || []);
+  }
+  function findProgramById(id){
+    return allPrograms().filter(function(p){ return p.id === id; })[0] || null;
+  }
+  function programSummary(p){
+    var ex = 0;
+    (p.days || []).forEach(function(d){ ex += (d.exercises || []).length; });
+    var parts = [];
+    if(p.weeks && p.weeks.length) parts.push(plural(p.weeks.length, "viikko", "viikkoa"));
+    parts.push(plural((p.days || []).length, "treenipäivä", "treenipäivää"));
+    parts.push(plural(ex, "liike", "liikettä"));
+    return parts.join(" · ");
+  }
+  // Uusi ohjelma, kun jokin ohjelma on jo käytössä: pohjalevy kysyy, otetaanko
+  // uusi käyttöön heti vai jääkö se kirjastoon. Kummassakaan tapauksessa
+  // mitään ei katoa.
+  function offerNewProgram(program, source){
+    ensureProgramShape(program);
+    state.pendingProgram = { program: program, source: source };
+    state.sheet = "uusi-ohjelma";
+    afterRender(function(){ var c = document.querySelector(".sheet [data-close-sheet]"); if(c) c.focus(); });
+  }
+  async function acceptPendingProgram(activate){
+    var pp = state.pendingProgram;
+    if(!pp) return;
+    state.pendingProgram = null;
+    state.sheet = null;
+    var back = state.editMode ? state.editor.returnView : null;
+    if(pp.source === "editor") resetEditor();
+    if(activate){ await applyImportedProgram(pp.program, "Ohjelma tallennettu ja otettu käyttöön"); return; }
+    state.programs.push(pp.program);
+    await saveProgramLibrary();
+    if(back) state.view = back;
+    showToast("Ohjelma tallennettu kirjastoon");
+    render();
+  }
+  async function activateProgram(id){
+    var p = (state.programs || []).filter(function(x){ return x.id === id; })[0];
+    if(!p) return;
+    await applyImportedProgram(p, "Käytössä: " + programDisplayName(p));
+  }
+  async function renameProgram(id, name){
+    var v = String(name || "").trim();
+    if(!v){ showToast("Kirjoita ohjelman nimi"); return; }
+    var p = findProgramById(id);
+    if(!p) return;
+    p.name = v;
+    if(state.program && state.program.id === id) await saveProgram(); else await saveProgramLibrary();
+    state.programRename = null;
+    render();
+  }
+  // Vain kirjaston ohjelman voi poistaa; käytössä oleva vaihdetaan ensin.
+  async function deleteProgram(id){
+    if(state.program && state.program.id === id) return;
+    state.programs = (state.programs || []).filter(function(x){ return x.id !== id; });
+    await saveProgramLibrary();
+    state.confirmingDeleteProgram = null;
+    showToast("Ohjelma poistettu kirjastosta. Merkinnät säilyvät Historiassa.", 3500);
+    render();
+  }
+
   async function handleFile(file){
     var text;
     try{ text = await readFileAsText(file); }
@@ -1879,6 +1984,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     try{
       var program = parseProgramCSV(text);
       state.pdfImportError = null;
+      program.name = fileBaseName(file.name) || "Tuotu ohjelma";
+      // Uusi ohjelma ei korvaa käytössä olevaa: käyttäjä valitsee, otetaanko
+      // se käyttöön heti vai jääkö se kirjastoon.
+      if(state.program){ offerNewProgram(program, "csv"); return; }
       await applyImportedProgram(program, "Ohjelma tuotu onnistuneesti");
     }catch(err){
       showToast(err.message || "CSV:n luku epäonnistui");
@@ -1952,7 +2061,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // viikko ja yksi päivä.
   function startProgramBuilder(){
     var day = { id: newDayId(), label: "Päivä 1", name: "", week: "1", exercises: [] };
-    enterEditor({ days: [day], weeks: ["1"], weekLabels: {} }, "new");
+    enterEditor({ days: [day], weeks: ["1"], weekLabels: {}, id: newProgramId(), name: "Oma ohjelma" }, "new");
     state.editor.openWeeks["1"] = true;
     state.editor.openDays[day.id] = true;
     render();
@@ -1960,6 +2069,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // PDF-tarkistus: muokkaustila jäsennetylle ohjelmalle. Kaikki avataan
   // valmiiksi, koska käyttäjän on nähtävä jokainen rivi.
   function startProgramImport(program, fileNames){
+    if(!program.name) program.name = fileBaseName(fileNames[0]) || "Tuotu ohjelma";
     ensureProgramShape(program);
     var reviewCount = 0;
     program.days.forEach(function(day){ day.exercises.forEach(function(ex){ if(ex.needsReview) reviewCount++; }); });
@@ -2024,37 +2134,44 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(mode === "edit" && !editorHasChanges()){ resetEditor(); render(); return; }
     var problem = draftProblem(draft, mode);
     if(problem){ showToast(problem, 4000); return; }
+    // Uudessa ja tuontitilassa viimeistely tehdään kopioon, jotta luonnos
+    // säilyy ennallaan, jos käyttäjä palaa pohjalevystä muokkaamaan.
+    var out = mode === "edit" ? draft : JSON.parse(JSON.stringify(draft));
+    out.name = String(out.name || "").trim() || (mode === "new" ? "Oma ohjelma" : "Tuotu ohjelma");
     // Päivät viikkojärjestykseen vakaasti: koko ohjelman näkymä iteroi
     // days-listaa sellaisenaan. Viikottomat päivät jäävät loppuun.
     var order = {};
-    draft.weeks.forEach(function(w, i){ order[w] = i; });
-    var indexed = draft.days.map(function(d, i){
+    out.weeks.forEach(function(w, i){ order[w] = i; });
+    var indexed = out.days.map(function(d, i){
       var w = (d.week !== null && d.week !== undefined && order[d.week] !== undefined) ? order[d.week] : Infinity;
       return { d: d, i: i, w: w };
     });
     indexed.sort(function(a, b){ return a.w === b.w ? a.i - b.i : a.w - b.w; });
-    draft.days = indexed.map(function(x){ return x.d; });
+    out.days = indexed.map(function(x){ return x.d; });
     if(mode !== "edit"){
       // Liikkeetön päivä ja päivätön viikko jätetään pois, jottei
       // keskeneräinen rakenne päädy ohjelmaan.
-      draft.days = draft.days.filter(function(d){ return d.exercises.length; });
-      draft.weeks = draft.weeks.filter(function(w){
-        return draft.days.some(function(d){ return d.week === w; });
+      out.days = out.days.filter(function(d){ return d.exercises.length; });
+      out.weeks = out.weeks.filter(function(w){
+        return out.days.some(function(d){ return d.week === w; });
       });
-      Object.keys(draft.weekLabels).forEach(function(k){ if(draft.weeks.indexOf(k) === -1) delete draft.weekLabels[k]; });
+      Object.keys(out.weekLabels).forEach(function(k){ if(out.weeks.indexOf(k) === -1) delete out.weekLabels[k]; });
     }
-    draft.days.forEach(function(d){
-      d.name = dayDisplayNameIn(draft, d);
+    out.days.forEach(function(d){
+      d.name = dayDisplayNameIn(out, d);
       // Tarkistusmerkinnät ovat vain muokkaustilaa varten.
       d.exercises.forEach(function(ex){ delete ex.needsReview; delete ex.rawTarget; });
     });
     if(mode !== "edit"){
-      // Uusi ohjelma korvaa nykyisen samaa polkua kuin CSV-tuonti.
+      // Uusi ohjelma ei korvaa käytössä olevaa: jos ohjelma on jo käytössä,
+      // käyttäjä valitsee pohjalevystä, otetaanko uusi käyttöön vai jääkö se
+      // kirjastoon. Ilman ohjelmaa tallennus kulkee samaa polkua kuin CSV-tuonti.
+      if(state.program){ offerNewProgram(out, "editor"); return; }
       resetEditor();
-      await applyImportedProgram(draft, "Ohjelma tallennettu");
+      await applyImportedProgram(out, "Ohjelma tallennettu");
       return;
     }
-    state.program = draft;
+    state.program = out;
     resetEditor();
     await saveProgram();
     // Poistuneiden liikkeiden väliaikainen tila siivotaan.
@@ -3096,30 +3213,46 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     return "";
   }
+  // Kaikki ohjelmat samaan osioon: sarakkeet Ohjelman tunniste, Ohjelman nimi
+  // ja Käytössä erottavat ne toisistaan. Vanha lukija ilman näitä sarakkeita
+  // lukee rivit yhdeksi ohjelmaksi.
   function backupProgramRows(){
-    var rows = [["Viikko","Treenipäivä","Tunniste","Liike","Sarjat","Toistot","Yksiköt","Paino","Huomautus","Teho","Tyyppi","Menetelmä","Sarjakohtaiset","Menetelmäselite","Painoehdotus","Viikon nimi","Päivän tunniste","Päivän nimi"]];
-    var labels = state.program.weekLabels || {};
-    state.program.days.forEach(function(day){
-      (day.exercises || []).forEach(function(ex){
-        rows.push([
-          day.week == null ? "" : day.week,
-          day.name,
-          ex.id,
-          ex.name,
-          ex.sets, ex.reps, ex.unit, ex.weight, ex.notes,
-          intensityToText(ex.intensity),
-          ex.kind || "plain",
-          ex.method || "",
-          (ex.perSet && ex.perSet.length) ? ex.perSet.join("|") : "",
-          ex.methodNote || "",
-          ex.autoCalc === false ? "ei" : "kyllä",
-          (day.week != null && labels[day.week]) ? labels[day.week] : "",
-          day.id || "",
-          day.label || ""
-        ]);
+    var rows = [["Viikko","Treenipäivä","Tunniste","Liike","Sarjat","Toistot","Yksiköt","Paino","Huomautus","Teho","Tyyppi","Menetelmä","Sarjakohtaiset","Menetelmäselite","Painoehdotus","Viikon nimi","Päivän tunniste","Päivän nimi","Ohjelman tunniste","Ohjelman nimi","Käytössä"]];
+    allPrograms().forEach(function(program){
+      var labels = program.weekLabels || {};
+      var active = program === state.program;
+      program.days.forEach(function(day){
+        (day.exercises || []).forEach(function(ex){
+          rows.push([
+            day.week == null ? "" : day.week,
+            day.name,
+            ex.id,
+            ex.name,
+            ex.sets, ex.reps, ex.unit, ex.weight, ex.notes,
+            intensityToText(ex.intensity),
+            ex.kind || "plain",
+            ex.method || "",
+            (ex.perSet && ex.perSet.length) ? ex.perSet.join("|") : "",
+            ex.methodNote || "",
+            ex.autoCalc === false ? "ei" : "kyllä",
+            (day.week != null && labels[day.week]) ? labels[day.week] : "",
+            day.id || "",
+            day.label || "",
+            program.id || "",
+            program.name || "",
+            active ? "kyllä" : "ei"
+          ]);
+        });
       });
     });
     return rows;
+  }
+  function backupNotesRows(){
+    var noteRows = [["Ohjelman tunniste","Tiedosto","Teksti"]];
+    allPrograms().forEach(function(program){
+      (program.notes || []).forEach(function(n){ noteRows.push([program.id || "", n.file || "", n.text || ""]); });
+    });
+    return noteRows;
   }
 
   async function exportAllCSV(){
@@ -3144,14 +3277,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       }
       var parts = ['"' + BACKUP_SECTION_ENTRIES + '"', csvRows(rows)];
 
-      if(state.program && state.program.days && state.program.days.length){
+      if(allPrograms().length){
         parts.push('"' + BACKUP_SECTION_PROGRAM + '"', csvRows(backupProgramRows()));
-        var progNotes = state.program.notes;
-        if(progNotes && progNotes.length){
-          var noteRows = [["Tiedosto","Teksti"]];
-          progNotes.forEach(function(n){ noteRows.push([n.file || "", n.text || ""]); });
-          parts.push('"' + BACKUP_SECTION_NOTES + '"', csvRows(noteRows));
-        }
+        var noteRows = backupNotesRows();
+        if(noteRows.length > 1) parts.push('"' + BACKUP_SECTION_NOTES + '"', csvRows(noteRows));
       }
       if(state.userExercises && state.userExercises.length){
         var exRows = [["Liike","Variaatio","Lisävariaatio","Lihasryhmä"]];
@@ -3226,37 +3355,51 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return sections;
   }
 
+  // Muistiinpanot ohjelmittain: avaimena ohjelman tunniste, vanhoissa
+  // tiedostoissa ilman saraketta tyhjä avain.
   function parseBackupNotes(text){
-    var notes = [];
-    if(!text) return notes;
+    var byProgram = {};
+    if(!text) return byProgram;
     parseCSV(text).forEach(function(row){
       var t = String(row["teksti"] || "").trim();
       if(!t) return;
-      notes.push({ file: String(row["tiedosto"] || "").trim(), text: t });
+      var pid = String(row["ohjelman tunniste"] || "").trim();
+      if(!byProgram[pid]) byProgram[pid] = [];
+      byProgram[pid].push({ file: String(row["tiedosto"] || "").trim(), text: t });
     });
-    return notes;
+    return byProgram;
   }
 
   // Lukee ohjelmaosion takaisin täsmälleen samaan muotoon, jossa se oli
   // state.program-kentässä: samat päivät, samat liike-id:t ja samat valinnaiset
   // kentät. Valinnaiset kentät asetetaan vain jos ne olivat täytettyjä, jottei
-  // CSV:stä tuotuun ohjelmaan ilmesty tyhjiä PDF-kenttiä.
+  // CSV:stä tuotuun ohjelmaan ilmesty tyhjiä PDF-kenttiä. Rivit ryhmitellään
+  // ohjelman tunnisteen mukaan; vanhassa tiedostossa saraketta ei ole, jolloin
+  // kaikki rivit ovat yhtä ohjelmaa. Palauttaa { programs, activeId } tai null.
   function parseBackupProgram(text, notesText){
     var rows = parseCSV(text);
     if(!rows.length) return null;
-    var dayMap = new Map();
-    var weekOrder = [];
-    var weekLabels = {};
+    var progMap = new Map();
     var counter = 0;
     var fallbackPrefix = "bak-" + Date.now();
     rows.forEach(function(row){
       var name = String(row["liike"] || "").trim();
       if(!name) return;
+      var progId = String(row["ohjelman tunniste"] || "").trim();
+      if(!progMap.has(progId)){
+        progMap.set(progId, {
+          id: progId,
+          name: String(row["ohjelman nimi"] || "").trim(),
+          active: /^kyll/i.test(String(row["käytössä"] || row["kaytossa"] || "").trim()),
+          dayMap: new Map(), weekOrder: [], weekLabels: {}
+        });
+      }
+      var pg = progMap.get(progId);
       var week = String(row["viikko"] || "").trim();
       var dayName = String(row["treenipäivä"] || row["treenipaiva"] || "").trim() ||
                     (week ? "Viikko " + week : "Ohjelma");
       var key = week + "|" + dayName;
-      if(!dayMap.has(key)){
+      if(!pg.dayMap.has(key)){
         // Päivän tunniste ja nimi sekä viikon nimi ovat uudempien varmuuskopioiden
         // sarakkeita; vanhoissa ne puuttuvat ja ensureProgramShape täydentää.
         // Avainjärjestys on sama kuin parseProgramCSV():ssä, jotta palautettu
@@ -3267,10 +3410,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         if(dayId) dayObj.id = dayId;
         if(dayLabel) dayObj.label = dayLabel;
         dayObj.name = dayName; dayObj.week = week || null; dayObj.exercises = [];
-        dayMap.set(key, dayObj);
-        if(week && weekOrder.indexOf(week) === -1) weekOrder.push(week);
+        pg.dayMap.set(key, dayObj);
+        if(week && pg.weekOrder.indexOf(week) === -1) pg.weekOrder.push(week);
         var weekLabel = String(row["viikon nimi"] || "").trim();
-        if(week && weekLabel) weekLabels[week] = weekLabel;
+        if(week && weekLabel) pg.weekLabels[week] = weekLabel;
       }
       var ex = {
         id: String(row["tunniste"] || "").trim() || (fallbackPrefix + "-" + counter),
@@ -3291,16 +3434,27 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(perSet) ex.perSet = perSet.split("|").map(function(s){ return s.trim(); });
       var methodNote = String(row["menetelmäselite"] || row["menetelmaselite"] || "").trim();
       if(methodNote) ex.methodNote = methodNote;
-      dayMap.get(key).exercises.push(ex);
+      pg.dayMap.get(key).exercises.push(ex);
     });
-    var days = [];
-    dayMap.forEach(function(day){ days.push(day); });
-    if(!days.length) return null;
-    var program = { days: days, weeks: weekOrder, weekLabels: weekLabels };
-    ensureProgramShape(program);
-    var notes = parseBackupNotes(notesText);
-    if(notes.length) program.notes = notes;
-    return program;
+    var notesByProgram = parseBackupNotes(notesText);
+    var programs = [], activeId = null;
+    progMap.forEach(function(pg){
+      var days = [];
+      pg.dayMap.forEach(function(day){ days.push(day); });
+      if(!days.length) return;
+      var program = { days: days, weeks: pg.weekOrder, weekLabels: pg.weekLabels };
+      if(pg.id) program.id = pg.id;
+      if(pg.name) program.name = pg.name;
+      ensureProgramShape(program);
+      var notes = notesByProgram[pg.id] || (pg.id ? null : notesByProgram[""]);
+      if(!notes && !programs.length && notesByProgram[""]) notes = notesByProgram[""];
+      if(notes && notes.length) program.notes = notes;
+      programs.push(program);
+      if(pg.active) activeId = program.id;
+    });
+    if(!programs.length) return null;
+    if(!activeId) activeId = programs[0].id;
+    return { programs: programs, activeId: activeId };
   }
 
   function parseBackupManualMax(text){
@@ -3436,7 +3590,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       try{ byDate = parseEntriesCSV(sections[BACKUP_SECTION_ENTRIES]); }
       catch(e){ showToast(e.message || "Tuonti epäonnistui", 4500); return; }
     }
-    var program = sections[BACKUP_SECTION_PROGRAM]
+    var programSet = sections[BACKUP_SECTION_PROGRAM]
       ? parseBackupProgram(sections[BACKUP_SECTION_PROGRAM], sections[BACKUP_SECTION_NOTES])
       : null;
     var userExercises = sections[BACKUP_SECTION_EXERCISES]
@@ -3446,13 +3600,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       ? parseBackupManualMax(sections[BACKUP_SECTION_MAX])
       : {};
 
-    if(!program && !userExercises.length && !Object.keys(manualMax).length && Object.keys(byDate).length === 0){
+    if(!programSet && !userExercises.length && !Object.keys(manualMax).length && Object.keys(byDate).length === 0){
       showToast("Tiedostosta ei löytynyt tuotavaa sisältöä", 4000);
       return;
     }
-    var restore = { byDate: byDate, program: program, userExercises: userExercises,
-                    manualMax: manualMax, fileName: file.name };
-    if(!program){
+    var restore = { byDate: byDate, programs: programSet ? programSet.programs : [],
+                    activeId: programSet ? programSet.activeId : null,
+                    userExercises: userExercises, manualMax: manualMax, fileName: file.name };
+    if(!restore.programs.length){
       await applyBackupRestore(restore);
       return;
     }
@@ -3486,31 +3641,48 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       }
     }
 
-    if(restore.program){
-      state.program = restore.program;
-      await saveProgram();
-      // Ohjelma vaihtui, joten näkymän kesken jääneet tilat nollataan samoin
-      // kuin ohjelman tuonnissa. Merkintöihin ei kosketa.
-      state.manualExercises = [];
-      state.draftSets = {};
-      state.dirtySets = {};
-      state.openExercise = null;
-      state.swapExercise = null;
-      state.showAllWeeks = false;
-      state.showProgramNotes = false;
-      parts.push("ohjelma (" + plural(restore.program.days.length, "treenipäivä", "treenipäivää") + ")");
+    if(restore.programs && restore.programs.length){
+      // Ohjelmat yhdistetään kirjastoon: laitteella jo oleva (sama tunniste)
+      // voittaa. Varmuuskopiossa käytössä ollut ohjelma otetaan käyttöön, ja
+      // laitteen nykyinen ohjelma jää kirjastoon — mitään ei poisteta.
+      var addedP = 0, skippedP = 0;
+      restore.programs.forEach(function(p){
+        if(findProgramById(p.id)){ skippedP++; return; }
+        state.programs.push(p);
+        addedP++;
+      });
+      var target = findProgramById(restore.activeId);
+      if(target && (!state.program || state.program.id !== target.id)){
+        if(state.program) state.programs.push(state.program);
+        state.programs = state.programs.filter(function(x){ return x.id !== target.id; });
+        state.program = target;
+        await saveProgram();
+        // Ohjelma vaihtui, joten näkymän kesken jääneet tilat nollataan samoin
+        // kuin ohjelman tuonnissa. Merkintöihin ei kosketa.
+        state.manualExercises = [];
+        state.draftSets = {};
+        state.dirtySets = {};
+        state.openExercise = null;
+        state.swapExercise = null;
+        state.showAllWeeks = false;
+        state.showProgramNotes = false;
+      }
+      await saveProgramLibrary();
+      var pMsg = plural(addedP, "ohjelma", "ohjelmaa");
+      if(skippedP) pMsg += " (ohitettu " + skippedP + " jo olemassa olevaa)";
+      parts.push(pMsg);
     }
 
     var entryMsg = await importEntriesData(restore.byDate);
     if(entryMsg) parts.push(entryMsg);
 
-    if(restore.program){
+    if(restore.programs && restore.programs.length){
       await computeDefaultActiveWeek();
       state.view = "ohjelma";
     }
     state.todayEntry = await loadEntry(state.draftDate);
     state.exerciseLogIndex = await buildExerciseLogIndex();
-    var lead = restore.program ? "Varmuuskopio palautettu: " : "Tuotu: ";
+    var lead = (restore.programs && restore.programs.length) ? "Varmuuskopio palautettu: " : "Tuotu: ";
     showToast(parts.length ? lead + parts.join(", ") : "Tiedostosta ei löytynyt tuotavaa sisältöä", 5000);
     render();
   }
@@ -3614,6 +3786,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   async function resetAll(){
     try{
       await storeDelete(STORAGE_PROGRAM_KEY);
+      await storeDelete(STORAGE_PROGRAMS_KEY);
       await storeDelete(STORAGE_LASTSET_KEY);
       await storeDelete(STORAGE_MANUAL_MAX_KEY);
       await storeDelete(STORAGE_USER_EXERCISES_KEY);
@@ -3624,6 +3797,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       for(var i=0;i<keys.length;i++){ await storeDelete(keys[i]); }
     }catch(e){}
     state.program = null;
+    state.programs = [];
+    state.pendingProgram = null;
     state.manualExercises = [];
     state.userExercises = [];
     state.pendingRestore = null;
@@ -4136,7 +4311,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Variaatio</b> ja <b style=\"color:var(--chalk);\">Lisävariaatio</b> liitetään omista sarakkeistaan liikkeen nimeen pilkulla erotettuna (esim. <code>Hauiskääntö taljassa, Maaten, Scott-kahva</code>).",
       "<b style=\"color:var(--chalk);\">Sarjat</b> ja <b style=\"color:var(--chalk);\">Toistot</b> määrittävät kirjattavien rivien määrän ja tavoitteen.",
       "<b style=\"color:var(--chalk);\">Teho</b>-sarakkeeseen <code>MAX</code> tai prosentti (esim. <code>90 %</code>) — ks. kohta 3.",
-      "Uusi CSV-tuonti korvaa ohjelman, mutta säilyttää kaiken jo kirjatun historian."
+      "Uusi tuonti ei korvaa käytössä olevaa ohjelmaa: sovellus kysyy, otetaanko uusi ohjelma käyttöön heti vai jääkö se kirjastoon. Kaikki jo kirjattu historia säilyy kummassakin tapauksessa."
     ]) + ohjeP(
       "Jos liikkeiden nimet eivät näy tuonnin jälkeen, tarkista ettei mikään muu sarake (esim. \"Liikejärjestys\") satu alkamaan samalla sanalla kuin liike-sarakkeen otsikko."
     ));
@@ -4159,7 +4334,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "\"Lisää liike\" avaa hakukentän, joka etsii koko liikelistasta nimen tai lihasryhmän perusteella — sama lista variaatioineen kuin liikkeen vaihdossa. Jos liikettä ei löydy, kirjoita nimi hakukenttään ja valitse \"Käytä nimeä\".",
       "<b style=\"color:var(--chalk);\">Kopioi viimeinen viikko uudeksi</b> (tai viikon ⋮-valikon Kopioi) monistaa viikon päivineen ja liikkeineen, joten toistuvan ohjelman voi rakentaa kerran ja monistaa lopun.",
       "Liikkeetön treenipäivä jätetään tallennuksessa pois, joten keskeneräinen päivä ei päädy ohjelmaan.",
-      "Ohjelma tallentuu vasta \"Valmis\"-painikkeesta. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy liikkeen nimen perusteella ennallaan."
+      "Ohjelma tallentuu vasta \"Valmis\"-painikkeesta. Jos jokin ohjelma on jo käytössä, sovellus kysyy, otetaanko uusi käyttöön heti vai jääkö se kirjastoon; kaikki jo kirjattu historia säilyy."
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
@@ -4195,7 +4370,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("6. Asetukset (alavalikon viimeinen kohta)", ohjeP(
       "Asetukset on luettelo, jonka jokainen rivi avaa oman näkymänsä. Takaisin luetteloon pääsee vasemman yläkulman nuolesta."
     ) + ohjeList([
-      "<b style=\"color:var(--chalk);\">Ohjelma</b> — tuo uusi ohjelma tiedostosta (CSV tai PDF) tai rakenna se sovelluksessa. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy.",
+      "<b style=\"color:var(--chalk);\">Ohjelma</b> — muokkaa nykyistä ohjelmaa, tuo uusi tiedostosta (CSV tai PDF) tai rakenna se sovelluksessa. Ohjelmakirjastossa voi olla useita ohjelmia, mutta vain yksi on käytössä kerrallaan: vaihda, nimeä tai poista ohjelmia. Uusi ohjelma ei koskaan korvaa nykyistä ilman hyväksyntääsi, ja merkinnät säilyvät Historiassa aina.",
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
@@ -4287,6 +4462,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function closeSheet(){
     var opener = state.sheet;
     state.sheet = null;
+    if(opener === "uusi-ohjelma" && state.pendingProgram){
+      // Sulkeminen ilman valintaa: muokkaus jatkuu tai CSV-tuonti perutaan.
+      var src = state.pendingProgram.source;
+      state.pendingProgram = null;
+      if(src === "csv") showToast("Tuonti peruttu");
+    }
     afterRender(function(){
       var btn = document.querySelector('[data-open-sheet="' + opener + '"]');
       if(btn) btn.focus();
@@ -4358,6 +4539,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '<p><b style="color:var(--chalk);">Viikko</b> ja <b style="color:var(--chalk);">Treenipäivä</b> ryhmittelevät ohjelman. <b style="color:var(--chalk);">Teho</b> on joko <code>MAX</code> tai prosentti, ja se ohjaa painoehdotuksen liikkeen 1RM-arvosta. Tarkemmat ohjeet löytyvät Ohje-välilehdeltä.</p>' +
         '<p>PDF-ohjelmalle ei tarvita mitään muotoa: valmentajan tiedosto luetaan sellaisenaan ja näytetään tarkistettavaksi ennen tallennusta.</p>';
     }
+    if(state.sheet === "uusi-ohjelma" && state.pendingProgram){
+      var np = state.pendingProgram.program;
+      title = "Uusi ohjelma on valmis";
+      body = '<p><b style="color:var(--chalk);">' + escapeHtml(programDisplayName(np)) + '</b> · ' + escapeHtml(programSummary(np)) + '</p>' +
+        '<p>Käytössä on nyt <b style="color:var(--chalk);">' + escapeHtml(programDisplayName(state.program)) + '</b>. Se ei katoa: molemmat ohjelmat ovat Asetusten ohjelmakirjastossa, ja voit vaihtaa niiden välillä milloin tahansa. Merkinnät säilyvät Historiassa kummassakin tapauksessa.</p>' +
+        '<div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">' +
+        '<button type="button" class="btn-primary" data-new-program-activate>Ota uusi ohjelma käyttöön</button>' +
+        '<button type="button" class="btn-secondary" data-new-program-shelve>Tallenna kirjastoon, jatka nykyisellä</button>' +
+        '<button type="button" class="btn-tertiary" data-new-program-cancel>' + (state.pendingProgram.source === "editor" ? "Palaa muokkaamaan" : "Peruuta tuonti") + '</button>' +
+        '</div>';
+    }
     if(state.sheet === "liike"){
       title = "Valitse liike";
       body = '<input type="search" id="liike-haku" class="ledger-input" autocomplete="off" placeholder="Hae liikettä tai lihasryhmää" aria-label="Hae liikettä" value="' + escapeHtml(state.editor.pickerQuery || "") + '" style="margin-bottom:10px;">' +
@@ -4414,7 +4606,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
     // Ylärivi: vasemmalla viikko/kaikki-valitsin (kun viikkoja on), oikealla
     // kirjauspäivän sirpale. Näkyvä otsikko on ruudunlukijalle sr-only-tekstinä.
-    var html = renderImportNameWarnings() +
+    // Käytössä olevan ohjelman nimi näytetään vasta, kun kirjastossa on
+    // useampi ohjelma — yhdellä ohjelmalla rivi olisi pelkkää toistoa.
+    var programRow = allPrograms().length > 1
+      ? '<div class="program-row"><span class="chip chip-success">Käytössä</span><b class="program-row-name">' + escapeHtml(programDisplayName(state.program)) + '</b>' +
+        '<button type="button" class="btn-tertiary btn-sm" data-open-settings="ohjelma">Vaihda</button></div>'
+      : "";
+    var html = programRow + renderImportNameWarnings() +
       (shouldShowFirstLogHint() ? renderFirstLogHint() : "") +
       '<div class="date-picker-row">' +
       (hasWeeks ? renderWeekModeSwitch() : '<span>Kirjataan päivälle</span>') +
@@ -5004,6 +5202,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div style="min-width:0;"><div class="exercise-name">' + cardTitle + '</div><div class="exercise-target">' + escapeHtml(parts.join(" · ")) + '</div></div>' +
       (mode === "edit" ? editorRestartButton("program", true) : "") +
       '</div>' +
+      '<input class="ledger-input" type="text" data-editor-program-name value="' + escapeHtml(d.name || "") + '" placeholder="Ohjelman nimi" aria-label="Ohjelman nimi" style="margin-top:10px;">' +
       (mode === "import" && info
         ? '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:10px 0 0;">Luettu ' + plural(info.files.length, "PDF-tiedostosta", "PDF-tiedostosta") + ': ' + escapeHtml(info.files.join(", ")) + '. Ohjelma tallentuu vasta ”Valmis”-painikkeesta.</p>' +
           (info.reviewCount
@@ -5305,15 +5504,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var pr = state.pendingRestore;
     if(!pr) return "";
     var lines = [];
-    if(pr.program){
-      var exCount = 0;
-      pr.program.days.forEach(function(day){ exCount += day.exercises.length; });
-      lines.push("Ohjelma: " + plural(pr.program.weeks.length || 1, "viikko", "viikkoa") + ", " +
-        plural(pr.program.days.length, "treenipäivä", "treenipäivää") + ", " +
-        plural(exCount, "liike", "liikettä"));
-      if(pr.program.notes && pr.program.notes.length){
-        lines.push("Ohjelman muistiinpanoja: " + plural(pr.program.notes.length, "rivi", "riviä"));
-      }
+    if(pr.programs && pr.programs.length){
+      var activeP = pr.programs.filter(function(p){ return p.id === pr.activeId; })[0] || pr.programs[0];
+      lines.push(plural(pr.programs.length, "ohjelma", "ohjelmaa") + "; käytössä ollut: " + programDisplayName(activeP) + " (" + programSummary(activeP) + ")");
+      var noteCount = 0;
+      pr.programs.forEach(function(p){ noteCount += (p.notes || []).length; });
+      if(noteCount) lines.push("Ohjelman muistiinpanoja: " + plural(noteCount, "rivi", "riviä"));
     }
     if(pr.userExercises.length) lines.push("Omia liikkeitä: " + pr.userExercises.length);
     var maxCount = Object.keys(pr.manualMax || {}).length;
@@ -5322,7 +5518,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return renderBanner("", "palauta", "Palautetaanko varmuuskopio?",
       '<div style="color:var(--mist);">' + escapeHtml(pr.fileName || "") + '</div>' +
       '<div style="margin-top:8px;">' + lines.map(function(l){ return escapeHtml(l); }).join("<br>") + '</div>' +
-      '<div style="margin-top:8px;">' + (state.program ? 'Varmuuskopion ohjelma <b style="color:var(--chalk);">korvaa nykyisen ohjelman</b>. ' : '') + 'Omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin: jo olemassa oleva ohitetaan, eikä mitään tallennettua poisteta.</div>',
+      '<div style="margin-top:8px;">' + (state.program ? 'Varmuuskopiossa käytössä ollut ohjelma otetaan käyttöön ja nykyinen ohjelma <b style="color:var(--chalk);">jää kirjastoon</b>; laitteella jo olevat ohjelmat ohitetaan. ' : '') + 'Omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin: jo olemassa oleva ohitetaan, eikä mitään tallennettua poisteta.</div>',
       '<button class="btn-primary btn-sm btn-auto" data-restore-confirm type="button">Palauta</button>' +
       '<button class="btn-tertiary btn-sm" data-restore-cancel type="button">Peruuta</button>');
   }
@@ -5341,8 +5537,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(key === "ohjelma"){
       var p = state.program;
       if(!p) return "Ei ohjelmaa";
-      var w = (p.weeks || []).length;
-      return (w ? plural(w, "viikko", "viikkoa") + " · " : "") + plural(p.days.length, "treenipäivä", "treenipäivää");
+      var others = (state.programs || []).length;
+      return programDisplayName(p) + " · " + programSummary(p) + (others ? " · kirjastossa " + plural(others, "muu", "muuta") : "");
     }
     if(key === "1rm"){
       var n = Object.keys(state.manualMax).length;
@@ -5374,14 +5570,45 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function settingsP(text, margin){
     return '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:' + (margin || "0 0 12px") + ';">' + text + '</p>';
   }
+  function renderProgramLibrary(){
+    var list = allPrograms();
+    var html = '<div class="exercise" style="padding:14px 16px; margin-bottom:12px;">' +
+      '<div class="exercise-name" style="margin-bottom:6px;">Ohjelmakirjasto</div>' +
+      settingsP("Vain yksi ohjelma on käytössä kerrallaan. Vaihto ei koske merkintöjä: Historia ja Kehitys säilyvät, ja ohjelmaan palattaessa sen tehty-merkinnät löytyvät ennallaan.");
+    list.forEach(function(p){
+      var active = !!(state.program && p.id === state.program.id);
+      var renaming = state.programRename === p.id;
+      var confirming = state.confirmingDeleteProgram === p.id;
+      html += '<div class="lib-row">';
+      if(renaming){
+        html += '<input class="ledger-input" type="text" data-program-name-input value="' + escapeHtml(p.name || "") + '" aria-label="Ohjelman nimi" style="flex:1; min-width:0;">' +
+          '<button type="button" class="btn-primary btn-sm btn-auto" data-program-rename-save="' + escapeHtml(p.id) + '">Tallenna</button>' +
+          '<button type="button" class="btn-tertiary btn-sm" data-program-rename-cancel>Peruuta</button>';
+      } else {
+        html += '<div class="lib-main"><div class="lib-title"><span>' + escapeHtml(programDisplayName(p)) + '</span>' +
+          (active ? '<span class="chip chip-success">Käytössä</span>' : '') + '</div>' +
+          '<div class="exercise-target">' + escapeHtml(programSummary(p)) + '</div></div>' +
+          '<div class="lib-actions">' +
+          (active ? '' : '<button type="button" class="btn-secondary btn-sm btn-auto" data-program-activate="' + escapeHtml(p.id) + '">Ota käyttöön</button>') +
+          '<button type="button" class="btn-tertiary btn-sm" data-program-rename="' + escapeHtml(p.id) + '">Nimeä</button>' +
+          (active ? '' : '<button type="button" class="' + (confirming ? "btn-danger btn-sm btn-auto" : "btn-tertiary btn-sm") + '" data-program-delete="' + escapeHtml(p.id) + '"' + (confirming ? '' : ' style="color:var(--danger-text);"') + '>' + (confirming ? "Vahvista poisto" : "Poista") + '</button>') +
+          '</div>';
+      }
+      html += '</div>';
+    });
+    return html + '</div>';
+  }
   function renderSettingsOhjelma(){
     return '<div class="exercise" style="padding:16px; margin-bottom:12px;">' +
+      '<div class="exercise-name" style="margin-bottom:2px;">' + escapeHtml(programDisplayName(state.program)) + '</div>' +
+      '<div class="exercise-target" style="margin-bottom:10px;">' + escapeHtml(programSummary(state.program)) + '</div>' +
       settingsP("Lisää, poista ja järjestä viikkoja, treenipäiviä ja liikkeitä. Historia ja painoehdotukset säilyvät.") +
       '<button class="btn-secondary" data-edit-program type="button">' + icon("muokkaa", 20) + '<span>Muokkaa nykyistä ohjelmaa</span></button>' +
       '</div>' +
+      renderProgramLibrary() +
       '<div class="exercise" style="padding:16px;">' +
       renderPdfImportError() +
-      settingsP("Uusi ohjelma korvaa nykyisen. Aiemmat merkinnät säilyvät liikkeen nimen perusteella ennallaan.") +
+      settingsP("Uusi ohjelma tallennetaan kirjastoon, ja voit valita, otatko sen heti käyttöön. Nykyinen ohjelma ja merkinnät säilyvät.") +
       '<div style="display:flex; flex-direction:column; gap:10px;">' +
       renderProgramFilePicker("program-file-settings", "btn-secondary", "Tuo tiedostosta (CSV tai PDF)") +
       '<button class="btn-secondary" data-builder-start type="button">' + icon("rakenna", 20) + '<span>Rakenna sovelluksessa</span></button>' +
@@ -5567,6 +5794,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       closeSheet();
       return;
     }
+    if(e.target.closest("[data-new-program-activate]")){ await acceptPendingProgram(true); return; }
+    if(e.target.closest("[data-new-program-shelve]")){ await acceptPendingProgram(false); return; }
+    if(e.target.closest("[data-new-program-cancel]")){ closeSheet(); return; }
     if(e.target.closest("[data-close-sheet]")){
       // Vain tausta tai sulkupainike sulkee; paneelin sisällön napautus ei.
       var closeEl = e.target.closest("[data-close-sheet]");
@@ -5628,6 +5858,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-settings-section]"))){
       state.settingsSection = el.dataset.settingsSection;
       state.confirmingReset = false;
+      state.programRename = null;
+      state.confirmingDeleteProgram = null;
       render();
       return;
     }
@@ -5635,7 +5867,34 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.settingsSection = null;
       state.confirmingReset = false;
       state.confirmingDeleteMax = null;
+      state.programRename = null;
+      state.confirmingDeleteProgram = null;
       render();
+      return;
+    }
+    if((el = e.target.closest("[data-open-settings]"))){
+      state.view = "asetukset";
+      state.settingsSection = el.dataset.openSettings;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-program-activate]"))){ await activateProgram(el.dataset.programActivate); return; }
+    if((el = e.target.closest("[data-program-rename-save]"))){
+      var rnInput = document.querySelector("[data-program-name-input]");
+      await renameProgram(el.dataset.programRenameSave, rnInput ? rnInput.value : "");
+      return;
+    }
+    if(e.target.closest("[data-program-rename-cancel]")){ state.programRename = null; render(); return; }
+    if((el = e.target.closest("[data-program-rename]"))){
+      state.programRename = el.dataset.programRename;
+      state.confirmingDeleteProgram = null;
+      afterRender(function(){ var i = document.querySelector("[data-program-name-input]"); if(i){ i.focus(); i.select(); } });
+      return;
+    }
+    if((el = e.target.closest("[data-program-delete]"))){
+      var delId = el.dataset.programDelete;
+      if(state.confirmingDeleteProgram !== delId){ state.confirmingDeleteProgram = delId; render(); return; }
+      await deleteProgram(delId);
       return;
     }
     if(e.target.closest("[data-edit-program]")){ await startProgramEdit(); return; }
@@ -5731,6 +5990,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.confirmingReset = false;
       // Asetukset avautuu aina riviluetteloon, ei edelliseen alinäkymään.
       state.settingsSection = null;
+      state.programRename = null;
+      state.confirmingDeleteProgram = null;
       // Vahvistamaton palautus ei jää roikkumaan taustalle, jos käyttäjä
       // siirtyy pois Asetuksista.
       state.pendingRestore = null;
@@ -6086,6 +6347,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Muokkaustilan kentät kirjoittavat suoraan luonnokseen ilman render()-
       // kutsua, jottei fokus katoa. Tyhjä päivän nimi hylätään change-
       // tapahtumassa (kentästä poistuttaessa).
+      var pn = e.target.closest("[data-editor-program-name]");
+      if(pn){ state.programDraft.name = pn.value; return; }
       var wn = e.target.closest("[data-editor-week-name]");
       if(wn){
         var wv = wn.value.trim();
@@ -6194,6 +6457,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var res = await storeGet(STORAGE_PROGRAM_KEY);
       if(res && res.value) state.program = JSON.parse(res.value);
     }catch(e){}
+    try{
+      var libRes = await storeGet(STORAGE_PROGRAMS_KEY);
+      if(libRes && libRes.value) state.programs = JSON.parse(libRes.value);
+    }catch(e){}
+    if(!Array.isArray(state.programs)) state.programs = [];
+    var libChanged = false;
+    state.programs.forEach(function(p){ if(ensureProgramShape(p)) libChanged = true; });
+    if(libChanged) await saveProgramLibrary();
     if(state.program && state.program.days){
       var migrated = false;
       state.program.days.forEach(function(day){
