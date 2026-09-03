@@ -56,7 +56,8 @@
   .header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 2px 18px;}
   .app-title{margin:0; font-size:0; line-height:0;}
   .app-logo{display:block; height:40px; width:auto;}
-  /* Asetukset ei ole enää välilehti vaan rataskuvake näkymän oikeassa yläkulmassa. */
+  /* Otsikkorivin kuvakepainikkeet: Ohje (kysymysmerkki) kaikissa näkymissä ja
+     Muokkaa ohjelmaa (kynä) Ohjelma-näkymässä. Asetukset on alavalikon viimeinen kohta. */
   .icon-btn{flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; padding:0; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:999px; color:var(--mist); cursor:pointer;}
   /* Aktiivinen tila on sama kaikilla navigaatioelementeillä: täytetty
      messinkipilleri tummalla kuvakkeella/tekstillä (ks. .tab.active). */
@@ -4042,7 +4043,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var px = size || 22;
     return '<svg viewBox="0 0 24 24" width="' + px + '" height="' + px + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + body + '</svg>';
   }
-  function gearIcon(){ return icon("asetukset", 21); }
 
   // Banneri: kind = "" | "info" | "danger". actionsHtml voi olla tyhjä.
   function renderBanner(kind, iconName, title, bodyHtml, actionsHtml){
@@ -4066,8 +4066,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<h1 class="app-title"><img class="app-logo" src="' + APP_LOGO_SRC + '" width="59" height="40" alt="Treenipäiväkirja" decoding="async"></h1>' +
       (showNav ? '<div style="display:flex; gap:8px;">' +
         (state.view === "ohjelma" ? '<button type="button" class="icon-btn" data-edit-program aria-label="Muokkaa ohjelmaa">' + icon("muokkaa", 20) + '</button>' : "") +
-        '<button type="button" class="icon-btn' + (state.view === "asetukset" ? " active" : "") + '" data-tab="asetukset" aria-label="Asetukset"' +
-        (state.view === "asetukset" ? ' aria-current="page"' : "") + '>' + gearIcon() + '</button></div>' : "") +
+        '<button type="button" class="icon-btn' + (state.view === "ohje" ? " active" : "") + '" data-tab="ohje" aria-label="Ohje"' +
+        (state.view === "ohje" ? ' aria-current="page"' : "") + '>' + icon("ohje", 21) + '</button></div>' : "") +
       '</div>';
     if(state.storageMode === "local" && state.storageWarn){
       html += renderBanner("", "varoitus", "Varatallennus käytössä",
@@ -4090,8 +4090,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return html;
   }
   function renderTabs(){
-    // Asetukset ei ole listassa — se avataan otsikkorivin rataskuvakkeesta.
-    var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["ohje","Ohje"]];
+    // Ohje ei ole listassa — se avataan otsikkorivin kysymysmerkkikuvakkeesta.
+    var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["asetukset","Asetukset"]];
     return '<nav class="bottom-nav" aria-label="Päänavigaatio">' + tabs.map(function(t){
       return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '" role="button" tabindex="0"' + (state.view===t[0] ? ' aria-current="page" style="view-transition-name:active-tab;"' : "") + '>' +
         icon(t[0], 20) + '<span>' + t[1] + '</span></div>';
@@ -4128,7 +4128,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("1. Tuo treeniohjelma", ohjeP(
-      "Ensimmäisellä käyttökerralla aloitusruutu kysyy, miten haluat aloittaa: rakenna ohjelma itse, tuo se tiedostosta tai palauta varmuuskopio. Myöhemmin samat vaihtoehdot löytyvät Asetuksista, oikean yläkulman rataskuvakkeesta. \"Tuo tiedostosta\" ottaa vastaan sekä CSV- että PDF-tiedoston — muoto tunnistetaan itsestään."
+      "Ensimmäisellä käyttökerralla aloitusruutu kysyy, miten haluat aloittaa: rakenna ohjelma itse, tuo se tiedostosta tai palauta varmuuskopio. Myöhemmin samat vaihtoehdot löytyvät Asetuksista, alavalikon viimeisestä kohdasta. \"Tuo tiedostosta\" ottaa vastaan sekä CSV- että PDF-tiedoston — muoto tunnistetaan itsestään."
     ) + ohjeP(
       "CSV-tiedostossa ainoa pakollinen sarake on <b style=\"color:var(--chalk);\">liikkeen nimi</b> — muut tunnistetaan otsikon perusteella automaattisesti."
     ) + ohjeList([
@@ -4192,7 +4192,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "Sarjojen, toistojen, yksikön tai tehon muuttaminen nimeä muuttamatta säilyttää liikkeen ennallaan — myös jo tehty merkintä pysyy tehtynä."
     ]));
 
-    html += ohjeSection("6. Asetukset (rataskuvake oikeassa yläkulmassa)", ohjeP(
+    html += ohjeSection("6. Asetukset (alavalikon viimeinen kohta)", ohjeP(
       "Asetukset on luettelo, jonka jokainen rivi avaa oman näkymänsä. Takaisin luetteloon pääsee vasemman yläkulman nuolesta."
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Ohjelma</b> — tuo uusi ohjelma tiedostosta (CSV tai PDF) tai rakenna se sovelluksessa. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy.",
