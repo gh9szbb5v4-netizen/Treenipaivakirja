@@ -69,9 +69,59 @@ ja liikkeetön viikko jätetään pois. Uuden viikon ja päivän oletusnimi on
 ensimmäinen vapaa numero.
 
 **Ratkaistu kysymys:** rakentaja luo aina uuden ohjelman tyhjästä. Olemassa
-olevan ohjelman jälkikäteinen muokkaus (lisää/poista/järjestä viikko tai liike)
-jätettiin tietoisesti tekemättä; tarve arvioidaan vasta käytön perusteella.
-Yksittäisen liikkeen vaihto on jo olemassa Ohjelma-näkymässä.
+olevan ohjelman muokkaus tehdään erillisessä muokkaustilassa (seuraava osio),
+ei rakentajassa. Yksittäisen liikkeen vaihto on lisäksi Ohjelma-näkymässä.
+
+## Ohjelman muokkaustila (toteutettu)
+
+Tietomalli sai kolme kenttää, kaikki valinnaisia vanhojen tallennusten takia:
+`program.weekLabels` (`{ "4": "Kevennysviikko" }`, puuttuva avain = "Viikko N"),
+`day.id` (`day-<aikaleima>-<laskuri>`, `newDayId()`) ja `day.label` (päivän nimi
+ilman viikko-osaa). `day.name` säilyy koostettuna näyttönimenä
+(`dayDisplayNameIn(program, day)` = viikon nimi + " · " + label), koska muut
+lukupaikat käyttävät sitä. `ensureProgramShape(program)` täydentää puuttuvat
+kentät ja palauttaa true, jos jotain lisättiin; sitä kutsutaan initissä (vanha
+tallennus kirjoitetaan täydennettynä takaisin), PDF-tuonnissa, varmuuskopion
+luvussa ja `startProgramEdit()`:ssä. CSV-jäsennin ja rakentaja tuottavat kentät
+suoraan. `dayKey(day)` palauttaa `day.id`:n, kun se on, ja vasta muuten
+`week|name`-avaimen. `dayCardTitle(day)` valitsee korttiin `day.label`:n
+viikkonäkymässä ja `dayDisplayName(day)`:n koko ohjelman näkymässä.
+
+Muokkaus kohdistuu vain `state.programDraft`-syväkopioon. `state.editMode`
+vaihtaa `renderBody()`:n `renderEditor()`:iin, `renderHeader()` pudottaa
+navigaation ja `render()` lisää kiinteän `.edit-bar`-alapalkin (`<footer>`,
+jotta se on maamerkki; painikkeet Peruuta ja Valmis). Muokkaustilan oma tila on
+`state.editor = blankEditor()`: `openWeek`, `openDay`, `editingExercise`,
+`addingExerciseTo`, `confirmDelete` (`"delete:<kohde>"` tai
+`"restart:<kohde>"`, kohde `week:<avain>`, `day:<id>`, `ex:<id>` tai
+`program`), `confirmCancel`, `swapAll`, `menuFor` ja `form`. Nimikentät
+kirjoittavat luonnokseen input-tapahtumassa ilman `render()`-kutsua, jottei
+fokus katoa; tyhjä päivän nimi hylätään change-tapahtumassa. Klikkikäsittelijän
+alussa avoin vahvistus nollataan, jos painallus osuu muualle.
+
+`finishProgramEdit()` järjestää päivät vakaasti `weeks`-järjestykseen (koko
+ohjelman näkymä iteroi `days`-listaa sellaisenaan), kirjoittaa `day.name`-kentät
+`dayDisplayNameIn(draft, day)`:llä, korvaa `state.programin`, tallentaa
+`saveProgram()`:lla ja siivoaa poistuneiden id:iden `draftSets`, `dirtySets` ja
+`autoCalcInfo`. Ilman muutoksia Valmis ja Peruuta sulkevat heti; muutosten
+kanssa Peruuta vaatii toisen painalluksen.
+
+Id-säännöt ovat samat kuin tuonnissa ja liikkeen vaihdossa: sarjojen, toistojen
+tai tehon muutos säilyttää id:n (tehty-tila jää), nimen muutos kulkee
+`applyExerciseSwap(program, id, newName, allOccurrences)`-ytimen kautta (uusi
+id; vanha merkintä jää historiaan vanhalla nimellä), ja "Aloita uudelleen"
+(`editorRestart(target)`) antaa uudet id:t `newExerciseId(program)`:lla. Kopiot
+(`editorCopyWeek`, `editorCopyDay`) saavat uudet päivä- ja liike-id:t; viikon
+nimeä ei kopioida. Uusi liike luodaan täsmälleen `parseProgramCSV()`:n muodossa
+(`kind:"plain"`, `autoCalc:true`, `weight:""`, `notes` = tehoteksti).
+`applyExerciseSwap` on puhdas (ei tallenna, ei piirrä); kirjausnäkymän vaihto
+käyttää sitä `performExerciseSwap()`:n kautta.
+
+Sisääntulot: kynäkuvake `[data-edit-program]` Ohjelma-näkymän otsikossa ja
+"Muokkaa nykyistä ohjelmaa" Asetusten Ohjelma-osiossa. Välilehden vaihto
+muokkaustilassa estetään toastilla, vaikka navigaatio ei muokkaustilassa näy.
+Testit: `test_editor.js` (kehotteen kohdan 7 tapaukset ja vanhan ohjelman
+migraatio).
 
 ## Varmuuskopio (toteutettu)
 
@@ -91,6 +141,15 @@ heuristiikka jää voimaan vain tunnisteettomille (vanhoille) tiedostoille.
 `parseBackupProgram()` asettaa valinnaiset PDF-kentät (`method`, `perSet`,
 `methodNote`) vain jos ne olivat täytettyjä; puuttuminen ja tyhjä arvo ovat
 sovelluksessa sama asia, koska kaikki lukupaikat testaavat totuusarvon.
+Ohjelmarivillä ovat lisäksi sarakkeet `Viikon nimi`, `Päivän tunniste` ja
+`Päivän nimi` (muokkaustilan kentät). `parseBackupProgram()` asettaa `day.id`:n
+ja `day.label`:n vain täytetystä sarakkeesta ja kutsuu lopuksi
+`ensureProgramShape()`:a, joten vanhat varmuuskopiot saavat uudet
+päivätunnisteet; se ei vaikuta palautukseen, koska merkinnät sidotaan
+liike-id:eihin, eivät päivä-id:eihin. Päiväolion avainjärjestys on sama kuin
+`parseProgramCSV()`:ssä, jotta palautettu ohjelma on JSON-muodossaankin
+täsmälleen viedyn kaltainen (testi vertaa merkkijonoja).
+
 `program.definitions` jätetään tietoisesti pois: `attachDefinitions()` on jo
 kirjoittanut sen sisällön liikkeiden `methodNote`-kenttiin, eikä taulukkoa lueta
 enää tuonnin jälkeen missään.
@@ -156,7 +215,8 @@ Ilmoitusruutu nousee alhaalta navigaation yläpuolelle, ei enää yläpalkin pä
 ## Ohjelma-näkymä ja kirjaus (toteutettu, UX-vaihe 3)
 
 Päiväkortti `renderDayCard(day, expanded, isNext)`: otsikkona päivän nimi
-(`dayDisplayName()` jättää viikkonäkymässä "Viikko N · " -etuliitteen pois),
+(`dayCardTitle()`: viikkonäkymässä `day.label`, koko ohjelman näkymässä
+`dayDisplayName()` viikon nimen kanssa),
 alarivillä tila. Nimiosa on avaava painike ja seuraavaksi vuorossa olevan
 päivän "Aloita/Jatka"-painike (`[data-start-day]`) on sen sisar, ei sisällä —
 sisäkkäiset painikkeet olisivat saavutettavuusrike. Avattuna sama kortti
