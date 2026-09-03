@@ -45,7 +45,8 @@
   @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
 
   .header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 2px 18px;}
-  .app-title{font-size:21px; font-weight:800; letter-spacing:-0.01em; margin:0;}
+  .app-title{margin:0; font-size:0; line-height:0;}
+  .app-logo{display:block; height:40px; width:auto;}
   /* Asetukset ei ole enää välilehti vaan rataskuvake näkymän oikeassa yläkulmassa. */
   .icon-btn{flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; padding:0; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:999px; color:var(--mist); cursor:pointer;}
   /* Aktiivinen tila on sama kaikilla navigaatioelementeillä: täytetty
@@ -170,6 +171,10 @@
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
   var APP_VERSION = "0.1.0";
+  // Sovelluksen logo otsikkorivillä. Upotettu data-URI:na, koska sovellus on
+  // yhden tiedoston kokonaisuus ilman ulkoisia riippuvuuksia — sama merkki kuin
+  // aloitusnäytön kuvakkeissa, mutta läpinäkyvällä taustalla.
+  var APP_LOGO_SRC = "data:image/png;base64,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";
   var STORAGE_CONSENT_KEY = "koekaytto-hyvaksytty";
   var FEEDBACK_EMAIL = "jarkko_palokangas@hotmail.com";
   var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
@@ -2303,7 +2308,7 @@
   function renderHeader(){
     var showNav = !!(state.program && !state.loading);
     var html = '<div class="header">' +
-      '<h1 class="app-title">Treenipäiväkirja</h1>' +
+      '<h1 class="app-title"><img class="app-logo" src="' + APP_LOGO_SRC + '" width="59" height="40" alt="Treenipäiväkirja" decoding="async"></h1>' +
       (showNav ? '<button type="button" class="icon-btn' + (state.view === "asetukset" ? " active" : "") + '" data-tab="asetukset" aria-label="Asetukset"' +
         (state.view === "asetukset" ? ' aria-current="page"' : "") + '>' + gearIcon() + '</button>' : "") +
       '</div>';
