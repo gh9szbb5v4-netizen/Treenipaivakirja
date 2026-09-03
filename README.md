@@ -111,7 +111,7 @@ Sama koskee PDF-tuonnin menetelmäliikkeitä (rest-pause, cluster, drop) sekä k
 
 Ohjelma, Historia, Kehitys ja Ohje vaihdetaan näytön alareunassa kelluvasta valikosta. Asetukset avataan näkymän oikean yläkulman rataskuvakkeesta.
 
-**Ohjelma.** Liikkeet viikoittain ja päivittäin. Liikkeen avaamalla kirjaat painot, toistot ja huomiot sarjoittain, ja näet nostetun kokonaispainon. Merkinnän voi kirjata myös takautuvasti päivämäärävalitsimella.
+**Ohjelma.** Treenipäivät kortteina, joissa on päivän nimi, tila (tehty, kesken, liikkeiden määrä) ja seuraavaksi vuorossa olevalla päivällä "Aloita"-painike, joka avaa päivän ja sen ensimmäisen kirjaamattoman liikkeen. Liikkeen avaamalla kirjaat painot ja toistot sarjoittain yhdellä rivillä per sarja; ±2,5 kg -säätimet näkyvät aktiivisen sarjan alla ja sarjan huomio sekä poisto löytyvät rivin ⋮-painikkeesta. Yläreunan "Viikko | Kaikki" -valitsin näyttää nykyisen viikon tai koko ohjelman, ja päivämääräsirpaleesta merkinnän voi kirjata myös takautuvasti.
 
 Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa liike ja valitse "Vaihda liike toiseksi". Sarjat, toistot ja teho säilyvät ennallaan, ja vaihdon voi kohdistaa joko vain kyseiseen kohtaan tai kaikkiin saman liikkeen esiintymiin ohjelmassa. Vaihdettu liike aloittaa oman historiansa uudella nimellä; vanhalla nimellä tallennetut merkinnät säilyvät Historiassa ennallaan.
 

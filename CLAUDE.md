@@ -152,3 +152,31 @@ kirjausohjeen kunnes ensimmäinen merkintä on tallennettu tai kortti suljetaan
 jälkeen ja on tiivis banneri, jonka ohjeen saa auki erikseen.
 
 Ilmoitusruutu nousee alhaalta navigaation yläpuolelle, ei enää yläpalkin päälle.
+
+## Ohjelma-näkymä ja kirjaus (toteutettu, UX-vaihe 3)
+
+Päiväkortti `renderDayCard(day, expanded, isNext)`: otsikkona päivän nimi
+(`dayDisplayName()` jättää viikkonäkymässä "Viikko N · " -etuliitteen pois),
+alarivillä tila. Nimiosa on avaava painike ja seuraavaksi vuorossa olevan
+päivän "Aloita/Jatka"-painike (`[data-start-day]`) on sen sisar, ei sisällä —
+sisäkkäiset painikkeet olisivat saavutettavuusrike. Avattuna sama kortti
+toimii otsikkona ja liikkeet ovat `.day-exercises`-lohkossa sen alla; erillistä
+`.day-heading`-riviä ja "Piilota liikkeet" -linkkiä ei enää ole.
+
+Sarjarivi: numero, paino, toistot, ✓ ja ⋮ yhdellä rivillä
+(`grid-template-columns:24px 1fr 0.72fr 42px 30px`). ±2,5 kg -säätimet näkyvät
+vain aktiivisen sarjan alla: `state.activeSet` asetetaan `focusin`-
+kuuntelijassa, joka vaihtaa `.hidden`-luokkaa suoraan DOM:ssa ilman render()-
+kutsua (fokus säilyy); render() lukee saman tilan `activeSetIndex()`:llä, ja
+ilman tilaa aktiivinen on ensimmäinen keskeneräinen sarja. Huomiokenttä ja
+poisto ovat `state.setExtra[id][idx]`-lisärivillä, joka on auki myös aina kun
+huomio ei ole tyhjä.
+
+Tallennuslohko ei ole kiinnitetty (position:sticky kokeiltiin ja hylättiin:
+se peitti sarjarivit heti kortin avautuessa, koska kortti on näyttöä
+korkeampi).
+
+Viikko/kaikki-valinta on `renderWeekModeSwitch()` (`[data-week-mode]`),
+samalla rivillä päivämääräsirpaleen kanssa; vanha `[data-toggle-week-view]`-
+käsittelijä on jäänyt koodiin vaarattomana. Näkyvä "Kirjataan päivälle"
+-teksti on ruudunlukijalle `.sr-only`-elementtinä.
