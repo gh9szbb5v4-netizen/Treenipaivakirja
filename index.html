@@ -30,6 +30,15 @@
     --success:#6fae6f;
     --radius:14px;
     --radius-sm:8px;
+    /* Typografia-asteikko. Leipäteksti ei koskaan alle 13 px:n mobiilissa;
+       12 px on varattu versaaliotsikoille ja merkeille, joissa kirjainväli
+       kompensoi kokoa. */
+    --fs-xs:12px;
+    --fs-sm:13px;
+    --fs-md:14px;
+    --fs-lg:16px;
+    --fs-xl:18px;
+    --fs-2xl:22px;
   }
   *{box-sizing:border-box;}
   html,body{margin:0; padding:0; background:var(--ink); color:var(--chalk);}
@@ -40,7 +49,7 @@
   }
   #app{max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 48px);}
   /* Kelluvan alanavigaation alle jäävä tila, jotta sisällön loppu ei jää palkin taakse. */
-  #app.has-bottom-nav{padding-bottom:calc(env(safe-area-inset-bottom) + 100px);}
+  #app.has-bottom-nav{padding-bottom:calc(env(safe-area-inset-bottom) + 108px);}
   *:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
 
@@ -66,7 +75,11 @@
   @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
     .bottom-nav{background:var(--surface-2);}
   }
-  .tab{flex:1; min-width:0; display:flex; align-items:center; justify-content:center; min-height:44px; padding:6px 2px; border-radius:999px; text-align:center; font-size:10.5px; font-weight:700; color:var(--mist); text-transform:uppercase; letter-spacing:.02em; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* Välilehdessä on kuvake ja teksti päällekkäin: kuvake nopeuttaa silmäilyä
+     ja teksti nousee lukukelpoiseen 11 px:n kokoon, kun sen ei enää tarvitse
+     yksin kantaa merkitystä. */
+  .tab{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:50px; padding:5px 2px 4px; border-radius:999px; text-align:center; font-size:11px; font-weight:700; color:var(--mist); text-transform:uppercase; letter-spacing:.03em; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -webkit-tap-highlight-color:transparent;}
+  .tab svg{display:block;}
   /* Aktiivinen osio täytettynä messinkipillerinä — sama aksenttiväri kuin
      muissakin toimintopainikkeissa, mutta ainoana täytettynä pintana. */
   .tab.active{color:var(--ink); background:var(--brass); font-weight:800;}
@@ -78,7 +91,7 @@
   .exercise-head{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; min-height:44px;}
   .exercise-head-main{flex:1; min-width:0; cursor:pointer;}
   .exercise-name{font-weight:600; font-size:15px;}
-  .exercise-target{font-size:12px; color:var(--mist); margin-top:3px; font-variant-numeric:tabular-nums;}
+  .exercise-target{font-size:var(--fs-sm); color:var(--mist); margin-top:3px; font-variant-numeric:tabular-nums;}
   .chevron{color:var(--mist); font-size:20px; transition:transform .2s, color .2s; flex-shrink:0; margin-left:10px;}
   .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
   .chevron-btn{background:none; border:none; padding:0; margin:0; cursor:pointer; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; flex-shrink:0;}
@@ -113,11 +126,49 @@
   .add-set-btn{width:100%; margin-top:10px; padding:11px; background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:999px; color:var(--mist); font-size:13px; font-weight:700; cursor:pointer;}
   .subtotal{display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px; color:var(--mist);}
   .subtotal b{color:var(--brass); font-variant-numeric:tabular-nums;}
-  .save-btn{width:100%; margin-top:12px; padding:13px; background:transparent; border:1px solid var(--brass); border-radius:999px; color:var(--brass); font-weight:800; font-size:14px; cursor:pointer;}
-  .save-btn:active{opacity:.85;}
+  /* ---------- Painikehierarkia ----------
+     Neljä tasoa, jotta jokaisella ruudulla erottuu yksi ensisijainen toiminto:
+       .btn-primary    täytetty messinki, tumma teksti — ruudun päätoiminto
+       .btn-secondary  ääriviiva harmaalla — vaihtoehtoiset toiminnot
+       .btn-tertiary   pelkkä teksti — vähäiset, toistuvat toiminnot
+       .btn-danger     ääriviiva vaaravärillä — tuhoavat toiminnot
+     .save-btn on säilytetty aliaksena .btn-primary:lle, jotta vanhat
+     kutsupaikat toimivat ennallaan; uusi koodi käyttää .btn-primary-nimeä.
+     Kokoa säätävät .btn-sm (40 px) ja leveyttä .btn-auto. */
+  .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger, .save-btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; padding:12px 18px; border-radius:999px; font:inherit; font-size:var(--fs-md); font-weight:700; line-height:1.2; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .08s, opacity .15s, background-color .15s, color .15s;}
+  .btn-primary, .save-btn{background:var(--brass); border:1px solid var(--brass); color:var(--ink); font-weight:800;}
+  .save-btn{margin-top:12px;}
+  .btn-secondary{background:var(--surface-2); border:1px solid var(--line-strong); color:var(--chalk);}
+  .btn-tertiary{background:transparent; border:1px solid transparent; color:var(--mist); font-weight:600; min-height:40px; padding:8px 12px; width:auto;}
+  .btn-tertiary:hover{color:var(--chalk);}
+  .btn-danger{background:transparent; border:1px solid var(--danger); color:var(--danger-text);}
+  .btn-sm{min-height:40px; padding:8px 14px; font-size:var(--fs-sm);}
+  .btn-auto{width:auto;}
+  .btn-primary:active, .save-btn:active, .btn-secondary:active, .btn-danger:active{transform:scale(.98); opacity:.9;}
+  .btn-primary:disabled, .btn-secondary:disabled, .btn-tertiary:disabled, .btn-danger:disabled, .save-btn:disabled, .add-set-btn:disabled{opacity:.4; cursor:default; transform:none;}
+  .btn-primary svg, .btn-secondary svg, .btn-tertiary svg, .btn-danger svg, .save-btn svg{flex-shrink:0;}
 
-  .btn-secondary{background:var(--surface-2); border:1px solid var(--line-strong); color:var(--chalk); padding:12px; border-radius:999px; font-weight:700; font-size:14px; width:100%; cursor:pointer;}
-  .btn-secondary:disabled, .save-btn:disabled, .add-set-btn:disabled{opacity:.4; cursor:default;}
+  /* ---------- Merkki (chip) ----------
+     Pieni pyöristetty tilamerkki: teho (MAX, %), tila (Tehty, Kesken) ja
+     päivämäärä. Sama muoto kaikkialla, sävy kertoo merkityksen. */
+  .chip{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.02em; border:1px solid transparent; vertical-align:middle; white-space:nowrap; line-height:1.3;}
+  .chip-brass{color:var(--brass); border-color:var(--brass); background:transparent;}
+  .chip-muted{background:rgba(136,145,160,0.2); color:var(--chalk);}
+  .chip-success{background:rgba(111,174,111,0.18); color:var(--success);}
+
+  /* ---------- Banneri ----------
+     Yksi komponentti kolmella sävyllä korvaa aiemmat erilliset laatikot
+     (aloitusnäyttövinkki, varmuuskopiomuistutus, tuontivaroitukset, PDF-virhe,
+     palautuksen vahvistus). Kuvake vasemmalla, toiminnot omalla rivillään. */
+  .banner{display:flex; gap:10px; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--brass); background:rgba(201,162,39,0.10); font-size:var(--fs-sm); line-height:1.5; margin-bottom:16px; text-align:left;}
+  .banner-icon{flex-shrink:0; width:22px; height:22px; color:var(--brass); margin-top:1px; display:flex; align-items:center; justify-content:center;}
+  .banner-body{flex:1; min-width:0;}
+  .banner-title{font-weight:800; color:var(--brass); margin-bottom:3px;}
+  .banner-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .banner-danger{border-color:var(--danger); background:rgba(193,99,60,0.12);}
+  .banner-danger .banner-icon, .banner-danger .banner-title{color:var(--danger-text);}
+  .banner-info{border-color:var(--line-strong); background:var(--surface);}
+  .banner-info .banner-icon, .banner-info .banner-title{color:var(--chalk);}
 
   .setting-row{display:flex; align-items:center; justify-content:space-between; gap:12px;}
   .toggle-switch{position:relative; flex-shrink:0; width:46px; height:26px; padding:0; border:1px solid var(--line-strong); border-radius:999px; background:var(--surface-2); cursor:pointer;}
@@ -126,19 +177,75 @@
   .toggle-switch.on .toggle-thumb{transform:translateX(20px); background:var(--brass);}
   .setting-disabled{opacity:.45; pointer-events:none;}
 
-  .date-picker-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:13px; color:var(--mist);}
-  .date-picker-row input[type=date]{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 10px; font-size:16px;}
+  /* ---------- Tiedostonvalitsin ----------
+     Natiivi <input type=file> on selaimen näköinen ja englanninkielinen.
+     Se jää DOM:iin (change-tapahtumat ja id:t toimivat ennallaan) mutta
+     piirtyy läpinäkyvänä painikkeen päälle: napautus osuu inputiin, ja
+     näppäimistöllä input saa fokuksen, jonka rengas piirtyy painikkeeseen. */
+  .file-picker{position:relative; overflow:hidden;}
+  .file-picker input[type=file]{position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; font-size:0; margin:0; padding:0;}
+  .file-picker:focus-within{outline:2px solid var(--brass); outline-offset:2px;}
+
+  /* ---------- Päivämääräsirpale ----------
+     Sama idea: natiivi päivämääräkenttä läpinäkyvänä sirpaleen päällä. */
+  .date-picker-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; font-size:var(--fs-sm); color:var(--mist); min-height:36px;}
+  .date-chip{position:relative; display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:6px 12px 6px 10px; border-radius:999px; background:var(--surface-2); border:1px solid var(--line-strong); color:var(--chalk); font-size:var(--fs-sm); font-weight:700; font-variant-numeric:tabular-nums; cursor:pointer;}
+  .date-chip input[type=date]{position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; padding:0; border:0; cursor:pointer; font-size:16px;}
+  .date-chip:focus-within{outline:2px solid var(--brass); outline-offset:2px;}
+  .date-chip svg{color:var(--brass);}
 
   .upload-box{border:1px dashed var(--line); border-radius:var(--radius); padding:26px 18px; margin-top:6px;}
-  .upload-box p{color:var(--mist); font-size:13px; line-height:1.55; margin:0 0 12px;}
+
+  /* ---------- Tervetuloruutu ---------- */
+  .welcome{padding:12px 4px 8px; text-align:center;}
+  .welcome-logo{display:block; margin:18px auto 14px; height:64px; width:auto;}
+  .welcome h1{font-size:var(--fs-2xl); font-weight:800; margin:0 0 8px; letter-spacing:-.01em;}
+  .welcome-lead{color:var(--mist); font-size:var(--fs-md); line-height:1.55; margin:0 auto 22px; max-width:32ch;}
+  .welcome-features{text-align:left; margin:0 0 22px;}
+  .welcome-feature{display:flex; align-items:center; gap:12px; padding:10px 0;}
+  .welcome-feature + .welcome-feature{border-top:1px dashed var(--line);}
+  .welcome-feature .choice-icon{width:40px; height:40px;}
+  .welcome-feature-text{font-size:var(--fs-md); line-height:1.4;}
+  .welcome-terms{text-align:left; font-size:var(--fs-xs); color:var(--mist); line-height:1.5; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--surface); margin-bottom:16px;}
+  .welcome-terms b{color:var(--chalk);}
+
+  /* ---------- Valintakortti ----------
+     Aloitusruudun kolme tapaa saada ohjelma. Koko kortti on kosketuskohde;
+     tiedostopohjaisissa korteissa natiivi input on kortin päällä läpinäkyvänä
+     (ks. .file-picker), joten napautus avaa suoraan tiedostovalitsimen. */
+  .choice-card{display:flex; align-items:center; gap:14px; width:100%; text-align:left; padding:16px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); color:var(--chalk); cursor:pointer; font:inherit; margin:0 0 10px; position:relative; -webkit-tap-highlight-color:transparent; transition:border-color .15s, transform .08s;}
+  .choice-card:hover{border-color:var(--line-strong);}
+  .choice-card:active{transform:scale(.99);}
+  .choice-card:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
+  .choice-icon{flex-shrink:0; width:44px; height:44px; border-radius:12px; background:var(--surface-2); color:var(--brass); display:flex; align-items:center; justify-content:center;}
+  .choice-body{flex:1; min-width:0; display:block;}
+  .choice-title{display:block; font-size:var(--fs-lg); font-weight:700; line-height:1.25;}
+  .choice-desc{display:block; font-size:var(--fs-sm); color:var(--mist); margin-top:3px; line-height:1.4;}
+  .choice-chevron{color:var(--mist); flex-shrink:0; display:flex;}
+  .start-title{font-size:var(--fs-2xl); font-weight:800; margin:6px 0 6px; letter-spacing:-.01em;}
+  .start-lead{color:var(--mist); font-size:var(--fs-md); line-height:1.5; margin:0 0 18px;}
+  .start-links{display:flex; flex-wrap:wrap; justify-content:center; gap:4px 12px; margin-top:8px;}
+
+  /* ---------- Pohjalevy ----------
+     Alhaalta nouseva paneeli lisätiedolle ja valinnoille. Sulkeutuu
+     taustaa napauttamalla, sulkupainikkeesta ja Escape-näppäimestä. */
+  .sheet-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:90; display:flex; align-items:flex-end; justify-content:center;}
+  .sheet{width:100%; max-width:480px; max-height:86vh; overflow:auto; background:var(--surface); border-radius:var(--radius) var(--radius) 0 0; padding:12px 18px calc(env(safe-area-inset-bottom) + 20px); box-shadow:0 -8px 32px rgba(0,0,0,.5); border-top:1px solid var(--line-strong);}
+  .sheet-handle{width:40px; height:4px; border-radius:2px; background:var(--line-strong); margin:0 auto 12px;}
+  .sheet-title{display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:var(--fs-lg); font-weight:800; margin-bottom:10px;}
+  .sheet p{color:var(--mist); font-size:var(--fs-sm); line-height:1.55; margin:0 0 10px;}
+  .sheet .csv-example{margin-bottom:12px;}
+  .upload-box p{color:var(--mist); font-size:var(--fs-md); line-height:1.55; margin:0 0 12px;}
   .csv-example{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; background:var(--surface-2); padding:10px; border-radius:8px; overflow-x:auto; white-space:nowrap; color:var(--mist); margin-bottom:16px;}
 
   .history-date{background:var(--surface); border-radius:var(--radius); margin-bottom:10px; padding:14px 16px;}
   .history-date-head{display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px; font-variant-numeric:tabular-nums; cursor:pointer; min-height:32px;}
 
-  .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:14px; line-height:1.6;}
+  .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:var(--fs-md); line-height:1.6;}
 
-  .toast{position:fixed; top:calc(12px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateY(-8px); max-width:calc(100% - 32px); text-align:center; background:var(--brass); color:var(--ink); padding:10px 18px; border-radius:999px; font-weight:800; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:50; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
+  /* Ilmoitusruutu nousee alhaalta navigaation yläpuolelle: se ei peitä
+     yläpalkkia eikä logoa, ja sijainti on sama, johon peukalo jo katsoo. */
+  .toast{position:fixed; bottom:calc(env(safe-area-inset-bottom) + 84px); left:50%; transform:translateX(-50%) translateY(8px); max-width:calc(100% - 32px); text-align:center; background:var(--brass); color:var(--ink); padding:10px 18px; border-radius:999px; font-weight:800; font-size:var(--fs-sm); box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:80; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
   /* Näkymäsiirtymät (View Transitions). Ylempi liikkeen vähentämistä koskeva
@@ -179,6 +286,7 @@
   var STORAGE_CONSENT_KEY = "koekaytto-hyvaksytty";
   var FEEDBACK_EMAIL = "jarkko_palokangas@hotmail.com";
   var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
+  var STORAGE_FIRST_LOG_HINT_KEY = "first-log-hint-dismissed";
   var STORAGE_LAST_EXPORT_KEY = "last-export-date";
   var EXPORT_REMINDER_DAYS = 14;
   var REST_DURATION_SECONDS = 90;
@@ -214,6 +322,12 @@
     restTimer: null,
     expandedDaySummaries: {},
     showHomescreenHint: false,
+    homescreenHintExpanded: false,
+    // Kertaluonteinen "Näin kirjaat treenin" -kortti: näkyy kunnes ensimmäinen
+    // merkintä on tallennettu tai käyttäjä sulkee sen.
+    firstLogHintDismissed: false,
+    // Avoinna oleva pohjalevy (esim. "csv" = CSV-muodon esimerkki) tai null.
+    sheet: null,
     program: null,
     // PDF-tuonnin jäsennystulos odottamassa käyttäjän hyväksyntää. Ohjelma
     // tallentuu vasta ”Valmis”-painikkeesta, ei suoraan tuonnista.
@@ -3462,9 +3576,34 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
   // ---------- render ----------
   function renderHomescreenHint(){
-    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
-      '<b style="color:var(--brass);">Vinkki:</b> Lisää sovellus laitteesi aloitusnäytölle — iPhonella Safarin jakopainikkeesta (\"Lisää Koti-valikkoon\"), Androidilla selaimen valikosta (\"Lisää aloitusnäytölle\" tai \"Asenna sovellus\"). Safari saattaa poistaa tavallisena selainvälilehtenä käytetyn sivun tallennetut tiedot noin seitsemän päivän käyttämättömyyden jälkeen, mutta Koti-valikkoon lisätty, itsenäisenä avautuva versio on tästä vapautettu.' +
-      '<div style="margin-top:10px;"><button class="btn-secondary" data-dismiss-homescreen-hint type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Selvä, sain ohjeen</button></div>' +
+    var details = state.homescreenHintExpanded
+      ? '<div style="margin-top:8px;">iPhonella: Safarin jakopainike → ”Lisää Koti-valikkoon”. Androidilla: selaimen valikko → ”Lisää aloitusnäytölle” tai ”Asenna sovellus”. Safari voi poistaa tavallisena välilehtenä käytetyn sivun tiedot noin viikon käyttämättömyyden jälkeen; Koti-valikosta avautuva versio on tästä vapautettu.</div>'
+      : '';
+    return renderBanner("info", "laite", "Lisää aloitusnäytölle",
+      'Sovellus avautuu kuin oma appi, ja tiedot säilyvät varmemmin.' + details,
+      '<button class="btn-tertiary btn-sm" data-toggle-homescreen-hint type="button">' + (state.homescreenHintExpanded ? "Piilota ohje" : "Näytä miten") + '</button>' +
+      '<button class="btn-secondary btn-sm btn-auto" data-dismiss-homescreen-hint type="button">Selvä</button>');
+  }
+  // Ensimmäisen ohjelman jälkeen: kolme askelta kirjaamiseen. Katoaa, kun
+  // ensimmäinen merkintä on tallennettu tai kortti suljetaan.
+  function shouldShowFirstLogHint(){
+    if(!state.program || state.firstLogHintDismissed) return false;
+    return Object.keys(state.exerciseLogIndex || {}).length === 0;
+  }
+  function renderFirstLogHint(){
+    function step(n, text){
+      return '<div style="display:flex; gap:10px; align-items:flex-start; padding:6px 0;">' +
+        '<div style="flex-shrink:0; width:24px; height:24px; border-radius:50%; background:var(--brass); color:var(--ink); font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center;">' + n + '</div>' +
+        '<div style="font-size:var(--fs-sm); line-height:1.45; padding-top:3px;">' + text + '</div></div>';
+    }
+    return '<div class="exercise" style="padding:14px 16px 12px; margin-bottom:14px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">' +
+      '<div style="font-weight:800; font-size:var(--fs-lg);">Näin kirjaat treenin</div>' +
+      '<button type="button" class="icon-btn" data-dismiss-first-log-hint aria-label="Sulje ohje" style="width:36px; height:36px;">' + icon("sulje", 18) + '</button>' +
+      '</div>' +
+      step(1, 'Avaa treenipäivä ja siitä liike.') +
+      step(2, 'Täytä paino ja toistot — ehdotus on valmiina — ja merkitse sarja valmiiksi <b>✓</b>.') +
+      step(3, 'Tallenna. Seuraava liike avautuu itsestään, ja lepoajastin käynnistyy sarjojen välissä.') +
       '</div>';
   }
   function shouldShowExportReminder(){
@@ -3475,21 +3614,57 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return state.lastExportDate < daysAgoISO(EXPORT_REMINDER_DAYS);
   }
   function renderExportReminder(){
-    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
-      '<b style="color:var(--brass);">Varmuuskopio.</b> Viimeisimmästä varmuuskopiosta on jo yli ' + EXPORT_REMINDER_DAYS + ' päivää. Merkinnät, ohjelma, omat liikkeet ja 1RM-arvot ovat vain tässä selaimessa — kannattaa ottaa tuore varmuuskopio talteen.' +
-      '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">' +
-      '<button class="btn-secondary" data-export-reminder-now type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Vie nyt</button>' +
-      '<button class="btn-secondary" data-dismiss-export-reminder type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Muistuta myöhemmin</button>' +
-      '</div>' +
-      '</div>';
+    return renderBanner("", "palauta", "Varmuuskopio",
+      'Viimeisimmästä varmuuskopiosta on jo yli ' + EXPORT_REMINDER_DAYS + ' päivää. Merkinnät, ohjelma, omat liikkeet ja 1RM-arvot ovat vain tässä selaimessa.',
+      '<button class="btn-primary btn-sm btn-auto" data-export-reminder-now type="button">Vie nyt</button>' +
+      '<button class="btn-tertiary btn-sm" data-dismiss-export-reminder type="button">Muistuta myöhemmin</button>');
   }
-  function gearIcon(){
-    // Yksinkertainen itse piirretty ratas: kehä, napa ja kahdeksan hammasta.
-    return '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" focusable="false">' +
-      '<circle cx="12" cy="12" r="6.2"></circle><circle cx="12" cy="12" r="2.6"></circle>' +
-      '<path d="M12 3.6v2.2M12 18.2v2.2M3.6 12h2.2M18.2 12h2.2' +
-      'M6.06 6.06l1.56 1.56M16.38 16.38l1.56 1.56M17.94 6.06l-1.56 1.56M7.62 16.38l-1.56 1.56"></path>' +
-      '</svg>';
+  // ---------- Kuvakesarja ----------
+  // Sisäiset SVG-kuvakkeet yhdellä viivanpaksuudella (1,7) 24 px:n ruudukossa.
+  // Ei kuvakefonttia eikä ulkoista tiedostoa: sovellus pysyy yhtenä tiedostona.
+  // Jokainen kuvake on koristeellinen (aria-hidden); merkitys annetaan aina
+  // viereisellä tekstillä tai aria-labelilla.
+  var ICONS = {
+    ohjelma:   '<path d="M4 9.5v5M20 9.5v5M7 7.5v9M17 7.5v9M7 12h10M2 11v2M22 11v2"></path>',
+    historia:  '<circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5v4.8l3 1.8"></path>',
+    kehitys:   '<path d="M3 17l5.5-5.5 4 4L21 7M15.5 7H21v5.5"></path>',
+    ohje:      '<circle cx="12" cy="12" r="8.5"></circle><path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8M12 16.8h.01"></path>',
+    asetukset: '<circle cx="12" cy="12" r="6.2"></circle><circle cx="12" cy="12" r="2.6"></circle><path d="M12 3.6v2.2M12 18.2v2.2M3.6 12h2.2M18.2 12h2.2M6.06 6.06l1.56 1.56M16.38 16.38l1.56 1.56M17.94 6.06l-1.56 1.56M7.62 16.38l-1.56 1.56"></path>',
+    tiedosto:  '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"></path>',
+    tuo:       '<path d="M12 16V4M6.5 9.5 12 4l5.5 5.5M4 20h16"></path>',
+    rakenna:   '<path d="M4 6h16M4 12h9M4 18h6M17 14.5v6M14 17.5h6"></path>',
+    palauta:   '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 4.5v5h5"></path>',
+    plus:      '<path d="M12 5v14M5 12h14"></path>',
+    poista:    '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path>',
+    valmis:    '<path d="M5 12.5l4.5 4.5L19 7"></path>',
+    muokkaa:   '<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z"></path>',
+    valikko:   '<circle cx="12" cy="5.5" r="1.4" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle><circle cx="12" cy="18.5" r="1.4" fill="currentColor" stroke="none"></circle>',
+    nuoli:     '<path d="M9 6l6 6-6 6"></path>',
+    takaisin:  '<path d="M19 12H5M11 18l-6-6 6-6"></path>',
+    kalenteri: '<path d="M4 6.5h16v13.5H4zM4 10.5h16M8 3.5v4M16 3.5v4"></path>',
+    tieto:     '<circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5.5M12 7.8h.01"></path>',
+    varoitus:  '<path d="M12 3.5 21.5 20h-19zM12 10v4.5M12 17.2h.01"></path>',
+    suoja:     '<path d="M12 3l8 3v6c0 5-3.5 8.6-8 9.5C7.5 20.6 4 17 4 12V6zM9 12l2.2 2.2L15.5 10"></path>',
+    laite:     '<path d="M8 2.5h8a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2zM11 18h2"></path>',
+    sulje:     '<path d="M6 6l12 12M18 6 6 18"></path>',
+    haku:      '<circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M20 20l-4.6-4.6"></path>'
+  };
+  function icon(name, size){
+    var body = ICONS[name] || "";
+    var px = size || 22;
+    return '<svg viewBox="0 0 24 24" width="' + px + '" height="' + px + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + body + '</svg>';
+  }
+  function gearIcon(){ return icon("asetukset", 21); }
+
+  // Banneri: kind = "" | "info" | "danger". actionsHtml voi olla tyhjä.
+  function renderBanner(kind, iconName, title, bodyHtml, actionsHtml){
+    return '<div class="banner' + (kind ? " banner-" + kind : "") + '">' +
+      '<div class="banner-icon">' + icon(iconName, 20) + '</div>' +
+      '<div class="banner-body">' +
+      (title ? '<div class="banner-title">' + title + '</div>' : '') +
+      '<div>' + bodyHtml + '</div>' +
+      (actionsHtml ? '<div class="banner-actions">' + actionsHtml + '</div>' : '') +
+      '</div></div>';
   }
   function renderHeader(){
     var showNav = !!(state.program && !state.loading);
@@ -3499,22 +3674,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         (state.view === "asetukset" ? ' aria-current="page"' : "") + '>' + gearIcon() + '</button>' : "") +
       '</div>';
     if(state.storageMode === "local" && state.storageWarn){
-      html += '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
-        '<b style="color:var(--brass);">Varatallennus käytössä.</b> Claude-tallennus ei vastannut tässä ympäristössä, joten merkinnät tallennetaan tämän selaimen omaan muistiin. ' +
-        'Ne säilyvät normaalisti tällä laitteella ja tässä selaimessa, mutta eivät siirry muille laitteille. Ota varmuuskopio Asetusten (rataskuvake oikeassa yläkulmassa) CSV-viennillä.' +
-        '</div>';
+      html += renderBanner("", "varoitus", "Varatallennus käytössä",
+        'Claude-tallennus ei vastannut tässä ympäristössä, joten merkinnät tallennetaan tämän selaimen omaan muistiin. Ne säilyvät tällä laitteella, mutta eivät siirry muille. Ota varmuuskopio Asetuksista.', "");
     } else if(state.storageMode === "memory"){
-      html += '<div style="background:rgba(193,99,60,0.15); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px; font-size:13px; line-height:1.5; color:var(--chalk);">' +
-        '<b style="color:var(--danger-text);">Merkinnät eivät säily.</b> Tallennus ei toimi tässä ympäristössä, joten tiedot katoavat, kun suljet sivun. ' +
-        'Kokeile avata treenipäiväkirja Claude-sovelluksen kautta tai salli selaimen tallennustila (yksityinen selaus ja evästeiden esto estävät tallennuksen).' +
-        (state.lastError ? '<div style="margin-top:8px; font-size:11px; color:var(--mist); font-family:ui-monospace,monospace;">Virhe: ' + escapeHtml(state.lastError) + '</div>' : '') +
-        '</div>';
+      html += renderBanner("danger", "varoitus", "Merkinnät eivät säily",
+        'Tallennus ei toimi tässä ympäristössä, joten tiedot katoavat, kun suljet sivun. Kokeile avata treenipäiväkirja Claude-sovelluksen kautta tai salli selaimen tallennustila (yksityinen selaus ja evästeiden esto estävät tallennuksen).' +
+        (state.lastError ? '<div style="margin-top:8px; font-size:11px; color:var(--mist); font-family:ui-monospace,monospace;">Virhe: ' + escapeHtml(state.lastError) + '</div>' : ''), "");
     } else if(shouldShowExportReminder()){
       // Vasta viimeisenä: tallennusongelmasta kertova varoitus on aina
       // tärkeämpi, eikä kahta banneria pinota päällekkäin.
       html += renderExportReminder();
     }
-    if(state.showHomescreenHint) html += renderHomescreenHint();
+    // Vain yksi vihje kerrallaan: ensimmäisen ohjelman jälkeen kirjausohje on
+    // tärkeämpi, ja aloitusnäyttövinkki näytetään vasta kun se on ohi.
+    if(state.showHomescreenHint && !shouldShowFirstLogHint()) html += renderHomescreenHint();
     if(showNav) html += renderTabs();
     return html;
   }
@@ -3522,7 +3695,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Asetukset ei ole listassa — se avataan otsikkorivin rataskuvakkeesta.
     var tabs = [["ohjelma","Ohjelma"],["historia","Historia"],["kehitys","Kehitys"],["ohje","Ohje"]];
     return '<nav class="bottom-nav" aria-label="Päänavigaatio">' + tabs.map(function(t){
-      return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '" role="button" tabindex="0"' + (state.view===t[0] ? ' aria-current="page" style="view-transition-name:active-tab;"' : "") + '>' + t[1] + '</div>';
+      return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '" role="button" tabindex="0"' + (state.view===t[0] ? ' aria-current="page" style="view-transition-name:active-tab;"' : "") + '>' +
+        icon(t[0], 20) + '<span>' + t[1] + '</span></div>';
     }).join("") + '</nav>';
   }
   function renderBody(){
@@ -3561,7 +3735,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("1. Tuo treeniohjelma", ohjeP(
-      "Lataa Asetuksista — oikean yläkulman rataskuvakkeesta — (tai ensimmäisellä käyttökerralla suoraan etusivulta) treeniohjelmasi CSV-tiedostona. Ainoa pakollinen sarake on <b style=\"color:var(--chalk);\">liikkeen nimi</b> — muut tunnistetaan otsikon perusteella automaattisesti."
+      "Ensimmäisellä käyttökerralla aloitusruutu kysyy, miten haluat aloittaa: rakenna ohjelma itse, tuo se tiedostosta tai palauta varmuuskopio. Myöhemmin samat vaihtoehdot löytyvät Asetuksista, oikean yläkulman rataskuvakkeesta. \"Tuo tiedostosta\" ottaa vastaan sekä CSV- että PDF-tiedoston — muoto tunnistetaan itsestään."
+    ) + ohjeP(
+      "CSV-tiedostossa ainoa pakollinen sarake on <b style=\"color:var(--chalk);\">liikkeen nimi</b> — muut tunnistetaan otsikon perusteella automaattisesti."
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Viikko</b> ja <b style=\"color:var(--chalk);\">Treenipäivä</b> ryhmittelevät ohjelman.",
       "<b style=\"color:var(--chalk);\">Variaatio</b> ja <b style=\"color:var(--chalk);\">Lisävariaatio</b> liitetään omista sarakkeistaan liikkeen nimeen pilkulla erotettuna (esim. <code>Hauiskääntö taljassa, Maaten, Scott-kahva</code>).",
@@ -3616,7 +3792,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("5. Asetukset (rataskuvake oikeassa yläkulmassa)", ohjeList([
-      "<b style=\"color:var(--chalk);\">Ohjelma</b> — tuo uusi ohjelma CSV- tai PDF-tiedostona tai rakenna se sovelluksessa. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy.",
+      "<b style=\"color:var(--chalk);\">Ohjelma</b> — tuo uusi ohjelma tiedostosta (CSV tai PDF) tai rakenna se sovelluksessa. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy.",
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
@@ -3636,32 +3812,109 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function renderPdfImportError(){
     if(!state.pdfImportError) return "";
-    return '<div style="background:rgba(191,90,90,0.12); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5; text-align:left;">' +
-      '<b style="color:var(--danger-text);">PDF-tuonti ei onnistunut</b>' +
-      '<div style="margin-top:6px;">' + escapeHtml(state.pdfImportError) + '</div>' +
-      '<button class="btn-secondary" data-dismiss-pdf-error type="button" style="width:auto; padding:8px 14px; font-size:12.5px; margin-top:10px;">Sulje</button>' +
-      '</div>';
+    return renderBanner("danger", "varoitus", "PDF-tuonti ei onnistunut", escapeHtml(state.pdfImportError),
+      '<button class="btn-secondary btn-sm btn-auto" data-dismiss-pdf-error type="button">Sulje</button>');
   }
-  function renderPdfInput(id){
-    // multiple: valmentajan ohjelma tulee usein viikko per tiedosto.
-    return '<input type="file" accept="application/pdf,.pdf" multiple id="' + id + '" aria-label="Valitse treeniohjelman PDF-tiedostot">';
+  // Sovelluksen näköinen tiedostonvalitsin. cls valitsee painiketyylin
+  // (btn-primary / btn-secondary), iconName kuvakkeen; natiivi input jää
+  // DOM:iin annetulla id:llä, jotta change-käsittelijä toimii ennallaan.
+  function renderFilePicker(id, accept, multiple, cls, iconName, label, ariaLabel){
+    return '<span class="' + cls + ' file-picker">' + (iconName ? icon(iconName, 20) : "") + '<span>' + escapeHtml(label) + '</span>' +
+      '<input type="file" id="' + id + '" accept="' + accept + '"' + (multiple ? ' multiple' : '') + ' aria-label="' + escapeHtml(ariaLabel || label) + '"></span>';
+  }
+  // Ohjelmatiedoston valitsin: CSV ja PDF yhdessä, muoto tunnistetaan
+  // päätteestä. multiple, koska valmentajan PDF tulee usein viikko per tiedosto.
+  var PROGRAM_FILE_ACCEPT = ".csv,.pdf,text/csv,application/pdf";
+  function renderProgramFilePicker(id, cls, label){
+    return renderFilePicker(id, PROGRAM_FILE_ACCEPT, true, cls, "tuo", label, "Valitse treeniohjelman CSV- tai PDF-tiedosto");
+  }
+  // Tunnistaa valitut tiedostot päätteestä: kaikki PDF:t menevät PDF-tuontiin,
+  // muuten ensimmäinen tiedosto luetaan CSV:nä.
+  function handleProgramFiles(files){
+    var list = Array.prototype.slice.call(files || []);
+    if(!list.length) return;
+    var pdfs = list.filter(function(f){ return /\.pdf$/i.test(f.name) || f.type === "application/pdf"; });
+    if(pdfs.length === list.length){ handlePdfFiles(pdfs); return; }
+    var csv = list.filter(function(f){ return !/\.pdf$/i.test(f.name); })[0];
+    if(csv) handleFile(csv);
+  }
+  // Kirjauspäivän sirpale: "Tänään", kun päivämäärä on tämä päivä, muuten
+  // lyhyt päivämäärä. Natiivi kenttä avautuu sirpaleen napautuksesta.
+  function renderDateChip(){
+    var isToday = state.draftDate === todayISO();
+    var label = isToday ? "Tänään" : capitalize(formatDateFI(state.draftDate));
+    return '<span class="date-chip" data-date-chip>' + icon("kalenteri", 18) + '<span>' + escapeHtml(label) + '</span>' +
+      '<input type="date" id="log-date" value="' + state.draftDate + '" aria-label="Kirjauspäivä"></span>';
+  }
+  // Aloitusruutu: kolme tapaa saada ohjelma, jokainen yhtenä korttina.
+  // Muotokohtaiset ohjeet ovat pohjalevyn takana, jotta ensimmäinen ruutu
+  // ei vaadi lukemista ennen toimintaa.
+  function renderChoiceCard(inner, iconName, title, desc){
+    // Vain span-elementtejä, koska kortti voi olla <button>, jonka sisältö
+    // saa olla ainoastaan tekstitason sisältöä.
+    return inner +
+      '<span class="choice-icon">' + icon(iconName, 24) + '</span>' +
+      '<span class="choice-body"><span class="choice-title">' + title + '</span>' +
+      '<span class="choice-desc">' + desc + '</span></span>' +
+      '<span class="choice-chevron">' + icon("nuoli", 20) + '</span>';
   }
   function renderUpload(){
-    return '<div class="upload-box">' +
-      renderPdfImportError() +
-      '<p>Tuo treeniohjelmasi CSV- tai PDF-tiedostona aloittaaksesi.</p>' +
-      '<div class="day-heading" style="margin-top:4px;">Tuo CSV</div>' +
-      '<p style="margin-top:0;">Ainoa pakollinen sarake on liikkeen nimi; muut tunnistetaan automaattisesti sekä suomeksi että englanniksi.</p>' +
-      '<div class="csv-example">Viikko;Treenipäivä;Liike;Sarjat;Toistot;Teho<br>1;1;Penkkipunnerrus;1;1;MAX<br>1;1;Penkkipunnerrus;2;3;90 %<br>1;1;Peck deck;3;10;</div>' +
-      '<input type="file" accept=".csv" id="csv-input-initial" aria-label="Valitse treeniohjelman CSV-tiedosto">' +
-      '<div class="day-heading" style="margin-top:20px;">Tuo PDF</div>' +
-      '<p style="margin-top:0;">Valmentajan PDF-ohjelma luetaan suoraan laitteellasi — mitään ei lähetetä verkkoon. Voit valita useita tiedostoja kerralla, esimerkiksi viikon per tiedosto. Tuonti ei tallenna suoraan, vaan näyttää jäsennetyn ohjelman tarkistettavaksi. Skannattuja, pelkkää kuvaa sisältäviä PDF-tiedostoja ei voi lukea.</p>' +
-      renderPdfInput("pdf-input-initial") +
-      '<div class="day-heading" style="margin-top:20px;">Rakenna sovelluksessa</div>' +
-      '<p style="margin-top:0;">Voit myös koota ohjelman itse ilman tiedostoa: lisää viikot, treenipäivät ja liikkeet lihasryhmittäin ryhmitellystä liikelistasta tai kirjoittamalla nimen itse.</p>' +
-      '<button class="btn-secondary" data-builder-start type="button">Rakenna ohjelma sovelluksessa</button>' +
-      '<div style="margin-top:14px; text-align:center;"><span data-tab="ohje" style="color:var(--mist); font-size:13px; text-decoration:underline; cursor:pointer;">Lue tarkemmat käyttöohjeet</span></div>' +
+    var html = renderPdfImportError() + renderRestoreConfirm() +
+      '<h2 class="start-title">Miten haluat aloittaa?</h2>' +
+      '<p class="start-lead">Treenipäiväkirja tarvitsee treeniohjelman. Valitse tapa — kaikki vievät samaan lopputulokseen.</p>' +
+      '<button class="choice-card" data-builder-start type="button">' +
+      renderChoiceCard("", "rakenna", "Rakenna itse", "Kokoa viikot, treenipäivät ja liikkeet valmiista liikelistasta.") +
+      '</button>' +
+      '<span class="choice-card file-picker">' +
+      renderChoiceCard('<input type="file" id="program-file-initial" accept="' + PROGRAM_FILE_ACCEPT + '" multiple aria-label="Tuo treeniohjelma CSV- tai PDF-tiedostosta">',
+        "tuo", "Tuo tiedostosta", "CSV-taulukko tai valmentajan PDF. Luetaan laitteellasi, ei lähetetä minnekään.") +
+      '</span>' +
+      '<span class="choice-card file-picker">' +
+      renderChoiceCard('<input type="file" id="import-entries-input" accept=".csv,text/csv" aria-label="Palauta varmuuskopio">',
+        "palauta", "Palauta varmuuskopio", "Ohjelma, merkinnät, omat liikkeet ja 1RM-arvot toiselta laitteelta.") +
+      '</span>' +
+      '<div class="start-links">' +
+      '<button class="btn-tertiary btn-sm" data-open-sheet="csv" type="button">Näytä CSV-tiedoston muoto</button>' +
+      '<button class="btn-tertiary btn-sm" data-tab="ohje" type="button">Lue käyttöohjeet</button>' +
       '</div>';
+    return html;
+  }
+
+  // ---------- Pohjalevy ----------
+  // Suljettaessa fokus palaa avauspainikkeeseen, jotta näppäimistökäyttäjä
+  // jatkaa siitä mihin jäi.
+  function closeSheet(){
+    var opener = state.sheet;
+    state.sheet = null;
+    afterRender(function(){
+      var btn = document.querySelector('[data-open-sheet="' + opener + '"]');
+      if(btn) btn.focus();
+    });
+  }
+  // Suorittaa fn:n vasta kun render() on piirtänyt uuden DOM:in — myös
+  // näkymäsiirtymän kanssa, jolloin piirto tapahtuu viiveellä.
+  function afterRender(fn){
+    var t = render();
+    if(t && t.updateCallbackDone){ t.updateCallbackDone.then(fn, fn); }
+    else { fn(); }
+  }
+  function renderSheet(){
+    if(!state.sheet) return "";
+    var title = "", body = "";
+    if(state.sheet === "csv"){
+      title = "CSV-tiedoston muoto";
+      body = '<p>Ainoa pakollinen sarake on liikkeen nimi. Muut sarakkeet tunnistetaan otsikosta sekä suomeksi että englanniksi, ja erotin (puolipiste, pilkku tai sarkain) tunnistetaan itsestään — myös suomalaisen Excelin vienti toimii sellaisenaan.</p>' +
+        '<div class="csv-example">Viikko;Treenipäivä;Liike;Sarjat;Toistot;Teho<br>1;1;Penkkipunnerrus;1;1;MAX<br>1;1;Penkkipunnerrus;2;3;90 %<br>1;1;Peck deck;3;10;</div>' +
+        '<p><b style="color:var(--chalk);">Viikko</b> ja <b style="color:var(--chalk);">Treenipäivä</b> ryhmittelevät ohjelman. <b style="color:var(--chalk);">Teho</b> on joko <code>MAX</code> tai prosentti, ja se ohjaa painoehdotuksen liikkeen 1RM-arvosta. Tarkemmat ohjeet löytyvät Ohje-välilehdeltä.</p>' +
+        '<p>PDF-ohjelmalle ei tarvita mitään muotoa: valmentajan tiedosto luetaan sellaisenaan ja näytetään tarkistettavaksi ennen tallennusta.</p>';
+    }
+    return '<div class="sheet-backdrop" data-close-sheet>' +
+      '<div class="sheet" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '">' +
+      '<div class="sheet-handle" aria-hidden="true"></div>' +
+      '<div class="sheet-title"><span>' + escapeHtml(title) + '</span>' +
+      '<button type="button" class="icon-btn" data-close-sheet aria-label="Sulje" style="width:36px; height:36px;">' + icon("sulje", 18) + '</button></div>' +
+      body +
+      '</div></div>';
   }
   function renderWeekStepper(){
     var weeks = state.program.weeks;
@@ -3688,17 +3941,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var rows = warnings.map(function(w){
       return '<div style="margin-bottom:6px;">”' + escapeHtml(w.imported) + '” — historiassa on samankaltainen liike ”' + escapeHtml(w.historical) + '”.</div>';
     }).join("");
-    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
-      '<b style="color:var(--brass);">Tarkista liikkeiden kirjoitusasu</b>' +
-      '<div style="margin-top:8px;">' + rows + '</div>' +
-      '<div style="margin-top:8px;">Liikkeet tunnistetaan nimen perusteella, joten eri kirjoitusasu aloittaa historian alusta. Korjaa nimi CSV-tiedostoon ja tuo ohjelma uudelleen, jos kyseessä on sama liike.</div>' +
-      '<button class="btn-secondary" data-dismiss-import-warning type="button" style="width:auto; padding:8px 14px; font-size:12.5px; margin-top:10px;">Sulje</button>' +
-      '</div>';
+    return renderBanner("", "tieto", "Tarkista liikkeiden kirjoitusasu",
+      '<div style="margin-bottom:6px;">' + rows + '</div>' +
+      'Liikkeet tunnistetaan nimen perusteella, joten eri kirjoitusasu aloittaa historian alusta. Korjaa nimi tiedostoon ja tuo ohjelma uudelleen, jos kyseessä on sama liike.',
+      '<button class="btn-secondary btn-sm btn-auto" data-dismiss-import-warning type="button">Sulje</button>');
   }
   function renderOhjelma(){
     var html = renderImportNameWarnings() +
-      '<div class="date-picker-row"><label for="log-date">Kirjataan päivälle</label>' +
-      '<input type="date" id="log-date" value="' + state.draftDate + '"></div>';
+      (shouldShowFirstLogHint() ? renderFirstLogHint() : "") +
+      '<div class="date-picker-row"><span>Kirjataan päivälle</span>' + renderDateChip() + '</div>';
 
     var hasWeeks = state.program.weeks && state.program.weeks.length > 0;
     var groupsToShow = state.program.days;
@@ -3747,17 +3998,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function tehoBadge(ex){
     if(!ex.intensity) return "";
-    var label, bg, fg, bd;
+    var label, cls;
     if(ex.intensity.isMax){
       // MAX erottuu ääriviivamerkkinä, prosenttiteho täytettynä harmaana.
-      label = "MAX"; bg = "transparent"; fg = "var(--brass)"; bd = "var(--brass)";
+      label = "MAX"; cls = "chip-brass";
     } else if(ex.intensity.percents && ex.intensity.percents.length){
       label = ex.intensity.percents.map(function(p){ return String(p).replace(".", ","); }).join("/") + " %";
-      bg = "rgba(136,145,160,0.2)"; fg = "var(--chalk)"; bd = "transparent";
+      cls = "chip-muted";
     } else {
       return "";
     }
-    return '<span style="display:inline-block; margin-left:8px; padding:2px 8px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.02em; background:' + bg + '; color:' + fg + '; border:1px solid ' + bd + '; vertical-align:middle;">' + escapeHtml(label) + '</span>';
+    return '<span class="chip ' + cls + '" style="margin-left:8px;">' + escapeHtml(label) + '</span>';
   }
   function renderDaySummary(day, fullyDone){
     var totalKg = 0;
@@ -3971,9 +4222,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function renderVariantNameHint(similar){
     // Sama sanamuoto ja tyyli kuin renderImportNameWarnings — ei estä tallennusta.
-    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:8px; font-size:12.5px; line-height:1.5;">' +
+    return '<div class="banner" style="margin-bottom:8px;"><div class="banner-icon">' + icon("tieto", 20) + '</div><div class="banner-body">' +
       'Listalla on jo samankaltainen liike ”' + escapeHtml(similar) + '”. Liikkeet tunnistetaan nimen perusteella, joten eri kirjoitusasu aloittaa historian alusta.' +
-      '</div>';
+      '</div></div>';
   }
   // Liikelista lihasryhmittäin <optgroup>-ryhminä. Yhteinen sekä liikkeen
   // vaihdolle että ohjelmarakentajalle, jotta molemmat näyttävät saman listan
@@ -4526,26 +4777,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var maxCount = Object.keys(pr.manualMax || {}).length;
     if(maxCount) lines.push("1RM-arvoja: " + maxCount);
     lines.push("Merkintöjä: " + Object.keys(pr.byDate).length + " päivältä");
-    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
-      '<b style="color:var(--brass);">Palautetaanko varmuuskopio?</b>' +
-      '<div style="margin-top:6px; color:var(--mist);">' + escapeHtml(pr.fileName || "") + '</div>' +
+    return renderBanner("", "palauta", "Palautetaanko varmuuskopio?",
+      '<div style="color:var(--mist);">' + escapeHtml(pr.fileName || "") + '</div>' +
       '<div style="margin-top:8px;">' + lines.map(function(l){ return escapeHtml(l); }).join("<br>") + '</div>' +
-      '<div style="margin-top:8px;">Varmuuskopion ohjelma <b style="color:var(--chalk);">korvaa nykyisen ohjelman</b>. Omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin: jo olemassa oleva ohitetaan, eikä mitään tallennettua poisteta.</div>' +
-      '<div style="display:flex; gap:8px; margin-top:10px;">' +
-      '<button class="btn-secondary" data-restore-cancel type="button" style="padding:9px 12px; font-size:12.5px;">Peruuta</button>' +
-      '<button class="save-btn" data-restore-confirm type="button" style="margin-top:0; padding:9px 12px; font-size:12.5px;">Palauta</button>' +
-      '</div></div>';
+      '<div style="margin-top:8px;">' + (state.program ? 'Varmuuskopion ohjelma <b style="color:var(--chalk);">korvaa nykyisen ohjelman</b>. ' : '') + 'Omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin: jo olemassa oleva ohitetaan, eikä mitään tallennettua poisteta.</div>',
+      '<button class="btn-primary btn-sm btn-auto" data-restore-confirm type="button">Palauta</button>' +
+      '<button class="btn-tertiary btn-sm" data-restore-cancel type="button">Peruuta</button>');
   }
   function renderAsetukset(){
     return '<div class="day-heading">Ohjelma</div>' +
       '<div class="exercise" style="padding:16px;">' +
       renderPdfImportError() +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Tuo uusi CSV korvataksesi nykyisen ohjelman. Aiemmat merkinnät säilyvät ennallaan.</p>' +
-      '<input type="file" accept=".csv" id="csv-input-settings" aria-label="Valitse uusi treeniohjelman CSV-tiedosto">' +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Tai tuo ohjelma PDF-tiedostoina. Tiedostot luetaan laitteellasi eikä niitä lähetetä minnekään. Jäsennetty ohjelma näytetään tarkistettavaksi ennen tallennusta.</p>' +
-      renderPdfInput("pdf-input-settings") +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Tai rakenna uusi ohjelma sovelluksessa ilman tiedostoa. Sekin korvaa nykyisen ohjelman ja säilyttää aiemmat merkinnät ennallaan.</p>' +
-      '<button class="btn-secondary" data-builder-start type="button">Rakenna ohjelma sovelluksessa</button>' +
+      '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:0 0 12px;">Uusi ohjelma korvaa nykyisen. Aiemmat merkinnät säilyvät liikkeen nimen perusteella ennallaan.</p>' +
+      '<div style="display:flex; flex-direction:column; gap:10px;">' +
+      renderProgramFilePicker("program-file-settings", "btn-secondary", "Tuo tiedostosta (CSV tai PDF)") +
+      '<button class="btn-secondary" data-builder-start type="button">' + icon("rakenna", 20) + '<span>Rakenna sovelluksessa</span></button>' +
+      '</div>' +
       '</div>' +
       '<div class="day-heading">Liikkeiden 1RM</div>' +
       '<div class="exercise" style="padding:16px;">' +
@@ -4578,9 +4825,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="exercise" style="padding:16px;">' +
       renderRestoreConfirm() +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Lataa yhtenä CSV-tiedostona kaikki kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot.</p>' +
-      '<button class="btn-secondary" id="export-btn" type="button">Vie varmuuskopio CSV:nä</button>' +
+      '<button class="btn-secondary" id="export-btn" type="button">' + icon("tiedosto", 20) + '<span>Vie varmuuskopio CSV:nä</span></button>' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Palauta varmuuskopio tai siirrä tietosi toiselta laitteelta. Ohjelma palautuu sellaisena kuin se oli varmuuskopion hetkellä; omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin ohittaen jo olemassa olevat, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.</p>' +
-      '<input type="file" accept=".csv" id="import-entries-input" aria-label="Valitse palautettava varmuuskopiotiedosto">' +
+      renderFilePicker("import-entries-input", ".csv,text/csv", false, "btn-secondary", "palauta", "Palauta varmuuskopio", "Valitse palautettava varmuuskopiotiedosto") +
       '</div>' +
       '<div class="day-heading">Simulointi</div>' +
       '<div class="exercise" style="padding:16px;">' +
@@ -4608,12 +4855,25 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '</div>';
   }
 
+  // Tervetuloruutu ja koekäyttöehdot yhdessä: ensimmäinen ruutu kertoo mikä
+  // sovellus on, ja hyväksyntä on sen ainoa toiminto. Hyväksynnän merkitys
+  // (consentGiven + STORAGE_CONSENT_KEY) on täsmälleen sama kuin ennen.
   function renderConsentGate(){
-    return '<div class="upload-box">' +
-      '<h1 style="font-size:20px; font-weight:800; margin:0 0 12px;">Treenipäiväkirja — koekäyttöversio</h1>' +
-      '<p>Tämä sovellus on tekijän omistama koekäyttöversio, ei julkinen julkaisu. Sisältöä ei saa kopioida, jakaa eteenpäin eikä käyttää kaupallisesti.</p>' +
-      '<p>Jatkamalla vahvistat, että olet tietoinen tästä ja käytät sovellusta vain tekijän luvalla.</p>' +
-      '<button class="save-btn" id="consent-accept-btn" type="button">Hyväksyn ja jatkan</button>' +
+    function feature(iconName, text){
+      return '<div class="welcome-feature"><div class="choice-icon">' + icon(iconName, 22) + '</div>' +
+        '<div class="welcome-feature-text">' + text + '</div></div>';
+    }
+    return '<div class="welcome">' +
+      '<img class="welcome-logo" src="' + APP_LOGO_SRC + '" alt="" decoding="async">' +
+      '<h1>Treenipäiväkirja</h1>' +
+      '<p class="welcome-lead">Kirjaa sarjat, seuraa kehitystä ja saa seuraavan treenin painot valmiiksi ehdotettuina.</p>' +
+      '<div class="welcome-features">' +
+      feature("ohjelma", 'Tuo valmentajan ohjelma tai <b>rakenna oma</b> suoraan sovelluksessa') +
+      feature("kehitys", 'Painoehdotukset ja kehityksen seuranta <b>joka liikkeelle</b>') +
+      feature("suoja", 'Tiedot pysyvät <b>vain omalla laitteellasi</b> — mitään ei lähetetä verkkoon') +
+      '</div>' +
+      '<div class="welcome-terms"><b>Koekäyttöversio.</b> Tämä sovellus on tekijän omistama koekäyttöversio, ei julkinen julkaisu. Sisältöä ei saa kopioida, jakaa eteenpäin eikä käyttää kaupallisesti. Jatkamalla vahvistat, että olet tietoinen tästä ja käytät sovellusta vain tekijän luvalla.</div>' +
+      '<button class="btn-primary" id="consent-accept-btn" type="button">Hyväksyn ja aloitan</button>' +
       '</div>';
   }
   function render(){
@@ -4627,7 +4887,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Alanavigaatio on kelluva ja peittäisi sisällön lopun ilman lisätilaa.
       app.className = (state.program && !state.loading) ? "has-bottom-nav" : "";
       // header/nav/main-maamerkit: ruudunlukijalla pääsee suoraan sisältöön.
-      app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>';
+      app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>' + renderSheet();
     };
     // Palautetaan siirtymäolio, jotta harvat kutsujat jotka lukevat juuri
     // piirretyn DOM:in (ks. data-swap-open) voivat odottaa päivitystä.
@@ -4645,6 +4905,32 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       try{ await storeSet(STORAGE_CONSENT_KEY, "1"); }
       catch(e){ /* hiljainen virhe, ei kriittinen */ }
       render();
+      return;
+    }
+    if(e.target.closest("[data-toggle-homescreen-hint]")){
+      state.homescreenHintExpanded = !state.homescreenHintExpanded;
+      render();
+      return;
+    }
+    if(e.target.closest("[data-dismiss-first-log-hint]")){
+      state.firstLogHintDismissed = true;
+      try{ await storeSet(STORAGE_FIRST_LOG_HINT_KEY, "1"); }
+      catch(e){ /* hiljainen virhe, ei kriittinen */ }
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-open-sheet]"))){
+      state.sheet = el.dataset.openSheet;
+      // Fokus siirtyy paneelin sulkupainikkeeseen: ruudunlukija ilmoittaa
+      // dialogin, ja Escape toimii heti ilman erillistä napautusta.
+      afterRender(function(){ var c = document.querySelector(".sheet [data-close-sheet]"); if(c) c.focus(); });
+      return;
+    }
+    if(e.target.closest("[data-close-sheet]")){
+      // Vain tausta tai sulkupainike sulkee; paneelin sisällön napautus ei.
+      var closeEl = e.target.closest("[data-close-sheet]");
+      if(closeEl.classList.contains("sheet-backdrop") && e.target !== closeEl) return;
+      closeSheet();
       return;
     }
     if(e.target.closest("[data-dismiss-homescreen-hint]")){
@@ -4763,6 +5049,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // vapaaseen kenttään ei aloita alusta.
       if(state.builder && state.builder.picker) state.builder.picker.free = false;
       render();
+      return;
+    }
+    if((el = e.target.closest("[data-date-chip]"))){
+      // Mobiilissa natiivi kenttä avautuu itsestään; työpöytäselaimessa
+      // avataan valitsin nimenomaisesti, jotta koko sirpale toimii samoin.
+      var dateInput = el.querySelector("input[type=date]");
+      if(dateInput && typeof dateInput.showPicker === "function"){
+        try{ dateInput.showPicker(); }catch(err){ dateInput.focus(); }
+      }
       return;
     }
     if((el = e.target.closest("[data-tab]"))){
@@ -5032,15 +5327,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   });
 
   app.addEventListener("change", function(e){
-    if(e.target.id === "csv-input-initial" || e.target.id === "csv-input-settings"){
-      var file = e.target.files[0];
-      if(file) handleFile(file);
-      return;
-    }
-    if(e.target.id === "pdf-input-initial" || e.target.id === "pdf-input-settings"){
-      var pdfFiles = Array.prototype.slice.call(e.target.files || []);
+    if(e.target.id === "program-file-initial" || e.target.id === "program-file-settings"){
+      var programFiles = Array.prototype.slice.call(e.target.files || []);
       e.target.value = "";
-      if(pdfFiles.length) handlePdfFiles(pdfFiles);
+      handleProgramFiles(programFiles);
       return;
     }
     if(e.target.id === "import-entries-input"){
@@ -5198,6 +5488,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(hintEl) hintEl.innerHTML = similar ? renderVariantNameHint(similar) : "";
   });
 
+  // Escape kuunnellaan dokumenttitasolla: uudelleenpiirron jälkeen fokus voi
+  // olla bodyssä, jolloin #app:n kuuntelija ei näkisi näppäintä lainkaan.
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
+  });
   app.addEventListener("keydown", function(e){
     // Välilehdet, liikeotsikot ja historian päivät ovat div-elementtejä, joten
     // Enter ja välilyönti ohjataan olemassa olevaan click-käsittelijään.
@@ -5276,6 +5571,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     try{
       var homescreenHintRes = await storeGet(STORAGE_HOMESCREEN_HINT_KEY);
       if(homescreenHintRes && homescreenHintRes.value === "1"){ state.homescreenHintDismissed = true; }
+    }catch(e){}
+    try{
+      var firstLogHintRes = await storeGet(STORAGE_FIRST_LOG_HINT_KEY);
+      if(firstLogHintRes && firstLogHintRes.value === "1"){ state.firstLogHintDismissed = true; }
     }catch(e){}
     try{
       var lastExportRes = await storeGet(STORAGE_LAST_EXPORT_KEY);

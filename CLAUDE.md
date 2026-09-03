@@ -111,3 +111,44 @@ varmuuskopion palautus ei saa laskea tuoreempaa 1RM:ää huomaamatta. Sama
 `importEntriesData()` kutsuu vain `rebuildTrackersForName()`, ei
 `rebuildManualMaxForName()`:ia, joten merkintöjen tuonti ei ylikirjoita juuri
 palautettuja 1RM-arvoja.
+
+## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
+
+Yhteinen komponentti- ja tokenjärjestelmä, jonka päälle näkymät rakennetaan.
+Uusi koodi käyttää näitä; vanhoja inline-tyylejä siirretään niihin sitä mukaa
+kun näkymiä käsitellään.
+
+Painikkeet: `.btn-primary` (täytetty messinki, ruudun päätoiminto),
+`.btn-secondary` (ääriviiva), `.btn-tertiary` (pelkkä teksti),
+`.btn-danger` (tuhoava); koot `.btn-sm`, leveys `.btn-auto`. `.save-btn` on
+alias `.btn-primary`:lle vanhojen kutsupaikkojen takia — älä käytä uudessa
+koodissa. Merkit `.chip` + `.chip-brass/-muted/-success`. Banneri
+`renderBanner(kind, iconName, title, bodyHtml, actionsHtml)`, kind `""`,
+`"info"` tai `"danger"`; kaikki aiemmat ad hoc -laatikot käyttävät sitä.
+
+Kuvakkeet: `ICONS`-olio (24 px, viiva 1,7) ja `icon(name, size)`. Ei
+kuvakefonttia. `gearIcon()` on säilytetty aliaksena. Kuvake on aina
+`aria-hidden`; merkitys annetaan tekstillä tai aria-labelilla.
+
+Natiivit kontrollit: `renderFilePicker()` ja `renderDateChip()` pitävät
+natiivin `<input>`:in DOM:issa läpinäkyvänä sovelluksen näköisen painikkeen
+päällä, joten id:t ja `change`-käsittelijät toimivat ennallaan ja näppäimistö-
+fokus näkyy `:focus-within`-renkaana. CSV ja PDF on yhdistetty yhdeksi
+syötteeksi (`#program-file-initial`, `#program-file-settings`);
+`handleProgramFiles()` tunnistaa muodon päätteestä.
+
+Ensikäynnistys: `renderConsentGate()` on tervetuloruutu, jossa koekäyttöehdot
+ovat mukana — hyväksynnän semantiikka (`consentGiven`, `STORAGE_CONSENT_KEY`,
+`#consent-accept-btn`) on ennallaan. `renderUpload()` on aloitusruutu kolmella
+valintakortilla; varmuuskopion palautus on siinä mukana, koska se on tyhjän
+laitteen tärkein reitti (aiemmin mahdoton ilman ohjelmaa). CSV-esimerkki on
+pohjalevyssä (`state.sheet`, `renderSheet()`, sulkeutuu taustasta,
+sulkupainikkeesta ja Escapesta). Valmiista pohjista ei vielä mainita mitään —
+asettelu on suunniteltu neljälle kortille.
+
+Vihjeet: yksi kerrallaan. `shouldShowFirstLogHint()` näyttää kolmen askeleen
+kirjausohjeen kunnes ensimmäinen merkintä on tallennettu tai kortti suljetaan
+(`STORAGE_FIRST_LOG_HINT_KEY`); aloitusnäyttövinkki näytetään vasta sen
+jälkeen ja on tiivis banneri, jonka ohjeen saa auki erikseen.
+
+Ilmoitusruutu nousee alhaalta navigaation yläpuolelle, ei enää yläpalkin päälle.

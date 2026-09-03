@@ -6,7 +6,7 @@ Ainoa ulkoinen kirjasto on PDF-tuonnin tarvitsema [pdf.js](https://mozilla.githu
 
 ## Käyttöönotto
 
-Avaa julkaistu osoite selaimessa ja tuo treeniohjelmasi CSV- tai PDF-tiedostona — tai rakenna se suoraan sovelluksessa. Ohjelma tallentuu selaimeen, joten tämä tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan.
+Avaa julkaistu osoite selaimessa. Tervetuloruudun jälkeen sovellus kysyy, miten haluat aloittaa: rakenna ohjelma itse, tuo se tiedostosta (CSV tai valmentajan PDF — muoto tunnistetaan itsestään) tai palauta aiempi varmuuskopio toiselta laitteelta. Ohjelma tallentuu selaimeen, joten tämä tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan, ja ensimmäisellä kerralla Ohjelma-näkymän kärjessä on lyhyt kolmen askeleen ohje treenin kirjaamiseen.
 
 Kannattaa lisätä sivu laitteen aloitusnäytölle, jolloin se avautuu kuin natiivi sovellus eikä tavallisena selainvälilehtenä: iPhonella Safarin jakopainikkeesta ("Lisää Koti-valikkoon"), Androidilla selaimen valikosta ("Lisää aloitusnäytölle" tai "Asenna sovellus"). Tämä ei ole pelkkä kosmeettinen ero — Safari saattaa poistaa tavallisena selainvälilehtenä pidetyn sivun paikallisesti tallennetut tiedot noin seitsemän päivän käyttämättömyyden jälkeen, kun taas Koti-valikkoon lisätty, itsenäisenä avautuva versio on tästä vapautettu. Sovellus muistuttaa tästä kerran ensimmäisen CSV-tuonnin jälkeen, ellei se jo tuolloin ole käynnissä aloitusnäytöltä avattuna.
 
