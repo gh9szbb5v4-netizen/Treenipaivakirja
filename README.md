@@ -59,7 +59,7 @@ Tunnistetut tavoitemuodot:
 
 Rivit, joiden tavoitetta ei tunnisteta (esim. `PC 20+18+15` tai kiertoharjoittelun `Askelkävely + Vatsarutistus`), tulevat mukaan ilman tavoitetta ja merkitään tarkistettaviksi.
 
-**PDF-tuonti ei tallenna suoraan.** Jäsennystulos avataan tarkistusnäkymään, jossa jokaisen liikkeen nimeä, sarjoja, toistoja, yksikköä ja huomautusta voi muokata ja yksittäisiä rivejä poistaa. Vasta "Valmis" tallentaa ohjelman — samaa polkua kuin CSV-tuonti, eli uusi ohjelma korvaa vanhan mutta historia säilyy liikkeen nimen perusteella.
+**PDF-tuonti ei tallenna suoraan.** Jäsennetty ohjelma avautuu muokkaustilaan (ks. Ohjelman muokkaus sovelluksessa) kaikki viikot ja päivät auki: rivin napautus avaa lomakkeen nimen, sarjojen, toistojen, yksikön ja tehon korjaamiseen, ⋮-valikosta rivin voi poistaa ja päivään voi lisätä puuttuvan liikkeen. Tarkistettavat rivit on merkitty keltaisella, ja menetelmäselitteet sekä tiedoston muistiinpanot näytetään tarkistuksen yhteydessä. Vasta "Valmis" tallentaa ohjelman — samaa polkua kuin CSV-tuonti, eli uusi ohjelma korvaa vanhan mutta historia säilyy liikkeen nimen perusteella.
 
 Ohjeteksti, jota ei tulkita liikkeiksi (`-Tauot sarjojen välissä 90 sekuntia.`), ei katoa: se tallennetaan ohjelman mukana ja näkyy Ohjelma-välilehden lopussa kohdassa "Ohjelman muistiinpanot". Määritelmämuotoiset rivit (`Cluster = ...`) liitetään lisäksi niihin liikkeisiin, joita ne koskevat, ja näkyvät liikkeen avatessa.
 
@@ -67,21 +67,21 @@ Skannattua PDF:ää, jossa ei ole tekstikerrosta, ei voi lukea. Sovellus havaits
 
 ## Ohjelman rakentaminen sovelluksessa
 
-Ohjelman voi koota myös ilman tiedostoa. Painike "Rakenna ohjelma sovelluksessa" löytyy sekä etusivulta ennen ensimmäistä tuontia että Asetusten Ohjelma-osiosta.
+Ohjelman voi koota myös ilman tiedostoa. Kortti "Rakenna itse" on etusivulla ennen ensimmäistä tuontia ja painike "Rakenna sovelluksessa" Asetusten Ohjelma-osiossa. Rakentaja on sama muokkaustila kuin tallennetun ohjelman muokkauksessa (seuraava kohta), mutta se alkaa tyhjästä ohjelmasta, jossa on valmiina viikko 1 ja Päivä 1.
 
-Rakenne etenee ylhäältä alas: **viikko** → **treenipäivä** → **liike**. Jokaiselle liikkeelle annetaan sarjat, toistot, yksikkö ja teho, eli täsmälleen samat tiedot kuin CSV:n vastaavissa sarakkeissa. Liike valitaan samasta lihasryhmittäin ryhmitellystä katalogista kuin liikkeen vaihdossa, variaatioineen ja lisävariaatioineen; jos liikettä ei ole listalla, valinnan lopusta pääsee kirjoittamaan nimen itse. Vapaasti kirjoitetusta nimestä huomautetaan, jos katalogissa on samankaltainen liike — eri kirjoitusasu aloittaisi historian alusta.
+Rakenne etenee ylhäältä alas: **viikko** → **treenipäivä** → **liike**. "Lisää liike" avaa pohjalevyn, jonka hakukenttä suodattaa koko liikelistan nimen tai lihasryhmän perusteella — sama lihasryhmittäin ryhmitelty katalogi variaatioineen kuin liikkeen vaihdossa, täydennettynä ohjelmassa ja historiassa jo esiintyvillä nimillä. Enter valitsee ensimmäisen osuman. Jos liikettä ei löydy, kirjoitettua nimeä voi käyttää sellaisenaan; samankaltaisesta katalogin nimestä huomautetaan, koska eri kirjoitusasu aloittaisi historian alusta. Valinnan jälkeen liikkeelle annetaan sarjat, toistot, yksikkö ja teho, eli täsmälleen samat tiedot kuin CSV:n vastaavissa sarakkeissa.
 
-"Monista viikko" kopioi viikon päivineen ja liikkeineen uudeksi viikoksi, joten toistuvan ohjelman voi rakentaa kerran ja monistaa loput. Uuden viikon ja treenipäivän oletusnimeksi tulee ensimmäinen vapaa numero, jottei kahta samannimistä synny vahingossa.
+"Kopioi viimeinen viikko uudeksi" (tai viikon ⋮-valikon Kopioi) monistaa viikon päivineen ja liikkeineen, joten toistuvan ohjelman voi rakentaa kerran ja monistaa loput. Uuden viikon numero ja treenipäivän oletusnimi ovat ensimmäinen vapaa numero.
 
-Ohjelma tallentuu vasta "Valmis"-painikkeesta, ja tallennus kulkee samaa polkua kuin CSV- ja PDF-tuonti: liikeoliot ovat täsmälleen samanmuotoisia, uusi ohjelma korvaa vanhan ja historia säilyy liikkeen nimen perusteella. Tallennus estyy selkeällä ilmoituksella, jos viikolta tai päivältä puuttuu nimi, jos kaksi viikkoa tai saman viikon kaksi päivää on nimetty samoin, tai jos ohjelmassa ei ole yhtään liikettä. Liikkeetön treenipäivä jätetään pois tallennettavasta ohjelmasta.
+Ohjelma tallentuu vasta "Valmis"-painikkeesta, ja tallennus kulkee samaa polkua kuin CSV- ja PDF-tuonti: liikeoliot ovat täsmälleen samanmuotoisia, uusi ohjelma korvaa vanhan ja historia säilyy liikkeen nimen perusteella. Tallennus estyy selkeällä ilmoituksella, jos ohjelmassa ei ole yhtään liikettä, jos kaksi viikkoa on nimetty samoin tai jos saman viikon kaksi treenipäivää on nimetty samoin. Liikkeetön treenipäivä ja päivätön viikko jätetään pois tallennettavasta ohjelmasta. "Peruuta" palaa näkymään, josta rakentaja avattiin, ja kysyy vahvistuksen, jos luonnokseen on jo tehty muutoksia.
 
-Rakentaja luo aina uuden ohjelman. Jo tallennettua ohjelmaa muokataan Ohjelma-näkymän muokkaustilassa (seuraava kohta).
+Rakentaja luo aina uuden ohjelman. Jo tallennettua ohjelmaa muokataan muokkaustilassa (seuraava kohta).
 
 ## Ohjelman muokkaus sovelluksessa
 
 Tallennettua ohjelmaa voi muokata jälkikäteen ilman uutta tuontia. Muokkaustila avataan Ohjelma-näkymän oikean yläkulman kynäkuvakkeesta tai Asetusten Ohjelma-osion painikkeesta "Muokkaa nykyistä ohjelmaa". Muokkauksen ajaksi välilehdet piilotetaan, ja näytön alareunaan tulee palkki, jossa ovat "Peruuta" ja "Valmis".
 
-Näkymä on sama ylhäältä alas etenevä rakenne kuin rakentajassa: viikot, niiden alla treenipäivät ja päivien alla liikkeet. Jokaisella rivillä on nuolet järjestyksen vaihtamiseen sekä ⋮-painike, jonka takaa löytyvät Kopioi, Aloita uudelleen ja Poista. Viikolle ja päivälle voi kirjoittaa oman nimen, esimerkiksi "Kevennysviikko" tai "Ylävartalo"; viikon oletusnimi on "Viikko 1", "Viikko 2" jne., ja nimen tyhjentäminen palauttaa oletuksen. Liikettä napauttamalla avautuu lomake, jossa muutetaan nimi, sarjat, toistot, yksikkö ja teho — samat tiedot kuin CSV:n sarakkeissa. "Lisää liike", "Lisää päivä" ja "Lisää tyhjä viikko" lisäävät uuden kohdan, ja "Kopioi valittu viikko uudeksi" monistaa avoinna olevan viikon päivineen ja liikkeineen seuraavaksi vapaaksi viikkonumeroksi.
+Näkymä on sama ylhäältä alas etenevä rakenne kuin rakentajassa: viikot, niiden alla treenipäivät ja päivien alla liikkeet. Jokaisella rivillä on nuolet järjestyksen vaihtamiseen sekä ⋮-painike, jonka takaa löytyvät Kopioi, Aloita uudelleen ja Poista. Viikolle ja päivälle voi kirjoittaa oman nimen, esimerkiksi "Kevennysviikko" tai "Ylävartalo"; viikon oletusnimi on "Viikko 1", "Viikko 2" jne., ja nimen tyhjentäminen palauttaa oletuksen. Liikettä napauttamalla avautuu lomake, jossa muutetaan nimi, sarjat, toistot, yksikkö ja teho — samat tiedot kuin CSV:n sarakkeissa; nimen voi myös hakea liikelistasta lomakkeen hakupainikkeesta. "Lisää liike" avaa saman liikevalitsimen kuin rakentajassa, "Lisää päivä" ja "Lisää tyhjä viikko" lisäävät uuden kohdan, ja "Kopioi viimeinen viikko uudeksi" monistaa viimeisen viikon päivineen ja liikkeineen seuraavaksi vapaaksi viikkonumeroksi.
 
 Liikkeen tehty-tila on sidottu liikkeen tunnisteeseen, historia ja painoehdotukset liikkeen nimeen. Tästä seuraa muutama sääntö:
 

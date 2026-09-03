@@ -4289,10 +4289,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     });
     var exact = entries.some(function(e){ return normalizeName(e.name) === normalizeName(q); });
     var html = "";
-    if(q && !exact){
-      // Liikelista on ehdotus, ei rajoite: kirjoitetun nimen saa aina käyttöön.
-      html += '<button type="button" class="pick-item pick-free" data-pick-exercise="' + escapeHtml(q) + '" data-pick-free>' + icon("plus", 16) + '<span>Käytä nimeä ”' + escapeHtml(q) + '”</span></button>';
-    }
+    // Liikelista on ehdotus, ei rajoite: kirjoitetun nimen saa aina käyttöön.
+    // Rivi on ensimmäisenä vain, kun osumia ei ole; muuten katalogin osumat
+    // tulevat ensin ja Enter valitsee niistä ensimmäisen.
+    var freeRow = (q && !exact)
+      ? '<button type="button" class="pick-item pick-free" data-pick-exercise="' + escapeHtml(q) + '" data-pick-free>' + icon("plus", 16) + '<span>Käytä nimeä ”' + escapeHtml(q) + '”</span></button>'
+      : "";
+    if(freeRow && !entries.length) html += freeRow;
     var groups = {}, order = [];
     entries.forEach(function(e){
       if(!groups[e.group]){ groups[e.group] = []; order.push(e.group); }
@@ -4305,6 +4308,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         html += '<button type="button" class="pick-item" data-pick-exercise="' + escapeHtml(name) + '">' + escapeHtml(name) + '</button>';
       });
     });
+    if(freeRow && entries.length) html += '<div class="pick-group">Listalta puuttuva liike</div>' + freeRow;
     if(!html) html = '<div style="color:var(--mist); font-size:var(--fs-sm); padding:8px 2px;">Ei osumia.</div>';
     return html;
   }
@@ -6088,8 +6092,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
     if(e.key === "Enter" && e.target && e.target.id === "liike-haku"){
-      // Enter valitsee listan ensimmäisen osuman.
-      var firstPick = document.querySelector("#liike-lista [data-pick-exercise]");
+      // Enter valitsee ensimmäisen katalogiosuman, tai kirjoitetun nimen
+      // jos osumia ei ole.
+      var firstPick = document.querySelector("#liike-lista [data-pick-exercise]:not([data-pick-free])") || document.querySelector("#liike-lista [data-pick-exercise]");
       if(firstPick){ e.preventDefault(); firstPick.click(); }
     }
   });

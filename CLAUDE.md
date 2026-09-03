@@ -20,10 +20,17 @@ y-koordinaatista (`transform[5]`), ei pdf.js:n palauttamasta järjestyksestä.
 `parseProgramPDFFiles()` yhdistää monta tiedostoa ja antaa viikkonumerottomille
 tiedostoille viikoksi valintajärjestyksen.
 
-Tuonti **ei tallenna suoraan**: tulos menee `state.pdfImport`-tilaan ja
-`renderProgramReview()`-tarkistusnäkymään (`state.view === "tuonti"`), jossa
-rivejä voi muokata ja poistaa. "Valmis" kutsuu `applyImportedProgram()`:ia —
-samaa polkua kuin CSV-tuonti, ei omaa tallennuslogiikkaa.
+Tuonti **ei tallenna suoraan**: `handlePdfFiles()` kutsuu
+`startProgramImport(program, fileNames)`:ia, joka avaa jäsennetyn ohjelman
+muokkaustilaan tilassa `"import"` (ks. Ohjelman muokkaustila). Kaikki viikot
+ja päivät avataan, `needsReview`-rivit korostetaan `.needs-review`-luokalla
+ja yhteenvetokortti kertoo tiedostot sekä tarkistettavien rivien määrän;
+`methodNote` näytetään rivillä ja `program.notes` näkymän lopussa. "Valmis"
+kutsuu `finishProgramEdit()`:n kautta `applyImportedProgram()`:ia — samaa
+polkua kuin CSV-tuonti, ei omaa tallennuslogiikkaa. `needsReview` ja
+`rawTarget` poistetaan tallennuksessa ja heti, kun rivi on muokattu
+lomakkeessa. Erillinen tarkistusnäkymä (`state.pdfImport`, `state.view ===
+"tuonti"`, `renderProgramReview()`) poistettiin UX-vaiheessa 5.
 
 Liikeoliossa on PDF:n takia neljä valinnaista kenttää: `kind` (oletus
 `"plain"`), `method`, `perSet`, `methodNote` ja `autoCalc`. Kaikki ovat
@@ -35,42 +42,45 @@ valinnaisia, jotta vanhat tallennetut ohjelmat toimivat ennallaan:
 
 Kolmas tapa saada ohjelma sovellukseen CSV- ja PDF-tuonnin rinnalle.
 Sisääntulo on sekä alkunäytöllä (`renderUpload`) että Asetusten Ohjelma-osiossa
-(`[data-builder-start]`). Näkymä on `renderProgramBuilder()`
-(`state.view === "rakenna"`), ja luonnos elää vain `state.builder`-kentässä:
+(`[data-builder-start]`). Rakentajalla ei ole omaa näkymää eikä omaa tilaa:
+`startProgramBuilder()` avaa muokkaustilan tilassa `"new"` luonnokselle
+`{ days: [Päivä 1], weeks: ["1"], weekLabels: {} }`, ja kaikki rivit,
+lomakkeet, kopiointi ja poisto ovat muokkaustilan omia (seuraava osio).
+Aiempi erillinen rakentaja (`state.builder`, `renderProgramBuilder()`,
+`builderProgramFromDraft()`, `data-builder-*`) poistettiin UX-vaiheessa 5,
+koska se oli sama käyttöliittymä toiseen kertaan.
 
-```
-state.builder = {
-  weeks: [ { label: "1", days: [ { name: "Päivä 1", exercises: [ {name, sets, reps, unit, teho} ] } ] } ],
-  picker: null   // { wi, di, liike, variaatio, lisavariaatio, free, freeName, nameHint }
-}
-```
+"Valmis" tallentaa uudessa ja tuontitilassa `finishProgramEdit()`:n kautta
+`applyImportedProgram()`:lla — ei omaa tallennuslogiikkaa. Tämä on oleellista:
+Historia- ja Kehitys-yhteys toimii liikkeen nimen perusteella, joten
+rakentajan on tuotettava täsmälleen samanmuotoisia liikeolioita kuin tuonti
+(`editorSaveForm()` luo liikkeen `parseProgramCSV()`:n muodossa). Ennen
+tallennusta `draftProblem(draft, mode)` estää tyhjän ohjelman, kaksi
+samannimistä viikkoa (`weekDisplayNameIn`; viikkovalitsin näyttää nimen) ja
+saman viikon kaksi samannimistä päivää; liikkeetön päivä ja päivätön viikko
+jätetään pois ja `weekLabels` siivotaan poistuneista viikoista.
 
-`builderProgramFromDraft()` kokoaa luonnoksesta saman rakenteen kuin
-`parseProgramCSV()` (päivän nimi `"Viikko <label> · <päivä>"`, liikeoliossa
-`id`, `name`, `sets`, `reps`, `unit`, `weight`, `notes`, `intensity`, `kind:"plain"`,
-`autoCalc:true`, oma `ex-<timestamp>`-etuliite), ja `saveProgramBuilder()`
-tallentaa sen `applyImportedProgram()`:lla — ei omaa tallennuslogiikkaa. Tämä on
-oleellista: Historia- ja Kehitys-yhteys toimii liikkeen nimen perusteella, joten
-rakentajan on tuotettava täsmälleen samanmuotoisia liikeolioita kuin tuonti.
-
-Liikelistaa ei koodattu erillisenä `EXERCISE_LIBRARY`-vakiona, vaikka
-alkuperäinen suunnitelma niin esitti: `EXERCISE_VARIANTS` sisältää jo
-`lihasryhma`-kentän jokaisella rivillä, joten toinen lista olisi ollut sama tieto
-kahdesti ja olisi ajautunut erilleen. Lista luetaan jaetun
-`exerciseOptionsByGroup()`-funktion kautta, jota käyttävät sekä rakentaja että
-liikkeen vaihto — molemmat näyttävät siis saman listan, myös käyttäjän itse
-lisäämien liikkeiden osalta. Vapaa tekstikenttä liikkeen nimelle on mukana
-(”Liike ei löydy listalta”), ja siitä huomautetaan `findSimilarName()`:lla.
-
-Validoinnit `builderProgramFromDraft()`:ssa: tyhjä viikon tai päivän nimi, kaksi
-samannimistä viikkoa (viikkovalitsin etsii nimen mukaan) ja saman viikon kaksi
-samannimistä päivää (`dayKey()` törmäisi) estävät tallennuksen; liikkeetön päivä
-ja liikkeetön viikko jätetään pois. Uuden viikon ja päivän oletusnimi on
-ensimmäinen vapaa numero.
+Liike valitaan pohjalevystä `state.sheet === "liike"`
+(`renderExercisePickList(query)`, `exercisePickEntries()`): koko
+`allExerciseVariants()`-katalogi koostettuina niminä lihasryhmittäin sekä
+`knownExerciseNames()`-nimet ryhmässä "Ohjelmassa ja historiassa". Haku
+suodattaa nimen ja lihasryhmän mukaan, ja jokaisen sanan on osuttava;
+hakulista päivitetään `#liike-lista`-elementtiin suoraan DOM:iin ilman
+`render()`-kutsua, jottei fokus katoa. Kirjoitetun nimen voi aina ottaa
+käyttöön (`[data-pick-free]`; rivi on listan lopussa, kun osumia on, ja ainoa
+rivi, kun osumia ei ole), jolloin `findSimilarName()` huomauttaa katalogin
+samankaltaisesta nimestä. Enter valitsee ensimmäisen katalogiosuman tai
+kirjoitetun nimen, jos osumia ei ole.
+"Lisää liike" avaa lomakkeen ja pohjalevyn yhtä aikaa; lomakkeen hakupainike
+`[data-open-sheet="liike"]` avaa sen uudelleen, ja `closeSheet()` palauttaa
+fokuksen siihen. Liikelistaa ei koodattu erillisenä `EXERCISE_LIBRARY`-
+vakiona: `EXERCISE_VARIANTS` sisältää jo `lihasryhma`-kentän, joten toinen
+lista olisi ollut sama tieto kahdesti. `exerciseOptionsByGroup()` on yhä
+liikkeen vaihdon käytössä.
 
 **Ratkaistu kysymys:** rakentaja luo aina uuden ohjelman tyhjästä. Olemassa
-olevan ohjelman muokkaus tehdään erillisessä muokkaustilassa (seuraava osio),
-ei rakentajassa. Yksittäisen liikkeen vaihto on lisäksi Ohjelma-näkymässä.
+olevan ohjelman muokkaus on sama muokkaustila tilassa `"edit"`, ei erillinen
+toteutus. Yksittäisen liikkeen vaihto on lisäksi Ohjelma-näkymässä.
 
 ## Ohjelman muokkaustila (toteutettu)
 
@@ -89,12 +99,18 @@ viikkonäkymässä ja `dayDisplayName(day)`:n koko ohjelman näkymässä.
 
 Muokkaus kohdistuu vain `state.programDraft`-syväkopioon. `state.editMode`
 vaihtaa `renderBody()`:n `renderEditor()`:iin, `renderHeader()` pudottaa
-navigaation ja `render()` lisää kiinteän `.edit-bar`-alapalkin (`<footer>`,
-jotta se on maamerkki; painikkeet Peruuta ja Valmis). Muokkaustilan oma tila on
-`state.editor = blankEditor()`: `openWeek`, `openDay`, `editingExercise`,
-`addingExerciseTo`, `confirmDelete` (`"delete:<kohde>"` tai
-`"restart:<kohde>"`, kohde `week:<avain>`, `day:<id>`, `ex:<id>` tai
-`program`), `confirmCancel`, `swapAll`, `menuFor` ja `form`. Nimikentät
+navigaation ja näyttää tilan otsikon (`EDITOR_TITLES`), ja `render()` lisää
+kiinteän `.edit-bar`-alapalkin (`<footer>`, jotta se on maamerkki; painikkeet
+Peruuta ja Valmis). `enterEditor(draft, mode)` alustaa tilan; `mode` on
+`"edit"` (nykyinen ohjelma), `"new"` (rakentaja) tai `"import"`
+(PDF-tarkistus). Muokkaustilan oma tila on `state.editor = blankEditor()`:
+`mode`, `openWeeks` ja `openDays` (kartat, useampi voi olla auki),
+`editingExercise`, `addingExerciseTo`, `confirmDelete` (`"delete:<kohde>"`
+tai `"restart:<kohde>"`, kohde `week:<avain>`, `day:<id>`, `ex:<id>` tai
+`program`), `confirmCancel`, `swapAll`, `menuFor`, `form`, `baseline`
+(luonnoksen JSON alussa; muutosvertailu), `returnView` (näkymä, johon
+Peruuta palaa uudessa ja tuontitilassa), `importInfo` (tiedostot ja
+tarkistettavien rivien määrä) ja `pickerQuery`. Nimikentät
 kirjoittavat luonnokseen input-tapahtumassa ilman `render()`-kutsua, jottei
 fokus katoa; tyhjä päivän nimi hylätään change-tapahtumassa. Klikkikäsittelijän
 alussa avoin vahvistus nollataan, jos painallus osuu muualle.
@@ -103,8 +119,11 @@ alussa avoin vahvistus nollataan, jos painallus osuu muualle.
 ohjelman näkymä iteroi `days`-listaa sellaisenaan), kirjoittaa `day.name`-kentät
 `dayDisplayNameIn(draft, day)`:llä, korvaa `state.programin`, tallentaa
 `saveProgram()`:lla ja siivoaa poistuneiden id:iden `draftSets`, `dirtySets` ja
-`autoCalcInfo`. Ilman muutoksia Valmis ja Peruuta sulkevat heti; muutosten
-kanssa Peruuta vaatii toisen painalluksen.
+`autoCalcInfo`. Uudessa ja tuontitilassa se sen sijaan pudottaa liikkeettömät
+päivät ja päivättömät viikot ja kutsuu `applyImportedProgram()`:ia. Kaikissa
+tiloissa `draftProblem()` tarkistetaan ensin. Muokkaustilassa ilman muutoksia
+Valmis ja Peruuta sulkevat heti; muutosten kanssa (luonnos poikkeaa
+`baseline`-tilasta) Peruuta vaatii toisen painalluksen.
 
 Id-säännöt ovat samat kuin tuonnissa ja liikkeen vaihdossa: sarjojen, toistojen
 tai tehon muutos säilyttää id:n (tehty-tila jää), nimen muutos kulkee
@@ -121,7 +140,9 @@ Sisääntulot: kynäkuvake `[data-edit-program]` Ohjelma-näkymän otsikossa ja
 "Muokkaa nykyistä ohjelmaa" Asetusten Ohjelma-osiossa. Välilehden vaihto
 muokkaustilassa estetään toastilla, vaikka navigaatio ei muokkaustilassa näy.
 Testit: `test_editor.js` (kehotteen kohdan 7 tapaukset ja vanhan ohjelman
-migraatio).
+migraatio), `test_builder.js`, `test_builder_edge.js`,
+`test_builder_history.js` (rakentaja tilassa `"new"`) ja
+`test_pdf_regression.js` (tuonti tilassa `"import"`).
 
 ## Varmuuskopio (toteutettu)
 
