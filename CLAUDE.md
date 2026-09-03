@@ -76,7 +76,7 @@ Yksittäisen liikkeen vaihto on jo olemassa Ohjelma-näkymässä.
 ## Varmuuskopio (toteutettu)
 
 Yksi CSV-tiedosto, joka jakautuu `#`-alkuisiin osioriveihin: `#MERKINNÄT`,
-`#OHJELMA`, `#OHJELMAN MUISTIINPANOT` ja `#OMAT LIIKKEET`. Merkinnät ovat
+`#OHJELMA`, `#OHJELMAN MUISTIINPANOT`, `#OMAT LIIKKEET` ja `#1RM`. Merkinnät ovat
 ensimmäisenä samana taulukkona kuin ennen tätä, ja `splitBackupSections()` lukee
 ennen ensimmäistä merkkiriviä olevan tekstin merkinnöiksi — näin vanhat, pelkät
 merkinnät sisältävät vientitiedostot tuodaan yhä muuttumattomina.
@@ -95,12 +95,19 @@ sovelluksessa sama asia, koska kaikki lukupaikat testaavat totuusarvon.
 kirjoittanut sen sisällön liikkeiden `methodNote`-kenttiin, eikä taulukkoa lueta
 enää tuonnin jälkeen missään.
 
-`applyBackupRestore()` palauttaa järjestyksessä omat liikkeet → ohjelma →
+`applyBackupRestore()` palauttaa järjestyksessä omat liikkeet → 1RM → ohjelma →
 merkinnät. Järjestys on pakollinen: merkinnät sidotaan ohjelman liike-id:eihin,
 joten ohjelman on oltava paikallaan ensin. Ohjelman palautus korvaa nykyisen
 ohjelman, joten se vahvistetaan erikseen (`state.pendingRestore` +
 `renderRestoreConfirm()`); ilman ohjelmaosiota oleva tiedosto tuodaan suoraan.
 
-**Ei mukana:** Asetuksissa käsin syötetyt 1RM-arvot (`state.manualMax`).
-Osiomekanismi on rakennettu niin, että sen lisääminen on yhden uuden osion työ,
-jos tarve ilmenee.
+`state.manualMax` on avaimenaan liikkeen nimi muodossa `nimi.trim().toLowerCase()`
+— sama sääntö kaikissa lukupaikoissa. Vienti kirjoittaa nimen ohjelman
+kirjoitusasussa (`maxExerciseNames()`), tuonti lukee sen takaisin samalla
+trim+toLowerCase-säännöllä, joten kierros on tarkka kirjoitusasusta riippumatta.
+`mergeManualMax()` ohittaa liikkeen, jolla on jo arvo laitteella: vanhemman
+varmuuskopion palautus ei saa laskea tuoreempaa 1RM:ää huomaamatta. Sama
+"jo olemassa oleva voittaa" -sääntö on merkinnöillä ja omilla liikkeillä.
+`importEntriesData()` kutsuu vain `rebuildTrackersForName()`, ei
+`rebuildManualMaxForName()`:ia, joten merkintöjen tuonti ei ylikirjoita juuri
+palautettuja 1RM-arvoja.

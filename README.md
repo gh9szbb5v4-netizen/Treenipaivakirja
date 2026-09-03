@@ -125,7 +125,7 @@ Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa 
 
 ## Varmuuskopio
 
-Asetusten "Vie varmuuskopio CSV:nä" tallentaa yhteen tiedostoon kaiken, mitä sovelluksessa on: kirjatut treenit, sillä hetkellä käytössä olevan treeniohjelman ja käyttäjän itse lisäämät liikkeet. Tiedosto on yhä CSV ja avautuu taulukkolaskennassa, mutta se jakautuu osioihin, joista jokainen alkaa omalla `#`-rivillään:
+Asetusten "Vie varmuuskopio CSV:nä" tallentaa yhteen tiedostoon kaiken, mitä sovelluksessa on: kirjatut treenit, sillä hetkellä käytössä olevan treeniohjelman, käyttäjän itse lisäämät liikkeet ja liikkeiden 1RM-arvot. Tiedosto on yhä CSV ja avautuu taulukkolaskennassa, mutta se jakautuu osioihin, joista jokainen alkaa omalla `#`-rivillään:
 
 | Osio | Sisältö |
 |---|---|
@@ -133,12 +133,13 @@ Asetusten "Vie varmuuskopio CSV:nä" tallentaa yhteen tiedostoon kaiken, mitä s
 | `#OHJELMA` | Ohjelman jokainen liike viikkoineen ja treenipäivineen, mukaan lukien tyyppi, menetelmä, sarjakohtaiset toistot ja menetelmäselite |
 | `#OHJELMAN MUISTIINPANOT` | PDF-ohjelman mukana tullut ohjeteksti |
 | `#OMAT LIIKKEET` | Käyttäjän itse lisäämät liikkeet variaatioineen ja lihasryhmineen |
+| `#1RM` | Liikekohtaiset 1RM-arvot ja niiden päivitysajankohta |
 
 Merkintärivin **Tunniste** on liikkeen ohjelma-id. Sen ansiosta palautus sitoo jokaisen merkinnän täsmälleen samaan ohjelman liikkeeseen kuin varmuuskopion hetkellä, eikä liikkeiden nimien varaan jäävää arvausta tarvita. Vanhemmissa, ennen tätä tehdyissä vientitiedostoissa saraketta ei ole; ne tuodaan yhä entiseen tapaan nimien perusteella kohdistaen.
 
-Palautus näyttää ensin, mitä tiedosto sisältää, ja tekee muutokset vasta vahvistuksesta — varmuuskopion ohjelma nimittäin **korvaa nykyisen ohjelman**. Omat liikkeet yhdistetään laitteella jo oleviin ilman kaksoiskappaleita, ja merkinnät yhdistetään olemassa oleviin: jo tallennettu merkintä ohitetaan, joten saman tiedoston voi tuoda turvallisesti useaan kertaan eikä mitään kirjattua poisteta. Pelkät merkinnät sisältävä vanha vientitiedosto tuodaan suoraan ilman vahvistusta, koska se ei voi korvata ohjelmaa.
+Palautus näyttää ensin, mitä tiedosto sisältää, ja tekee muutokset vasta vahvistuksesta — varmuuskopion ohjelma nimittäin **korvaa nykyisen ohjelman**. Kaikki muu yhdistetään laitteella jo olevaan niin, että jo tallennettu voittaa eikä mitään poisteta: omat liikkeet lisätään ilman kaksoiskappaleita, merkinnöistä ohitetaan jo tallennetut, ja 1RM-arvo tuodaan vain liikkeille, joilla ei vielä ole arvoa. Näin vanhemman varmuuskopion palautus ei laske tuoreempaa 1RM:ää huomaamatta, ja saman tiedoston voi tuoda turvallisesti useaan kertaan. Pelkät merkinnät sisältävä vanha vientitiedosto tuodaan suoraan ilman vahvistusta, koska se ei voi korvata ohjelmaa.
 
-Varmuuskopioon **ei** sisälly Asetuksissa käsin syötettyjä 1RM-arvoja. Ne on toistaiseksi syötettävä uudelleen laitteella, jolle varmuuskopio palautetaan.
+1RM-osiossa liikkeen nimi kirjoitetaan ohjelman kirjoitusasussa ja luetaan takaisin pienin kirjaimin — se on avain, jolla painoehdotus etsii arvon, joten kirjoitusasun vaihtelu ei vaikuta palautukseen.
 
 ## Tietojen tallennus
 

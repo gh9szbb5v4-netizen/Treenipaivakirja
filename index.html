@@ -1502,6 +1502,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return clean;
   }
 
+  // Varmuuskopion 1RM-arvot yhdistetään laitteella jo oleviin samalla säännöllä
+  // kuin merkinnät: jo olemassa oleva arvo ohitetaan, jottei vanhemman
+  // varmuuskopion palautus laskisi tuoreempaa 1RM:ää huomaamatta.
+  async function mergeManualMax(values){
+    var added = 0, skipped = 0;
+    Object.keys(values).forEach(function(key){
+      if(state.manualMax[key]){ skipped++; return; }
+      state.manualMax[key] = values[key];
+      added++;
+    });
+    if(added) await saveManualMax();
+    return { added: added, skipped: skipped };
+  }
+
   async function saveUserExercises(){
     try{ await storeSet(STORAGE_USER_EXERCISES_KEY, JSON.stringify(state.userExercises)); }
     catch(e){ /* hiljainen virhe — liikkeet jäävät silti käyttöön tämän istunnon ajaksi */ }
@@ -2582,6 +2596,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   var BACKUP_SECTION_PROGRAM   = "#OHJELMA";
   var BACKUP_SECTION_NOTES     = "#OHJELMAN MUISTIINPANOT";
   var BACKUP_SECTION_EXERCISES = "#OMAT LIIKKEET";
+  var BACKUP_SECTION_MAX       = "#1RM";
 
   function csvRows(rows){
     return rows.map(function(r){
@@ -2657,6 +2672,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           exRows.push([r.liike || "", r.variaatio || "", r.lisavariaatio || "", r.lihasryhma || ""]);
         });
         parts.push('"' + BACKUP_SECTION_EXERCISES + '"', csvRows(exRows));
+      }
+      var maxKeys = Object.keys(state.manualMax);
+      if(maxKeys.length){
+        // state.manualMax on avaimenaan liikkeen nimi pienin kirjaimin. Nimi
+        // kirjoitetaan tiedostoon isolla alkukirjaimella luettavuuden vuoksi ja
+        // luetaan takaisin samalla trim+toLowerCase-säännöllä, jota kaikki
+        // lukupaikat käyttävät — kierros on siis silti tarkka.
+        var maxRows = [["Liike","1RM (kg)","Päivitetty"]];
+        var maxNames = maxExerciseNames();
+        maxKeys.sort().forEach(function(key){
+          var entry = state.manualMax[key];
+          if(!entry || !isFinite(entry.weight)) return;
+          // Nimi kirjoitetaan ohjelman kirjoitusasussa, jos liike on ohjelmassa —
+          // muuten pelkkä iso alkukirjain, kuten Asetusten 1RM-listassa.
+          maxRows.push([maxNames[key] || capitalize(key), String(entry.weight).replace(".", ","), entry.date || ""]);
+        });
+        if(maxRows.length > 1) parts.push('"' + BACKUP_SECTION_MAX + '"', csvRows(maxRows));
       }
       var csv = parts.join("\n\n");
       // UTF-8-BOM eteen, jotta Excel (etenkin Windowsilla) ei arvaa merkistöksi
@@ -2768,6 +2800,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var notes = parseBackupNotes(notesText);
     if(notes.length) program.notes = notes;
     return program;
+  }
+
+  function parseBackupManualMax(text){
+    var out = {};
+    parseCSV(text).forEach(function(row){
+      var name = String(row["liike"] || "").trim();
+      if(!name) return;
+      var weight = toNumber(row["1rm (kg)"] !== undefined ? row["1rm (kg)"] : row["1rm"]);
+      if(!isFinite(weight) || weight <= 0) return;
+      out[name.toLowerCase()] = { weight: weight, date: String(row["päivitetty"] || row["paivitetty"] || "").trim() || todayISO() };
+    });
+    return out;
   }
 
   function parseBackupUserExercises(text){
@@ -2897,12 +2941,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var userExercises = sections[BACKUP_SECTION_EXERCISES]
       ? parseBackupUserExercises(sections[BACKUP_SECTION_EXERCISES])
       : [];
+    var manualMax = sections[BACKUP_SECTION_MAX]
+      ? parseBackupManualMax(sections[BACKUP_SECTION_MAX])
+      : {};
 
-    if(!program && !userExercises.length && Object.keys(byDate).length === 0){
+    if(!program && !userExercises.length && !Object.keys(manualMax).length && Object.keys(byDate).length === 0){
       showToast("Tiedostosta ei löytynyt tuotavaa sisältöä", 4000);
       return;
     }
-    var restore = { byDate: byDate, program: program, userExercises: userExercises, fileName: file.name };
+    var restore = { byDate: byDate, program: program, userExercises: userExercises,
+                    manualMax: manualMax, fileName: file.name };
     if(!program){
       await applyBackupRestore(restore);
       return;
@@ -2926,6 +2974,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(restore.userExercises && restore.userExercises.length){
       var addedEx = await mergeUserExerciseVariants(restore.userExercises);
       if(addedEx) parts.push(plural(addedEx, "oma liike", "omaa liikettä"));
+    }
+
+    if(restore.manualMax && Object.keys(restore.manualMax).length){
+      var maxRes = await mergeManualMax(restore.manualMax);
+      if(maxRes.added){
+        var maxMsg = plural(maxRes.added, "1RM-arvo", "1RM-arvoa");
+        if(maxRes.skipped) maxMsg += " (ohitettu " + maxRes.skipped + " jo olemassa olevaa)";
+        parts.push(maxMsg);
+      }
     }
 
     if(restore.program){
@@ -3419,7 +3476,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function renderExportReminder(){
     return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
-      '<b style="color:var(--brass);">Varmuuskopio.</b> Viimeisimmästä varmuuskopiosta on jo yli ' + EXPORT_REMINDER_DAYS + ' päivää. Merkinnät, ohjelma ja omat liikkeet ovat vain tässä selaimessa — kannattaa ottaa tuore varmuuskopio talteen.' +
+      '<b style="color:var(--brass);">Varmuuskopio.</b> Viimeisimmästä varmuuskopiosta on jo yli ' + EXPORT_REMINDER_DAYS + ' päivää. Merkinnät, ohjelma, omat liikkeet ja 1RM-arvot ovat vain tässä selaimessa — kannattaa ottaa tuore varmuuskopio talteen.' +
       '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">' +
       '<button class="btn-secondary" data-export-reminder-now type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Vie nyt</button>' +
       '<button class="btn-secondary" data-dismiss-export-reminder type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Muistuta myöhemmin</button>' +
@@ -3562,8 +3619,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Ohjelma</b> — tuo uusi ohjelma CSV- tai PDF-tiedostona tai rakenna se sovelluksessa. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy.",
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
-      "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma ja itse lisäämäsi liikkeet. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
-      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Merkinnät yhdistetään olemassa oleviin eikä mitään jo kirjattua poisteta.",
+      "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
+      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta.",
       "<b style=\"color:var(--chalk);\">Simulointi</b> — täyttää koko ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten. Toimii vain, jos yhtään oikeaa merkintää ei ole vielä tallennettu.",
       "<b style=\"color:var(--chalk);\">Palaute</b> — lähetä havainto, virhe tai idea suoraan tekijälle sähköpostitse.",
       "<b style=\"color:var(--chalk);\">Tyhjennä kaikki tiedot</b> — poistaa pysyvästi kaiken. Kysyy vahvistuksen."
@@ -4466,12 +4523,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       }
     }
     if(pr.userExercises.length) lines.push("Omia liikkeitä: " + pr.userExercises.length);
+    var maxCount = Object.keys(pr.manualMax || {}).length;
+    if(maxCount) lines.push("1RM-arvoja: " + maxCount);
     lines.push("Merkintöjä: " + Object.keys(pr.byDate).length + " päivältä");
     return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
       '<b style="color:var(--brass);">Palautetaanko varmuuskopio?</b>' +
       '<div style="margin-top:6px; color:var(--mist);">' + escapeHtml(pr.fileName || "") + '</div>' +
       '<div style="margin-top:8px;">' + lines.map(function(l){ return escapeHtml(l); }).join("<br>") + '</div>' +
-      '<div style="margin-top:8px;">Varmuuskopion ohjelma <b style="color:var(--chalk);">korvaa nykyisen ohjelman</b>. Omat liikkeet ja merkinnät yhdistetään olemassa oleviin, eikä mitään jo kirjattua poisteta.</div>' +
+      '<div style="margin-top:8px;">Varmuuskopion ohjelma <b style="color:var(--chalk);">korvaa nykyisen ohjelman</b>. Omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin: jo olemassa oleva ohitetaan, eikä mitään tallennettua poisteta.</div>' +
       '<div style="display:flex; gap:8px; margin-top:10px;">' +
       '<button class="btn-secondary" data-restore-cancel type="button" style="padding:9px 12px; font-size:12.5px;">Peruuta</button>' +
       '<button class="save-btn" data-restore-confirm type="button" style="margin-top:0; padding:9px 12px; font-size:12.5px;">Palauta</button>' +
@@ -4518,9 +4577,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="day-heading">Varmuuskopio</div>' +
       '<div class="exercise" style="padding:16px;">' +
       renderRestoreConfirm() +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Lataa yhtenä CSV-tiedostona kaikki kirjatut treenit, nykyinen treeniohjelma ja itse lisäämäsi liikkeet.</p>' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Lataa yhtenä CSV-tiedostona kaikki kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot.</p>' +
       '<button class="btn-secondary" id="export-btn" type="button">Vie varmuuskopio CSV:nä</button>' +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Palauta varmuuskopio tai siirrä tietosi toiselta laitteelta. Ohjelma ja omat liikkeet palautuvat sellaisina kuin ne olivat varmuuskopion hetkellä; jo olemassa olevat merkinnät ohitetaan, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.</p>' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Palauta varmuuskopio tai siirrä tietosi toiselta laitteelta. Ohjelma palautuu sellaisena kuin se oli varmuuskopion hetkellä; omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin ohittaen jo olemassa olevat, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.</p>' +
       '<input type="file" accept=".csv" id="import-entries-input" aria-label="Valitse palautettava varmuuskopiotiedosto">' +
       '</div>' +
       '<div class="day-heading">Simulointi</div>' +
