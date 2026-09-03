@@ -1,16 +1,18 @@
 # Treenipaivakirja
 
-Selaimessa toimiva treenipäiväkirja, joka lukee treeniohjelman CSV-tiedostosta, tallentaa sarjakohtaiset merkinnät ja laskee seuraavien treenien sarjapainot automaattisesti. Koko sovellus on yhdessä `index.html`-tiedostossa: ei asennusta, ei palvelinta, ei riippuvuuksia.
+Selaimessa toimiva treenipäiväkirja, joka lukee treeniohjelman CSV- tai PDF-tiedostosta, tallentaa sarjakohtaiset merkinnät ja laskee seuraavien treenien sarjapainot automaattisesti. Sovelluslogiikka on kokonaan yhdessä `index.html`-tiedostossa: ei asennusta, ei palvelinta, ei build-vaihetta.
+
+Ainoa ulkoinen kirjasto on PDF-tuonnin tarvitsema [pdf.js](https://mozilla.github.io/pdf.js/) (`pdf.min.js` ja `pdf.worker.min.js` `index.html`:n rinnalla). Se ladataan vasta kun käyttäjä valitsee PDF-tuonnin, joten CSV-käyttö ei lataa sitä lainkaan. Kirjasto pidetään omassa tiedostossaan eikä sitä upoteta `index.html`:ään, koska se kolminkertaistaisi sovellustiedoston koon — ja CDN:n sijaan omalla palvelimella siksi, ettei tuotavan ohjelman käsittely saa vaatia yhteyttä ulkopuoliseen palveluun.
 
 ## Käyttöönotto
 
-Avaa julkaistu osoite selaimessa ja tuo treeniohjelmasi CSV-tiedostona. Ohjelma tallentuu selaimeen, joten tuonti tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan.
+Avaa julkaistu osoite selaimessa ja tuo treeniohjelmasi CSV- tai PDF-tiedostona. Ohjelma tallentuu selaimeen, joten tuonti tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan.
 
 Kannattaa lisätä sivu laitteen aloitusnäytölle, jolloin se avautuu kuin natiivi sovellus eikä tavallisena selainvälilehtenä: iPhonella Safarin jakopainikkeesta ("Lisää Koti-valikkoon"), Androidilla selaimen valikosta ("Lisää aloitusnäytölle" tai "Asenna sovellus"). Tämä ei ole pelkkä kosmeettinen ero — Safari saattaa poistaa tavallisena selainvälilehtenä pidetyn sivun paikallisesti tallennetut tiedot noin seitsemän päivän käyttämättömyyden jälkeen, kun taas Koti-valikkoon lisätty, itsenäisenä avautuva versio on tästä vapautettu. Sovellus muistuttaa tästä kerran ensimmäisen CSV-tuonnin jälkeen, ellei se jo tuolloin ole käynnissä aloitusnäytöltä avattuna.
 
 ### Julkaisu GitHub Pagesissa
 
-Lisää `index.html`, `manifest.json` sekä kuvaketiedostot (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`) samaan kansioon repositorion `main`-haaraan, mene kohtaan **Settings → Pages**, valitse lähteeksi *Deploy from a branch*, haaraksi `main` ja kansioksi `/ (root)`. Sivu julkaistaan osoitteeseen `https://<käyttäjätunnus>.github.io/<repositorio>/` yleensä parissa minuutissa. Repositorion tulee olla julkinen, ellei tilisi ole maksullinen. `manifest.json` ja kuvakkeet on tärkeää julkaista `index.html`:n rinnalla samalla polulla, sillä ilman niitä Koti-valikkoon lisätty sivu saa oletusruudunkaappauksen omana kuvakkeenaan eikä avaudu itsenäisenä sovelluksena.
+Lisää `index.html`, `manifest.json`, PDF-tuonnin kirjastotiedostot (`pdf.min.js`, `pdf.worker.min.js`) sekä kuvaketiedostot (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`) samaan kansioon repositorion `main`-haaraan, mene kohtaan **Settings → Pages**, valitse lähteeksi *Deploy from a branch*, haaraksi `main` ja kansioksi `/ (root)`. Sivu julkaistaan osoitteeseen `https://<käyttäjätunnus>.github.io/<repositorio>/` yleensä parissa minuutissa. Repositorion tulee olla julkinen, ellei tilisi ole maksullinen. `manifest.json` ja kuvakkeet on tärkeää julkaista `index.html`:n rinnalla samalla polulla, sillä ilman niitä Koti-valikkoon lisätty sivu saa oletusruudunkaappauksen omana kuvakkeenaan eikä avaudu itsenäisenä sovelluksena.
 
 ## CSV-muoto
 
@@ -36,6 +38,32 @@ Viikko;Treenipäivä;Liike;Sarjat;Toistot;Yksiköt;Teho
 1;1;Penkkipunnerrus;2;3;toistoa;90 %
 1;1;Peck deck;3;10;toistoa;
 ```
+
+## PDF-muoto
+
+Valmentajien PDF-ohjelmat ovat tyypillisesti kaksisarakkeisia: vasemmalla liikkeen nimi, oikealla tavoite (`3x10`). Tuonti lukee tekstin kokonaan selaimessa pdf.js:llä eikä lähetä tiedostoa mihinkään. Rivit muodostetaan tekstipalojen y-koordinaatista, ei pdf.js:n palauttamasta järjestyksestä, joka ei vastaa visuaalista rivijärjestystä. Osiootsikot (`RINTA, HAUIS`) tunnistetaan poikkeamana sivun yleisimmästä fontti- ja kokoyhdistelmästä, ei fontin nimestä.
+
+Useita tiedostoja voi valita kerralla, esimerkiksi yhden viikkoa kohden. Viikkonumero luetaan kansilehden `Viikko N` -riviltä; jos sitä ei ole, viikoksi tulee tiedoston valintajärjestys.
+
+Tunnistetut tavoitemuodot:
+
+| Tavoite PDF:ssä | Tulkinta |
+|---|---|
+| `3x15` | 3 sarjaa × 15 toistoa, painoehdotus käytössä |
+| `3x10 Merkkaa kuormat!` | 3 × 10, perässä oleva teksti säilyy huomautuksena |
+| `6, 10, 10` | 3 sarjaa, joilla kullakin oma toistotavoite |
+| `2x10/jalka` | 2 × 10, ja `/jalka` siirtyy nimeen muodossa `(per jalka)` |
+| `3x10+3` | rest-pause/pakkotoisto — ei painoehdotusta |
+| `2xCluster`, `2x drop` | menetelmäsarja — ei painoehdotusta |
+| `Cardiolaite 15min` | 1 sarja, 15 minuuttia (yksikkö `min`) |
+
+Rivit, joiden tavoitetta ei tunnisteta (esim. `PC 20+18+15` tai kiertoharjoittelun `Askelkävely + Vatsarutistus`), tulevat mukaan ilman tavoitetta ja merkitään tarkistettaviksi.
+
+**PDF-tuonti ei tallenna suoraan.** Jäsennystulos avataan tarkistusnäkymään, jossa jokaisen liikkeen nimeä, sarjoja, toistoja, yksikköä ja huomautusta voi muokata ja yksittäisiä rivejä poistaa. Vasta "Valmis" tallentaa ohjelman — samaa polkua kuin CSV-tuonti, eli uusi ohjelma korvaa vanhan mutta historia säilyy liikkeen nimen perusteella.
+
+Ohjeteksti, jota ei tulkita liikkeiksi (`-Tauot sarjojen välissä 90 sekuntia.`), ei katoa: se tallennetaan ohjelman mukana ja näkyy Ohjelma-välilehden lopussa kohdassa "Ohjelman muistiinpanot". Määritelmämuotoiset rivit (`Cluster = ...`) liitetään lisäksi niihin liikkeisiin, joita ne koskevat, ja näkyvät liikkeen avatessa.
+
+Skannattua PDF:ää, jossa ei ole tekstikerrosta, ei voi lukea. Sovellus havaitsee puuttuvan tekstikerroksen ja kertoo siitä erikseen sen sijaan, että tuonti epäonnistuisi hiljaisesti. Jäsennys on puhtaasti sääntöpohjaista: ohjelman sisältöä ei lähetetä tekoälypalveluun, koska se olisi ristiriidassa sen kanssa, ettei mikään data poistu laitteelta.
 
 ## Sarjapainojen laskenta
 
@@ -65,6 +93,8 @@ kunkin merkintäpäivän **raskaimmasta** sarjasta — sarjasta, joka antaa suur
 
 Yhdistelmäliikkeet, joiden nimessä on kauttaviiva (esim. `Cardiolaite / Punnerrus / Burpee, 12 min`), jätetään automaattilaskennan ulkopuolelle kokonaan.
 
+Sama koskee PDF-tuonnin menetelmäliikkeitä (rest-pause, cluster, drop) sekä kiertoharjoittelu- ja kestorivejä: niille painoa ei ehdoteta lainkaan, koska tavoite ei ole yksiselitteinen sarjamäärä × toistot ja väärä ehdotus olisi huonompi kuin tyhjä kenttä. Kiertoharjoittelu- ja kestoriveillä sarjan voi merkitä valmiiksi ilman painoa.
+
 ## Näkymät
 
 Ohjelma, Historia, Kehitys ja Ohje vaihdetaan näytön alareunassa kelluvasta valikosta. Asetukset avataan näkymän oikean yläkulman rataskuvakkeesta.
@@ -79,7 +109,7 @@ Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa 
 
 **Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
-**Ohje.** Tiivis käyttöohje: CSV:n muoto ja tuonti, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä CSV-tuontia linkkinä etusivulla.
+**Ohje.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
 
 ## Tietojen tallennus
 

@@ -214,6 +214,11 @@
     expandedDaySummaries: {},
     showHomescreenHint: false,
     program: null,
+    // PDF-tuonnin jäsennystulos odottamassa käyttäjän hyväksyntää. Ohjelma
+    // tallentuu vasta ”Valmis”-painikkeesta, ei suoraan tuonnista.
+    pdfImport: null,
+    pdfImportError: null,
+    showProgramNotes: false,
     manualExercises: [],
     userExercises: [],
     variantPicker: null,
@@ -413,12 +418,449 @@
         unit: map.unit ? row[map.unit] : "",
         weight: map.weight ? row[map.weight] : "",
         notes: map.notes ? row[map.notes] : (map.intensity ? row[map.intensity] : ""),
-        intensity: parseIntensity(intensityRaw)
+        intensity: parseIntensity(intensityRaw),
+        // CSV-rivi on aina tavallinen sarjat × toistot -liike, joten painolaskuri
+        // saa ehdottaa painoa. Kentät ovat samat kuin PDF-tuonnissa, jotta
+        // ohjelmarakenne on identtinen riippumatta tuontireitistä.
+        kind: "plain",
+        autoCalc: true
       });
     });
     var days = [];
     dayMap.forEach(function(group, name){ days.push({ name: name, week: group.week, exercises: group.exercises }); });
     return { days: days, weeks: weekOrder };
+  }
+
+// ---------- PDF-ohjelmatuonnin jäsennin (prototyyppi) ----------
+// Koodityyli: var-määrittelyt, function-lausekkeet, ei arrow-funktioita, ei let/const.
+//
+// Syöte: sivut, joissa jokainen rivi on taulukko tekstipaloja:
+//   pages = [ [ [ {text, x, x1, font, size}, ... ], ... ], ... ]
+// Rivit muodostetaan pdf.js:n getTextContent()-paloista y-koordinaatin perusteella
+// (transform[5]); tämä on välttämätöntä, koska palojen luontijärjestys ei vastaa
+// visuaalista rivijärjestystä.
+//
+// Tuloste: { program: {days, weeks}, review: [...], skipped: [...] }
+// program-rakenne on täsmälleen sama kuin parseProgramCSV():n tuottama.
+
+var PDF_COLUMN_GAP_MIN = 30;   // pt — pienin vaakaväli, joka tulkitaan sarakerajaksi
+var PDF_COLUMN_TOL     = 4;    // pt — kuinka tarkasti tavoite osuu sarakeankkuriin
+var PDF_PROSE_MAX_LEN  = 55;   // merkkiä — tätä pidemmät yksisarakkeiset rivit ovat ohjetekstiä
+
+function rowText(items){
+  var parts = [];
+  items.forEach(function(it){ parts.push(it.text); });
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
+// Rungon perustyyli = yleisin fontti+koko-yhdistelmä. Otsikot tunnistetaan
+// poikkeamana tästä, ei fontin nimen perusteella (nimet ovat dokumenttikohtaisia).
+function detectBodyStyle(pages){
+  var counts = {}, best = null, bestN = 0;
+  pages.forEach(function(rows){
+    rows.forEach(function(items){
+      items.forEach(function(it){
+        var key = it.font + "|" + it.size;
+        counts[key] = (counts[key] || 0) + 1;
+        if(counts[key] > bestN){ bestN = counts[key]; best = key; }
+      });
+    });
+  });
+  var split = (best || "|0").split("|");
+  return { font: split[0], size: parseFloat(split[1]) };
+}
+
+// Tavoitesarakkeen x määritetään rivien suurimmista vaakaväleistä: liikkeen nimen
+// sisäiset sanavälit ovat pieniä, nimen ja tavoitteen välinen väli on suuri.
+function detectColumnX(pages){
+  var counts = {}, best = 0, bestN = 0;
+  pages.forEach(function(rows){
+    rows.forEach(function(items){
+      var i, gap, cand = 0, gapMax = 0;
+      for(i = 1; i < items.length; i++){
+        gap = items[i].x - items[i-1].x1;
+        if(gap > gapMax){ gapMax = gap; cand = items[i].x; }
+      }
+      if(gapMax >= PDF_COLUMN_GAP_MIN){
+        var key = String(Math.round(cand));
+        counts[key] = (counts[key] || 0) + 1;
+        if(counts[key] > bestN){ bestN = counts[key]; best = parseFloat(key); }
+      }
+    });
+  });
+  return bestN >= 3 ? best : null;
+}
+
+function isProseRow(text){
+  if(/\s=\s/.test(text)) return true;          // "Cluster = ...", "PC = ..."
+  if(/^-/.test(text)) return true;             // "-Tauot sarjojen välillä..."
+  if(/[.!?]$/.test(text)) return true;         // "KATSO VIDEO TARKASTI."
+  if(text.length > PDF_PROSE_MAX_LEN) return true;
+  return false;
+}
+
+// Tavoitekentän tulkinta. Palauttaa aina objektin; tuntematon muoto merkitään
+// review-lipulla eikä sitä arvata numeroiksi.
+function parseTarget(raw){
+  var text = (raw || "").trim();
+  var out = { sets: "", reps: "", unit: "", notes: "", method: "", perSet: null,
+              variant: "", kind: "plain", autoCalc: false, review: false, raw: text };
+  if(!text){ out.review = true; return out; }
+
+  var m;
+
+  // "3x10 Merkkaa kuormat!" — erotetaan perässä oleva vapaa huomautus
+  m = text.match(/^(.*?)(\s+[A-ZÄÖ][^0-9]*!)\s*$/);
+  if(m){ out.notes = m[2].trim(); text = m[1].trim(); }
+
+  // "3x10", "3x15/käsi", "3x12/puoli", "3x10+3", "2x10/jalka"
+  m = text.match(/^(\d+)\s*[xX×]\s*(\d+)(\+\d+)?(?:\s*\/\s*([A-Za-zÄÖäö]+))?$/);
+  if(m){
+    out.sets = m[1];
+    out.reps = m[2] + (m[3] || "");
+    // "/jalka", "/käsi", "/puoli" on liikkeen variaatio, ei mittayksikkö: se
+    // siirretään liikkeen nimeen, jotta ledger-rivi pysyy yksiselitteisenä.
+    if(m[4]) out.variant = m[4];
+    out.autoCalc = !m[3];                 // "10+3" = rest-pause/pakkotoisto → ei automatiikkaa
+    if(m[3]){ out.method = "rest-pause/pakkotoisto"; out.kind = "restpause"; }
+    return out;
+  }
+
+  // "2xCluster", "2x drop" — sarjamäärä tiedossa, toistotavoite menetelmäkohtainen
+  m = text.match(/^(\d+)\s*[xX×]\s*([A-Za-zÄÖäö][A-Za-zÄÖäö\s]*)$/);
+  if(m){
+    out.sets = m[1];
+    out.method = m[2].trim();
+    out.kind = /cluster/i.test(m[2]) ? "cluster" : (/drop/i.test(m[2]) ? "drop" : "method");
+    out.notes = (out.notes ? out.notes + " " : "") + m[2].trim();
+    return out;
+  }
+
+  // "6, 10, 10" / "5, 10, 15" / "1, 3, 3" — sarjakohtaiset toistotavoitteet
+  m = text.match(/^\d+(\s*,\s*\d+)+$/);
+  if(m){
+    var nums = text.split(",").map(function(s){ return s.trim(); });
+    out.sets = String(nums.length);
+    out.reps = nums.join(", ");
+    out.perSet = nums;
+    out.kind = "perset";
+    out.autoCalc = true;
+    return out;
+  }
+
+  // "15min", "20min"
+  m = text.match(/^(\d+)\s*min$/i);
+  if(m){ out.sets = "1"; out.reps = m[1]; out.unit = "min"; out.kind = "duration"; return out; }
+
+  out.notes = (out.notes ? out.notes + " " : "") + text;
+  out.review = true;
+  return out;
+}
+
+
+// Ohjeteksti ei ole roskaa: "Cluster = ...", "drop = ...", "10+3 = ..." ovat juuri
+// niiden rivien selitykset, joille laskuri ei osaa ehdottaa painoa. Ne kerätään
+// määritelmiksi ja liitetään liikkeisiin, joiden method vastaa määriteltyä termiä.
+function collectDefinitions(noteRows){
+  var defs = [], current = null, prevY = null;
+  // Rivivälien mediaani kertoo, milloin kyse on kappalerajasta eikä rivinvaihdosta.
+  var gaps = [], i;
+  for(i = 1; i < noteRows.length; i++){
+    if(noteRows[i].y > noteRows[i-1].y) gaps.push(noteRows[i].y - noteRows[i-1].y);
+  }
+  gaps.sort(function(a, b){ return a - b; });
+  var median = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
+
+  noteRows.forEach(function(row){
+    var isBreak = prevY === null || row.y < prevY ||
+                  (median > 0 && (row.y - prevY) > median * 1.5);
+    prevY = row.y;
+    if(isBreak) current = null;
+    var m = row.text.match(/^([A-Za-zÄÖäö0-9+\-]{1,14})\s*=\s*(.+)$/);
+    if(m){
+      current = { term: m[1], text: m[2] };
+      defs.push(current);
+      return;
+    }
+    if(current){ current.text += " " + row.text; }
+  });
+  return defs;
+}
+
+function attachDefinitions(days, defs){
+  var index = {};
+  defs.forEach(function(d){ index[d.term.toLowerCase()] = d.text; });
+  days.forEach(function(day){
+    day.exercises.forEach(function(ex){
+      var keys = [];
+      if(ex.method) keys.push(ex.method.toLowerCase());
+      if(/^10\+3$/.test(ex.reps || "")) keys.push("10+3");
+      if(!ex.sets){
+        var head = (ex.name || "").split(" ")[0].toLowerCase();
+        if(head) keys.push(head);
+      }
+      var i;
+      for(i = 0; i < keys.length; i++){
+        if(index[keys[i]]){ ex.methodNote = index[keys[i]]; return; }
+      }
+    });
+  });
+}
+
+function parseProgramPDF(pages, fileLabel, idPrefix){
+  var body = detectBodyStyle(pages);
+  var columnX = detectColumnX(pages);
+  var prefix = idPrefix || "pdf-" + Date.now();
+
+  var week = null;
+  var days = [];
+  var weeks = [];
+  var review = [];
+  var skipped = [];
+  var currentDay = null;
+  var counter = 0;
+
+  var inProse = false;              // ohjelohko jatkuu sivunvaihdon yli; nollautuu osiootsikosta
+  pages.forEach(function(rows){
+    rows.forEach(function(items){
+      if(!items.length) return;
+      var text = rowText(items);
+      if(!text) return;
+
+      var wk = text.match(/^Viikko\s+(\d+)$/i);
+      if(wk){ week = wk[1]; if(weeks.indexOf(week) === -1) weeks.push(week); return; }
+
+      // Sarakejako tehdään ankkurin perusteella: tavoite alkaa aina tarkalleen
+      // tavoitesarakkeen x-kohdasta. Pelkkä "x suurempi kuin raja" katkaisisi myös
+      // pitkät yksisarakkeiset rivit, joiden loppuosa ulottuu rajan yli.
+      var left = items, right = [], k;
+      if(columnX !== null){
+        for(k = 1; k < items.length; k++){
+          if(Math.abs(items[k].x - columnX) <= PDF_COLUMN_TOL &&
+             items[k-1].x1 <= columnX + PDF_COLUMN_TOL){
+            left = items.slice(0, k);
+            right = items.slice(k);
+            break;
+          }
+        }
+      }
+
+      // Sarakejako hyväksytään vain, jos oikea puoli tosiaan jäsentyy tavoitteeksi.
+      // Muuten kyse on yksisarakkeisesta rivistä, jonka sana sattui ankkurin kohdalle.
+      var target = right.length ? parseTarget(rowText(right)) : null;
+      if(target && target.review){ left = items; right = []; target = null; }
+
+      if(right.length && left.length){
+        if(inProse) return;
+        var name = rowText(left);
+        if(!currentDay){
+          currentDay = { name: week ? "Viikko " + week + " · Ohjelma" : "Ohjelma",
+                         week: week, exercises: [] };
+          days.push(currentDay);
+        }
+        var ex = {
+          id: prefix + "-" + (counter++),
+          name: target.variant ? name + " (per " + target.variant + ")" : name,
+          sets: target.sets,
+          reps: target.reps,
+          unit: target.unit,
+          weight: "",
+          notes: target.notes,
+          kind: target.kind,
+          intensity: null,
+          method: target.method,
+          perSet: target.perSet,
+          autoCalc: target.autoCalc
+        };
+        currentDay.exercises.push(ex);
+        if(target.review){
+          review.push({ file: fileLabel, day: currentDay.name, name: name, raw: target.raw,
+                        reason: "tavoitteen muotoa ei tunnistettu" });
+        }
+        return;
+      }
+
+      // Yksisarakkeinen rivi
+      var isHeading = (items[0].size > body.size + 0.5) || (items[0].font !== body.font);
+      if(isHeading && !/[.!?]$/.test(text)){
+        currentDay = { name: (week ? "Viikko " + week + " · " : "") + text,
+                       week: week, exercises: [] };
+        days.push(currentDay);
+        inProse = false;
+        return;
+      }
+
+      if(inProse || isProseRow(text)){ inProse = true; skipped.push({ file: fileLabel, text: text, y: items[0].y }); return; }
+
+      // Lyhyt yksisarakkeinen rivi liikelistan sisällä: PC-tikapuu, yhdistelmäfinisseri,
+      // kestoperusteinen cardio. Otetaan mukaan, mutta ilman tavoitetta → tarkistuslistalle.
+      if(currentDay){
+        var dur = text.match(/^(.+?)\s+(\d+)\s*min$/i);
+        if(dur){
+          currentDay.exercises.push({
+            id: prefix + "-" + (counter++), name: dur[1].trim(), sets: "1", reps: dur[2],
+            unit: "min", weight: "", notes: "", kind: "duration", intensity: null,
+            method: "", perSet: null, autoCalc: false
+          });
+          return;
+        }
+        currentDay.exercises.push({
+          id: prefix + "-" + (counter++), name: text, sets: "", reps: "", unit: "",
+          weight: "", notes: "", kind: "circuit", intensity: null, method: "", perSet: null,
+          autoCalc: false
+        });
+        review.push({ file: fileLabel, day: currentDay.name, name: text, raw: "",
+                      reason: "rivillä ei tavoitesaraketta" });
+      } else {
+        skipped.push({ file: fileLabel, text: text, y: items[0].y });
+      }
+    });
+  });
+
+  // Kansilehdeltä syntyneet tyhjät päivät pois
+  days = days.filter(function(d){ return d.exercises.length > 0; });
+
+  var definitions = collectDefinitions(skipped);
+  attachDefinitions(days, definitions);
+
+  // "skipped" ei ole hylättyä vaan ohjelman mukana kulkevaa ohjetekstiä.
+  return { program: { days: days, weeks: weeks, notes: skipped, definitions: definitions },
+           review: review, columnX: columnX, body: body };
+}
+
+  // ---------- PDF-tuonnin apurit ----------
+  // pdf.js ladataan vasta kun käyttäjä valitsee PDF-tuonnin: kirjasto on iso
+  // eikä CSV-tuonti tarvitse sitä lainkaan. Tiedostot ovat index.html:n
+  // rinnalla samassa kansiossa, eivät CDN:ssä — ohjelman sisältö ei saa
+  // lähteä laitteelta minnekään. ”Yksi tiedosto” on siis tässä kohtaa
+  // ”yksi tiedosto plus kirjasto”, tietoinen kompromissi.
+  var PDFJS_SRC = "pdf.min.js";
+  var PDFJS_WORKER_SRC = "pdf.worker.min.js";
+  var PDF_ROW_TOLERANCE = 3;   // pt — saman rivin palojen suurin y-ero
+  var pdfjsLoadPromise = null;
+
+  function loadPdfJs(){
+    if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if(pdfjsLoadPromise) return pdfjsLoadPromise;
+    pdfjsLoadPromise = new Promise(function(resolve, reject){
+      var s = document.createElement("script");
+      s.src = PDFJS_SRC;
+      s.onload = function(){
+        if(!window.pdfjsLib){ pdfjsLoadPromise = null; reject(new Error("pdf.min.js latautui, mutta kirjastoa ei löytynyt.")); return; }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_SRC;
+        resolve(window.pdfjsLib);
+      };
+      s.onerror = function(){
+        pdfjsLoadPromise = null;
+        reject(new Error("PDF-lukijaa ei voitu ladata. Varmista, että pdf.min.js ja pdf.worker.min.js ovat samassa kansiossa kuin index.html."));
+      };
+      document.head.appendChild(s);
+    });
+    return pdfjsLoadPromise;
+  }
+
+  // pdf.js palauttaa tekstipalat siinä järjestyksessä kuin ne on kirjoitettu
+  // sivun sisältövirtaan, mikä ei vastaa visuaalista rivijärjestystä. Rivit
+  // muodostetaan siksi y-koordinaatista (transform[5]) ja lajitellaan rivin
+  // sisällä x:n mukaan (transform[4]) — tämä on koko jäsennyksen perusta.
+  function groupItemsIntoRows(items){
+    var pieces = [];
+    items.forEach(function(item){
+      if(!item.str || !item.str.trim()) return;
+      var t = item.transform;
+      // Fontin koko luetaan muunnosmatriisista; item.height ei kerro sitä
+      // luotettavasti kaikilla tuottajaohjelmilla.
+      var size = Math.sqrt(t[2]*t[2] + t[3]*t[3]);
+      pieces.push({
+        text: item.str.trim(),
+        x: t[4],
+        x1: t[4] + (item.width || 0),
+        y: t[5],
+        font: item.fontName || "",
+        size: Math.round(size * 100) / 100
+      });
+    });
+    // PDF:n y kasvaa ylöspäin, joten sivun ylin rivi on suurin y.
+    pieces.sort(function(a, b){ return b.y - a.y; });
+    var rows = [], current = null;
+    pieces.forEach(function(p){
+      if(!current || Math.abs(current.y - p.y) > PDF_ROW_TOLERANCE){
+        current = { y: p.y, items: [] };
+        rows.push(current);
+      }
+      current.items.push(p);
+    });
+    rows.forEach(function(r){ r.items.sort(function(a, b){ return a.x - b.x; }); });
+    return rows.map(function(r){ return r.items; });
+  }
+
+  async function extractPdfPages(file){
+    var lib = await loadPdfJs();
+    var buffer = await file.arrayBuffer();
+    var doc = await lib.getDocument({ data: new Uint8Array(buffer), isEvalSupported: false }).promise;
+    var pages = [];
+    var itemCount = 0;
+    var i, page, content, rows;
+    for(i = 1; i <= doc.numPages; i++){
+      page = await doc.getPage(i);
+      content = await page.getTextContent();
+      rows = groupItemsIntoRows(content.items);
+      rows.forEach(function(r){ itemCount += r.length; });
+      pages.push(rows);
+    }
+    try{ await doc.destroy(); }catch(e){ /* ei kriittinen */ }
+    if(itemCount === 0){
+      // Skannattu PDF: sivulla on vain kuva, ei tekstikerrosta. Tätä ei saa
+      // ohittaa hiljaa — muuten käyttäjä luulisi tuonnin vain epäonnistuneen.
+      throw new Error("Tiedostossa ”" + file.name + "” ei ole tekstikerrosta — se näyttää olevan skannattu kuva. Sovellus lukee vain PDF-tiedostoja, joissa teksti on tekstinä. Käytä CSV-tuontia.");
+    }
+    return pages;
+  }
+
+  // review-rivit yhdistetään takaisin niihin liikkeisiin, joista ne syntyivät,
+  // jotta ne voidaan näyttää oman treenipäivänsä kohdalla eikä vain erillisenä
+  // listana irrallaan asiayhteydestä.
+  function flagReviewRows(res){
+    (res.review || []).forEach(function(item){
+      var day = res.program.days.find(function(d){ return d.name === item.day; });
+      if(!day) return;
+      var ex = day.exercises.find(function(e){ return e.name === item.name && !e.needsReview; });
+      if(ex){ ex.needsReview = item.reason; if(item.raw) ex.rawTarget = item.raw; }
+    });
+  }
+
+  async function parseProgramPDFFiles(files){
+    var stamp = Date.now();
+    var merged = { days: [], weeks: [], notes: [], definitions: [] };
+    var review = [];
+    var fileIdx, file, pages, res, fallbackWeek;
+    for(fileIdx = 0; fileIdx < files.length; fileIdx++){
+      file = files[fileIdx];
+      pages = await extractPdfPages(file);
+      // Oma id-etuliite tiedostoa kohden: eri tiedostojen rivit eivät saa
+      // törmätä toistensa id-numerointiin.
+      res = parseProgramPDF(pages, file.name, "pdf-" + stamp + "-" + fileIdx);
+      flagReviewRows(res);
+      // Jos kansilehdellä ei ole viikkonumeroa, käytetään valintajärjestystä.
+      fallbackWeek = String(fileIdx + 1);
+      res.program.days.forEach(function(day){
+        if(!day.week){
+          day.week = fallbackWeek;
+          day.name = "Viikko " + fallbackWeek + " · " + day.name;
+        }
+        if(merged.weeks.indexOf(day.week) === -1) merged.weeks.push(day.week);
+        merged.days.push(day);
+      });
+      (res.program.notes || []).forEach(function(n){ merged.notes.push(n); });
+      (res.program.definitions || []).forEach(function(d){ merged.definitions.push(d); });
+      (res.review || []).forEach(function(r){ review.push(r); });
+    }
+    merged.weeks.sort(function(a, b){
+      var na = parseInt(a, 10), nb = parseInt(b, 10);
+      if(isFinite(na) && isFinite(nb) && na !== nb) return na - nb;
+      return String(a).localeCompare(String(b), "fi");
+    });
+    return { program: merged, review: review };
   }
 
   // ---------- storage adapter ----------
@@ -624,13 +1066,20 @@
     return row[lb];
   }
 
+  // ”(per jalka)” / ”(per käsi)” on PDF-tuonnin lisäämä variaatiomerkintä,
+  // ei osa liikkeen nimeä. Ilman karsintaa etäisyysraja ei koskaan tavoittaisi
+  // historiassa olevaa samaa liikettä ilman päätettä.
+  function stripPerSuffix(s){
+    return String(s == null ? "" : s).replace(/\s*\(per\s+[^)]*\)\s*$/i, "").trim();
+  }
+
   function findSimilarName(input, candidates){
-    var target = normalizeName(input);
+    var target = normalizeName(stripPerSuffix(input));
     if(!target || !candidates || !candidates.length) return null;
     var i;
     var norms = [];
     for(i=0;i<candidates.length;i++){
-      var norm = normalizeName(candidates[i]);
+      var norm = normalizeName(stripPerSuffix(candidates[i]));
       if(norm === target) return null;
       norms.push(norm);
     }
@@ -1046,61 +1495,134 @@
   }
 
   // ---------- actions ----------
-  async function handleFile(file){
+  // Yhteinen tallennuspolku kaikille tuontireiteille (CSV-tuonti ja PDF-tuonnin
+  // tarkistusnäkymän "Valmis"): ohjelma otetaan käyttöön täsmälleen samalla
+  // tavalla riippumatta siitä, mistä rakenne on peräisin. Ei uutta
+  // tallennuslogiikkaa — sama saveProgram() kuin ennenkin.
+  async function applyImportedProgram(program, successMessage){
     var isFirstImport = !state.program;
+    // Verrataan tuodun ohjelman liikenimiä historiassa jo oleviin nimiin: eri
+    // kirjoitusasu aloittaisi historian huomaamatta alusta. Vain huomautus,
+    // mitään ei nimetä uudelleen automaattisesti.
+    state.importNameWarnings = [];
+    var historyNorms = {};
+    Object.keys(state.lastSet).forEach(function(norm){ historyNorms[normalizeName(norm)] = true; });
+    Object.keys(state.manualMax).forEach(function(norm){ historyNorms[normalizeName(norm)] = true; });
+    var historyNames = Object.keys(historyNorms).map(function(norm){ return capitalize(norm); });
+    if(historyNames.length){
+      historyNames.sort(function(a, b){ return a.localeCompare(b, "fi"); });
+      var seenImport = {};
+      program.days.forEach(function(day){
+        (day.exercises || []).forEach(function(ex){
+          var impName = (ex.name || "").trim();
+          if(!impName) return;
+          var impNorm = normalizeName(impName);
+          if(!impNorm || seenImport[impNorm] || historyNorms[impNorm]) return;
+          seenImport[impNorm] = true;
+          var match = findSimilarName(impName, historyNames);
+          if(match){ state.importNameWarnings.push({ imported: impName, historical: match }); }
+        });
+      });
+    }
+    state.program = program;
+    state.manualExercises = [];
+    state.draftSets = {};
+    state.dirtySets = {};
+    state.openExercise = null;
+    state.showAllWeeks = false;
+    state.showProgramNotes = false;
+    await saveProgram();
+    await computeDefaultActiveWeek();
+    state.todayEntry = await loadEntry(state.draftDate);
+    state.exerciseLogIndex = await buildExerciseLogIndex();
+    state.view = "ohjelma";
+    showToast(successMessage || "Ohjelma tuotu onnistuneesti");
+    if(isFirstImport && !state.homescreenHintDismissed && !isStandaloneDisplay()){ state.showHomescreenHint = true; }
+    if(isFirstImport){
+      // Varmuuskopiomuistutuksen kello lähtee käyntiin ensimmäisestä
+      // tuonnista, ei tyhjästä — muuten muistutus ei koskaan laukeaisi
+      // käyttäjälle, joka ei ole vielä kertaakaan vienyt merkintöjään.
+      state.lastExportDate = todayISO();
+      try{ await storeSet(STORAGE_LAST_EXPORT_KEY, state.lastExportDate); }
+      catch(e){ /* hiljainen virhe, ei kriittinen */ }
+    }
+    render();
+  }
+
+  async function handleFile(file){
     var text;
     try{ text = await readFileAsText(file); }
     catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
     try{
       var program = parseProgramCSV(text);
-      // Verrataan tuodun ohjelman liikenimiä historiassa jo oleviin nimiin: eri
-      // kirjoitusasu aloittaisi historian huomaamatta alusta. Vain huomautus,
-      // mitään ei nimetä uudelleen automaattisesti.
-      state.importNameWarnings = [];
-      var historyNorms = {};
-      Object.keys(state.lastSet).forEach(function(norm){ historyNorms[normalizeName(norm)] = true; });
-      Object.keys(state.manualMax).forEach(function(norm){ historyNorms[normalizeName(norm)] = true; });
-      var historyNames = Object.keys(historyNorms).map(function(norm){ return capitalize(norm); });
-      if(historyNames.length){
-        historyNames.sort(function(a, b){ return a.localeCompare(b, "fi"); });
-        var seenImport = {};
-        program.days.forEach(function(day){
-          (day.exercises || []).forEach(function(ex){
-            var impName = (ex.name || "").trim();
-            if(!impName) return;
-            var impNorm = normalizeName(impName);
-            if(!impNorm || seenImport[impNorm] || historyNorms[impNorm]) return;
-            seenImport[impNorm] = true;
-            var match = findSimilarName(impName, historyNames);
-            if(match){ state.importNameWarnings.push({ imported: impName, historical: match }); }
-          });
-        });
-      }
-      state.program = program;
-      state.manualExercises = [];
-      state.draftSets = {};
-      state.dirtySets = {};
-      state.openExercise = null;
-      state.showAllWeeks = false;
-      await saveProgram();
-      await computeDefaultActiveWeek();
-      state.todayEntry = await loadEntry(state.draftDate);
-      state.exerciseLogIndex = await buildExerciseLogIndex();
-      state.view = "ohjelma";
-      showToast("Ohjelma tuotu onnistuneesti");
-      if(isFirstImport && !state.homescreenHintDismissed && !isStandaloneDisplay()){ state.showHomescreenHint = true; }
-      if(isFirstImport){
-        // Varmuuskopiomuistutuksen kello lähtee käyntiin ensimmäisestä
-        // tuonnista, ei tyhjästä — muuten muistutus ei koskaan laukeaisi
-        // käyttäjälle, joka ei ole vielä kertaakaan vienyt merkintöjään.
-        state.lastExportDate = todayISO();
-        try{ await storeSet(STORAGE_LAST_EXPORT_KEY, state.lastExportDate); }
-        catch(e){ /* hiljainen virhe, ei kriittinen */ }
-      }
-      render();
+      state.pdfImport = null;
+      state.pdfImportError = null;
+      await applyImportedProgram(program, "Ohjelma tuotu onnistuneesti");
     }catch(err){
       showToast(err.message || "CSV:n luku epäonnistui");
     }
+  }
+
+  // PDF-tuonti ei tallenna suoraan: jäsennystulos viedään tarkistusnäkymään,
+  // jossa käyttäjä hyväksyy tai korjaa rivit. Vasta "Valmis" tallentaa.
+  async function handlePdfFiles(files){
+    state.pdfImportError = null;
+    showToast("Luetaan PDF-tiedostoja…", 6000);
+    var res;
+    try{ res = await parseProgramPDFFiles(files); }
+    catch(err){
+      state.pdfImportError = (err && err.message) ? err.message : "PDF:n luku epäonnistui.";
+      showToast("PDF:n luku epäonnistui");
+      render();
+      return;
+    }
+    if(!res.program.days.length){
+      // Tyhjää tulosta ei viedä tarkistusnäkymään lainkaan: käyttäjälle
+      // kerrotaan suoraan, ettei tiedostosta löytynyt ohjelmaa.
+      state.pdfImportError = "PDF:stä ei löytynyt yhtään liikettä. Ohjelma voi olla muodossa, jota jäsennin ei tunnista, tai teksti voi olla kuvana. Voit tuoda ohjelman CSV-tiedostona tai rakentaa sen käsin.";
+      showToast("PDF:stä ei löytynyt liikkeitä");
+      render();
+      return;
+    }
+    state.pdfImport = {
+      program: res.program,
+      review: res.review,
+      files: files.map(function(f){ return f.name; })
+    };
+    state.view = "tuonti";
+    showToast("Tarkista jäsennetty ohjelma ennen tallennusta", 4000);
+    render();
+  }
+
+  async function savePdfImport(){
+    if(!state.pdfImport) return;
+    var program = state.pdfImport.program;
+    // Käyttäjä on nyt nähnyt ja hyväksynyt tarkistuslistan rivit, joten
+    // väliaikainen merkintä poistetaan ennen tallennusta.
+    program.days.forEach(function(day){
+      day.exercises.forEach(function(ex){ delete ex.needsReview; delete ex.rawTarget; });
+    });
+    state.pdfImport = null;
+    state.pdfImportError = null;
+    await applyImportedProgram(program, "Ohjelma tallennettu");
+  }
+
+  function cancelPdfImport(){
+    state.pdfImport = null;
+    state.pdfImportError = null;
+    state.view = "ohjelma";
+    render();
+  }
+
+  function removePdfReviewExercise(dayIdx, exIdx){
+    if(!state.pdfImport) return;
+    var day = state.pdfImport.program.days[dayIdx];
+    if(!day) return;
+    day.exercises.splice(exIdx, 1);
+    // Tyhjäksi jäänyt treenipäivä poistetaan, jottei ohjelmaan tallennu
+    // päiviä joissa ei ole yhtään liikettä.
+    if(!day.exercises.length) state.pdfImport.program.days.splice(dayIdx, 1);
+    render();
   }
 
   async function toggleExercise(id){
@@ -1141,6 +1663,10 @@
     // Yhdistelmäliikkeet (esim. "Cardiolaite / Punnerrus / Burpee, 12 min") eivät
     // muutenkaan kuulu painoon perustuvaan logiikkaan (ks. lastSet/1RM-käsittely),
     // joten niille "kirjattu" tarkoittaa samaa kuin saveExerciseLog:n data-tarkistus.
+    // Sama koskee kiertoharjoittelua ja kestoperusteisia liikkeitä (kind), joille
+    // PDF-ohjelma ei anna painotavoitetta lainkaan — niissä kirjaus on vapaata
+    // tekstiä, eikä paino saa estää sarjan merkitsemistä valmiiksi.
+    if(ex.kind === "circuit" || ex.kind === "duration") return false;
     return !isCombo(ex.name);
   }
   function isRowDoneEligible(ex, row){
@@ -1245,8 +1771,34 @@
     for(var k=0;k<state.manualExercises.length;k++){ if(state.manualExercises[k].id === id) return state.manualExercises; }
     return null;
   }
+  // Sarjakohtainen toistotavoite ("6, 10, 10") ohittaa yhteisen reps-arvon.
+  function draftRepsFor(ex, idx){
+    if(ex.perSet && ex.perSet.length){
+      return ex.perSet[idx] !== undefined ? ex.perSet[idx] : ex.perSet[ex.perSet.length - 1];
+    }
+    return ex.reps || "";
+  }
+  function draftRowCount(ex){
+    var explicit = parseInt(ex.sets, 10);
+    if(explicit && explicit > 0) return explicit;
+    if(ex.perSet && ex.perSet.length) return ex.perSet.length;
+    return 1;
+  }
   function buildDraftRows(ex, id){
     var explicitCount = parseInt(ex.sets, 10);
+
+    // autoCalc === false: tavoite on menetelmäkohtainen (rest-pause, cluster,
+    // drop) eikä siihen voi laskea painoa kaavalla. Väärä ehdotus on pahempi
+    // kuin tyhjä kenttä, joten mitään ei ehdoteta. Vanhoissa, ennen PDF-tuontia
+    // tallennetuissa ohjelmissa kenttää ei ole lainkaan, joten vain
+    // nimenomainen false estää laskennan.
+    if(ex.autoCalc === false){
+      delete state.autoCalcInfo[id];
+      var manualRows = [];
+      var mc = draftRowCount(ex);
+      for(var mi=0; mi<mc; mi++){ manualRows.push({ weight:"", reps: draftRepsFor(ex, mi), notes:"", done:false }); }
+      return manualRows;
+    }
 
     // Liikkeet, joille on määritelty teho (MAX tai prosentti), eivät kuulu
     // toistopainolaskurin progressiologiikkaan: niiden painoehdotus perustuu
@@ -1268,14 +1820,14 @@
           }
           usedMax = true;
         }
-        maxRows.push({ weight: weightVal, reps: ex.reps || "", notes: "", done: false });
+        maxRows.push({ weight: weightVal, reps: draftRepsFor(ex, i), notes: "", done: false });
       }
       if(usedMax){ state.autoCalcInfo[id] = { type:"max", weight: maxEntry.weight, isMax: ex.intensity.isMax, percents: percents }; }
       else{ delete state.autoCalcInfo[id]; }
       return maxRows;
     }
 
-    var count2 = (explicitCount && explicitCount > 0) ? explicitCount : 1;
+    var count2 = draftRowCount(ex);
 
     if(!isCombo(ex.name)){
       var normName = ex.name.trim().toLowerCase();
@@ -1294,7 +1846,7 @@
           var targetOneRepMax = estimatedOneRepMax * PROGRESSION_COEFFICIENT;
           var computed = roundToStep(targetOneRepMax / (1 + targetReps/30), 2.5);
           var formulaRows = [];
-          for(var k=0;k<count2;k++){ formulaRows.push({ weight: String(computed), reps: ex.reps || "", notes: "", done: false }); }
+          for(var k=0;k<count2;k++){ formulaRows.push({ weight: String(computed), reps: draftRepsFor(ex, k), notes: "", done: false }); }
           state.autoCalcInfo[id] = { type:"formula", refWeight: refWeight, refReps: refReps, date: last.date, progressionPercent: (PROGRESSION_COEFFICIENT - 1) * 100 };
           return formulaRows;
         }
@@ -1303,7 +1855,7 @@
 
     delete state.autoCalcInfo[id];
     var blankRows = [];
-    for(var m=0;m<count2;m++){ blankRows.push({ weight:"", reps: ex.reps || "", notes:"", done: false }); }
+    for(var m=0;m<count2;m++){ blankRows.push({ weight:"", reps: draftRepsFor(ex, m), notes:"", done: false }); }
     return blankRows;
   }
 
@@ -2416,6 +2968,9 @@
   function renderBody(){
     if(state.loading) return '<div class="empty">Ladataan…</div>';
     if(state.view === "ohje") return renderOhje();
+    // Tarkistusnäkymä myös silloin, kun ohjelmaa ei vielä ole: ensimmäinen
+    // tuonti tapahtuu aina tyhjästä.
+    if(state.view === "tuonti") return renderProgramReview();
     if(!state.program) return renderUpload();
     if(state.view === "historia") return renderHistoria();
     if(state.view === "kehitys") return renderKehitys();
@@ -2439,7 +2994,7 @@
       html += '<div style="margin-bottom:18px;"><span data-tab="ohjelma" style="color:var(--mist); font-size:13px; text-decoration:underline; cursor:pointer;">‹ Takaisin</span></div>';
     }
     html += ohjeSection("Mikä tämä on", ohjeP(
-      "Treenipäiväkirja lukee treeniohjelmasi CSV-tiedostosta, tallentaa jokaisen sarjan painot ja toistot, ja ehdottaa seuraavan kerran painot automaattisesti. Kaikki tieto tallentuu <b style=\"color:var(--chalk);\">tähän selaimeen tähän laitteeseen</b> — mitään ei lähetetä palvelimelle."
+      "Treenipäiväkirja lukee treeniohjelmasi CSV- tai PDF-tiedostosta, tallentaa jokaisen sarjan painot ja toistot, ja ehdottaa seuraavan kerran painot automaattisesti. Kaikki tieto tallentuu <b style=\"color:var(--chalk);\">tähän selaimeen tähän laitteeseen</b> — mitään ei lähetetä palvelimelle. Myös PDF luetaan kokonaan laitteellasi."
     ));
 
     html += ohjeSection("1. Tuo treeniohjelma", ohjeP(
@@ -2454,6 +3009,17 @@
       "Jos liikkeiden nimet eivät näy tuonnin jälkeen, tarkista ettei mikään muu sarake (esim. \"Liikejärjestys\") satu alkamaan samalla sanalla kuin liike-sarakkeen otsikko."
     ));
 
+    html += ohjeSection("1b. Tuo ohjelma PDF-tiedostosta", ohjeP(
+      "Valmentajalta saadun PDF-ohjelman voi tuoda sellaisenaan. Tiedosto luetaan kokonaan omalla laitteellasi eikä sen sisältöä lähetetä minnekään. Voit valita useita tiedostoja kerralla, esimerkiksi yhden viikkoa kohden — viikot yhdistetään yhdeksi ohjelmaksi."
+    ) + ohjeList([
+      "Tuonti <b style=\"color:var(--chalk);\">ei tallenna suoraan</b>: jäsennetty ohjelma näytetään ensin tarkistettavaksi, ja voit korjata rivejä tai poistaa niitä ennen \"Valmis\"-painiketta.",
+      "Rivit, joiden tavoitetta ei tunnistettu, on merkitty keltaisella oman treenipäivänsä kohdalle.",
+      "Sarjakohtaiset tavoitteet (<code>6, 10, 10</code>) muuttuvat kolmeksi sarjaksi omine toistotavoitteineen, ja <code>2x10/jalka</code> tallentuu nimeen muodossa <code>(per jalka)</code>.",
+      "Menetelmäriveille (<code>3x10+3</code>, <code>2xCluster</code>, <code>2x drop</code>) ei ehdoteta painoa lainkaan — väärä ehdotus olisi huonompi kuin tyhjä kenttä. Valmentajan selitys menetelmälle näytetään liikkeen kohdalla.",
+      "Tiedoston ohjetekstit tallennetaan ohjelman mukana ja löytyvät Ohjelma-välilehden lopusta kohdasta \"Ohjelman muistiinpanot\".",
+      "Skannattua, pelkkää kuvaa sisältävää PDF:ää ei voi lukea — sovellus kertoo tästä erikseen. Käytä silloin CSV-tuontia."
+    ]));
+
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
       "Avaa liike Ohjelma-välilehdellä ja täytä kunkin sarjan paino ja toistot. Paino on aina valmiiksi ehdotettu ja muokattavissa. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen."
     ) + ohjeP(
@@ -2466,6 +3032,8 @@
       "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus perustuu viime kerran viimeiseen sarjaan. Jos teit enemmän tai vähemmän toistoja kuin tavoite, paino lasketaan automaattisesti ylös- tai alaspäin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
+    ) + ohjeP(
+      "<b style=\"color:var(--chalk);\">Menetelmäliikkeet:</b> rest-pause-, cluster-, drop- ja kiertoharjoitteluriveille painoa ei ehdoteta, koska tavoite ei ole yksiselitteinen sarjamäärä × toistot. Kirjaa paino ja toistot itse."
     ));
 
     html += ohjeSection("4. Historia ja Kehitys", ohjeP(
@@ -2475,6 +3043,7 @@
     ));
 
     html += ohjeSection("5. Asetukset (rataskuvake oikeassa yläkulmassa)", ohjeList([
+      "<b style=\"color:var(--chalk);\">Ohjelma</b> — tuo uusi ohjelma CSV- tai PDF-tiedostona. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy.",
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie merkinnät CSV:nä</b> — ota säännöllisesti varmuuskopio, sillä data on vain tässä selaimessa. Sovellus muistuttaa asiasta, jos edellisestä viennistä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
@@ -2492,11 +3061,29 @@
 
     return html;
   }
+  function renderPdfImportError(){
+    if(!state.pdfImportError) return "";
+    return '<div style="background:rgba(191,90,90,0.12); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5; text-align:left;">' +
+      '<b style="color:var(--danger-text);">PDF-tuonti ei onnistunut</b>' +
+      '<div style="margin-top:6px;">' + escapeHtml(state.pdfImportError) + '</div>' +
+      '<button class="btn-secondary" data-dismiss-pdf-error type="button" style="width:auto; padding:8px 14px; font-size:12.5px; margin-top:10px;">Sulje</button>' +
+      '</div>';
+  }
+  function renderPdfInput(id){
+    // multiple: valmentajan ohjelma tulee usein viikko per tiedosto.
+    return '<input type="file" accept="application/pdf,.pdf" multiple id="' + id + '" aria-label="Valitse treeniohjelman PDF-tiedostot">';
+  }
   function renderUpload(){
     return '<div class="upload-box">' +
-      '<p>Tuo treeniohjelmasi CSV-tiedostona aloittaaksesi. Ainoa pakollinen sarake on liikkeen nimi; muut tunnistetaan automaattisesti sekä suomeksi että englanniksi.</p>' +
+      renderPdfImportError() +
+      '<p>Tuo treeniohjelmasi CSV- tai PDF-tiedostona aloittaaksesi.</p>' +
+      '<div class="day-heading" style="margin-top:4px;">Tuo CSV</div>' +
+      '<p style="margin-top:0;">Ainoa pakollinen sarake on liikkeen nimi; muut tunnistetaan automaattisesti sekä suomeksi että englanniksi.</p>' +
       '<div class="csv-example">Viikko;Treenipäivä;Liike;Sarjat;Toistot;Teho<br>1;1;Penkkipunnerrus;1;1;MAX<br>1;1;Penkkipunnerrus;2;3;90 %<br>1;1;Peck deck;3;10;</div>' +
       '<input type="file" accept=".csv" id="csv-input-initial" aria-label="Valitse treeniohjelman CSV-tiedosto">' +
+      '<div class="day-heading" style="margin-top:20px;">Tuo PDF</div>' +
+      '<p style="margin-top:0;">Valmentajan PDF-ohjelma luetaan suoraan laitteellasi — mitään ei lähetetä verkkoon. Voit valita useita tiedostoja kerralla, esimerkiksi viikon per tiedosto. Tuonti ei tallenna suoraan, vaan näyttää jäsennetyn ohjelman tarkistettavaksi. Skannattuja, pelkkää kuvaa sisältäviä PDF-tiedostoja ei voi lukea.</p>' +
+      renderPdfInput("pdf-input-initial") +
       '<div style="margin-top:14px; text-align:center;"><span data-tab="ohje" style="color:var(--mist); font-size:13px; text-decoration:underline; cursor:pointer;">Lue tarkemmat käyttöohjeet</span></div>' +
       '</div>';
   }
@@ -2579,6 +3166,7 @@
       html += '<div class="day-heading">Lisätyt liikkeet</div>';
       state.manualExercises.forEach(function(ex){ html += renderExercise(ex); });
     }
+    html += renderProgramNotes();
     return html;
   }
   function tehoBadge(ex){
@@ -2645,6 +3233,9 @@
     if(ex.reps) parts.push(ex.reps + (ex.unit ? " " + ex.unit : ""));
     if(ex.weight) parts.push(ex.weight + " kg");
     if(ex.notes) parts.push(ex.notes);
+    // Menetelmä (rest-pause, Cluster, drop) kuuluu tavoiteriville, mutta vain
+    // kerran: jäsennin on osalle riveistä jo kopioinut sen huomautukseen.
+    if(ex.method && String(ex.notes || "").indexOf(ex.method) === -1) parts.push(ex.method);
     var target = parts.join(" · ");
     var badge = isSaved
       ? '<div title="Tallennettu" style="width:22px; height:22px; border-radius:50%; background:var(--success); color:var(--ink); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; margin-left:8px;">✓</div>'
@@ -2705,9 +3296,18 @@
       (lihasryhma ? '<br>Lihasryhmä: ' + escapeHtml(lihasryhma) : "") +
       '</div>';
   }
+  // Valmentajan selitys menetelmälle (esim. "Cluster = ...") kulkee ohjelman
+  // mukana ja näytetään juuri sen liikkeen kohdalla, jota se koskee — muuten
+  // liikkeille, joille painoa ei voi laskea, ei jäisi mitään ohjetta.
+  function renderMethodNote(ex){
+    if(!ex.methodNote) return "";
+    return '<div style="background:rgba(201,162,39,0.10); border-left:2px solid var(--brass); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:10px; font-size:12px; line-height:1.5;">' +
+      (ex.method ? '<b style="color:var(--brass);">' + escapeHtml(ex.method) + ':</b> ' : '') +
+      escapeHtml(ex.methodNote) + '</div>';
+  }
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
-    var hint = renderVariantInfo(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
+    var hint = renderVariantInfo(ex) + renderMethodNote(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     var rows = sets.map(function(s, idx){
       // Sarjan numero on pelkkä visuaalinen merkki — hyväksyntä tehdään aina
       // erillisestä, selvästi nimetystä painikkeesta pikasäätönappien rivillä,
@@ -2873,6 +3473,110 @@
       '<button class="save-btn" data-swap-confirm data-id="' + ex.id + '" type="button" style="margin-top:0;"' +
       ((guided && !variantPickerValid()) ? " disabled" : "") + '>Vaihda</button>' +
       '</div></div>';
+  }
+  // Lähdetiedoston ohjeteksti ei ole roskaa: se kulkee ohjelman mukana
+  // (state.program.notes) ja näytetään omana osionaan, jotta mikään
+  // alkuperäisestä tiedostosta ei katoa käyttäjän näkymättömiin.
+  function renderNotesList(notes){
+    var byFile = [];
+    var index = {};
+    notes.forEach(function(n){
+      var key = n.file || "";
+      if(index[key] === undefined){ index[key] = byFile.length; byFile.push({ file: key, lines: [] }); }
+      byFile[index[key]].lines.push(n.text);
+    });
+    var multi = byFile.length > 1;
+    return byFile.map(function(group){
+      return (multi && group.file ? '<div style="color:var(--brass); font-size:11.5px; font-weight:700; margin:10px 0 4px;">' + escapeHtml(group.file) + '</div>' : '') +
+        group.lines.map(function(t){
+          return '<div style="color:var(--mist); font-size:12.5px; line-height:1.55; margin-bottom:4px;">' + escapeHtml(t) + '</div>';
+        }).join("");
+    }).join("");
+  }
+  function renderProgramNotes(){
+    var notes = state.program && state.program.notes;
+    if(!notes || !notes.length) return "";
+    return '<div class="day-heading">Ohjelman muistiinpanot</div>' +
+      '<div class="exercise" style="padding:14px 16px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
+      '<div style="color:var(--mist); font-size:12.5px;">' + notes.length + ' riviä ohjetekstiä tuodusta ohjelmasta.</div>' +
+      '<button class="btn-secondary" data-toggle-program-notes type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">' + (state.showProgramNotes ? "Piilota" : "Näytä") + '</button>' +
+      '</div>' +
+      (state.showProgramNotes ? '<div style="margin-top:10px;">' + renderNotesList(notes) + '</div>' : '') +
+      '</div>';
+  }
+
+  // ---------- PDF-tuonnin tarkistusnäkymä ----------
+  // Esitäyttää jäsennystuloksen muokattavaksi. Tallennus tapahtuu vasta
+  // "Valmis"-painikkeesta, joka kutsuu samaa applyImportedProgram-polkua kuin
+  // CSV-tuonti — ei omaa tallennuslogiikkaa.
+  function reviewInput(dayIdx, exIdx, field, value, placeholder, flex, mode){
+    return '<input class="ledger-input" type="text"' +
+      (mode ? ' inputmode="' + mode + '"' : '') +
+      ' data-review-field data-di="' + dayIdx + '" data-ei="' + exIdx + '" data-field="' + field + '"' +
+      ' placeholder="' + escapeHtml(placeholder) + '" aria-label="' + escapeHtml(placeholder) + '"' +
+      ' value="' + escapeHtml(value == null ? "" : value) + '"' +
+      (flex ? ' style="flex:' + flex + ';"' : '') + '>';
+  }
+  // Sama tieto eri sanoin sen mukaan, miksi painoa ei voi laskea — pelkkä
+  // "menetelmäkohtainen" olisi harhaanjohtava kesto- ja kiertoriveillä.
+  function noAutoCalcReason(ex){
+    if(ex.kind === "duration") return "Kestoperusteinen liike — painoa ei ehdoteta.";
+    if(ex.kind === "circuit") return "Kirjataan vapaasti — painoa ei ehdoteta.";
+    return "Painoehdotusta ei lasketa: tavoite on menetelmäkohtainen.";
+  }
+  function renderReviewExercise(ex, dayIdx, exIdx){
+    var flag = ex.needsReview;
+    return '<div class="exercise" style="padding:12px 14px; margin-bottom:8px;' +
+      (flag ? ' border-color:var(--brass); background:rgba(201,162,39,0.08);' : '') + '">' +
+      (flag ? '<div style="color:var(--brass); font-size:11.5px; font-weight:800; margin-bottom:8px;">Tarkista: ' + escapeHtml(flag) + (ex.rawTarget ? ' (”' + escapeHtml(ex.rawTarget) + '”)' : '') + '</div>' : '') +
+      reviewInput(dayIdx, exIdx, "name", ex.name, "Liikkeen nimi", "1") +
+      '<div style="display:flex; gap:8px; margin-top:8px;">' +
+      reviewInput(dayIdx, exIdx, "sets", ex.sets, "Sarjat", "0.7", "numeric") +
+      reviewInput(dayIdx, exIdx, "reps", ex.reps, "Toistot", "1.1") +
+      reviewInput(dayIdx, exIdx, "unit", ex.unit, "Yksikkö", "0.7") +
+      '</div>' +
+      '<div style="display:flex; gap:8px; margin-top:8px;">' +
+      reviewInput(dayIdx, exIdx, "notes", ex.notes, "Huomautus", "1") +
+      '<button class="btn-secondary" data-review-remove data-di="' + dayIdx + '" data-ei="' + exIdx + '" type="button" style="width:auto; padding:10px 14px; font-size:12.5px; color:var(--danger-text); border-color:var(--danger);">Poista</button>' +
+      '</div>' +
+      (ex.methodNote ? '<div style="margin-top:8px;">' + renderMethodNote(ex) + '</div>' : '') +
+      (ex.autoCalc === false ? '<div style="color:var(--mist); font-size:11.5px; margin-top:6px;">' + noAutoCalcReason(ex) + '</div>' : '') +
+      '</div>';
+  }
+  function renderProgramReview(){
+    var imp = state.pdfImport;
+    if(!imp) return '<div class="empty">Ei tuotavaa ohjelmaa.</div>';
+    var exCount = 0, reviewCount = 0;
+    imp.program.days.forEach(function(day){
+      day.exercises.forEach(function(ex){ exCount++; if(ex.needsReview) reviewCount++; });
+    });
+    var html = '<div class="day-heading">Tarkista tuotu ohjelma</div>' +
+      '<div class="exercise" style="padding:16px;">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 10px;">Luettu ' + imp.files.length + ' PDF-tiedostosta: ' + escapeHtml(imp.files.join(", ")) + '. Löytyi ' + imp.program.days.length + ' treenipäivää ja ' + exCount + ' liikettä. Ohjelma tallentuu vasta ”Valmis”-painikkeesta.</p>' +
+      (reviewCount
+        ? '<p style="color:var(--brass); font-size:13px; line-height:1.5; margin:0;"><b>' + reviewCount + ' riviä vaatii tarkistuksen.</b> Ne on merkitty alle omien treenipäiviensä kohdalle — täydennä sarjat ja toistot tai poista rivi.</p>'
+        : '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0;">Kaikki rivit tunnistettiin.</p>') +
+      '</div>';
+
+    imp.program.days.forEach(function(day, di){
+      html += '<div class="day-heading">' + escapeHtml(day.name) + '</div>';
+      day.exercises.forEach(function(ex, ei){ html += renderReviewExercise(ex, di, ei); });
+    });
+
+    if(imp.program.notes && imp.program.notes.length){
+      html += '<div class="day-heading">Ohjelman muistiinpanot</div>' +
+        '<div class="exercise" style="padding:14px 16px;">' +
+        '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 0 8px;">Tiedoston ohjetekstit tallennetaan ohjelman mukana ja näkyvät Ohjelma-näkymässä.</p>' +
+        renderNotesList(imp.program.notes) +
+        '</div>';
+    }
+
+    html += '<div class="exercise" style="padding:16px; margin-top:14px;">' +
+      '<button class="save-btn" data-pdf-import-save type="button">Valmis — tallenna ohjelma</button>' +
+      '<button class="btn-secondary" data-pdf-import-cancel type="button" style="margin-top:10px;">Peruuta</button>' +
+      '</div>';
+    return html;
   }
   function renderHistoria(){
     if(state.historyLoading) return '<div class="empty">Ladataan historiaa…</div>';
@@ -3097,8 +3801,11 @@
   function renderAsetukset(){
     return '<div class="day-heading">Ohjelma</div>' +
       '<div class="exercise" style="padding:16px;">' +
+      renderPdfImportError() +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Tuo uusi CSV korvataksesi nykyisen ohjelman. Aiemmat merkinnät säilyvät ennallaan.</p>' +
       '<input type="file" accept=".csv" id="csv-input-settings" aria-label="Valitse uusi treeniohjelman CSV-tiedosto">' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Tai tuo ohjelma PDF-tiedostoina. Tiedostot luetaan laitteellasi eikä niitä lähetetä minnekään. Jäsennetty ohjelma näytetään tarkistettavaksi ennen tallennusta.</p>' +
+      renderPdfInput("pdf-input-settings") +
       '</div>' +
       '<div class="day-heading">Liikkeiden 1RM</div>' +
       '<div class="exercise" style="padding:16px;">' +
@@ -3232,7 +3939,32 @@
         "&body=" + encodeURIComponent(feedbackBody);
       return;
     }
+    if(e.target.closest("[data-dismiss-pdf-error]")){
+      state.pdfImportError = null;
+      render();
+      return;
+    }
+    if(e.target.closest("[data-toggle-program-notes]")){
+      state.showProgramNotes = !state.showProgramNotes;
+      render();
+      return;
+    }
+    if(e.target.closest("[data-pdf-import-save]")){
+      await savePdfImport();
+      return;
+    }
+    if(e.target.closest("[data-pdf-import-cancel]")){
+      cancelPdfImport();
+      return;
+    }
+    if((el = e.target.closest("[data-review-remove]"))){
+      removePdfReviewExercise(parseInt(el.dataset.di, 10), parseInt(el.dataset.ei, 10));
+      return;
+    }
     if((el = e.target.closest("[data-tab]"))){
+      // Kesken oleva tuonti ei ole vielä tallessa missään, joten välilehden
+      // vaihto ei saa hukata sitä vahingossa.
+      if(state.pdfImport){ showToast("Viimeistele tai peruuta ohjelman tuonti ensin"); return; }
       state.view = el.dataset.tab;
       state.confirmingReset = false;
       if(state.view === "historia" && state.historyDates === undefined){ await loadHistory(); }
@@ -3497,6 +4229,12 @@
       if(file) handleFile(file);
       return;
     }
+    if(e.target.id === "pdf-input-initial" || e.target.id === "pdf-input-settings"){
+      var pdfFiles = Array.prototype.slice.call(e.target.files || []);
+      e.target.value = "";
+      if(pdfFiles.length) handlePdfFiles(pdfFiles);
+      return;
+    }
     if(e.target.id === "import-entries-input"){
       var impFile = e.target.files[0];
       if(impFile){ showToast("Tuodaan merkintöjä…"); importEntriesFile(impFile); }
@@ -3557,6 +4295,15 @@
           if(fieldEx && !isRowDoneEligible(fieldEx, row)) row.done = false;
         }
       }
+      return;
+    }
+    var reviewField = e.target.closest("[data-review-field]");
+    if(reviewField && state.pdfImport){
+      // Arvo talteen suoraan jäsennystulokseen ilman render()-kutsua, jotta
+      // fokus ei katoa kesken kirjoittamisen.
+      var rDay = state.pdfImport.program.days[parseInt(reviewField.dataset.di, 10)];
+      var rEx = rDay && rDay.exercises[parseInt(reviewField.dataset.ei, 10)];
+      if(rEx) rEx[reviewField.dataset.field] = reviewField.value;
       return;
     }
     if(state.variantPicker && state.variantPicker.addNew){

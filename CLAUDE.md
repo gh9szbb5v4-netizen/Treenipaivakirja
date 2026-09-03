@@ -1,8 +1,35 @@
 # Treenipäiväkirja — muistiinpanot Claudelle
 
-Yhden tiedoston (`index.html`) selainsovellus. Ei build-vaihetta, ei riippuvuuksia,
-ei palvelinta. Koodityyli: `var`-määrittelyt, `function`-lausekkeet, ei arrow-
-funktioita, ei `let`/`const`. Säilytä tämä tyyli kaikissa muutoksissa.
+Yhden tiedoston (`index.html`) selainsovellus. Ei build-vaihetta, ei palvelinta.
+Koodityyli: `var`-määrittelyt, `function`-lausekkeet, ei arrow-funktioita, ei
+`let`/`const`. Säilytä tämä tyyli kaikissa muutoksissa.
+
+Ainoa poikkeus "ei riippuvuuksia" -sääntöön: PDF-tuonnin tarvitsema pdf.js
+(`pdf.min.js`, `pdf.worker.min.js`) on `index.html`:n rinnalla omina
+tiedostoinaan. Ne ladataan `loadPdfJs()`-funktiolla vasta kun käyttäjä valitsee
+PDF-tuonnin, joten CSV-käyttö ei kosketa niitä. Kirjastoa ei upoteta
+`index.html`:ään (kolminkertaistaisi tiedoston koon) eikä haeta CDN:stä
+(tuotavan ohjelman käsittely ei saa vaatia ulkopuolista palvelua). Jos
+julkaisukansiota muutetaan, molemmat tiedostot on kopioitava mukana.
+
+## PDF-ohjelmatuonti (toteutettu)
+
+`parseProgramPDF()` ja sen apurit ovat `parseProgramCSV()`:n jäljessä
+sellaisenaan. `extractPdfPages()` muodostaa rivit tekstipalojen
+y-koordinaatista (`transform[5]`), ei pdf.js:n palauttamasta järjestyksestä.
+`parseProgramPDFFiles()` yhdistää monta tiedostoa ja antaa viikkonumerottomille
+tiedostoille viikoksi valintajärjestyksen.
+
+Tuonti **ei tallenna suoraan**: tulos menee `state.pdfImport`-tilaan ja
+`renderProgramReview()`-tarkistusnäkymään (`state.view === "tuonti"`), jossa
+rivejä voi muokata ja poistaa. "Valmis" kutsuu `applyImportedProgram()`:ia —
+samaa polkua kuin CSV-tuonti, ei omaa tallennuslogiikkaa.
+
+Liikeoliossa on PDF:n takia neljä valinnaista kenttää: `kind` (oletus
+`"plain"`), `method`, `perSet`, `methodNote` ja `autoCalc`. Kaikki ovat
+valinnaisia, jotta vanhat tallennetut ohjelmat toimivat ennallaan:
+`buildDraftRows()` ohittaa painoehdotuksen vain nimenomaisella
+`autoCalc === false`:lla, ei puuttuvalla kentällä.
 
 ## Suunnitellut ominaisuudet (ei vielä toteutettu)
 
@@ -19,8 +46,10 @@ reps, unit, intensity }] }] }` säilyy täysin samana. Rakentaja täyttää sama
 rakenteen kuin CSV-tuonti (`parseProgramCSV`) täyttää nyt.
 
 **Uusi näkymä:**
-Vaihtoehto CSV-tuonnin rinnalle sekä alkunäytöllä (`renderUpload`) että
-Asetuksissa ("Uusi ohjelma" -osio): "Tuo CSV" / "Rakenna sovelluksessa".
+Vaihtoehto CSV- ja PDF-tuonnin rinnalle sekä alkunäytöllä (`renderUpload`) että
+Asetuksissa ("Ohjelma"-osio): "Tuo CSV" / "Tuo PDF" / "Rakenna sovelluksessa".
+Rakentaja voi käyttää pohjana `renderProgramReview()`-tarkistusnäkymää, joka jo
+muokkaa ohjelmarakennetta paikallaan ja tallentaa `applyImportedProgram()`:lla.
 Rakentajassa käyttäjä lisää viikkoja → viikon sisään päiviä → päivän sisään
 liikkeitä, ja täyttää kullekin liikkeelle sarjat, toistot, yksikön ja tehon
 (sama kenttäsetti kuin CSV:n sarakkeet).
