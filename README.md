@@ -1,12 +1,12 @@
 # Treenipaivakirja
 
-Selaimessa toimiva treenipäiväkirja, joka lukee treeniohjelman CSV- tai PDF-tiedostosta, tallentaa sarjakohtaiset merkinnät ja laskee seuraavien treenien sarjapainot automaattisesti. Sovelluslogiikka on kokonaan yhdessä `index.html`-tiedostossa: ei asennusta, ei palvelinta, ei build-vaihetta.
+Selaimessa toimiva treenipäiväkirja, joka lukee treeniohjelman CSV- tai PDF-tiedostosta tai antaa rakentaa sen suoraan sovelluksessa, tallentaa sarjakohtaiset merkinnät ja laskee seuraavien treenien sarjapainot automaattisesti. Sovelluslogiikka on kokonaan yhdessä `index.html`-tiedostossa: ei asennusta, ei palvelinta, ei build-vaihetta.
 
 Ainoa ulkoinen kirjasto on PDF-tuonnin tarvitsema [pdf.js](https://mozilla.github.io/pdf.js/) (`pdf.min.js` ja `pdf.worker.min.js` `index.html`:n rinnalla). Se ladataan vasta kun käyttäjä valitsee PDF-tuonnin, joten CSV-käyttö ei lataa sitä lainkaan. Kirjasto pidetään omassa tiedostossaan eikä sitä upoteta `index.html`:ään, koska se kolminkertaistaisi sovellustiedoston koon — ja CDN:n sijaan omalla palvelimella siksi, ettei tuotavan ohjelman käsittely saa vaatia yhteyttä ulkopuoliseen palveluun.
 
 ## Käyttöönotto
 
-Avaa julkaistu osoite selaimessa ja tuo treeniohjelmasi CSV- tai PDF-tiedostona. Ohjelma tallentuu selaimeen, joten tuonti tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan.
+Avaa julkaistu osoite selaimessa ja tuo treeniohjelmasi CSV- tai PDF-tiedostona — tai rakenna se suoraan sovelluksessa. Ohjelma tallentuu selaimeen, joten tämä tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan.
 
 Kannattaa lisätä sivu laitteen aloitusnäytölle, jolloin se avautuu kuin natiivi sovellus eikä tavallisena selainvälilehtenä: iPhonella Safarin jakopainikkeesta ("Lisää Koti-valikkoon"), Androidilla selaimen valikosta ("Lisää aloitusnäytölle" tai "Asenna sovellus"). Tämä ei ole pelkkä kosmeettinen ero — Safari saattaa poistaa tavallisena selainvälilehtenä pidetyn sivun paikallisesti tallennetut tiedot noin seitsemän päivän käyttämättömyyden jälkeen, kun taas Koti-valikkoon lisätty, itsenäisenä avautuva versio on tästä vapautettu. Sovellus muistuttaa tästä kerran ensimmäisen CSV-tuonnin jälkeen, ellei se jo tuolloin ole käynnissä aloitusnäytöltä avattuna.
 
@@ -65,6 +65,18 @@ Ohjeteksti, jota ei tulkita liikkeiksi (`-Tauot sarjojen välissä 90 sekuntia.`
 
 Skannattua PDF:ää, jossa ei ole tekstikerrosta, ei voi lukea. Sovellus havaitsee puuttuvan tekstikerroksen ja kertoo siitä erikseen sen sijaan, että tuonti epäonnistuisi hiljaisesti. Jäsennys on puhtaasti sääntöpohjaista: ohjelman sisältöä ei lähetetä tekoälypalveluun, koska se olisi ristiriidassa sen kanssa, ettei mikään data poistu laitteelta.
 
+## Ohjelman rakentaminen sovelluksessa
+
+Ohjelman voi koota myös ilman tiedostoa. Painike "Rakenna ohjelma sovelluksessa" löytyy sekä etusivulta ennen ensimmäistä tuontia että Asetusten Ohjelma-osiosta.
+
+Rakenne etenee ylhäältä alas: **viikko** → **treenipäivä** → **liike**. Jokaiselle liikkeelle annetaan sarjat, toistot, yksikkö ja teho, eli täsmälleen samat tiedot kuin CSV:n vastaavissa sarakkeissa. Liike valitaan samasta lihasryhmittäin ryhmitellystä katalogista kuin liikkeen vaihdossa, variaatioineen ja lisävariaatioineen; jos liikettä ei ole listalla, valinnan lopusta pääsee kirjoittamaan nimen itse. Vapaasti kirjoitetusta nimestä huomautetaan, jos katalogissa on samankaltainen liike — eri kirjoitusasu aloittaisi historian alusta.
+
+"Monista viikko" kopioi viikon päivineen ja liikkeineen uudeksi viikoksi, joten toistuvan ohjelman voi rakentaa kerran ja monistaa loput. Uuden viikon ja treenipäivän oletusnimeksi tulee ensimmäinen vapaa numero, jottei kahta samannimistä synny vahingossa.
+
+Ohjelma tallentuu vasta "Valmis"-painikkeesta, ja tallennus kulkee samaa polkua kuin CSV- ja PDF-tuonti: liikeoliot ovat täsmälleen samanmuotoisia, uusi ohjelma korvaa vanhan ja historia säilyy liikkeen nimen perusteella. Tallennus estyy selkeällä ilmoituksella, jos viikolta tai päivältä puuttuu nimi, jos kaksi viikkoa tai saman viikon kaksi päivää on nimetty samoin, tai jos ohjelmassa ei ole yhtään liikettä. Liikkeetön treenipäivä jätetään pois tallennettavasta ohjelmasta.
+
+Rakentaja luo aina uuden ohjelman. Jo tallennetun ohjelman jälkikäteistä muokkausta (liikkeiden järjestäminen, viikon lisääminen olemassa olevaan ohjelmaan) se ei tee — yksittäisen liikkeen voi silti vaihtaa toiseksi Ohjelma-näkymässä.
+
 ## Sarjapainojen laskenta
 
 Sovellus ehdottaa painon kahdella eri säännöllä sen mukaan, onko liikkeelle määritelty teho. Ehdotus on aina muokattavissa, ja ledgerin yläpuolella kerrotaan, mihin se perustuu.
@@ -107,9 +119,9 @@ Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa 
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea — toisesta merkinnästä lähtien käyrässä näkyy myös kehityssuunta. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
 
-**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Uuden ohjelman tuonti, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
+**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Uuden ohjelman tuonti tai rakentaminen sovelluksessa, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
-**Ohje.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
+**Ohje.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, ohjelman rakentaminen sovelluksessa, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
 
 ## Tietojen tallennus
 
@@ -126,3 +138,5 @@ Yksityinen selaus tai evästeiden esto voi estää tallennuksen. Sovellus havait
 Sovellus ei myöskään toimi, jos `index.html` avataan suoraan laitteelta tiedostona: Safari estää tallennuksen `file:`-osoitteissa. Sivu on siis tarjoiltava osoitteen kautta, esimerkiksi GitHub Pagesista.
 
 Liikkeet tunnistetaan nimen perusteella isot ja pienet kirjaimet sivuuttaen. Sama liike eri tavoin kirjoitettuna (`Peck deck` ja `Pec dec`) tulkitaan kahdeksi eri liikkeeksi, joten CSV:n kirjoitusasujen kannattaa olla yhtenäisiä.
+
+Sovelluksessa rakennettua ohjelmaa ei voi muokata jälkikäteen: muutos tehdään rakentamalla ohjelma uudelleen, jolloin historia säilyy liikkeen nimen perusteella ennallaan.

@@ -31,56 +31,44 @@ valinnaisia, jotta vanhat tallennetut ohjelmat toimivat ennallaan:
 `buildDraftRows()` ohittaa painoehdotuksen vain nimenomaisella
 `autoCalc === false`:lla, ei puuttuvalla kentällä.
 
-## Suunnitellut ominaisuudet (ei vielä toteutettu)
+## Ohjelman rakentaminen sovelluksessa (toteutettu)
 
-### Ohjelman rakentaminen sovelluksessa (vaihtoehto CSV-tuonnille)
+Kolmas tapa saada ohjelma sovellukseen CSV- ja PDF-tuonnin rinnalle.
+Sisääntulo on sekä alkunäytöllä (`renderUpload`) että Asetusten Ohjelma-osiossa
+(`[data-builder-start]`). Näkymä on `renderProgramBuilder()`
+(`state.view === "rakenna"`), ja luonnos elää vain `state.builder`-kentässä:
 
-Käyttäjä pyysi mahdollisuutta luoda treeniohjelma suoraan sovelluksessa CSV-
-tiedoston lataamisen sijaan. Ensimmäinen vaihe: pelkkä tuonti/luonti, ei vielä
-olemassa olevan ohjelman muokkausta (lisää/poista/järjestä jälkikäteen) —
-sen tarve arvioidaan myöhemmin.
+```
+state.builder = {
+  weeks: [ { label: "1", days: [ { name: "Päivä 1", exercises: [ {name, sets, reps, unit, teho} ] } ] } ],
+  picker: null   // { wi, di, liike, variaatio, lisavariaatio, free, freeName, nameHint }
+}
+```
 
-**Datamalli — ei muutoksia:**
-`state.program = { weeks: [...], days: [{ week, name, exercises: [{ name, sets,
-reps, unit, intensity }] }] }` säilyy täysin samana. Rakentaja täyttää saman
-rakenteen kuin CSV-tuonti (`parseProgramCSV`) täyttää nyt.
+`builderProgramFromDraft()` kokoaa luonnoksesta saman rakenteen kuin
+`parseProgramCSV()` (päivän nimi `"Viikko <label> · <päivä>"`, liikeoliossa
+`id`, `name`, `sets`, `reps`, `unit`, `weight`, `notes`, `intensity`, `kind:"plain"`,
+`autoCalc:true`, oma `ex-<timestamp>`-etuliite), ja `saveProgramBuilder()`
+tallentaa sen `applyImportedProgram()`:lla — ei omaa tallennuslogiikkaa. Tämä on
+oleellista: Historia- ja Kehitys-yhteys toimii liikkeen nimen perusteella, joten
+rakentajan on tuotettava täsmälleen samanmuotoisia liikeolioita kuin tuonti.
 
-**Uusi näkymä:**
-Vaihtoehto CSV- ja PDF-tuonnin rinnalle sekä alkunäytöllä (`renderUpload`) että
-Asetuksissa ("Ohjelma"-osio): "Tuo CSV" / "Tuo PDF" / "Rakenna sovelluksessa".
-Rakentaja voi käyttää pohjana `renderProgramReview()`-tarkistusnäkymää, joka jo
-muokkaa ohjelmarakennetta paikallaan ja tallentaa `applyImportedProgram()`:lla.
-Rakentajassa käyttäjä lisää viikkoja → viikon sisään päiviä → päivän sisään
-liikkeitä, ja täyttää kullekin liikkeelle sarjat, toistot, yksikön ja tehon
-(sama kenttäsetti kuin CSV:n sarakkeet).
+Liikelistaa ei koodattu erillisenä `EXERCISE_LIBRARY`-vakiona, vaikka
+alkuperäinen suunnitelma niin esitti: `EXERCISE_VARIANTS` sisältää jo
+`lihasryhma`-kentän jokaisella rivillä, joten toinen lista olisi ollut sama tieto
+kahdesti ja olisi ajautunut erilleen. Lista luetaan jaetun
+`exerciseOptionsByGroup()`-funktion kautta, jota käyttävät sekä rakentaja että
+liikkeen vaihto — molemmat näyttävät siis saman listan, myös käyttäjän itse
+lisäämien liikkeiden osalta. Vapaa tekstikenttä liikkeen nimelle on mukana
+(”Liike ei löydy listalta”), ja siitä huomautetaan `findSimilarName()`:lla.
 
-**Liikkeiden valinta — kiinteä liikelista lihasryhmittäin:**
-Liikelista koodataan suoraan sovellukseen JS-vakiona (esim.
-`EXERCISE_LIBRARY = { "Rinta": [...], "Selkä": [...], "Jalat": [...],
-"Hartiat": [...], "Käsivarret": [...], "Keskivartalo": [...] }`), EI tuoda
-erillisenä tiedostona. Perustelu: sovelluksen koko idea on yksi tiedosto
-ilman ulkoisia riippuvuuksia tai tuontivaiheita; kiinteä referenssilista
-sopii tähän paremmin kuin uusi tuontimuoto, ja lista on heti käytettävissä
-ilman erillistä tuontiaskelta. Rakentajassa pitää silti sallia myös vapaa
-tekstikenttä liikkeen nimelle — lista on ehdotus, ei rajoite. (Ohjelma-
-välilehdellä oli aiemmin vastaava "Lisää liike, jota ei ole ohjelmassa"
--kenttä, mutta se on poistettu näkymästä, koska yksittäisen liikkeen
-lisääminen ei ole hyödyllinen ilman laajempaa ohjelman muokkausta.)
+Validoinnit `builderProgramFromDraft()`:ssa: tyhjä viikon tai päivän nimi, kaksi
+samannimistä viikkoa (viikkovalitsin etsii nimen mukaan) ja saman viikon kaksi
+samannimistä päivää (`dayKey()` törmäisi) estävät tallennuksen; liikkeetön päivä
+ja liikkeetön viikko jätetään pois. Uuden viikon ja päivän oletusnimi on
+ensimmäinen vapaa numero.
 
-**Tallennus:**
-"Valmis"-painike kirjoittaa koostetun rakenteen `state.program`-muuttujaan
-ja kutsuu olemassa olevaa `saveProgram()`-funktiota — sama polku kuin CSV-
-tuonnissa, ei uutta tallennuslogiikkaa. Sama semantiikka kuin CSV-tuonnilla:
-uusi ohjelma korvaa vanhan, mutta merkinnät/historia säilyvät liikkeen nimen
-perusteella ennallaan (tämä on tärkeää: Historia/Kehitys-yhteys toimii
-liikkeen nimen perusteella, joten rakentajan pitää tuottaa täsmälleen
-samanmuotoiset liikeoliot kuin CSV-tuonti).
-
-**Ei kosketa:** Historia/Kehitys/Asetukset-logiikkaan, storage-adapteriin tai
-1RM-laskentaan ei tarvitse koskea — ne toimivat jo pelkän `state.program`-
-rakenteen varassa riippumatta siitä, tuliko se CSV:stä vai rakentajasta.
-
-**Avoin kysymys jatkoa varten:** pitääkö rakentajan pystyä myöhemmin myös
-muokkaamaan olemassa olevaa ohjelmaa jälkikäteen (lisää/poista/järjestä
-viikko tai liike), vai riittääkö pysyvästi pelkkä "luo uusi ohjelma tyhjästä"
-CSV-tuonnin rinnalle.
+**Ratkaistu kysymys:** rakentaja luo aina uuden ohjelman tyhjästä. Olemassa
+olevan ohjelman jälkikäteinen muokkaus (lisää/poista/järjestä viikko tai liike)
+jätettiin tietoisesti tekemättä; tarve arvioidaan vasta käytön perusteella.
+Yksittäisen liikkeen vaihto on jo olemassa Ohjelma-näkymässä.
