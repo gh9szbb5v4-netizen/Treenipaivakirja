@@ -6,7 +6,7 @@ Ainoa ulkoinen kirjasto on PDF-tuonnin tarvitsema [pdf.js](https://mozilla.githu
 
 ## Käyttöönotto
 
-Avaa julkaistu osoite selaimessa ja tuo treeniohjelmasi CSV- tai PDF-tiedostona — tai rakenna se suoraan sovelluksessa. Ohjelma tallentuu selaimeen, joten tämä tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan.
+Avaa julkaistu osoite selaimessa. Tervetuloruudun jälkeen sovellus kysyy, miten haluat aloittaa: rakenna ohjelma itse, tuo se tiedostosta (CSV tai valmentajan PDF — muoto tunnistetaan itsestään) tai palauta aiempi varmuuskopio toiselta laitteelta. Ohjelma tallentuu selaimeen, joten tämä tarvitsee tehdä vain kerran — sen jälkeen sovellus avautuu suoraan liikelistaan, ja ensimmäisellä kerralla Ohjelma-näkymän kärjessä on lyhyt kolmen askeleen ohje treenin kirjaamiseen.
 
 Kannattaa lisätä sivu laitteen aloitusnäytölle, jolloin se avautuu kuin natiivi sovellus eikä tavallisena selainvälilehtenä: iPhonella Safarin jakopainikkeesta ("Lisää Koti-valikkoon"), Androidilla selaimen valikosta ("Lisää aloitusnäytölle" tai "Asenna sovellus"). Tämä ei ole pelkkä kosmeettinen ero — Safari saattaa poistaa tavallisena selainvälilehtenä pidetyn sivun paikallisesti tallennetut tiedot noin seitsemän päivän käyttämättömyyden jälkeen, kun taas Koti-valikkoon lisätty, itsenäisenä avautuva versio on tästä vapautettu. Sovellus muistuttaa tästä kerran ensimmäisen CSV-tuonnin jälkeen, ellei se jo tuolloin ole käynnissä aloitusnäytöltä avattuna.
 
@@ -111,23 +111,43 @@ Sama koskee PDF-tuonnin menetelmäliikkeitä (rest-pause, cluster, drop) sekä k
 
 Ohjelma, Historia, Kehitys ja Ohje vaihdetaan näytön alareunassa kelluvasta valikosta. Asetukset avataan näkymän oikean yläkulman rataskuvakkeesta.
 
-**Ohjelma.** Liikkeet viikoittain ja päivittäin. Liikkeen avaamalla kirjaat painot, toistot ja huomiot sarjoittain, ja näet nostetun kokonaispainon. Merkinnän voi kirjata myös takautuvasti päivämäärävalitsimella.
+**Ohjelma.** Treenipäivät kortteina, joissa on päivän nimi, tila (tehty, kesken, liikkeiden määrä) ja seuraavaksi vuorossa olevalla päivällä "Aloita"-painike, joka avaa päivän ja sen ensimmäisen kirjaamattoman liikkeen. Liikkeen avaamalla kirjaat painot ja toistot sarjoittain yhdellä rivillä per sarja; ±2,5 kg -säätimet näkyvät aktiivisen sarjan alla ja sarjan huomio sekä poisto löytyvät rivin ⋮-painikkeesta. Yläreunan "Viikko | Kaikki" -valitsin näyttää nykyisen viikon tai koko ohjelman, ja päivämääräsirpaleesta merkinnän voi kirjata myös takautuvasti.
 
 Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa liike ja valitse "Vaihda liike toiseksi". Sarjat, toistot ja teho säilyvät ennallaan, ja vaihdon voi kohdistaa joko vain kyseiseen kohtaan tai kaikkiin saman liikkeen esiintymiin ohjelmassa. Vaihdettu liike aloittaa oman historiansa uudella nimellä; vanhalla nimellä tallennetut merkinnät säilyvät Historiassa ennallaan.
 
-**Historia.** Merkinnät päivittäin. Yksittäisen päivän voi poistaa, jolloin painoehdotukset ja Kehitys-näkymän laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
+**Historia.** Merkinnät päivittäin; jokainen päiväkortti näyttää jo suljettuna liikkeiden määrän ja nostetun kokonaispainon. Yksittäisen päivän voi poistaa kortin alareunasta kahdella painalluksella, jolloin painoehdotukset ja Kehitys-näkymän laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
 
-**Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea — toisesta merkinnästä lähtien käyrässä näkyy myös kehityssuunta. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
+**Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea; vertailurivit näkyvät vasta, kun vertailukohta on olemassa, ja yhdellä merkinnällä kortti kertoo, että toinen merkintä tarvitaan. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
 
-**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Uuden ohjelman tuonti tai rakentaminen sovelluksessa, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
+**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Luettelo, jonka rivit avaavat omat näkymänsä: Ohjelma (tuonti tiedostosta tai rakentaminen sovelluksessa), Liikkeiden 1RM, Lepoajastin, Varmuuskopio sekä Lisää, jonka alla ovat simulointi, palaute, tietoja ja kaikkien tietojen tyhjennys. Rivin alaotsikko kertoo tilan, esimerkiksi viikkojen ja päivien määrän tai lepoajan. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
 **Ohje.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, ohjelman rakentaminen sovelluksessa, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
+
+## Varmuuskopio
+
+Asetusten "Vie varmuuskopio CSV:nä" tallentaa yhteen tiedostoon kaiken, mitä sovelluksessa on: kirjatut treenit, sillä hetkellä käytössä olevan treeniohjelman, käyttäjän itse lisäämät liikkeet ja liikkeiden 1RM-arvot. Tiedosto on yhä CSV ja avautuu taulukkolaskennassa, mutta se jakautuu osioihin, joista jokainen alkaa omalla `#`-rivillään:
+
+| Osio | Sisältö |
+|---|---|
+| `#MERKINNÄT` | Kirjatut sarjat: päivämäärä, liike, sarjanumero, paino, toistot, huomiot, tyyppi ja liikkeen tunniste |
+| `#OHJELMA` | Ohjelman jokainen liike viikkoineen ja treenipäivineen, mukaan lukien tyyppi, menetelmä, sarjakohtaiset toistot ja menetelmäselite |
+| `#OHJELMAN MUISTIINPANOT` | PDF-ohjelman mukana tullut ohjeteksti |
+| `#OMAT LIIKKEET` | Käyttäjän itse lisäämät liikkeet variaatioineen ja lihasryhmineen |
+| `#1RM` | Liikekohtaiset 1RM-arvot ja niiden päivitysajankohta |
+
+Merkintärivin **Tunniste** on liikkeen ohjelma-id. Sen ansiosta palautus sitoo jokaisen merkinnän täsmälleen samaan ohjelman liikkeeseen kuin varmuuskopion hetkellä, eikä liikkeiden nimien varaan jäävää arvausta tarvita. Vanhemmissa, ennen tätä tehdyissä vientitiedostoissa saraketta ei ole; ne tuodaan yhä entiseen tapaan nimien perusteella kohdistaen.
+
+Palautus näyttää ensin, mitä tiedosto sisältää, ja tekee muutokset vasta vahvistuksesta — varmuuskopion ohjelma nimittäin **korvaa nykyisen ohjelman**. Kaikki muu yhdistetään laitteella jo olevaan niin, että jo tallennettu voittaa eikä mitään poisteta: omat liikkeet lisätään ilman kaksoiskappaleita, merkinnöistä ohitetaan jo tallennetut, ja 1RM-arvo tuodaan vain liikkeille, joilla ei vielä ole arvoa. Näin vanhemman varmuuskopion palautus ei laske tuoreempaa 1RM:ää huomaamatta, ja saman tiedoston voi tuoda turvallisesti useaan kertaan. Pelkät merkinnät sisältävä vanha vientitiedosto tuodaan suoraan ilman vahvistusta, koska se ei voi korvata ohjelmaa.
+
+1RM-osiossa liikkeen nimi kirjoitetaan ohjelman kirjoitusasussa ja luetaan takaisin pienin kirjaimin — se on avain, jolla painoehdotus etsii arvon, joten kirjoitusasun vaihtelu ei vaikuta palautukseen.
 
 ## Tietojen tallennus
 
 Merkinnät tallennetaan selaimen omaan tallennustilaan ja säilyvät sovelluksen sulkemisen jälkeen. Mitään ei lähetetä palvelimelle — data ei koskaan poistu laitteeltasi, ja julkaistu sivu on pelkkä staattinen tiedosto.
 
-Tallennustila on laite- ja osoitekohtainen, joten merkinnät eivät siirry toiseen selaimeen, laitteeseen tai osoitteeseen automaattisesti. Siirto ja varmuuskopiointi tehdään Asetusten vienti- ja tuontitoiminnoilla. Sovellus näyttää ohjelmanäkymässä muistutusbannerin, jos edellisestä viennistä on yli 14 päivää; muistutuksen voi ohittaa kuluvaksi istunnoksi tai tehdä viennin suoraan bannerista. Tuonti yhdistää tiedot olemassa oleviin merkintöihin ja ohittaa jo tallennetut, joten saman tiedoston voi tuoda turvallisesti useaan kertaan. Koska vientitiedostossa on vain päivämäärä ja liikkeen nimi, tuonti kohdistaa jokaisen tuodun treenipäivän siihen ohjelman päivään, jonka liikkeisiin sen nimet parhaiten täsmäävät — aikajärjestyksessä ja kukin ohjelmapäivä kerran, jolloin peräkkäiset samanmuotoiset treenit osuvat viikoille 1, 2, 3 jne. Näin palautetut treenit näkyvät myös Ohjelma-välilehdellä tehtyinä, eivät vain Historiassa ja Kehityksessä. Liikkeet, joita tuotavassa ohjelmassa ei ole, säilyvät Historiassa ja Kehityksessä, ja tuonti kertoo niiden määrän.
+Tallennustila on laite- ja osoitekohtainen, joten tiedot eivät siirry toiseen selaimeen, laitteeseen tai osoitteeseen automaattisesti. Siirto ja varmuuskopiointi tehdään Asetusten varmuuskopiotoiminnoilla (ks. edellinen osio). Sovellus näyttää ohjelmanäkymässä muistutusbannerin, jos edellisestä varmuuskopiosta on yli 14 päivää; muistutuksen voi ohittaa kuluvaksi istunnoksi tai ottaa varmuuskopion suoraan bannerista.
+
+Jos tuotavassa tiedostossa ei ole liikkeen tunnistetta — eli se on vanha, pelkät merkinnät sisältävä vienti — tuonti kohdistaa jokaisen tuodun treenipäivän siihen ohjelman päivään, jonka liikkeisiin sen nimet parhaiten täsmäävät. Päivät käydään aikajärjestyksessä ja kukin ohjelmapäivä varataan kerran, jolloin peräkkäiset samanmuotoiset treenit osuvat viikoille 1, 2, 3 jne. Näin palautetut treenit näkyvät myös Ohjelma-välilehdellä tehtyinä, eivät vain Historiassa ja Kehityksessä. Liikkeet, joita ohjelmassa ei ole, säilyvät Historiassa ja Kehityksessä, ja tuonti kertoo niiden määrän.
 
 Uuden treeniohjelman tuonti ei poista historiaa: merkinnät ja painoehdotukset säilyvät liikkeen nimen perusteella, joten uusi ohjelmajakso jatkaa siitä mihin edellinen jäi.
 
