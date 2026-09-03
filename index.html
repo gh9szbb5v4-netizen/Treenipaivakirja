@@ -1857,6 +1857,44 @@
     return byDate;
   }
 
+  // Varmuuskopion CSV:ssä on vain päivämäärä ja liikkeen nimi — ei ohjelman
+  // liike-id:tä, joka syntyy uudelleen jokaisessa ohjelman tuonnissa. Ilman
+  // sidontaa tuodut merkinnät jäisivät irrallisiksi: ne näkyisivät Historiassa
+  // ja Kehityksessä (jotka lukevat nimen perusteella) mutta eivät Ohjelma-
+  // näkymässä, joka kysyy liike-id:llä onko treeni tehty.
+  //
+  // Sidonta tehdään treenipäivä kerrallaan: jokainen tuotu päivä osoitetaan
+  // sille ohjelman päivälle, jonka liikkeisiin sen nimet parhaiten täsmäävät.
+  // Päivät käydään aikajärjestyksessä ja kukin ohjelmapäivä varataan kerran,
+  // jolloin peräkkäiset samanmuotoiset treenit osuvat viikoille 1, 2, 3 …
+  // Nimi yksin ei riitä, koska sama liike toistuu ohjelmassa joka viikko.
+  function matchImportedDatesToProgramDays(byDate){
+    var matches = {};
+    if(!state.program || !state.program.days || !state.program.days.length) return matches;
+    var dates = Object.keys(byDate).sort();
+    var used = {};
+    dates.forEach(function(date){
+      var logged = {};
+      byDate[date].forEach(function(block){ logged[normalizeName(block.name)] = true; });
+      var bestIdx = null, bestScore = 0, bestUsed = true;
+      state.program.days.forEach(function(day, idx){
+        var score = 0;
+        (day.exercises || []).forEach(function(ex){
+          if(logged[normalizeName(ex.name)]) score++;
+        });
+        if(score === 0) return;
+        var isUsed = !!used[idx];
+        // Paras osuma voittaa; tasatilanteessa vielä varaamaton päivä ja
+        // ohjelmajärjestyksessä aiempi viikko.
+        if(score > bestScore || (score === bestScore && bestUsed && !isUsed)){
+          bestIdx = idx; bestScore = score; bestUsed = isUsed;
+        }
+      });
+      if(bestIdx !== null){ used[bestIdx] = true; matches[date] = state.program.days[bestIdx]; }
+    });
+    return matches;
+  }
+
   async function importEntriesFile(file){
     var text;
     try{ text = await readFileAsText(file); }
@@ -1869,9 +1907,12 @@
     var dates = Object.keys(byDate);
     if(dates.length === 0){ showToast("Tiedostosta ei löytynyt tuotavia merkintöjä", 4000); return; }
 
-    var addedBlocks = 0, skippedBlocks = 0, touchedNames = {}, failedDates = 0;
+    var dayMatches = matchImportedDatesToProgramDays(byDate);
+    var addedBlocks = 0, skippedBlocks = 0, touchedNames = {}, failedDates = 0, boundBlocks = 0;
     for(var i=0;i<dates.length;i++){
       var date = dates[i];
+      var matchedDay = dayMatches[date];
+      var takenProgramIds = {};
       var entry = await loadEntry(date);
       if(!entry.exercises) entry.exercises = {};
       var existingKeys = Object.keys(entry.exercises);
@@ -1888,8 +1929,26 @@
         var sig = block.name.trim().toLowerCase() + "|" + block.kind + "|" +
           block.sets.map(function(s){ return (s.weight||"") + "x" + (s.reps||""); }).join(";");
         if(signatures[sig]){ skippedBlocks++; return; }
-        var newId;
-        do { newId = "imp-" + date + "-" + (counter++); } while(entry.exercises.hasOwnProperty(newId));
+        var newId = null;
+        if(matchedDay){
+          // Sama liike voi esiintyä päivässä kahdesti (esim. MAX + prosentti),
+          // joten kukin ohjelmarivi varataan vain kerran päivää kohti eikä
+          // päivällä jo olevan merkinnän päälle kirjoiteta.
+          var normBlock = normalizeName(block.name);
+          for(var p=0;p<matchedDay.exercises.length;p++){
+            var pex = matchedDay.exercises[p];
+            if(takenProgramIds[pex.id]) continue;
+            if(normalizeName(pex.name) !== normBlock) continue;
+            if(entry.exercises.hasOwnProperty(pex.id)) continue;
+            takenProgramIds[pex.id] = true;
+            newId = pex.id;
+            boundBlocks++;
+            break;
+          }
+        }
+        if(!newId){
+          do { newId = "imp-" + date + "-" + (counter++); } while(entry.exercises.hasOwnProperty(newId));
+        }
         entry.exercises[newId] = {
           name: block.name,
           sets: block.sets,
@@ -1921,6 +1980,9 @@
 
     var msg = "Tuotu " + addedBlocks + " merkintää";
     if(skippedBlocks > 0) msg += ", ohitettu " + skippedBlocks + " jo olemassa olevaa";
+    // Kerrotaan erikseen, jos osa jäi ilman ohjelmavastinetta: ne näkyvät
+    // Historiassa ja Kehityksessä mutta eivät Ohjelma-näkymän merkintöinä.
+    if(addedBlocks > boundBlocks) msg += " — " + (addedBlocks - boundBlocks) + " ei täsmännyt ohjelman liikkeisiin";
     if(failedDates > 0) msg += " — " + failedDates + " päivän tallennus epäonnistui";
     showToast(msg, 4500);
     render();
@@ -2403,7 +2465,7 @@
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie merkinnät CSV:nä</b> — ota säännöllisesti varmuuskopio, sillä data on vain tässä selaimessa. Sovellus muistuttaa asiasta, jos edellisestä viennistä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
-      "<b style=\"color:var(--chalk);\">Tuo merkinnät</b> — palauta varmuuskopio tai siirrä historia toiselle laitteelle.",
+      "<b style=\"color:var(--chalk);\">Tuo merkinnät</b> — palauta varmuuskopio tai siirrä historia toiselle laitteelle. Tuodut treenipäivät kohdistetaan ohjelman päiviin liikkeiden nimien perusteella, joten ne näkyvät myös Ohjelma-välilehdellä tehtyinä.",
       "<b style=\"color:var(--chalk);\">Simulointi</b> — täyttää koko ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten. Toimii vain, jos yhtään oikeaa merkintää ei ole vielä tallennettu.",
       "<b style=\"color:var(--chalk);\">Palaute</b> — lähetä havainto, virhe tai idea suoraan tekijälle sähköpostitse.",
       "<b style=\"color:var(--chalk);\">Tyhjennä kaikki tiedot</b> — poistaa pysyvästi kaiken. Kysyy vahvistuksen."
