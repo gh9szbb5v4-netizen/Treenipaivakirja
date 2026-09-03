@@ -75,7 +75,22 @@ Rakenne etenee ylhäältä alas: **viikko** → **treenipäivä** → **liike**.
 
 Ohjelma tallentuu vasta "Valmis"-painikkeesta, ja tallennus kulkee samaa polkua kuin CSV- ja PDF-tuonti: liikeoliot ovat täsmälleen samanmuotoisia, uusi ohjelma korvaa vanhan ja historia säilyy liikkeen nimen perusteella. Tallennus estyy selkeällä ilmoituksella, jos viikolta tai päivältä puuttuu nimi, jos kaksi viikkoa tai saman viikon kaksi päivää on nimetty samoin, tai jos ohjelmassa ei ole yhtään liikettä. Liikkeetön treenipäivä jätetään pois tallennettavasta ohjelmasta.
 
-Rakentaja luo aina uuden ohjelman. Jo tallennetun ohjelman jälkikäteistä muokkausta (liikkeiden järjestäminen, viikon lisääminen olemassa olevaan ohjelmaan) se ei tee — yksittäisen liikkeen voi silti vaihtaa toiseksi Ohjelma-näkymässä.
+Rakentaja luo aina uuden ohjelman. Jo tallennettua ohjelmaa muokataan Ohjelma-näkymän muokkaustilassa (seuraava kohta).
+
+## Ohjelman muokkaus sovelluksessa
+
+Tallennettua ohjelmaa voi muokata jälkikäteen ilman uutta tuontia. Muokkaustila avataan Ohjelma-näkymän oikean yläkulman kynäkuvakkeesta tai Asetusten Ohjelma-osion painikkeesta "Muokkaa nykyistä ohjelmaa". Muokkauksen ajaksi välilehdet piilotetaan, ja näytön alareunaan tulee palkki, jossa ovat "Peruuta" ja "Valmis".
+
+Näkymä on sama ylhäältä alas etenevä rakenne kuin rakentajassa: viikot, niiden alla treenipäivät ja päivien alla liikkeet. Jokaisella rivillä on nuolet järjestyksen vaihtamiseen sekä ⋮-painike, jonka takaa löytyvät Kopioi, Aloita uudelleen ja Poista. Viikolle ja päivälle voi kirjoittaa oman nimen, esimerkiksi "Kevennysviikko" tai "Ylävartalo"; viikon oletusnimi on "Viikko 1", "Viikko 2" jne., ja nimen tyhjentäminen palauttaa oletuksen. Liikettä napauttamalla avautuu lomake, jossa muutetaan nimi, sarjat, toistot, yksikkö ja teho — samat tiedot kuin CSV:n sarakkeissa. "Lisää liike", "Lisää päivä" ja "Lisää tyhjä viikko" lisäävät uuden kohdan, ja "Kopioi valittu viikko uudeksi" monistaa avoinna olevan viikon päivineen ja liikkeineen seuraavaksi vapaaksi viikkonumeroksi.
+
+Liikkeen tehty-tila on sidottu liikkeen tunnisteeseen, historia ja painoehdotukset liikkeen nimeen. Tästä seuraa muutama sääntö:
+
+- Sarjojen, toistojen tai tehon muuttaminen säilyttää tunnisteen, joten jo kirjattu merkintä pysyy liikkeellä.
+- Nimen muuttaminen on sama asia kuin liikkeen vaihto: liike saa uuden tunnisteen ja aloittaa oman historiansa, ja vanhalla nimellä kirjatut merkinnät jäävät Historiaan ennalleen. Jos sama liike on useassa viikossa, lomakkeen valinta "vaihda kaikissa viikoissa" vaihtaa ne kaikki kerralla.
+- "Aloita uudelleen" antaa uudet tunnisteet liikkeelle, päivälle, viikolle tai koko ohjelmalle, jolloin ne näkyvät taas tekemättöminä. Merkinnät ja 1RM-arvot säilyvät, joten painoehdotukset lasketaan edelleen historiasta. Viikon ja koko ohjelman kohdalla toiminto vahvistetaan toisella painalluksella.
+- Liikkeen, päivän ja viikon poisto vahvistetaan aina toisella painalluksella. Poistetun liikkeen merkinnät säilyvät Historiassa.
+
+Muutokset tallentuvat vasta "Valmis"-painikkeesta, ja siihen asti ne koskevat vain luonnosta; "Peruuta" kysyy vahvistuksen, jos muutoksia on tehty. Kopioidut ja lisätyt liikkeet ovat täsmälleen samanmuotoisia kuin tuonnin tuottamat, joten Historia, Kehitys ja 1RM-lista toimivat niille samalla tavalla — esimerkiksi MAX-teholla lisätty liike ilmestyy heti Asetusten 1RM-listaan. Viikkojen omat nimet ja päivien tunnisteet kulkevat myös varmuuskopion mukana.
 
 ## Sarjapainojen laskenta
 
@@ -111,7 +126,7 @@ Sama koskee PDF-tuonnin menetelmäliikkeitä (rest-pause, cluster, drop) sekä k
 
 Ohjelma, Historia, Kehitys ja Ohje vaihdetaan näytön alareunassa kelluvasta valikosta. Asetukset avataan näkymän oikean yläkulman rataskuvakkeesta.
 
-**Ohjelma.** Treenipäivät kortteina, joissa on päivän nimi, tila (tehty, kesken, liikkeiden määrä) ja seuraavaksi vuorossa olevalla päivällä "Aloita"-painike, joka avaa päivän ja sen ensimmäisen kirjaamattoman liikkeen. Liikkeen avaamalla kirjaat painot ja toistot sarjoittain yhdellä rivillä per sarja; ±2,5 kg -säätimet näkyvät aktiivisen sarjan alla ja sarjan huomio sekä poisto löytyvät rivin ⋮-painikkeesta. Yläreunan "Viikko | Kaikki" -valitsin näyttää nykyisen viikon tai koko ohjelman, ja päivämääräsirpaleesta merkinnän voi kirjata myös takautuvasti.
+**Ohjelma.** Treenipäivät kortteina, joissa on päivän nimi, tila (tehty, kesken, liikkeiden määrä) ja seuraavaksi vuorossa olevalla päivällä "Aloita"-painike, joka avaa päivän ja sen ensimmäisen kirjaamattoman liikkeen. Liikkeen avaamalla kirjaat painot ja toistot sarjoittain yhdellä rivillä per sarja; ±2,5 kg -säätimet näkyvät aktiivisen sarjan alla ja sarjan huomio sekä poisto löytyvät rivin ⋮-painikkeesta. Yläreunan "Viikko | Kaikki" -valitsin näyttää nykyisen viikon tai koko ohjelman, ja päivämääräsirpaleesta merkinnän voi kirjata myös takautuvasti. Oikean yläkulman kynäkuvake avaa ohjelman muokkaustilan (ks. Ohjelman muokkaus sovelluksessa).
 
 Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa liike ja valitse "Vaihda liike toiseksi". Sarjat, toistot ja teho säilyvät ennallaan, ja vaihdon voi kohdistaa joko vain kyseiseen kohtaan tai kaikkiin saman liikkeen esiintymiin ohjelmassa. Vaihdettu liike aloittaa oman historiansa uudella nimellä; vanhalla nimellä tallennetut merkinnät säilyvät Historiassa ennallaan.
 
@@ -119,9 +134,9 @@ Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa 
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea; vertailurivit näkyvät vasta, kun vertailukohta on olemassa, ja yhdellä merkinnällä kortti kertoo, että toinen merkintä tarvitaan. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
 
-**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Luettelo, jonka rivit avaavat omat näkymänsä: Ohjelma (tuonti tiedostosta tai rakentaminen sovelluksessa), Liikkeiden 1RM, Lepoajastin, Varmuuskopio sekä Lisää, jonka alla ovat simulointi, palaute, tietoja ja kaikkien tietojen tyhjennys. Rivin alaotsikko kertoo tilan, esimerkiksi viikkojen ja päivien määrän tai lepoajan. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
+**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Luettelo, jonka rivit avaavat omat näkymänsä: Ohjelma (tuonti tiedostosta, rakentaminen sovelluksessa tai nykyisen ohjelman muokkaus), Liikkeiden 1RM, Lepoajastin, Varmuuskopio sekä Lisää, jonka alla ovat simulointi, palaute, tietoja ja kaikkien tietojen tyhjennys. Rivin alaotsikko kertoo tilan, esimerkiksi viikkojen ja päivien määrän tai lepoajan. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
-**Ohje.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, ohjelman rakentaminen sovelluksessa, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
+**Ohje.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, ohjelman rakentaminen sovelluksessa, treenin kirjaaminen, ohjelman muokkaus, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
 
 ## Varmuuskopio
 
@@ -130,7 +145,7 @@ Asetusten "Vie varmuuskopio CSV:nä" tallentaa yhteen tiedostoon kaiken, mitä s
 | Osio | Sisältö |
 |---|---|
 | `#MERKINNÄT` | Kirjatut sarjat: päivämäärä, liike, sarjanumero, paino, toistot, huomiot, tyyppi ja liikkeen tunniste |
-| `#OHJELMA` | Ohjelman jokainen liike viikkoineen ja treenipäivineen, mukaan lukien tyyppi, menetelmä, sarjakohtaiset toistot ja menetelmäselite |
+| `#OHJELMA` | Ohjelman jokainen liike viikkoineen ja treenipäivineen, mukaan lukien tyyppi, menetelmä, sarjakohtaiset toistot ja menetelmäselite sekä viikon nimi, päivän tunniste ja päivän nimi |
 | `#OHJELMAN MUISTIINPANOT` | PDF-ohjelman mukana tullut ohjeteksti |
 | `#OMAT LIIKKEET` | Käyttäjän itse lisäämät liikkeet variaatioineen ja lihasryhmineen |
 | `#1RM` | Liikekohtaiset 1RM-arvot ja niiden päivitysajankohta |
@@ -159,4 +174,4 @@ Sovellus ei myöskään toimi, jos `index.html` avataan suoraan laitteelta tiedo
 
 Liikkeet tunnistetaan nimen perusteella isot ja pienet kirjaimet sivuuttaen. Sama liike eri tavoin kirjoitettuna (`Peck deck` ja `Pec dec`) tulkitaan kahdeksi eri liikkeeksi, joten CSV:n kirjoitusasujen kannattaa olla yhtenäisiä.
 
-Sovelluksessa rakennettua ohjelmaa ei voi muokata jälkikäteen: muutos tehdään rakentamalla ohjelma uudelleen, jolloin historia säilyy liikkeen nimen perusteella ennallaan.
+Rakentaja ja tuonti luovat aina uuden ohjelman, joka korvaa nykyisen. Jo tallennettua ohjelmaa muokataan muokkaustilassa; siellä liikkeen nimen muuttaminen aloittaa liikkeelle uuden historian, koska historia sidotaan liikkeen nimeen.
