@@ -98,7 +98,7 @@ Sovellus ehdottaa painon kahdella eri säännöllä sen mukaan, onko liikkeelle 
 
 **Liikkeellä on teho (MAX tai prosentti).** Painoehdotus lasketaan liikkeen 1RM-arvosta — ei liikkeen aiemmista merkinnöistä. `MAX`-teholle ehdotetaan suoraan 1RM:ää; prosenttiteholle (esim. `90 %`) ehdotetaan kyseinen prosenttiosuus 1RM:stä. Jos liikkeelle ei ole vielä 1RM-arvoa, ehdotus jää tyhjäksi.
 
-1RM-arvoa voi muokata milloin tahansa käsin Asetuksissa (rataskuvake oikeassa yläkulmassa), mutta se päivittyy myös automaattisesti: kun kirjaat merkinnän `MAX`-teholliselle liikkeelle, sen ensimmäisen sarjan paino tallentuu 1RM:ksi ja korvaa Asetuksiin aiemmin tallennetun arvon.
+1RM-arvoa voi muokata milloin tahansa käsin Asetuksissa (alavalikon viimeinen kohta), mutta se päivittyy myös automaattisesti: kun kirjaat merkinnän `MAX`-teholliselle liikkeelle, sen ensimmäisen sarjan paino tallentuu 1RM:ksi ja korvaa Asetuksiin aiemmin tallennetun arvon.
 
 **Liikkeellä ei ole tehoa.** Ehdotus perustuu liikkeen **viimeksi kirjattuun sarjaan** ja Epley-kaavaan: edellisestä sarjasta arvioidaan 1RM, siihen sovelletaan progressiokerrointa, ja tuloksesta lasketaan takaisin paino tavoitetoistomäärälle.
 
@@ -124,7 +124,7 @@ Sama koskee PDF-tuonnin menetelmäliikkeitä (rest-pause, cluster, drop) sekä k
 
 ## Näkymät
 
-Ohjelma, Historia, Kehitys ja Ohje vaihdetaan näytön alareunassa kelluvasta valikosta. Asetukset avataan näkymän oikean yläkulman rataskuvakkeesta.
+Ohjelma, Historia, Kehitys ja Asetukset vaihdetaan näytön alareunassa kelluvasta valikosta. Ohje avataan näkymän oikean yläkulman kysymysmerkkikuvakkeesta, joka on näkyvissä jokaisessa näkymässä.
 
 **Ohjelma.** Treenipäivät kortteina, joissa on päivän nimi, tila (tehty, kesken, liikkeiden määrä) ja seuraavaksi vuorossa olevalla päivällä "Aloita"-painike, joka avaa päivän ja sen ensimmäisen kirjaamattoman liikkeen. Liikkeen avaamalla kirjaat painot ja toistot sarjoittain yhdellä rivillä per sarja; ±2,5 kg -säätimet näkyvät aktiivisen sarjan alla ja sarjan huomio sekä poisto löytyvät rivin ⋮-painikkeesta. Yläreunan "Viikko | Kaikki" -valitsin näyttää nykyisen viikon tai koko ohjelman, ja päivämääräsirpaleesta merkinnän voi kirjata myös takautuvasti. Oikean yläkulman kynäkuvake avaa ohjelman muokkaustilan (ks. Ohjelman muokkaus sovelluksessa).
 
@@ -136,9 +136,9 @@ Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa 
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea; vertailurivit näkyvät vasta, kun vertailukohta on olemassa, ja yhdellä merkinnällä kortti kertoo, että toinen merkintä tarvitaan. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
 
-**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Luettelo, jonka rivit avaavat omat näkymänsä: Ohjelma (tuonti tiedostosta, rakentaminen sovelluksessa tai nykyisen ohjelman muokkaus), Liikkeiden 1RM, Lepoajastin, Varmuuskopio sekä Lisää, jonka alla ovat simulointi, palaute, tietoja ja kaikkien tietojen tyhjennys. Rivin alaotsikko kertoo tilan, esimerkiksi viikkojen ja päivien määrän tai lepoajan. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
+**Asetukset** (alavalikon viimeinen kohta)**.** Luettelo, jonka rivit avaavat omat näkymänsä: Ohjelma (tuonti tiedostosta, rakentaminen sovelluksessa tai nykyisen ohjelman muokkaus), Liikkeiden 1RM, Lepoajastin, Varmuuskopio sekä Lisää, jonka alla ovat simulointi, palaute, tietoja ja kaikkien tietojen tyhjennys. Rivin alaotsikko kertoo tilan, esimerkiksi viikkojen ja päivien määrän tai lepoajan. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
-**Ohje.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, ohjelman rakentaminen sovelluksessa, treenin kirjaaminen, ohjelman muokkaus, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
+**Ohje** (kysymysmerkkikuvake oikeassa yläkulmassa)**.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, ohjelman rakentaminen sovelluksessa, treenin kirjaaminen, ohjelman muokkaus, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
 
 ## Varmuuskopio
 

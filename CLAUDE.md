@@ -207,7 +207,7 @@ luokkaa. Merkit `.chip` + `.chip-brass/-muted/-success`. Banneri
 `"info"` tai `"danger"`; kaikki aiemmat ad hoc -laatikot käyttävät sitä.
 
 Kuvakkeet: `ICONS`-olio (24 px, viiva 1,7) ja `icon(name, size)`. Ei
-kuvakefonttia. `gearIcon()` on säilytetty aliaksena. Kuvake on aina
+kuvakefonttia (vanha `gearIcon()`-alias on poistettu). Kuvake on aina
 `aria-hidden`; merkitys annetaan tekstillä tai aria-labelilla.
 
 Natiivit kontrollit: `renderFilePicker()` ja `renderDateChip()` pitävät
@@ -314,4 +314,14 @@ change-tapahtuma piirtää näkymän uudelleen, kun palstamäärä vaihtuu.
 Playwrightin oletusikkuna on 1280 px leveä, joten vanhat testisarjat ajavat
 Ohjelma-näkymän kaksipalstaisena; `test_v6.js` testaa molemmat leveydet ja
 vaihdon niiden välillä.
+
+## Otsikkorivin ja alavalikon kuvakkeet (toteutettu)
+
+Otsikkorivin oikeassa kulmassa on Ohje (`data-tab="ohje"`, kysymysmerkki)
+kaikissa näkymissä ja sen vieressä kynä (`[data-edit-program]`) vain
+Ohjelma-näkymässä. Alavalikossa ovat Ohjelma, Historia, Kehitys ja Asetukset;
+Asetukset siirrettiin otsikkorivin rataskuvakkeesta valikon viimeiseksi
+kohdaksi käyttäjän pyynnöstä. Molemmat ovat tavallisia `[data-tab]`-
+kohteita, joten välilehtikäsittelijä (settingsSection- ja
+pendingRestore-nollaus, muokkaustilan esto) on sama.
 
