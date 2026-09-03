@@ -194,21 +194,18 @@
        .btn-secondary  ääriviiva harmaalla — vaihtoehtoiset toiminnot
        .btn-tertiary   pelkkä teksti — vähäiset, toistuvat toiminnot
        .btn-danger     ääriviiva vaaravärillä — tuhoavat toiminnot
-     .save-btn on säilytetty aliaksena .btn-primary:lle, jotta vanhat
-     kutsupaikat toimivat ennallaan; uusi koodi käyttää .btn-primary-nimeä.
      Kokoa säätävät .btn-sm (40 px) ja leveyttä .btn-auto. */
-  .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger, .save-btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; padding:12px 18px; border-radius:999px; font:inherit; font-size:var(--fs-md); font-weight:700; line-height:1.2; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .08s, opacity .15s, background-color .15s, color .15s;}
-  .btn-primary, .save-btn{background:var(--brass); border:1px solid var(--brass); color:var(--ink); font-weight:800;}
-  .save-btn{margin-top:12px;}
+  .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger{display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; padding:12px 18px; border-radius:999px; font:inherit; font-size:var(--fs-md); font-weight:700; line-height:1.2; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .08s, opacity .15s, background-color .15s, color .15s;}
+  .btn-primary{background:var(--brass); border:1px solid var(--brass); color:var(--ink); font-weight:800;}
   .btn-secondary{background:var(--surface-2); border:1px solid var(--line-strong); color:var(--chalk);}
   .btn-tertiary{background:transparent; border:1px solid transparent; color:var(--mist); font-weight:600; min-height:40px; padding:8px 12px; width:auto;}
   .btn-tertiary:hover{color:var(--chalk);}
   .btn-danger{background:transparent; border:1px solid var(--danger); color:var(--danger-text);}
   .btn-sm{min-height:40px; padding:8px 14px; font-size:var(--fs-sm);}
   .btn-auto{width:auto;}
-  .btn-primary:active, .save-btn:active, .btn-secondary:active, .btn-danger:active{transform:scale(.98); opacity:.9;}
-  .btn-primary:disabled, .btn-secondary:disabled, .btn-tertiary:disabled, .btn-danger:disabled, .save-btn:disabled, .add-set-btn:disabled{opacity:.4; cursor:default; transform:none;}
-  .btn-primary svg, .btn-secondary svg, .btn-tertiary svg, .btn-danger svg, .save-btn svg{flex-shrink:0;}
+  .btn-primary:active, .btn-secondary:active, .btn-danger:active{transform:scale(.98); opacity:.9;}
+  .btn-primary:disabled, .btn-secondary:disabled, .btn-tertiary:disabled, .btn-danger:disabled, .add-set-btn:disabled{opacity:.4; cursor:default; transform:none;}
+  .btn-primary svg, .btn-secondary svg, .btn-tertiary svg, .btn-danger svg{flex-shrink:0;}
 
   /* ---------- Merkki (chip) ----------
      Pieni pyöristetty tilamerkki: teho (MAX, %), tila (Tehty, Kesken) ja
@@ -297,6 +294,13 @@
   .sheet-title{display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:var(--fs-lg); font-weight:800; margin-bottom:10px;}
   .sheet p{color:var(--mist); font-size:var(--fs-sm); line-height:1.55; margin:0 0 10px;}
   .sheet .csv-example{margin-bottom:12px;}
+  .pick-list{display:flex; flex-direction:column; gap:4px;}
+  .pick-group{font-size:var(--fs-xs); font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--mist); margin:10px 0 2px;}
+  .pick-item{display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:11px 12px; min-height:44px; color:var(--chalk); font:inherit; font-size:var(--fs-md); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .pick-item:hover, .pick-item:focus-visible{border-color:var(--brass);}
+  .pick-item.pick-free{border-style:dashed; color:var(--brass);}
+  .editor-note{padding:0 12px 10px; font-size:var(--fs-xs); line-height:1.45;}
+  .editor-row.needs-review{border-color:var(--brass); background:rgba(201,162,39,0.08);}
   .upload-box p{color:var(--mist); font-size:var(--fs-md); line-height:1.55; margin:0 0 12px;}
   .csv-example{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; background:var(--surface-2); padding:10px; border-radius:8px; overflow-x:auto; white-space:nowrap; color:var(--mist); margin-bottom:16px;}
 
@@ -304,6 +308,43 @@
   .history-date-head{display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px; font-variant-numeric:tabular-nums; cursor:pointer; min-height:32px;}
 
   .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:var(--fs-md); line-height:1.6;}
+  /* ---------- Rakenteellinen tyhjä tila ----------
+     Kuvake, otsikko, selite ja tarvittaessa toiminto: sama muoto Historiassa,
+     Kehityksessä, tyhjällä viikolla, 1RM-listassa ja tabletin liikepaneelissa. */
+  .empty-state{display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; padding:40px 20px 32px;}
+  .empty-state.compact{padding:24px 16px 20px;}
+  .empty-icon{width:56px; height:56px; border-radius:50%; background:var(--surface); border:1px dashed var(--line-strong); color:var(--brass); display:flex; align-items:center; justify-content:center; margin-bottom:6px;}
+  .empty-title{font-size:var(--fs-lg); font-weight:800;}
+  .empty-body{color:var(--mist); font-size:var(--fs-md); line-height:1.55; margin:0; max-width:34ch;}
+  .empty-actions{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:10px;}
+  .saved-badge{width:22px; height:22px; border-radius:50%; background:var(--success); color:var(--ink); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; margin-left:8px;}
+  /* ---------- Painallustila ja valmis-merkin animaatio ----------
+     Jokainen kosketuskohde painuu hieman kasaan painettaessa, jotta napautus
+     tuntuu rekisteröityvän myös ilman haptiikkaa. Valmiiksi merkitty sarja,
+     tallennettu liike ja valmistunut päivä ponnahtavat kerran: .pop asetetaan
+     vain juuri muuttuneelle merkille (state.justDone, justSavedEx,
+     justDoneDay), ja liput nollataan seuraavan napautuksen alussa. Molemmat
+     noudattavat prefers-reduced-motion-asetusta (yllä). */
+  .icon-btn, .editor-icon, .tab, .set-done-btn, .set-more, .pick-item, .weight-step-btn, .chevron-btn, .segmented button, .editor-title, .add-set-btn, .btn-primary, .btn-secondary, .btn-tertiary, .btn-danger, .choice-card, .settings-row, .remove-set{transition:transform .08s ease, background-color .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;}
+  .icon-btn:active, .editor-icon:active, .tab:active, .set-done-btn:active, .set-more:active, .pick-item:active, .weight-step-btn:active, .chevron-btn:active, .segmented button:active, .editor-title:active, .add-set-btn:active, .btn-tertiary:active, .remove-set:active{transform:scale(.94);}
+  .exercise-head-main:active, .day-card-main:active{opacity:.7;}
+  @media (hover:hover){
+    .icon-btn:hover, .editor-icon:hover{border-color:var(--brass); color:var(--chalk);}
+    .btn-secondary:hover{border-color:var(--brass);}
+    .tab:hover:not(.active){color:var(--chalk);}
+  }
+  @keyframes pop{0%{transform:scale(.4); opacity:.3;} 55%{transform:scale(1.18);} 100%{transform:scale(1); opacity:1;}}
+  .pop{animation:pop .32s cubic-bezier(.2,.7,.3,1.3) both;}
+  /* ---------- Tablettiasettelu ----------
+     Vähintään 768 px leveällä näytöllä Ohjelma-näkymä on kaksipalstainen:
+     päivät ja liikkeet vasemmalla, avattu liike sarjoineen oikealla
+     kiinnitettynä. Muut näkymät pysyvät yhden palstan levyisinä. */
+  @media (min-width: 768px){
+    #app.wide{max-width:960px;}
+    .ohjelma-cols{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start;}
+    .ohjelma-pane{position:sticky; top:calc(env(safe-area-inset-top) + 14px); max-height:calc(100vh - 40px); overflow:auto;}
+    .ohjelma-pane > .exercise{margin-bottom:0;}
+  }
 
   /* Ilmoitusruutu nousee alhaalta navigaation yläpuolelle: se ei peitä
      yläpalkkia eikä logoa, ja sijainti on sama, johon peukalo jo katsoo. */
@@ -340,7 +381,7 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.2.0";
+  var APP_VERSION = "0.3.0";
   // Sovelluksen logo otsikkorivillä. Upotettu data-URI:na, koska sovellus on
   // yhden tiedoston kokonaisuus ilman ulkoisia riippuvuuksia — sama merkki kuin
   // aloitusnäytön kuvakkeissa, mutta läpinäkyvällä taustalla.
@@ -393,11 +434,9 @@
     program: null,
     // PDF-tuonnin jäsennystulos odottamassa käyttäjän hyväksyntää. Ohjelma
     // tallentuu vasta ”Valmis”-painikkeesta, ei suoraan tuonnista.
-    pdfImport: null,
     pdfImportError: null,
     // Sovelluksessa rakennettava ohjelmaluonnos odottamassa ”Valmis”-painiketta.
     // Sama periaate kuin pdfImport-kentällä: mitään ei tallenneta ennen sitä.
-    builder: null,
     // Luettu varmuuskopio odottamassa vahvistusta. Ohjelman palautus korvaa
     // nykyisen ohjelman, joten sitä ei tehdä kysymättä.
     pendingRestore: null,
@@ -406,6 +445,8 @@
     editMode: false,
     programDraft: null,
     editor: blankEditor(),
+    // Valmis-merkin animaatio: juuri muuttunut sarja, liike ja päivä.
+    justDone: null, justSavedEx: null, justDoneDay: null,
     showProgramNotes: false,
     manualExercises: [],
     userExercises: [],
@@ -1812,7 +1853,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.openExercise = null;
     state.showAllWeeks = false;
     state.showProgramNotes = false;
-    state.builder = null;
     await saveProgram();
     await computeDefaultActiveWeek();
     state.todayEntry = await loadEntry(state.draftDate);
@@ -1837,7 +1877,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
     try{
       var program = parseProgramCSV(text);
-      state.pdfImport = null;
       state.pdfImportError = null;
       await applyImportedProgram(program, "Ohjelma tuotu onnistuneesti");
     }catch(err){
@@ -1866,268 +1905,78 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       render();
       return;
     }
-    state.pdfImport = {
-      program: res.program,
-      review: res.review,
-      files: files.map(function(f){ return f.name; })
-    };
-    state.view = "tuonti";
-    showToast("Tarkista jäsennetty ohjelma ennen tallennusta", 4000);
-    render();
+    // Tarkistus tapahtuu muokkaustilassa: samat rivit, lomakkeet ja poistot
+    // kuin ohjelman muokkauksessa, ei omaa tarkistusnäkymää.
+    startProgramImport(res.program, files.map(function(f){ return f.name; }));
   }
 
-  async function savePdfImport(){
-    if(!state.pdfImport) return;
-    var program = state.pdfImport.program;
-    // Käyttäjä on nyt nähnyt ja hyväksynyt tarkistuslistan rivit, joten
-    // väliaikainen merkintä poistetaan ennen tallennusta.
-    program.days.forEach(function(day){
-      day.exercises.forEach(function(ex){ delete ex.needsReview; delete ex.rawTarget; });
-    });
-    state.pdfImport = null;
-    state.pdfImportError = null;
-    await applyImportedProgram(program, "Ohjelma tallennettu");
-  }
-
-  function cancelPdfImport(){
-    state.pdfImport = null;
-    state.pdfImportError = null;
-    state.view = "ohjelma";
-    render();
-  }
-
-  function removePdfReviewExercise(dayIdx, exIdx){
-    if(!state.pdfImport) return;
-    var day = state.pdfImport.program.days[dayIdx];
-    if(!day) return;
-    day.exercises.splice(exIdx, 1);
-    // Tyhjäksi jäänyt treenipäivä poistetaan, jottei ohjelmaan tallennu
-    // päiviä joissa ei ole yhtään liikettä.
-    if(!day.exercises.length) state.pdfImport.program.days.splice(dayIdx, 1);
-    render();
-  }
-
-  // ---------- Ohjelman rakentaminen sovelluksessa ----------
-  // Vaihtoehto CSV- ja PDF-tuonnille: käyttäjä kokoaa ohjelman viikoista,
-  // treenipäivistä ja liikkeistä suoraan sovelluksessa. Luonnos elää vain
-  // state.builder-kentässä, ja ”Valmis” kokoaa siitä täsmälleen samanmuotoisen
-  // rakenteen kuin parseProgramCSV() tuottaa ja tallentaa sen samaa
-  // applyImportedProgram()-polkua pitkin — ei omaa tallennuslogiikkaa.
-  function newBuilderExercise(name){
-    // Yksikkö on valmiiksi ”toistoa”, koska se on ohjelmien yleisin tapaus;
-    // kenttä on silti vapaasti muokattavissa (esim. ”min”, ”käsi”).
-    return { name: name, sets: "", reps: "", unit: "toistoa", teho: "" };
-  }
-  // Uuden viikon ja treenipäivän oletusnimi on ensimmäinen vapaa numero: kaksi
-  // samannimistä viikkoa tekisi viikkovalitsimesta arvaamattoman ja kaksi
-  // samannimistä päivää törmäisi dayKey():n kautta samaan avaimeen.
-  function nextBuilderWeekLabel(weeks){
-    var used = {};
-    weeks.forEach(function(w){ used[String(w.label || "").trim()] = true; });
-    var n = 1;
-    while(used[String(n)]) n++;
-    return String(n);
-  }
-  function nextBuilderDayName(week){
-    var used = {};
-    week.days.forEach(function(d){ used[String(d.name || "").trim()] = true; });
-    var n = 1;
-    while(used["Päivä " + n]) n++;
-    return "Päivä " + n;
-  }
-  function newBuilderWeek(label){
-    var week = { label: label, days: [] };
-    week.days.push({ name: nextBuilderDayName(week), exercises: [] });
-    return week;
-  }
-  function startProgramBuilder(){
-    state.builder = { weeks: [ newBuilderWeek("1") ], picker: null };
-    state.pdfImportError = null;
-    state.view = "rakenna";
-    render();
-  }
-  function cancelProgramBuilder(){
-    state.builder = null;
-    state.view = "ohjelma";
-    render();
-  }
-  function builderAddWeek(){
-    var b = state.builder;
-    if(!b) return;
-    b.weeks.push(newBuilderWeek(nextBuilderWeekLabel(b.weeks)));
-    b.picker = null;
-    render();
-  }
-  // Treeniohjelman viikot toistuvat lähes aina samanlaisina, joten viikon
-  // monistaminen säästää suurimman osan käsin naputtelusta.
-  function builderDuplicateWeek(wi){
-    var b = state.builder;
-    if(!b || !b.weeks[wi]) return;
-    b.weeks.push({
-      label: nextBuilderWeekLabel(b.weeks),
-      days: b.weeks[wi].days.map(function(day){
-        return { name: day.name, exercises: day.exercises.map(function(ex){ return Object.assign({}, ex); }) };
-      })
-    });
-    b.picker = null;
-    render();
-  }
-  function builderRemoveWeek(wi){
-    var b = state.builder;
-    // Viimeistä viikkoa ei poisteta: ohjelmassa on aina vähintään yksi viikko,
-    // johon liikkeitä voi lisätä.
-    if(!b || b.weeks.length <= 1 || !b.weeks[wi]) return;
-    b.weeks.splice(wi, 1);
-    b.picker = null;
-    render();
-  }
-  function builderAddDay(wi){
-    var b = state.builder;
-    if(!b || !b.weeks[wi]) return;
-    b.weeks[wi].days.push({ name: nextBuilderDayName(b.weeks[wi]), exercises: [] });
-    b.picker = null;
-    render();
-  }
-  function builderRemoveDay(wi, di){
-    var b = state.builder;
-    if(!b || !b.weeks[wi] || !b.weeks[wi].days[di]) return;
-    b.weeks[wi].days.splice(di, 1);
-    b.picker = null;
-    render();
-  }
-  function builderRemoveExercise(wi, di, ei){
-    var b = state.builder;
-    var day = b && b.weeks[wi] && b.weeks[wi].days[di];
-    if(!day) return;
-    day.exercises.splice(ei, 1);
-    render();
-  }
-  function builderOpenPicker(wi, di){
-    if(!state.builder) return;
-    state.builder.picker = { wi: wi, di: di, liike: null, variaatio: null, lisavariaatio: null,
-      variaatioTouched: false, lisavariaatioTouched: false, free: false, freeName: "", nameHint: null };
-    render();
-  }
-  function builderClosePicker(){
-    if(state.builder) state.builder.picker = null;
-    render();
-  }
-  // Valitun liikkeen nimi: joko katalogin liike variaatioineen tai vapaa teksti.
-  // Liikelista on ehdotus, ei rajoite — nimi saa aina olla mikä tahansa.
-  function builderPickerName(){
-    var p = state.builder && state.builder.picker;
-    if(!p) return "";
-    if(p.free) return String(p.freeName || "").trim();
-    if(!p.liike) return "";
-    return composeVariantName(p.liike, p.variaatio, p.lisavariaatio);
-  }
-  function builderPickerValid(){
-    var p = state.builder && state.builder.picker;
-    if(!p) return false;
-    if(p.free) return !!String(p.freeName || "").trim();
-    if(!p.liike) return false;
-    // Sama sääntö kuin liikkeen vaihdossa: valinta kelpaa vasta kun sitä
-    // vastaava rivi löytyy katalogista.
-    return !!findVariantRow(p.liike, p.variaatio, p.lisavariaatio);
-  }
-  function builderAddExercise(){
-    var b = state.builder;
-    var p = b && b.picker;
-    if(!p || !builderPickerValid()) return;
-    var day = b.weeks[p.wi] && b.weeks[p.wi].days[p.di];
-    if(!day) return;
-    day.exercises.push(newBuilderExercise(builderPickerName()));
-    b.picker = null;
-    render();
-  }
-  // Kokoaa luonnoksesta täsmälleen samanmuotoisen rakenteen kuin
-  // parseProgramCSV(): samat kentät samassa muodossa ja oma id-etuliite tälle
-  // tuonnille. Liikkeettömät päivät ja viikot jätetään pois. Palauttaa
-  // virhetekstin, jos ohjelmaa ei voi tallentaa.
-  function builderProgramFromDraft(){
-    var b = state.builder;
-    if(!b) return { error: "Ohjelmaa ei ole rakenteilla." };
-    var prefix = "ex-" + Date.now();
-    var days = [];
-    var weekOrder = [];
-    var seenWeek = {};
-    var idx = 0;
-    for(var wi=0; wi<b.weeks.length; wi++){
-      var week = b.weeks[wi];
-      var weekLabel = String(week.label || "").trim();
-      if(!weekLabel) return { error: (wi+1) + ". viikolta puuttuu nimi." };
-      var weekDays = [];
-      var seenDay = {};
-      for(var di=0; di<week.days.length; di++){
-        var day = week.days[di];
-        var dayLabel = String(day.name || "").trim();
-        if(!dayLabel) return { error: "Viikon " + weekLabel + " " + (di+1) + ". treenipäivältä puuttuu nimi." };
-        if(seenDay[dayLabel]) return { error: "Viikossa " + weekLabel + " on kaksi treenipäivää nimellä ”" + dayLabel + "”." };
-        seenDay[dayLabel] = true;
-        if(!day.exercises.length) continue;
-        weekDays.push({
-          id: newDayId(),
-          label: dayLabel,
-          name: "Viikko " + weekLabel + " · " + dayLabel,
-          week: weekLabel,
-          exercises: day.exercises.map(function(ex){
-            var built = {
-              id: prefix + "-" + idx,
-              name: String(ex.name || "").trim() || "Nimetön liike",
-              sets: String(ex.sets == null ? "" : ex.sets).trim(),
-              reps: String(ex.reps == null ? "" : ex.reps).trim(),
-              unit: String(ex.unit == null ? "" : ex.unit).trim(),
-              weight: "",
-              notes: "",
-              intensity: parseIntensity(ex.teho),
-              // Rakentajan liike on aina tavallinen sarjat × toistot -liike,
-              // kuten CSV-rivikin: painolaskuri saa ehdottaa painoa.
-              kind: "plain",
-              autoCalc: true
-            };
-            idx++;
-            return built;
-          })
-        });
-      }
-      if(!weekDays.length) continue;
-      if(seenWeek[weekLabel]) return { error: "Viikon nimi ”" + weekLabel + "” esiintyy kahdesti. Anna jokaiselle viikolle oma nimi." };
-      seenWeek[weekLabel] = true;
-      weekOrder.push(weekLabel);
-      days = days.concat(weekDays);
-    }
-    if(!days.length) return { error: "Lisää ohjelmaan vähintään yksi liike ennen tallennusta." };
-    return { program: { days: days, weeks: weekOrder, weekLabels: {} } };
-  }
   // ---------- Ohjelman muokkaustila ----------
   // Muokkaukset kohdistuvat vain state.programDraft-syväkopioon. "Valmis"
   // järjestää päivät viikkojärjestykseen, päivittää day.name-kentät ja
   // korvaa state.programin; "Peruuta" hylkää luonnoksen.
   function blankEditor(){
-    return { openWeek: null, openDay: null, editingExercise: null, addingExerciseTo: null,
-             confirmDelete: null, confirmCancel: false, swapAll: true, menuFor: null, form: null };
+    return { mode: "edit", openWeeks: {}, openDays: {}, editingExercise: null, addingExerciseTo: null,
+             confirmDelete: null, confirmCancel: false, swapAll: true, menuFor: null, form: null,
+             baseline: "", returnView: null, importInfo: null, pickerQuery: "" };
   }
-  async function startProgramEdit(){
-    if(!state.program) return;
-    if(ensureProgramShape(state.program)) await saveProgram();
+  // Muokkaustilalla on kolme tilaa: "edit" muokkaa nykyistä ohjelmaa, "new"
+  // rakentaa uuden tyhjästä ja "import" tarkistaa PDF:stä jäsennetyn. Rivit,
+  // lomakkeet ja toiminnot ovat samat; vain otsikko, yhteenveto ja Valmis-
+  // painikkeen tallennuspolku eroavat.
+  var EDITOR_TITLES = { "edit": "Muokkaa ohjelmaa", "new": "Rakenna ohjelma", "import": "Tarkista tuotu ohjelma" };
+  function editorTitle(){ return EDITOR_TITLES[state.editor.mode] || EDITOR_TITLES["edit"]; }
+  function enterEditor(draft, mode){
     state.openExercise = null;
     state.swapExercise = null;
     state.variantPicker = null;
     state.activeSet = null;
     state.setExtra = {};
-    state.programDraft = JSON.parse(JSON.stringify(state.program));
+    state.pdfImportError = null;
+    state.programDraft = draft;
     state.editMode = true;
     state.editor = blankEditor();
-    state.editor.openWeek = state.activeWeek;
+    state.editor.mode = mode;
+    // Peruutus palaa näkymään, josta rakentaja tai tuonti käynnistettiin.
+    state.editor.returnView = mode === "edit" ? null : state.view;
+    state.editor.baseline = JSON.stringify(draft);
+  }
+  async function startProgramEdit(){
+    if(!state.program) return;
+    if(ensureProgramShape(state.program)) await saveProgram();
+    enterEditor(JSON.parse(JSON.stringify(state.program)), "edit");
+    state.editor.openWeeks[state.activeWeek] = true;
+    render();
+  }
+  // Rakentaja: muokkaustila tyhjälle luonnokselle, jossa on valmiina yksi
+  // viikko ja yksi päivä.
+  function startProgramBuilder(){
+    var day = { id: newDayId(), label: "Päivä 1", name: "", week: "1", exercises: [] };
+    enterEditor({ days: [day], weeks: ["1"], weekLabels: {} }, "new");
+    state.editor.openWeeks["1"] = true;
+    state.editor.openDays[day.id] = true;
+    render();
+  }
+  // PDF-tarkistus: muokkaustila jäsennetylle ohjelmalle. Kaikki avataan
+  // valmiiksi, koska käyttäjän on nähtävä jokainen rivi.
+  function startProgramImport(program, fileNames){
+    ensureProgramShape(program);
+    var reviewCount = 0;
+    program.days.forEach(function(day){ day.exercises.forEach(function(ex){ if(ex.needsReview) reviewCount++; }); });
+    enterEditor(program, "import");
+    state.editor.importInfo = { files: fileNames, reviewCount: reviewCount };
+    program.weeks.forEach(function(w){ state.editor.openWeeks[w] = true; });
+    program.days.forEach(function(d){ state.editor.openDays[d.id] = true; });
+    showToast("Tarkista jäsennetty ohjelma ennen tallennusta", 4000);
     render();
   }
   function editorHasChanges(){
-    return JSON.stringify(state.programDraft) !== JSON.stringify(state.program);
+    return JSON.stringify(state.programDraft) !== state.editor.baseline;
   }
   function resetEditor(){
     state.programDraft = null;
     state.editMode = false;
     state.editor = blankEditor();
+    if(state.sheet === "liike") state.sheet = null;
   }
   function cancelProgramEdit(){
     if(editorHasChanges() && !state.editor.confirmCancel){
@@ -2135,13 +1984,45 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       render();
       return;
     }
+    var back = state.editor.returnView;
     resetEditor();
+    if(back) state.view = back;
     render();
   }
+  // Tarkistaa luonnoksen ennen tallennusta ja palauttaa virhetekstin tai null.
+  // Samat säännöt kuin rakentajassa ennen tätä: vähintään yksi liike, ei kahta
+  // samannimistä viikkoa (viikkovalitsin näyttää nimen) eikä saman viikon
+  // kahta samannimistä päivää. Liikkeettömät päivät ohitetaan muissa kuin
+  // muokkaustilassa, koska ne jätetään tallennuksesta pois.
+  function draftProblem(draft, mode){
+    var exCount = 0;
+    draft.days.forEach(function(d){ exCount += d.exercises.length; });
+    if(!exCount) return "Lisää ohjelmaan vähintään yksi liike ennen tallennusta.";
+    var seenWeek = {};
+    for(var i=0;i<draft.weeks.length;i++){
+      var wname = weekDisplayNameIn(draft, draft.weeks[i]);
+      var wkey = normalizeName(wname);
+      if(seenWeek[wkey]) return "Viikon nimi ”" + wname + "” esiintyy kahdesti. Anna jokaiselle viikolle oma nimi.";
+      seenWeek[wkey] = true;
+    }
+    var seenDay = {};
+    for(var j=0;j<draft.days.length;j++){
+      var d = draft.days[j];
+      if(mode !== "edit" && !d.exercises.length) continue;
+      var label = String(d.label || "").trim();
+      if(!label) return "Treenipäivältä puuttuu nimi.";
+      var dkey = (d.week || "") + "|" + normalizeName(label);
+      if(seenDay[dkey]) return (d.week ? "Viikossa " + weekDisplayNameIn(draft, d.week) + " on" : "Ohjelmassa on") + " kaksi treenipäivää nimellä ”" + label + "”.";
+      seenDay[dkey] = true;
+    }
+    return null;
+  }
   async function finishProgramEdit(){
-    var draft = state.programDraft;
+    var draft = state.programDraft, mode = state.editor.mode;
     if(!draft) return;
-    if(!editorHasChanges()){ resetEditor(); render(); return; }
+    if(mode === "edit" && !editorHasChanges()){ resetEditor(); render(); return; }
+    var problem = draftProblem(draft, mode);
+    if(problem){ showToast(problem, 4000); return; }
     // Päivät viikkojärjestykseen vakaasti: koko ohjelman näkymä iteroi
     // days-listaa sellaisenaan. Viikottomat päivät jäävät loppuun.
     var order = {};
@@ -2152,7 +2033,26 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     });
     indexed.sort(function(a, b){ return a.w === b.w ? a.i - b.i : a.w - b.w; });
     draft.days = indexed.map(function(x){ return x.d; });
-    draft.days.forEach(function(d){ d.name = dayDisplayNameIn(draft, d); });
+    if(mode !== "edit"){
+      // Liikkeetön päivä ja päivätön viikko jätetään pois, jottei
+      // keskeneräinen rakenne päädy ohjelmaan.
+      draft.days = draft.days.filter(function(d){ return d.exercises.length; });
+      draft.weeks = draft.weeks.filter(function(w){
+        return draft.days.some(function(d){ return d.week === w; });
+      });
+      Object.keys(draft.weekLabels).forEach(function(k){ if(draft.weeks.indexOf(k) === -1) delete draft.weekLabels[k]; });
+    }
+    draft.days.forEach(function(d){
+      d.name = dayDisplayNameIn(draft, d);
+      // Tarkistusmerkinnät ovat vain muokkaustilaa varten.
+      d.exercises.forEach(function(ex){ delete ex.needsReview; delete ex.rawTarget; });
+    });
+    if(mode !== "edit"){
+      // Uusi ohjelma korvaa nykyisen samaa polkua kuin CSV-tuonti.
+      resetEditor();
+      await applyImportedProgram(draft, "Ohjelma tallennettu");
+      return;
+    }
     state.program = draft;
     resetEditor();
     await saveProgram();
@@ -2225,7 +2125,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return { id: newDayId(), label: day.label, name: "", week: newKey, exercises: cloneExercises(day.exercises) };
     });
     insertDaysAfterWeek(key, copies);
-    state.editor.openWeek = newKey;
+    state.editor.openWeeks[newKey] = true;
     state.editor.menuFor = null;
     showToast("Kopioitu uudeksi viikoksi: " + weekDisplayNameIn(d, newKey));
     render();
@@ -2235,7 +2135,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     d.weeks = d.weeks.filter(function(k){ return k !== key; });
     delete d.weekLabels[key];
     d.days = d.days.filter(function(day){ return day.week !== key; });
-    if(state.editor.openWeek === key) state.editor.openWeek = null;
+    delete state.editor.openWeeks[key];
     state.editor.menuFor = null;
     state.editor.confirmDelete = null;
     render();
@@ -2244,7 +2144,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var d = state.programDraft;
     var key = nextWeekKey(d.weeks);
     d.weeks.push(key);
-    state.editor.openWeek = key;
+    state.editor.openWeeks[key] = true;
     render();
   }
 
@@ -2254,7 +2154,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var count = key === null ? d.days.filter(function(x){ return !x.week; }).length : draftWeekDays(key).length;
     var day = { id: newDayId(), week: key, label: "Päivä " + (count + 1), name: "", exercises: [] };
     if(key === null) d.days.push(day); else insertDaysAfterWeek(key, [day]);
-    state.editor.openDay = day.id;
+    state.editor.openDays[day.id] = true;
     render();
   }
   function editorMoveDay(id, dir){
@@ -2276,14 +2176,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!src) return;
     var copy = { id: newDayId(), week: src.week, label: src.label + " (kopio)", name: "", exercises: cloneExercises(src.exercises) };
     d.days.splice(d.days.indexOf(src) + 1, 0, copy);
-    state.editor.openDay = copy.id;
+    state.editor.openDays[copy.id] = true;
     state.editor.menuFor = null;
     render();
   }
   function editorDeleteDay(id){
     var d = state.programDraft;
     d.days = d.days.filter(function(x){ return x.id !== id; });
-    if(state.editor.openDay === id) state.editor.openDay = null;
+    delete state.editor.openDays[id];
     state.editor.menuFor = null;
     state.editor.confirmDelete = null;
     render();
@@ -2342,6 +2242,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       ? { name: ex.name || "", sets: ex.sets || "", reps: ex.reps || "", unit: ex.unit || "", teho: intensityToText(ex.intensity) }
       : { name: "", sets: "", reps: "", unit: "toistoa", teho: "" };
     ed.swapAll = true;
+    if(!ex){
+      // Uusi liike valitaan pohjalevyn hakukentästä; lomake jää sen alle.
+      ed.pickerQuery = "";
+      state.sheet = "liike";
+      afterRender(function(){ var q = document.getElementById("liike-haku"); if(q) q.focus(); });
+      return;
+    }
     render();
   }
   function editorCloseForm(){
@@ -2376,6 +2283,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Huomautus seuraa tehotekstiä vain, jos se oli tyhjä tai sama kuin vanha
       // tehoteksti — käyttäjän oma huomautus jätetään rauhaan.
       if(!ex.notes || ex.notes === oldTeho) ex.notes = teho;
+      // Muokattu rivi on tarkistettu.
+      delete ex.needsReview; delete ex.rawTarget;
     } else {
       var day = draftDayById(ed.addingExerciseTo);
       if(!day){ editorCloseForm(); return; }
@@ -2385,14 +2294,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       warnSimilarHistoryName(name);
     }
     editorCloseForm();
-  }
-
-  async function saveProgramBuilder(){
-    var res = builderProgramFromDraft();
-    if(res.error){ showToast(res.error, 4000); return; }
-    state.builder = null;
-    state.pdfImportError = null;
-    await applyImportedProgram(res.program, "Ohjelma tallennettu");
   }
 
   async function toggleExercise(id){
@@ -3596,7 +3497,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.swapExercise = null;
       state.showAllWeeks = false;
       state.showProgramNotes = false;
-      state.builder = null;
       parts.push("ohjelma (" + plural(restore.program.days.length, "treenipäivä", "treenipäivää") + ")");
     }
 
@@ -4160,7 +4060,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Muokkaustilassa ei navigaatiota eikä bannereita: vain logo ja otsikko.
       return '<div class="header">' +
         '<h1 class="app-title"><img class="app-logo" src="' + APP_LOGO_SRC + '" width="59" height="40" alt="Treenipäiväkirja" decoding="async"></h1>' +
-        '<div style="font-weight:800; font-size:var(--fs-lg);">Muokkaa ohjelmaa</div></div>';
+        '<div style="font-weight:800; font-size:var(--fs-lg);">' + escapeHtml(editorTitle()) + '</div></div>';
     }
     var html = '<div class="header">' +
       '<h1 class="app-title"><img class="app-logo" src="' + APP_LOGO_SRC + '" width="59" height="40" alt="Treenipäiväkirja" decoding="async"></h1>' +
@@ -4201,12 +4101,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(state.loading) return '<div class="empty">Ladataan…</div>';
     if(state.editMode && state.programDraft) return renderEditor();
     if(state.view === "ohje") return renderOhje();
-    // Tarkistusnäkymä myös silloin, kun ohjelmaa ei vielä ole: ensimmäinen
-    // tuonti tapahtuu aina tyhjästä.
-    if(state.view === "tuonti") return renderProgramReview();
-    // Rakentaja toimii samoin myös ilman ohjelmaa: se on vaihtoehto
-    // ensimmäiselle tuonnille, ei vain nykyisen ohjelman korvaamiselle.
-    if(state.view === "rakenna") return renderProgramBuilder();
     if(!state.program) return renderUpload();
     if(state.view === "historia") return renderHistoria();
     if(state.view === "kehitys") return renderKehitys();
@@ -4250,7 +4144,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("1b. Tuo ohjelma PDF-tiedostosta", ohjeP(
       "Valmentajalta saadun PDF-ohjelman voi tuoda sellaisenaan. Tiedosto luetaan kokonaan omalla laitteellasi eikä sen sisältöä lähetetä minnekään. Voit valita useita tiedostoja kerralla, esimerkiksi yhden viikkoa kohden — viikot yhdistetään yhdeksi ohjelmaksi."
     ) + ohjeList([
-      "Tuonti <b style=\"color:var(--chalk);\">ei tallenna suoraan</b>: jäsennetty ohjelma näytetään ensin tarkistettavaksi, ja voit korjata rivejä tai poistaa niitä ennen \"Valmis\"-painiketta.",
+      "Tuonti <b style=\"color:var(--chalk);\">ei tallenna suoraan</b>: jäsennetty ohjelma avautuu muokkaustilaan tarkistettavaksi. Napauta riviä korjataksesi sen, poista rivi ⋮-valikosta tai lisää puuttuva liike — ohjelma tallentuu vasta \"Valmis\"-painikkeesta.",
       "Rivit, joiden tavoitetta ei tunnistettu, on merkitty keltaisella oman treenipäivänsä kohdalle.",
       "Sarjakohtaiset tavoitteet (<code>6, 10, 10</code>) muuttuvat kolmeksi sarjaksi omine toistotavoitteineen, ja <code>2x10/jalka</code> tallentuu nimeen muodossa <code>(per jalka)</code>.",
       "Menetelmäriveille (<code>3x10+3</code>, <code>2xCluster</code>, <code>2x drop</code>) ei ehdoteta painoa lainkaan — väärä ehdotus olisi huonompi kuin tyhjä kenttä. Valmentajan selitys menetelmälle näytetään liikkeen kohdalla.",
@@ -4259,11 +4153,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("1c. Rakenna ohjelma sovelluksessa", ohjeP(
-      "Jos ohjelmaa ei ole tiedostona, voit koota sen itse. Aloita etusivun tai Asetusten painikkeesta \"Rakenna ohjelma sovelluksessa\"."
+      "Jos ohjelmaa ei ole tiedostona, voit koota sen itse. Aloita etusivun kortista \"Rakenna itse\" tai Asetusten Ohjelma-osion painikkeesta \"Rakenna sovelluksessa\". Rakentaja on sama muokkaustila kuin kohdassa 5, mutta se alkaa tyhjästä ohjelmasta."
     ) + ohjeList([
       "Rakenne etenee ylhäältä alas: <b style=\"color:var(--chalk);\">viikko</b> → <b style=\"color:var(--chalk);\">treenipäivä</b> → <b style=\"color:var(--chalk);\">liike</b>. Jokaiselle liikkeelle annetaan sarjat, toistot, yksikkö ja teho — samat tiedot kuin CSV:n sarakkeissa.",
-      "Liikelista on sama lihasryhmittäin ryhmitelty katalogi kuin liikkeen vaihdossa, variaatioineen. Jos liikettä ei löydy, valitse listan lopusta \"Liike ei löydy listalta\" ja kirjoita nimi itse.",
-      "<b style=\"color:var(--chalk);\">Monista viikko</b> kopioi viikon päivineen ja liikkeineen, joten toistuvan ohjelman voi rakentaa kerran ja monistaa lopun.",
+      "\"Lisää liike\" avaa hakukentän, joka etsii koko liikelistasta nimen tai lihasryhmän perusteella — sama lista variaatioineen kuin liikkeen vaihdossa. Jos liikettä ei löydy, kirjoita nimi hakukenttään ja valitse \"Käytä nimeä\".",
+      "<b style=\"color:var(--chalk);\">Kopioi viimeinen viikko uudeksi</b> (tai viikon ⋮-valikon Kopioi) monistaa viikon päivineen ja liikkeineen, joten toistuvan ohjelman voi rakentaa kerran ja monistaa lopun.",
       "Liikkeetön treenipäivä jätetään tallennuksessa pois, joten keskeneräinen päivä ei päädy ohjelmaan.",
       "Ohjelma tallentuu vasta \"Valmis\"-painikkeesta. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy liikkeen nimen perusteella ennallaan."
     ]));
@@ -4405,6 +4299,55 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(t && t.updateCallbackDone){ t.updateCallbackDone.then(fn, fn); }
     else { fn(); }
   }
+  // Liikevalitsimen rivit: koko katalogi variaatioineen lihasryhmittäin sekä
+  // ohjelmassa ja historiassa jo olevat nimet, joita katalogissa ei ole.
+  function exercisePickEntries(){
+    var seen = {}, entries = [];
+    function add(name, group){
+      var norm = normalizeName(name);
+      if(!norm || seen[norm]) return;
+      seen[norm] = true;
+      entries.push({ name: name, group: group });
+    }
+    allExerciseVariants().forEach(function(row){
+      add(composeVariantName(row.liike, row.variaatio, row.lisavariaatio), row.lihasryhma || "Muut");
+    });
+    knownExerciseNames().forEach(function(name){ add(name, "Ohjelmassa ja historiassa"); });
+    return entries;
+  }
+  // Hakusanat kohdistuvat nimeen ja lihasryhmään; jokaisen sanan on osuttava.
+  function renderExercisePickList(query){
+    var q = String(query || "").trim();
+    var tokens = q.toLowerCase().split(/\s+/).filter(function(x){ return x; });
+    var entries = exercisePickEntries().filter(function(e){
+      var hay = (e.name + " " + e.group).toLowerCase();
+      return tokens.every(function(x){ return hay.indexOf(x) !== -1; });
+    });
+    var exact = entries.some(function(e){ return normalizeName(e.name) === normalizeName(q); });
+    var html = "";
+    // Liikelista on ehdotus, ei rajoite: kirjoitetun nimen saa aina käyttöön.
+    // Rivi on ensimmäisenä vain, kun osumia ei ole; muuten katalogin osumat
+    // tulevat ensin ja Enter valitsee niistä ensimmäisen.
+    var freeRow = (q && !exact)
+      ? '<button type="button" class="pick-item pick-free" data-pick-exercise="' + escapeHtml(q) + '" data-pick-free>' + icon("plus", 16) + '<span>Käytä nimeä ”' + escapeHtml(q) + '”</span></button>'
+      : "";
+    if(freeRow && !entries.length) html += freeRow;
+    var groups = {}, order = [];
+    entries.forEach(function(e){
+      if(!groups[e.group]){ groups[e.group] = []; order.push(e.group); }
+      groups[e.group].push(e.name);
+    });
+    order.sort(function(a, b){ return a.localeCompare(b, "fi"); });
+    order.forEach(function(g){
+      html += '<div class="pick-group">' + escapeHtml(g) + '</div>';
+      groups[g].sort(function(a, b){ return a.localeCompare(b, "fi"); }).forEach(function(name){
+        html += '<button type="button" class="pick-item" data-pick-exercise="' + escapeHtml(name) + '">' + escapeHtml(name) + '</button>';
+      });
+    });
+    if(freeRow && entries.length) html += '<div class="pick-group">Listalta puuttuva liike</div>' + freeRow;
+    if(!html) html = '<div style="color:var(--mist); font-size:var(--fs-sm); padding:8px 2px;">Ei osumia.</div>';
+    return html;
+  }
   function renderSheet(){
     if(!state.sheet) return "";
     var title = "", body = "";
@@ -4414,6 +4357,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '<div class="csv-example">Viikko;Treenipäivä;Liike;Sarjat;Toistot;Teho<br>1;1;Penkkipunnerrus;1;1;MAX<br>1;1;Penkkipunnerrus;2;3;90 %<br>1;1;Peck deck;3;10;</div>' +
         '<p><b style="color:var(--chalk);">Viikko</b> ja <b style="color:var(--chalk);">Treenipäivä</b> ryhmittelevät ohjelman. <b style="color:var(--chalk);">Teho</b> on joko <code>MAX</code> tai prosentti, ja se ohjaa painoehdotuksen liikkeen 1RM-arvosta. Tarkemmat ohjeet löytyvät Ohje-välilehdeltä.</p>' +
         '<p>PDF-ohjelmalle ei tarvita mitään muotoa: valmentajan tiedosto luetaan sellaisenaan ja näytetään tarkistettavaksi ennen tallennusta.</p>';
+    }
+    if(state.sheet === "liike"){
+      title = "Valitse liike";
+      body = '<input type="search" id="liike-haku" class="ledger-input" autocomplete="off" placeholder="Hae liikettä tai lihasryhmää" aria-label="Hae liikettä" value="' + escapeHtml(state.editor.pickerQuery || "") + '" style="margin-bottom:10px;">' +
+        '<div id="liike-lista" class="pick-list">' + renderExercisePickList(state.editor.pickerQuery || "") + '</div>';
     }
     return '<div class="sheet-backdrop" data-close-sheet>' +
       '<div class="sheet" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '">' +
@@ -4477,8 +4425,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       groupsToShow = state.program.days.filter(function(d){ return d.week === state.activeWeek; });
     }
 
+    var wide = isWideLayout();
+    var list = "";
     if(groupsToShow.length === 0){
-      html += '<div class="empty">Tälle viikolle ei löytynyt liikkeitä.</div>';
+      list += renderEmptyState("ohjelma", "Tällä viikolla ei ole liikkeitä", "Lisää viikolle treenipäiviä ja liikkeitä muokkaustilassa.",
+        '<button type="button" class="btn-secondary btn-sm btn-auto" data-edit-program>' + icon("muokkaa", 18) + '<span>Muokkaa ohjelmaa</span></button>', true);
     }
     // Seuraavaksi vuorossa on ensimmäinen päivä, jota ei ole tehty kokonaan;
     // vain se saa "Aloita"/"Jatka"-painikkeen.
@@ -4490,11 +4441,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // skannattavana useamman päivän ohjelmissa. Avattuna sama kortti toimii
       // otsikkona ja liikkeet seuraavat sen alla.
       var expanded = !!state.expandedDaySummaries[dayKey(day)];
-      html += renderDayCard(day, expanded, dayKey(day) === nextKey);
+      list += renderDayCard(day, expanded, dayKey(day) === nextKey);
       if(expanded){
-        html += '<div class="day-exercises">';
-        day.exercises.forEach(function(ex){ html += renderExercise(ex); });
-        html += '</div>';
+        list += '<div class="day-exercises">';
+        // Leveällä näytöllä sarjat kirjataan oikean palstan paneelissa, joten
+        // listan kortti näyttää vain otsikon.
+        day.exercises.forEach(function(ex){ list += renderExercise(ex, wide); });
+        list += '</div>';
       }
     });
     // Kenttä, josta ohjelmaan kuulumattoman liikkeen sai lisätä käsin, on
@@ -4506,11 +4459,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // palauttamisen. Lista renderöidään yhä, jos taulukkoon joskus tulee
     // sisältöä muuta kautta.
     if(state.manualExercises.length){
-      html += '<div class="day-heading">Lisätyt liikkeet</div>';
-      state.manualExercises.forEach(function(ex){ html += renderExercise(ex); });
+      list += '<div class="day-heading">Lisätyt liikkeet</div>';
+      state.manualExercises.forEach(function(ex){ list += renderExercise(ex, wide); });
     }
-    html += renderProgramNotes();
-    return html;
+    list += renderProgramNotes();
+    if(!wide) return html + list;
+    // Tabletti: päivät ja liikkeet vasemmalla, avattu liike sarjoineen
+    // oikealla kiinnitettynä, jolloin kirjaus ei vieritä listaa pois.
+    var openEx = state.openExercise ? findExerciseById(state.openExercise) : null;
+    var pane = openEx ? renderExercise(openEx) : renderEmptyState("ohjelma", "Valitse liike", "Avaa liike vasemmalta, niin sen sarjat kirjataan tässä.", "", true);
+    return '<div class="ohjelma-cols"><div class="ohjelma-list">' + html + list + '</div><aside class="ohjelma-pane" aria-label="Avattu liike">' + pane + '</aside></div>';
   }
   function tehoBadge(ex){
     if(!ex.intensity) return "";
@@ -4550,7 +4508,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var fullyDone = isDayFullyDone(day);
     var ring, statusParts = [], borderStyle = "";
     if(fullyDone){
-      ring = '<div class="day-ring done" aria-hidden="true">✓</div>';
+      ring = '<div class="day-ring done' + (state.justDoneDay === dayKey(day) ? " pop" : "") + '" aria-hidden="true">✓</div>';
       borderStyle = "border-color:rgba(111,174,111,0.35);";
       statusParts.push("Tehty");
       if(latestDate) statusParts.push(capitalize(formatDateFI(latestDate)));
@@ -4581,7 +4539,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '</div>' + right + '</div>' +
       '</div>';
   }
-  function renderExercise(ex){
+  function renderExercise(ex, noLedger){
     var open = state.openExercise === ex.id;
     var isSaved = isExerciseLogged(ex);
     var parts = [];
@@ -4594,7 +4552,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(ex.method && String(ex.notes || "").indexOf(ex.method) === -1) parts.push(ex.method);
     var target = parts.join(" · ");
     var badge = isSaved
-      ? '<div title="Tallennettu" style="width:22px; height:22px; border-radius:50%; background:var(--success); color:var(--ink); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; margin-left:8px;">✓</div>'
+      ? '<div class="saved-badge' + (state.justSavedEx === ex.id ? " pop" : "") + '" title="Tallennettu">✓</div>'
       : '';
     // Avoinna oleva liike suljetaan aina nuolesta erikseen, koskematta
     // tallennustilaan — muuten (kiinni) koko otsikkorivi avaa liikkeen.
@@ -4609,7 +4567,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="exercise-name">' + escapeHtml(ex.name) + tehoBadge(ex) + '</div>' +
       (target ? '<div class="exercise-target">' + escapeHtml(target) + '</div>' : '') +
       '</div><div style="display:flex; align-items:center;">' + badge + chevronHtml + '</div></div>' +
-      (open ? renderLedger(ex) : '') +
+      (open && !noLedger ? renderLedger(ex) : '') +
       '</div>';
   }
   function autoCalcHint(info, id){
@@ -4678,7 +4636,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // erillisestä, selvästi nimetystä painikkeesta.
       var extraOpen = !!(extras[idx] || (s.notes && String(s.notes).length));
       return '<div class="ledger-row' + (extraOpen ? " has-extra" : "") + '">' +
-        '<div class="set-num' + (s.done ? " done" : "") + '" aria-hidden="true">' + (s.done ? "✓" : String(idx+1)) + '</div>' +
+        '<div class="set-num' + (s.done ? " done" : "") + (s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx ? " pop" : "") + '" aria-hidden="true">' + (s.done ? "✓" : String(idx+1)) + '</div>' +
         '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" aria-label="Sarja ' + (idx+1) + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
         '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" aria-label="Sarja ' + (idx+1) + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<button type="button" class="set-done-btn" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">✓</button>' +
@@ -4849,7 +4807,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     return html + '<div style="display:flex; gap:8px; margin-top:12px;">' +
       '<button class="btn-secondary" data-swap-cancel type="button">Peruuta</button>' +
-      '<button class="save-btn" data-swap-confirm data-id="' + ex.id + '" type="button" style="margin-top:0;"' +
+      '<button class="btn-primary" data-swap-confirm data-id="' + ex.id + '" type="button"' +
       ((guided && !variantPickerValid()) ? " disabled" : "") + '>Vaihda</button>' +
       '</div></div>';
   }
@@ -4889,197 +4847,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Esitäyttää jäsennystuloksen muokattavaksi. Tallennus tapahtuu vasta
   // "Valmis"-painikkeesta, joka kutsuu samaa applyImportedProgram-polkua kuin
   // CSV-tuonti — ei omaa tallennuslogiikkaa.
-  function reviewInput(dayIdx, exIdx, field, value, placeholder, flex, mode){
-    return '<input class="ledger-input" type="text"' +
-      (mode ? ' inputmode="' + mode + '"' : '') +
-      ' data-review-field data-di="' + dayIdx + '" data-ei="' + exIdx + '" data-field="' + field + '"' +
-      ' placeholder="' + escapeHtml(placeholder) + '" aria-label="' + escapeHtml(placeholder) + '"' +
-      ' value="' + escapeHtml(value == null ? "" : value) + '"' +
-      (flex ? ' style="flex:' + flex + ';"' : '') + '>';
-  }
-  // Sama tieto eri sanoin sen mukaan, miksi painoa ei voi laskea — pelkkä
-  // "menetelmäkohtainen" olisi harhaanjohtava kesto- ja kiertoriveillä.
   function noAutoCalcReason(ex){
     if(ex.kind === "duration") return "Kestoperusteinen liike — painoa ei ehdoteta.";
     if(ex.kind === "circuit") return "Kirjataan vapaasti — painoa ei ehdoteta.";
     return "Painoehdotusta ei lasketa: tavoite on menetelmäkohtainen.";
-  }
-  function renderReviewExercise(ex, dayIdx, exIdx){
-    var flag = ex.needsReview;
-    return '<div class="exercise" style="padding:12px 14px; margin-bottom:8px;' +
-      (flag ? ' border-color:var(--brass); background:rgba(201,162,39,0.08);' : '') + '">' +
-      (flag ? '<div style="color:var(--brass); font-size:11.5px; font-weight:800; margin-bottom:8px;">Tarkista: ' + escapeHtml(flag) + (ex.rawTarget ? ' (”' + escapeHtml(ex.rawTarget) + '”)' : '') + '</div>' : '') +
-      reviewInput(dayIdx, exIdx, "name", ex.name, "Liikkeen nimi", "1") +
-      '<div style="display:flex; gap:8px; margin-top:8px;">' +
-      reviewInput(dayIdx, exIdx, "sets", ex.sets, "Sarjat", "0.7", "numeric") +
-      reviewInput(dayIdx, exIdx, "reps", ex.reps, "Toistot", "1.1") +
-      reviewInput(dayIdx, exIdx, "unit", ex.unit, "Yksikkö", "0.7") +
-      '</div>' +
-      '<div style="display:flex; gap:8px; margin-top:8px;">' +
-      reviewInput(dayIdx, exIdx, "notes", ex.notes, "Huomautus", "1") +
-      '<button class="btn-secondary" data-review-remove data-di="' + dayIdx + '" data-ei="' + exIdx + '" type="button" style="width:auto; padding:10px 14px; font-size:12.5px; color:var(--danger-text); border-color:var(--danger);">Poista</button>' +
-      '</div>' +
-      (ex.methodNote ? '<div style="margin-top:8px;">' + renderMethodNote(ex) + '</div>' : '') +
-      (ex.autoCalc === false ? '<div style="color:var(--mist); font-size:11.5px; margin-top:6px;">' + noAutoCalcReason(ex) + '</div>' : '') +
-      '</div>';
-  }
-  function renderProgramReview(){
-    var imp = state.pdfImport;
-    if(!imp) return '<div class="empty">Ei tuotavaa ohjelmaa.</div>';
-    var exCount = 0, reviewCount = 0;
-    imp.program.days.forEach(function(day){
-      day.exercises.forEach(function(ex){ exCount++; if(ex.needsReview) reviewCount++; });
-    });
-    var html = '<div class="day-heading">Tarkista tuotu ohjelma</div>' +
-      '<div class="exercise" style="padding:16px;">' +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 10px;">Luettu ' + imp.files.length + ' PDF-tiedostosta: ' + escapeHtml(imp.files.join(", ")) + '. Löytyi ' + imp.program.days.length + ' treenipäivää ja ' + exCount + ' liikettä. Ohjelma tallentuu vasta ”Valmis”-painikkeesta.</p>' +
-      (reviewCount
-        ? '<p style="color:var(--brass); font-size:13px; line-height:1.5; margin:0;"><b>' + reviewCount + ' riviä vaatii tarkistuksen.</b> Ne on merkitty alle omien treenipäiviensä kohdalle — täydennä sarjat ja toistot tai poista rivi.</p>'
-        : '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0;">Kaikki rivit tunnistettiin.</p>') +
-      '</div>';
-
-    imp.program.days.forEach(function(day, di){
-      html += '<div class="day-heading">' + escapeHtml(day.name) + '</div>';
-      day.exercises.forEach(function(ex, ei){ html += renderReviewExercise(ex, di, ei); });
-    });
-
-    if(imp.program.notes && imp.program.notes.length){
-      html += '<div class="day-heading">Ohjelman muistiinpanot</div>' +
-        '<div class="exercise" style="padding:14px 16px;">' +
-        '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 0 8px;">Tiedoston ohjetekstit tallennetaan ohjelman mukana ja näkyvät Ohjelma-näkymässä.</p>' +
-        renderNotesList(imp.program.notes) +
-        '</div>';
-    }
-
-    html += '<div class="exercise" style="padding:16px; margin-top:14px;">' +
-      '<button class="save-btn" data-pdf-import-save type="button">Valmis — tallenna ohjelma</button>' +
-      '<button class="btn-secondary" data-pdf-import-cancel type="button" style="margin-top:10px;">Peruuta</button>' +
-      '</div>';
-    return html;
-  }
-  // ---------- Ohjelmarakentajan näkymä ----------
-  // Sama periaate kuin PDF-tuonnin tarkistusnäkymässä: luonnosta muokataan
-  // paikallaan eikä mitään tallenneta ennen ”Valmis”-painiketta. Kentät
-  // kirjoittavat arvon suoraan luonnokseen ilman render()-kutsua, jottei fokus
-  // katoa kesken kirjoittamisen.
-  function builderInput(wi, di, ei, field, value, placeholder, flex, mode){
-    return '<input class="ledger-input" type="text"' +
-      (mode ? ' inputmode="' + mode + '"' : '') +
-      ' data-builder-field data-wi="' + wi + '" data-di="' + di + '" data-ei="' + ei + '" data-field="' + field + '"' +
-      ' placeholder="' + escapeHtml(placeholder) + '" aria-label="' + escapeHtml(placeholder) + '"' +
-      ' value="' + escapeHtml(value == null ? "" : value) + '"' +
-      (flex ? ' style="flex:' + flex + ';"' : '') + '>';
-  }
-  function renderBuilderExercise(ex, wi, di, ei){
-    return '<div class="exercise" style="padding:12px 14px; margin-bottom:8px;">' +
-      builderInput(wi, di, ei, "name", ex.name, "Liikkeen nimi", "1") +
-      '<div style="display:flex; gap:8px; margin-top:8px;">' +
-      builderInput(wi, di, ei, "sets", ex.sets, "Sarjat", "0.7", "numeric") +
-      builderInput(wi, di, ei, "reps", ex.reps, "Toistot", "1", "numeric") +
-      builderInput(wi, di, ei, "unit", ex.unit, "Yksikkö", "1") +
-      '</div>' +
-      '<div style="display:flex; gap:8px; margin-top:8px;">' +
-      builderInput(wi, di, ei, "teho", ex.teho, "Teho (MAX tai %)", "1") +
-      '<button class="btn-secondary" data-builder-remove-ex data-wi="' + wi + '" data-di="' + di + '" data-ei="' + ei + '" type="button" style="width:auto; padding:10px 14px; font-size:12.5px; color:var(--danger-text); border-color:var(--danger);">Poista</button>' +
-      '</div>' +
-      '</div>';
-  }
-  // Liikkeen valinta samasta katalogista kuin liikkeen vaihdossa: liike →
-  // variaatio → lisävariaatio, tai vapaa nimi listan ohi.
-  function renderBuilderPicker(wi, di){
-    var p = state.builder.picker;
-    if(!p || p.wi !== wi || p.di !== di) return "";
-    var html = '<div class="exercise" style="padding:12px 14px; margin-bottom:8px; border-color:var(--brass);">';
-    if(p.free){
-      html += '<input type="text" class="ledger-input" data-builder-free-name autocomplete="off" placeholder="Liikkeen nimi" aria-label="Liikkeen nimi" value="' + escapeHtml(p.freeName || "") + '" style="margin-bottom:8px;">' +
-        '<div id="builder-name-hint">' + (p.nameHint ? renderVariantNameHint(p.nameHint) : "") + '</div>' +
-        '<div><button type="button" data-builder-picker-list style="background:none; border:none; color:var(--mist); font-size:12px; text-decoration:underline; padding:6px 4px; cursor:pointer;">‹ Takaisin listaan</button></div>';
-    } else {
-      html += '<select class="ledger-input" data-builder-liike aria-label="Liike" style="margin-bottom:8px;">' +
-        '<option value=""' + (p.liike ? "" : " selected") + '>Valitse liike…</option>' +
-        exerciseOptionsByGroup(p.liike) +
-        '<option value="' + VARIANT_ADD_NEW + '">+ Liike ei löydy listalta — kirjoita nimi</option>' +
-        '</select>';
-      if(p.liike){
-        var vOpts = variaatioOptionsFor(p.liike);
-        if(vOpts.options.length){
-          html += '<select class="ledger-input" data-builder-variaatio aria-label="Variaatio" style="margin-bottom:8px;">' +
-            variantSelectOptions(vOpts.options, p.variaatio === null ? (p.variaatioTouched ? VARIANT_PLAIN : "") : p.variaatio, vOpts.hasPlain, "Valitse variaatio…") +
-            '</select>';
-        }
-        var lOpts = lisavariaatioOptionsFor(p.liike, p.variaatio);
-        if(lOpts.options.length){
-          html += '<select class="ledger-input" data-builder-lisavariaatio aria-label="Lisävariaatio" style="margin-bottom:8px;">' +
-            variantSelectOptions(lOpts.options, p.lisavariaatio === null ? (p.lisavariaatioTouched ? VARIANT_PLAIN : "") : p.lisavariaatio, lOpts.hasPlain, "Valitse lisävariaatio…") +
-            '</select>';
-        }
-      }
-    }
-    var previewName = builderPickerName();
-    if(previewName && builderPickerValid()){
-      // Sama esikatselurivi kuin liikkeen vaihdossa: koottu nimi ja lihasryhmä.
-      var previewRow = p.free ? null : findVariantRow(p.liike, p.variaatio, p.lisavariaatio);
-      html += '<div style="color:var(--mist); font-size:12.5px; line-height:1.5;">Lisätään: <b style="color:var(--chalk);">' + escapeHtml(previewName) + '</b>' +
-        (previewRow && previewRow.lihasryhma ? ' · ' + escapeHtml(previewRow.lihasryhma) : "") + '</div>';
-    } else if(p.liike){
-      // Valinta ei vielä vastaa katalogin riviä. Kerrotaan mitä puuttuu, jotta
-      // käytöstä poistettu "Lisää liike" ei jää selittämättä.
-      var needsSub = lisavariaatioOptionsFor(p.liike, p.variaatio).options.length && !p.lisavariaatio;
-      html += '<div style="color:var(--mist); font-size:12.5px; line-height:1.5;">Valitse vielä ' + (needsSub ? "lisävariaatio" : "variaatio") + ', niin liike vastaa liikelistan riviä.</div>';
-    }
-    return html + '<div style="display:flex; gap:8px; margin-top:12px;">' +
-      '<button class="btn-secondary" data-builder-picker-cancel type="button">Peruuta</button>' +
-      '<button class="save-btn" data-builder-picker-add type="button" style="margin-top:0;"' + (builderPickerValid() ? "" : " disabled") + '>Lisää liike</button>' +
-      '</div></div>';
-  }
-  function renderBuilderDay(day, wi, di){
-    var pickerOpen = !!(state.builder.picker && state.builder.picker.wi === wi && state.builder.picker.di === di);
-    var html = '<div style="display:flex; gap:8px; align-items:center; margin:12px 0 8px;">' +
-      builderInput(wi, di, -1, "dayName", day.name, "Treenipäivän nimi", "1") +
-      '<button class="btn-secondary" data-builder-remove-day data-wi="' + wi + '" data-di="' + di + '" type="button" style="width:auto; padding:10px 14px; font-size:12.5px; color:var(--danger-text); border-color:var(--danger);">Poista päivä</button>' +
-      '</div>';
-    day.exercises.forEach(function(ex, ei){ html += renderBuilderExercise(ex, wi, di, ei); });
-    if(!day.exercises.length && !pickerOpen){
-      html += '<div style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 2px 8px;">Ei vielä liikkeitä. Liikkeetön päivä jätetään pois tallennettavasta ohjelmasta.</div>';
-    }
-    html += renderBuilderPicker(wi, di);
-    if(!pickerOpen){
-      html += '<button class="btn-secondary" data-builder-add-ex data-wi="' + wi + '" data-di="' + di + '" type="button" style="padding:9px; font-size:12.5px; color:var(--mist);">+ Lisää liike</button>';
-    }
-    return html;
-  }
-  function renderProgramBuilder(){
-    var b = state.builder;
-    if(!b) return '<div class="empty">Ohjelmaa ei ole rakenteilla.</div>';
-    var exCount = 0;
-    b.weeks.forEach(function(week){
-      week.days.forEach(function(day){ exCount += day.exercises.length; });
-    });
-    var html = '<div class="day-heading">Rakenna ohjelma</div>' +
-      '<div class="exercise" style="padding:16px;">' +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 10px;">Lisää viikkoja, viikkoon treenipäiviä ja päivään liikkeitä. Liikelista on ryhmitelty lihasryhmittäin, mutta voit aina kirjoittaa nimen myös itse. Ohjelma tallentuu vasta ”Valmis”-painikkeesta.</p>' +
-      '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0;">Luonnoksessa on nyt ' + plural(b.weeks.length, "viikko", "viikkoa") + ' ja ' + plural(exCount, "liike", "liikettä") + '. Uusi ohjelma korvaa nykyisen, mutta aiemmat merkinnät säilyvät liikkeen nimen perusteella ennallaan.</p>' +
-      '</div>';
-    b.weeks.forEach(function(week, wi){
-      html += '<div class="day-heading">' + (wi+1) + '. viikko</div>' +
-        '<div class="exercise" style="padding:12px 14px;">' +
-        '<div style="display:flex; gap:8px; align-items:center;">' +
-        '<span style="color:var(--mist); font-size:12.5px; flex-shrink:0;">Viikon nimi</span>' +
-        builderInput(wi, -1, -1, "weekLabel", week.label, "Viikon nimi", "1") +
-        '</div>' +
-        '<div style="display:flex; gap:8px; margin-top:10px;">' +
-        '<button class="btn-secondary" data-builder-duplicate-week data-wi="' + wi + '" type="button" style="flex:1; padding:10px 12px; font-size:12.5px;">Monista viikko</button>' +
-        '<button class="btn-secondary" data-builder-remove-week data-wi="' + wi + '" type="button" style="flex:1; padding:10px 12px; font-size:12.5px; color:var(--danger-text); border-color:var(--danger);"' + (b.weeks.length <= 1 ? " disabled" : "") + '>Poista viikko</button>' +
-        '</div></div>';
-      week.days.forEach(function(day, di){ html += renderBuilderDay(day, wi, di); });
-      html += '<button class="btn-secondary" data-builder-add-day data-wi="' + wi + '" type="button" style="margin-top:10px;">+ Lisää treenipäivä</button>';
-    });
-    html += '<div style="margin-top:20px;"><button class="btn-secondary" data-builder-add-week type="button">+ Lisää viikko</button></div>' +
-      '<div class="exercise" style="padding:16px; margin-top:14px;">' +
-      '<button class="save-btn" data-builder-save type="button" style="margin-top:0;"' + (exCount ? "" : " disabled") + '>Valmis — tallenna ohjelma</button>' +
-      '<button class="btn-secondary" data-builder-cancel type="button" style="margin-top:10px;">Peruuta</button>' +
-      '</div>';
-    return html;
   }
   // ---------- Muokkaustilan näkymä ----------
   function editorIconBtn(attrs, iconName, label, extraClass, disabled){
@@ -5110,7 +4881,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var f = state.editor.form || { name:"", sets:"", reps:"", unit:"", teho:"" };
     var occ = ex ? exerciseOccurrencesIn(state.programDraft, ex.name).length : 0;
     return '<div class="exercise" style="padding:12px 14px; border-color:var(--brass); margin-bottom:10px;">' +
-      '<input class="ledger-input" type="text" data-editor-field="name" list="exercise-name-options" autocomplete="off" placeholder="Liike" aria-label="Liikkeen nimi" value="' + escapeHtml(f.name) + '">' +
+      '<div style="display:flex; gap:8px;">' +
+      '<input class="ledger-input" type="text" data-editor-field="name" list="exercise-name-options" autocomplete="off" placeholder="Liike" aria-label="Liikkeen nimi" value="' + escapeHtml(f.name) + '" style="flex:1; min-width:0;">' +
+      '<button type="button" class="icon-btn" data-open-sheet="liike" aria-label="Hae liikelistasta" style="width:44px; height:44px; flex-shrink:0;">' + icon("haku", 20) + '</button>' +
+      '</div>' +
       renderExerciseNameDatalist() +
       '<div style="display:flex; gap:8px; margin-top:8px;">' +
       '<input class="ledger-input" type="text" inputmode="numeric" data-editor-field="sets" placeholder="Sarjat" aria-label="Sarjat" value="' + escapeHtml(f.sets) + '" style="flex:0.7;">' +
@@ -5118,6 +4892,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<input class="ledger-input" type="text" data-editor-field="unit" placeholder="Yksikkö" aria-label="Yksikkö" value="' + escapeHtml(f.unit) + '" style="flex:1;">' +
       '</div>' +
       '<div style="margin-top:8px;"><input class="ledger-input" type="text" data-editor-field="teho" placeholder="Teho (MAX tai %)" aria-label="Teho" value="' + escapeHtml(f.teho) + '"></div>' +
+      (ex && ex.autoCalc === false ? '<div style="color:var(--mist); font-size:var(--fs-xs); margin-top:6px;">' + noAutoCalcReason(ex) + '</div>' : '') +
       (ex && occ > 1
         ? '<label style="display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--mist); font-size:var(--fs-sm); cursor:pointer;">' +
           '<input type="checkbox" id="editor-swap-all"' + (state.editor.swapAll ? " checked" : "") + ' style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
@@ -5134,13 +4909,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var target = [];
     if(ex.sets) target.push(ex.sets + " ×");
     if(ex.reps) target.push(ex.reps + (ex.unit ? " " + ex.unit : ""));
-    var html = '<div class="exercise editor-row">' +
+    var html = '<div class="exercise editor-row' + (ex.needsReview ? " needs-review" : "") + '">' +
       '<div class="editor-head">' +
       '<button type="button" class="editor-title" data-edit-exercise="' + escapeHtml(ex.id) + '" aria-label="Muokkaa liikettä ' + escapeHtml(ex.name) + '">' +
       '<span style="min-width:0;"><span class="exercise-name" style="display:block;">' + escapeHtml(ex.name) + tehoBadge(ex) + '</span>' +
       (target.length ? '<span class="exercise-target" style="display:block;">' + escapeHtml(target.join(" ")) + '</span>' : '') + '</span></button>' +
       editorMoveButtons("ex", ex.id, idx, count) + editorMenuButton(menuKey, menuOpen) +
       '</div>' +
+      (ex.needsReview ? '<div class="editor-note" style="color:var(--brass); font-weight:800;">Tarkista: ' + escapeHtml(ex.needsReview) + (ex.rawTarget ? ' (”' + escapeHtml(ex.rawTarget) + '”)' : '') + '</div>' : '') +
+      (ex.methodNote ? '<div class="editor-note">' + renderMethodNote(ex) + '</div>' : '') +
       (menuOpen ? '<div class="editor-strip">' +
         '<button type="button" class="btn-secondary btn-sm btn-auto" data-edit-exercise="' + escapeHtml(ex.id) + '">' + icon("muokkaa", 16) + '<span>Muokkaa</span></button>' +
         editorRestartButton("ex:" + ex.id, false) +
@@ -5152,7 +4929,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function renderEditorDay(day, idx, count){
     var ed = state.editor;
-    var open = ed.openDay === day.id, menuKey = "day:" + day.id, menuOpen = ed.menuFor === menuKey;
+    var open = !!ed.openDays[day.id], menuKey = "day:" + day.id, menuOpen = ed.menuFor === menuKey;
     var html = '<div class="exercise editor-row">' +
       '<div class="editor-head">' +
       (open
@@ -5189,7 +4966,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function renderEditorWeek(key, idx, count){
     var ed = state.editor, d = state.programDraft;
-    var open = ed.openWeek === key, menuKey = "week:" + key, menuOpen = ed.menuFor === menuKey;
+    var open = !!ed.openWeeks[key], menuKey = "week:" + key, menuOpen = ed.menuFor === menuKey;
     var dayCount = draftWeekDays(key).length;
     var html = '<div class="exercise editor-row">' +
       '<div class="editor-head">' +
@@ -5220,20 +4997,35 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(d.weeks.length) parts.push(plural(d.weeks.length, "viikko", "viikkoa"));
     parts.push(plural(d.days.length, "treenipäivä", "treenipäivää"));
     parts.push(plural(exCount, "liike", "liikettä"));
+    var mode = ed.mode, info = ed.importInfo;
+    var cardTitle = mode === "import" ? "Tuotu ohjelma" : (mode === "new" ? "Uusi ohjelma" : "Ohjelma");
     var html = '<div class="exercise" style="padding:12px 14px 12px 16px; margin-bottom:14px;">' +
       '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">' +
-      '<div style="min-width:0;"><div class="exercise-name">Ohjelma</div><div class="exercise-target">' + escapeHtml(parts.join(" · ")) + '</div></div>' +
-      editorRestartButton("program", true) +
-      '</div></div>';
+      '<div style="min-width:0;"><div class="exercise-name">' + cardTitle + '</div><div class="exercise-target">' + escapeHtml(parts.join(" · ")) + '</div></div>' +
+      (mode === "edit" ? editorRestartButton("program", true) : "") +
+      '</div>' +
+      (mode === "import" && info
+        ? '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:10px 0 0;">Luettu ' + plural(info.files.length, "PDF-tiedostosta", "PDF-tiedostosta") + ': ' + escapeHtml(info.files.join(", ")) + '. Ohjelma tallentuu vasta ”Valmis”-painikkeesta.</p>' +
+          (info.reviewCount
+            ? '<p style="color:var(--brass); font-size:var(--fs-sm); line-height:1.5; margin:6px 0 0;"><b>' + plural(info.reviewCount, "rivi vaatii", "riviä vaatii") + ' tarkistuksen.</b> Ne on merkitty keltaisella: napauta riviä ja täydennä sarjat ja toistot, tai poista rivi ⋮-valikosta.</p>'
+            : '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:6px 0 0;">Kaikki rivit tunnistettiin.</p>')
+        : '') +
+      '</div>';
     if(d.weeks.length){
       html += '<div class="day-heading">Viikot</div>';
       d.weeks.forEach(function(key, i){ html += renderEditorWeek(key, i, d.weeks.length); });
       html += '<div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">' +
         '<button type="button" class="btn-secondary" data-edit-add-week>' + icon("plus", 18) + '<span>Lisää tyhjä viikko</span></button>' +
-        '<button type="button" class="btn-secondary" data-edit-copy-open-week' + (ed.openWeek && d.weeks.indexOf(ed.openWeek) !== -1 ? "" : " disabled") + '>' + icon("kopioi", 18) + '<span>Kopioi valittu viikko uudeksi</span></button>' +
+        '<button type="button" class="btn-secondary" data-edit-copy-last-week>' + icon("kopioi", 18) + '<span>Kopioi viimeinen viikko uudeksi</span></button>' +
         '</div>';
     } else {
       html += '<div class="day-heading">Treenipäivät</div>' + renderEditorDays(null);
+    }
+    if(mode === "import" && d.notes && d.notes.length){
+      html += '<div class="day-heading">Ohjelman muistiinpanot</div>' +
+        '<div class="exercise" style="padding:14px 16px;">' +
+        '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:0 0 8px;">Tiedoston ohjetekstit tallennetaan ohjelman mukana ja näkyvät Ohjelma-näkymässä.</p>' +
+        renderNotesList(d.notes) + '</div>';
     }
     return html;
   }
@@ -5246,10 +5038,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<button type="button" class="btn-primary" data-edit-done>Valmis</button>' +
       '</footer>';
   }
+  // Rakenteellinen tyhjä tila: kuvake, otsikko, selite ja toiminto.
+  function renderEmptyState(iconName, title, body, actionsHtml, compact){
+    return '<div class="empty-state' + (compact ? " compact" : "") + '">' +
+      '<div class="empty-icon">' + icon(iconName, 26) + '</div>' +
+      '<div class="empty-title">' + escapeHtml(title) + '</div>' +
+      (body ? '<p class="empty-body">' + escapeHtml(body) + '</p>' : '') +
+      (actionsHtml ? '<div class="empty-actions">' + actionsHtml + '</div>' : '') +
+      '</div>';
+  }
+  function goToProgramButton(){
+    return '<button type="button" class="btn-secondary btn-sm btn-auto" data-tab="ohjelma">' + icon("ohjelma", 18) + '<span>Siirry Ohjelmaan</span></button>';
+  }
   function renderHistoria(){
     if(state.historyLoading) return '<div class="empty">Ladataan historiaa…</div>';
     var dates = state.historyDates || [];
-    if(dates.length === 0) return '<div class="empty">Ei vielä merkintöjä. Kirjaa ensimmäinen treenisi Ohjelma-välilehdellä.</div>';
+    if(dates.length === 0) return renderEmptyState("historia", "Ei vielä merkintöjä", "Kirjaa ensimmäinen treenisi Ohjelma-välilehdellä, niin päivät kertyvät tähän.", goToProgramButton());
     return dates.map(function(date){ return renderHistoryDate(date); }).join("");
   }
   function fmtSignedKg(diff){
@@ -5409,7 +5213,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderKehitys(){
     if(state.kehitysLoading) return '<div class="empty">Lasketaan kehitystä…</div>';
     var data = state.kehitys;
-    if(!data || data.length === 0) return '<div class="empty">Ei vielä merkintöjä kehityksen laskemiseen. Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.</div>';
+    if(!data || data.length === 0) return renderEmptyState("kehitys", "Ei vielä kehitystä", "Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.", goToProgramButton());
     return renderTotalWeightCard(state.kehitysTotalWeight) + data.map(function(item){ return renderKehitysCard(item); }).join("");
   }
   // Päivän yhteenveto: liikkeiden määrä ja nostettu kokonaispaino.
@@ -5478,7 +5282,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     });
     var names = Object.keys(displayNames);
     if(names.length === 0){
-      return '<div style="color:var(--mist); font-size:13px; margin-bottom:6px;">Ei vielä ohjelmassa liikkeitä, joille on merkitty teho MAX.</div>';
+      return renderEmptyState("kehitys", "Ei MAX-liikkeitä", "Lista täyttyy liikkeistä, joille ohjelmassa on merkitty teho MAX.", "", true);
     }
     return names.sort().map(function(key){
       var entry = state.manualMax[key];
@@ -5681,6 +5485,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<button class="btn-primary" id="consent-accept-btn" type="button">Hyväksyn ja aloitan</button>' +
       '</div>';
   }
+  // Tablettiasettelu: vähintään 768 px leveällä näytöllä Ohjelma-näkymä on
+  // kaksipalstainen (ks. renderOhjelma). Palstamäärän vaihtuessa näkymä
+  // piirretään uudelleen.
+  var wideQuery = window.matchMedia ? window.matchMedia("(min-width: 768px)") : null;
+  function isWideLayout(){ return !!(wideQuery && wideQuery.matches); }
+  if(wideQuery){
+    var onWideChange = function(){ if(state.program && !state.loading && !state.editMode) render(); };
+    if(wideQuery.addEventListener) wideQuery.addEventListener("change", onWideChange);
+    else if(wideQuery.addListener) wideQuery.addListener(onWideChange);
+  }
   function render(){
     var app = document.getElementById("app");
     var apply = function(){
@@ -5690,7 +5504,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         return;
       }
       // Alanavigaatio on kelluva ja peittäisi sisällön lopun ilman lisätilaa.
-      app.className = (state.program && !state.loading) ? "has-bottom-nav" : "";
+      var appClass = ((state.program && !state.loading) || state.editMode) ? "has-bottom-nav" : "";
+      if(state.program && !state.loading && !state.editMode && state.view === "ohjelma" && isWideLayout()) appClass += " wide";
+      app.className = appClass;
       // header/nav/main-maamerkit: ruudunlukijalla pääsee suoraan sisältöön.
       app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>' + renderSheet() + (state.editMode ? renderEditBar() : "");
     };
@@ -5705,6 +5521,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
   app.addEventListener("click", async function(e){
     var el;
+    // Valmis-merkkien animaatioliput elävät vain yhden käyttäjätoimen ajan.
+    state.justDone = null; state.justSavedEx = null; state.justDoneDay = null;
     if(state.editMode){
       // Painallus muualle nollaa odottavan vahvistuksen.
       var ed0 = state.editor;
@@ -5735,6 +5553,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Fokus siirtyy paneelin sulkupainikkeeseen: ruudunlukija ilmoittaa
       // dialogin, ja Escape toimii heti ilman erillistä napautusta.
       afterRender(function(){ var c = document.querySelector(".sheet [data-close-sheet]"); if(c) c.focus(); });
+      return;
+    }
+    if((el = e.target.closest("[data-pick-exercise]"))){
+      if(state.editMode && state.editor.form){
+        var picked = el.dataset.pickExercise;
+        state.editor.form.name = picked;
+        if(el.hasAttribute("data-pick-free")){
+          var similarPick = findSimilarName(picked, knownBaseExerciseNames());
+          if(similarPick && normalizeName(similarPick) !== normalizeName(picked)) showToast("Listalla on jo samankaltainen liike ”" + similarPick + "” — tarkista kirjoitusasu", 4500);
+        }
+      }
+      closeSheet();
       return;
     }
     if(e.target.closest("[data-close-sheet]")){
@@ -5787,18 +5617,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       render();
       return;
     }
-    if(e.target.closest("[data-pdf-import-save]")){
-      await savePdfImport();
-      return;
-    }
-    if(e.target.closest("[data-pdf-import-cancel]")){
-      cancelPdfImport();
-      return;
-    }
-    if((el = e.target.closest("[data-review-remove]"))){
-      removePdfReviewExercise(parseInt(el.dataset.di, 10), parseInt(el.dataset.ei, 10));
-      return;
-    }
     if(e.target.closest("[data-restore-confirm]")){
       if(state.pendingRestore) await applyBackupRestore(state.pendingRestore);
       return;
@@ -5825,13 +5643,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(e.target.closest("[data-edit-done]")){ await finishProgramEdit(); return; }
     if((el = e.target.closest("[data-edit-open-week]"))){
       var wk = el.dataset.editOpenWeek;
-      state.editor.openWeek = state.editor.openWeek === wk ? null : wk;
+      state.editor.openWeeks[wk] = !state.editor.openWeeks[wk];
       render();
       return;
     }
     if((el = e.target.closest("[data-edit-open-day]"))){
       var dk = el.dataset.editOpenDay;
-      state.editor.openDay = state.editor.openDay === dk ? null : dk;
+      state.editor.openDays[dk] = !state.editor.openDays[dk];
       render();
       return;
     }
@@ -5853,8 +5671,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(ct.indexOf("week:") === 0) editorCopyWeek(ct.slice(5)); else editorCopyDay(ct.slice(4));
       return;
     }
-    if(e.target.closest("[data-edit-copy-open-week]")){
-      if(state.editor.openWeek) editorCopyWeek(state.editor.openWeek); else showToast("Avaa ensin kopioitava viikko");
+    if(e.target.closest("[data-edit-copy-last-week]")){
+      // Tavallisin rakentamisen työnkulku: viikko 1 valmiiksi ja loput sen
+      // kopioina, joten painike kopioi aina viimeisen viikon.
+      var lastWeeks = state.programDraft.weeks;
+      if(lastWeeks.length) editorCopyWeek(lastWeeks[lastWeeks.length - 1]); else showToast("Lisää ensin viikko");
       return;
     }
     if(e.target.closest("[data-edit-add-week]")){ editorAddWeek(); return; }
@@ -5889,57 +5710,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       startProgramBuilder();
       return;
     }
-    if(e.target.closest("[data-builder-cancel]")){
-      cancelProgramBuilder();
-      return;
-    }
-    if(e.target.closest("[data-builder-save]")){
-      await saveProgramBuilder();
-      return;
-    }
-    if(e.target.closest("[data-builder-add-week]")){
-      builderAddWeek();
-      return;
-    }
-    if((el = e.target.closest("[data-builder-duplicate-week]"))){
-      builderDuplicateWeek(parseInt(el.dataset.wi, 10));
-      return;
-    }
-    if((el = e.target.closest("[data-builder-remove-week]"))){
-      builderRemoveWeek(parseInt(el.dataset.wi, 10));
-      return;
-    }
-    if((el = e.target.closest("[data-builder-add-day]"))){
-      builderAddDay(parseInt(el.dataset.wi, 10));
-      return;
-    }
-    if((el = e.target.closest("[data-builder-remove-day]"))){
-      builderRemoveDay(parseInt(el.dataset.wi, 10), parseInt(el.dataset.di, 10));
-      return;
-    }
-    if((el = e.target.closest("[data-builder-add-ex]"))){
-      builderOpenPicker(parseInt(el.dataset.wi, 10), parseInt(el.dataset.di, 10));
-      return;
-    }
-    if((el = e.target.closest("[data-builder-remove-ex]"))){
-      builderRemoveExercise(parseInt(el.dataset.wi, 10), parseInt(el.dataset.di, 10), parseInt(el.dataset.ei, 10));
-      return;
-    }
-    if(e.target.closest("[data-builder-picker-add]")){
-      builderAddExercise();
-      return;
-    }
-    if(e.target.closest("[data-builder-picker-cancel]")){
-      builderClosePicker();
-      return;
-    }
-    if(e.target.closest("[data-builder-picker-list]")){
-      // Takaisin listavalintaan. Kirjoitettu nimi jää talteen, jotta paluu
-      // vapaaseen kenttään ei aloita alusta.
-      if(state.builder && state.builder.picker) state.builder.picker.free = false;
-      render();
-      return;
-    }
     if((el = e.target.closest("[data-date-chip]"))){
       // Mobiilissa natiivi kenttä avautuu itsestään; työpöytäselaimessa
       // avataan valitsin nimenomaisesti, jotta koko sirpale toimii samoin.
@@ -5952,9 +5722,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-tab]"))){
       // Kesken oleva tuonti ei ole vielä tallessa missään, joten välilehden
       // vaihto ei saa hukata sitä vahingossa.
-      if(state.pdfImport){ showToast("Viimeistele tai peruuta ohjelman tuonti ensin"); return; }
-      if(state.builder){ showToast("Viimeistele tai peruuta ohjelman rakentaminen ensin"); return; }
-      if(state.editMode){ showToast("Viimeistele tai peruuta ohjelman muokkaus ensin"); return; }
+      if(state.editMode){
+        var guardWord = state.editor.mode === "new" ? "rakentaminen" : (state.editor.mode === "import" ? "tuonti" : "muokkaus");
+        showToast("Viimeistele tai peruuta ohjelman " + guardWord + " ensin");
+        return;
+      }
       state.view = el.dataset.tab;
       state.confirmingReset = false;
       // Asetukset avautuu aina riviluetteloon, ei edelliseen alinäkymään.
@@ -5973,11 +5745,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(curIdx === -1) curIdx = 0;
       var newIdx = curIdx + (el.dataset.weekNav === "next" ? 1 : -1);
       if(newIdx >= 0 && newIdx < weeks.length){ state.activeWeek = weeks[newIdx]; render(); }
-      return;
-    }
-    if((el = e.target.closest("[data-toggle-week-view]"))){
-      state.showAllWeeks = !state.showAllWeeks;
-      render();
       return;
     }
     if((el = e.target.closest("[data-swap-open]"))){
@@ -6116,6 +5883,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         row4.done = false;
       } else if(isRowDoneEligible(ex4, row4)){
         row4.done = true;
+        state.justDone = { id: id4, idx: idx4 };
         // Ajastin käynnistyy sarjan valmiiksi merkitsemisestä heti, paitsi kun
         // kyseessä on liikkeen VIIMEINEN vielä tekemätön sarja — silloin
         // seuraavaksi tallennetaan koko merkintä, ei levätä ennen seuraavaa
@@ -6142,6 +5910,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         showToast("Merkitse kaikki sarjat valmiiksi ennen tallennusta");
         return;
       }
+      // Valmis-merkin animaatio: tallennettu liike ja mahdollisesti koko
+      // valmistuva päivä saavat pop-luokan seuraavassa piirrossa.
+      state.justSavedEx = saveId;
+      var saveDay = findGroupForExerciseId(saveId);
+      if(saveDay && saveDay.exercises.every(function(x){ return x.id === saveId || isExerciseLogged(x); })) state.justDoneDay = dayKey(saveDay);
       await completeAndAdvance(saveId);
       return;
     }
@@ -6264,33 +6037,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if(e.target.id === "log-date"){ changeLogDate(e.target.value); return; }
-    if(state.builder && state.builder.picker){
-      var bp = state.builder.picker;
-      var bval = e.target.value;
-      if(e.target.hasAttribute("data-builder-liike")){
-        // Ylemmän tason vaihto nollaa aina alemmat tasot — sama sääntö kuin
-        // liikkeen vaihdon valitsimessa.
-        bp.free = (bval === VARIANT_ADD_NEW);
-        bp.liike = (bval && bval !== VARIANT_ADD_NEW) ? bval : null;
-        bp.variaatio = null; bp.lisavariaatio = null;
-        bp.variaatioTouched = false; bp.lisavariaatioTouched = false;
-        render();
-        return;
-      }
-      if(e.target.hasAttribute("data-builder-variaatio")){
-        bp.variaatio = (bval && bval !== VARIANT_PLAIN) ? bval : null;
-        bp.variaatioTouched = !!bval;
-        bp.lisavariaatio = null; bp.lisavariaatioTouched = false;
-        render();
-        return;
-      }
-      if(e.target.hasAttribute("data-builder-lisavariaatio")){
-        bp.lisavariaatio = (bval && bval !== VARIANT_PLAIN) ? bval : null;
-        bp.lisavariaatioTouched = !!bval;
-        render();
-        return;
-      }
-    }
     if(state.variantPicker){
       var pv = state.variantPicker;
       var val = e.target.value;
@@ -6329,6 +6075,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   });
 
   app.addEventListener("input", function(e){
+    if(e.target.id === "liike-haku"){
+      // Hakulista päivitetään suoraan DOM:iin, jottei fokus katoa kentästä.
+      state.editor.pickerQuery = e.target.value;
+      var pickList = document.getElementById("liike-lista");
+      if(pickList) pickList.innerHTML = renderExercisePickList(e.target.value);
+      return;
+    }
     if(state.editMode && state.programDraft){
       // Muokkaustilan kentät kirjoittavat suoraan luonnokseen ilman render()-
       // kutsua, jottei fokus katoa. Tyhjä päivän nimi hylätään change-
@@ -6366,38 +6119,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       }
       return;
     }
-    var reviewField = e.target.closest("[data-review-field]");
-    if(reviewField && state.pdfImport){
-      // Arvo talteen suoraan jäsennystulokseen ilman render()-kutsua, jotta
-      // fokus ei katoa kesken kirjoittamisen.
-      var rDay = state.pdfImport.program.days[parseInt(reviewField.dataset.di, 10)];
-      var rEx = rDay && rDay.exercises[parseInt(reviewField.dataset.ei, 10)];
-      if(rEx) rEx[reviewField.dataset.field] = reviewField.value;
-      return;
-    }
-    var builderFieldEl = e.target.closest("[data-builder-field]");
-    if(builderFieldEl && state.builder){
-      // Arvo talteen suoraan luonnokseen ilman render()-kutsua, jotta fokus ei
-      // katoa kesken kirjoittamisen — sama ratkaisu kuin tarkistusnäkymässä.
-      var bWeek = state.builder.weeks[parseInt(builderFieldEl.dataset.wi, 10)];
-      var bFieldName = builderFieldEl.dataset.field;
-      if(!bWeek) return;
-      if(bFieldName === "weekLabel"){ bWeek.label = builderFieldEl.value; return; }
-      var bDay = bWeek.days[parseInt(builderFieldEl.dataset.di, 10)];
-      if(!bDay) return;
-      if(bFieldName === "dayName"){ bDay.name = builderFieldEl.value; return; }
-      var bEx = bDay.exercises[parseInt(builderFieldEl.dataset.ei, 10)];
-      if(bEx) bEx[bFieldName] = builderFieldEl.value;
-      return;
-    }
-    if(state.builder && state.builder.picker && e.target.hasAttribute && e.target.hasAttribute("data-builder-free-name")){
-      // Kuten vapaassa nimikentässä liikkeen vaihdossa: arvo talteen ilman
-      // uudelleenpiirtoa, ja "Lisää liike" -napin tila päivitetään suoraan.
-      state.builder.picker.freeName = e.target.value;
-      var builderAddBtn = document.querySelector("[data-builder-picker-add]");
-      if(builderAddBtn) builderAddBtn.disabled = !builderPickerValid();
-      return;
-    }
     if(state.variantPicker && state.variantPicker.addNew){
       // Kirjoitettu arvo talteen ilman render()-kutsua, jotta fokus säilyy.
       // "Vaihda"-napin tila päivitetään suoraan, koska sekin riippuu nimestä.
@@ -6430,14 +6151,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
   });
   app.addEventListener("focusout", function(e){
-    if(state.builder && state.builder.picker && e.target.hasAttribute && e.target.hasAttribute("data-builder-free-name")){
-      var bTyped = String(e.target.value || "").trim();
-      var bSimilar = bTyped ? findSimilarName(bTyped, knownBaseExerciseNames()) : null;
-      state.builder.picker.nameHint = bSimilar;
-      var bHintEl = document.getElementById("builder-name-hint");
-      if(bHintEl) bHintEl.innerHTML = bSimilar ? renderVariantNameHint(bSimilar) : "";
-      return;
-    }
     if(!state.variantPicker || !state.variantPicker.addNew) return;
     if(!e.target.hasAttribute || !e.target.hasAttribute("data-variant-new-liike")) return;
     var typed = String(e.target.value || "").trim();
@@ -6451,6 +6164,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // olla bodyssä, jolloin #app:n kuuntelija ei näkisi näppäintä lainkaan.
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
+    if(e.key === "Enter" && e.target && e.target.id === "liike-haku"){
+      // Enter valitsee ensimmäisen katalogiosuman, tai kirjoitetun nimen
+      // jos osumia ei ole.
+      var firstPick = document.querySelector("#liike-lista [data-pick-exercise]:not([data-pick-free])") || document.querySelector("#liike-lista [data-pick-exercise]");
+      if(firstPick){ e.preventDefault(); firstPick.click(); }
+    }
   });
   app.addEventListener("keydown", function(e){
     // Välilehdet, liikeotsikot ja historian päivät ovat div-elementtejä, joten
