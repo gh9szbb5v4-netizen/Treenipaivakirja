@@ -281,3 +281,37 @@ vahvistettaessa muuttuu tuhoavaksi painikkeeksi; `data-delete-history` ja
 
 Kehitys näyttää vertailurivin vain, kun vertailukohta on olemassa, ja yhdellä
 merkinnällä yhden lauseen "Ei dataa" -rivien sijaan.
+
+## Viimeistely (toteutettu, UX-vaihe 6)
+
+Tyhjät tilat ovat yksi komponentti `renderEmptyState(iconName, title, body,
+actionsHtml, compact)` (`.empty-state`): Historia ja Kehitys ilman merkintöjä
+(`goToProgramButton()`, `data-tab="ohjelma"`), tyhjä viikko Ohjelma-näkymässä
+(toiminto `[data-edit-program]`), 1RM-lista ilman MAX-liikkeitä ja tabletin
+liikepaneeli ilman avattua liikettä. `.empty` jää lataustilojen tekstille.
+
+Painallustila on CSS:ssä: kaikilla kosketuskohteilla on lyhyt siirtymä ja
+`:active{transform:scale(.94)}` (otsikkoriveillä pelkkä himmennys), hover
+vain `@media (hover:hover)`. Valmis-merkin animaatio (`@keyframes pop`,
+luokka `.pop`) asetetaan vain juuri muuttuneelle merkille: `state.justDone`
+(`{id, idx}`, asetetaan `[data-toggle-done]`-käsittelijässä),
+`state.justSavedEx` ja `state.justDoneDay` (asetetaan `[data-save-ex]`-
+käsittelijässä ennen `completeAndAdvance()`-kutsua, koska se piirtää useaan
+kertaan). Liput nollataan klikkikäsittelijän alussa, ei `render()`:ssä,
+jotta saman toimen useat piirrot eivät katkaise animaatiota. Molemmat
+noudattavat `prefers-reduced-motion`-asetusta yhteisellä säännöllä.
+
+Tablettiasettelu: `wideQuery = matchMedia("(min-width: 768px)")` ja
+`isWideLayout()`. `render()` lisää `#app`-elementille luokan `wide` vain
+Ohjelma-näkymässä ohjelman kanssa (ei muokkaustilassa), ja `renderOhjelma()`
+kääri sisällön `.ohjelma-cols`-ruudukkoon: vasemmalla `.ohjelma-list`
+(päivämäärärivi, valitsin, päiväkortit ja liikkeet ilman sarjoja,
+`renderExercise(ex, true)`), oikealla kiinnitetty `<aside class="ohjelma-pane">`,
+jossa avattu liike sarjoineen tai tyhjä tila. Kaikki käsittelijät toimivat
+`data-id`-attribuutein, joten sama liike voi olla DOM:ssa kahdesti (listan
+otsikko ja paneeli) ilman erillisiä käsittelijöitä. `wideQuery`:n
+change-tapahtuma piirtää näkymän uudelleen, kun palstamäärä vaihtuu.
+Playwrightin oletusikkuna on 1280 px leveä, joten vanhat testisarjat ajavat
+Ohjelma-näkymän kaksipalstaisena; `test_v6.js` testaa molemmat leveydet ja
+vaihdon niiden välillä.
+
