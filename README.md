@@ -21,6 +21,8 @@ Ainoa pakollinen sarake on liikkeen nimi. Muut sarakkeet tunnistetaan automaatti
 | Viikko | `Viikko`, `Week`, `Vko` | Ryhmittelee ohjelman viikoittain |
 | Treenipäivä | `Treenipäivä`, `Päivä`, `Day` | Ryhmittelee päivittäin |
 | Liike | `Liike`, `Exercise` | **Pakollinen** — liikkeen nimi |
+| Variaatio | `Variaatio`, `Variation` | Liitetään nimeen pilkulla, esim. `Maastaveto, Tangolla` |
+| Lisävariaatio | `Lisävariaatio`, `Subvariation` | Liitetään nimen loppuun, esim. `Hauiskääntö taljassa, Maaten, Scott-kahva` |
 | Sarjat | `Sarjat`, `Sets` | Ledgeriin luotavien rivien määrä |
 | Toistot | `Toistot`, `Reps` | Tavoitetoistot |
 | Yksiköt | `Yksiköt`, `Unit` | Esim. `toistoa`, `min`, `käsi` |

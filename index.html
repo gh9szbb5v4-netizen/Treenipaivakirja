@@ -191,6 +191,8 @@
     week: ["viikko","week","vko"],
     day: ["day","päivä","paiva","pv","viikonpäivä"],
     exercise: ["exercise","liike","harjoitus","harjoite","liikkeen nimi"],
+    variant: ["variaatio","variation"],
+    subvariant: ["lisävariaatio","lisavariaatio","subvariation"],
     sets: ["sets","sarjat","sarjaa"],
     reps: ["reps","toistot","toistoa"],
     unit: ["yksikot","yksiköt","yksikkö","unit","units"],
@@ -378,6 +380,9 @@
     var headers = Object.keys(rows[0]);
     var map = mapHeaders(headers);
     if(!map.exercise) throw new Error('CSV:stä puuttuu liikkeen nimen sisältävä sarake (esim. "Liike" tai "Exercise").');
+    // Jos CSV:ssä on vain lisävariaatiosarake, se ei saa osua myös variaatioksi
+    // osittaistäsmäyksen kautta ("lisävariaatio" sisältää sanan "variaatio").
+    if(map.variant && map.variant === map.subvariant) delete map.variant;
     var dayMap = new Map();
     var weekOrder = [];
     rows.forEach(function(row, idx){
@@ -393,9 +398,16 @@
         if(weekVal && weekOrder.indexOf(weekVal) === -1) weekOrder.push(weekVal);
       }
       var intensityRaw = map.intensity ? row[map.intensity] : (map.notes ? row[map.notes] : "");
+      // Variaatio ja lisävariaatio ovat omissa sarakkeissaan. Ne yhdistetään
+      // liikkeen nimeen samalla kaavalla kuin liikekatalogi käyttää, jotta
+      // variaatio näkyy ohjelmanäkymässä ja nimi vastaa katalogin riviä —
+      // silloin myös tietopalkki ja ohjattu variaatiovalinta tunnistavat sen.
+      var baseName = (row[map.exercise] || "").trim();
+      var variantVal = map.variant ? (row[map.variant] || "").trim() : "";
+      var subVariantVal = map.subvariant ? (row[map.subvariant] || "").trim() : "";
       dayMap.get(groupName).exercises.push({
         id: prefix + "-" + idx,
-        name: row[map.exercise] || "Nimetön liike",
+        name: baseName ? composeVariantName(baseName, variantVal, subVariantVal) : "Nimetön liike",
         sets: map.sets ? row[map.sets] : "",
         reps: map.reps ? row[map.reps] : "",
         unit: map.unit ? row[map.unit] : "",
@@ -2434,6 +2446,7 @@
       "Lataa Asetuksista — oikean yläkulman rataskuvakkeesta — (tai ensimmäisellä käyttökerralla suoraan etusivulta) treeniohjelmasi CSV-tiedostona. Ainoa pakollinen sarake on <b style=\"color:var(--chalk);\">liikkeen nimi</b> — muut tunnistetaan otsikon perusteella automaattisesti."
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Viikko</b> ja <b style=\"color:var(--chalk);\">Treenipäivä</b> ryhmittelevät ohjelman.",
+      "<b style=\"color:var(--chalk);\">Variaatio</b> ja <b style=\"color:var(--chalk);\">Lisävariaatio</b> liitetään omista sarakkeistaan liikkeen nimeen pilkulla erotettuna (esim. <code>Hauiskääntö taljassa, Maaten, Scott-kahva</code>).",
       "<b style=\"color:var(--chalk);\">Sarjat</b> ja <b style=\"color:var(--chalk);\">Toistot</b> määrittävät kirjattavien rivien määrän ja tavoitteen.",
       "<b style=\"color:var(--chalk);\">Teho</b>-sarakkeeseen <code>MAX</code> tai prosentti (esim. <code>90 %</code>) — ks. kohta 3.",
       "Uusi CSV-tuonti korvaa ohjelman, mutta säilyttää kaiken jo kirjatun historian."
