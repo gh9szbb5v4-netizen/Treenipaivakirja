@@ -312,10 +312,13 @@
 
   .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:var(--fs-md); line-height:1.6;}
   /* ---------- Ohjelmakirjasto ja käytössä olevan ohjelman rivi ---------- */
-  .lib-row{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 0; border-top:1px dashed var(--line);}
-  .lib-main{flex:1; min-width:0;}
+  /* Nimi ja yhteenveto omalla rivillään, toiminnot sen alla: kapealla
+     näytöllä yhteenveto ei ahtaudu painikkeiden viereen. */
+  .lib-row{display:flex; flex-direction:column; gap:4px; padding:10px 0; border-top:1px dashed var(--line);}
+  .lib-main{min-width:0;}
   .lib-title{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-weight:700;}
-  .lib-actions{display:flex; flex-wrap:wrap; align-items:center; gap:4px;}
+  .lib-actions{display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-top:4px;}
+  .lib-rename{display:flex; align-items:center; gap:8px;}
   .program-row{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
   .program-row-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-md);}
   /* ---------- Rakenteellinen tyhjä tila ----------
@@ -5581,9 +5584,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var confirming = state.confirmingDeleteProgram === p.id;
       html += '<div class="lib-row">';
       if(renaming){
-        html += '<input class="ledger-input" type="text" data-program-name-input value="' + escapeHtml(p.name || "") + '" aria-label="Ohjelman nimi" style="flex:1; min-width:0;">' +
+        html += '<div class="lib-rename"><input class="ledger-input" type="text" data-program-name-input value="' + escapeHtml(p.name || "") + '" aria-label="Ohjelman nimi" style="flex:1; min-width:0;">' +
           '<button type="button" class="btn-primary btn-sm btn-auto" data-program-rename-save="' + escapeHtml(p.id) + '">Tallenna</button>' +
-          '<button type="button" class="btn-tertiary btn-sm" data-program-rename-cancel>Peruuta</button>';
+          '<button type="button" class="btn-tertiary btn-sm" data-program-rename-cancel>Peruuta</button></div>';
       } else {
         html += '<div class="lib-main"><div class="lib-title"><span>' + escapeHtml(programDisplayName(p)) + '</span>' +
           (active ? '<span class="chip chip-success">Käytössä</span>' : '') + '</div>' +
