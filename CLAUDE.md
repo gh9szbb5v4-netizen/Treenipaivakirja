@@ -180,3 +180,23 @@ Viikko/kaikki-valinta on `renderWeekModeSwitch()` (`[data-week-mode]`),
 samalla rivillä päivämääräsirpaleen kanssa; vanha `[data-toggle-week-view]`-
 käsittelijä on jäänyt koodiin vaarattomana. Näkyvä "Kirjataan päivälle"
 -teksti on ruudunlukijalle `.sr-only`-elementtinä.
+
+## Asetukset, Historia ja Kehitys (toteutettu, UX-vaihe 4)
+
+Asetukset on riviluettelo (`SETTINGS_SECTIONS`, `renderSettingsList()`), jonka
+rivi avaa alinäkymän `state.settingsSection`-tilaan; alinäkymän otsikossa on
+takaisin-painike (`renderSubviewHeader()`). Välilehden vaihto nollaa
+`settingsSection`-tilan, joten Asetukset avautuu aina luetteloon. Osioiden
+sisällöt ovat omissa funktioissaan (`renderSettingsOhjelma`, `…1rm`, `…Lepo`,
+`…Varmuuskopio`, `…Lisaa`); kaikki id:t ja data-attribuutit ovat ennallaan,
+mutta testien on avattava oikea osio ennen niihin koskemista (testien
+`openSection(page, key)`-apuri).
+
+Historia esilataa kaikki merkinnät `historyCache`-välimuistiin
+`loadHistory()`:ssa, jotta suljettu päiväkortti voi näyttää yhteenvetorivin
+(`historyDaySummary()`). Poisto on kortin alareunan tekstipainike, joka
+vahvistettaessa muuttuu tuhoavaksi painikkeeksi; `data-delete-history` ja
+`confirmingDeleteDate` ennallaan.
+
+Kehitys näyttää vertailurivin vain, kun vertailukohta on olemassa, ja yhdellä
+merkinnällä yhden lauseen "Ei dataa" -rivien sijaan.
