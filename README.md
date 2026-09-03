@@ -119,15 +119,34 @@ Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa 
 
 **Kehitys.** Jokaiselle liikkeelle kehitys laskennallisena 1RM:nä edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna — kiloina ja prosentteina, sekä SVG-viivakäyränä ajan yli. Liike näkyy heti, kun sille on kirjattu yksikin merkintä, josta 1RM voidaan laskea — toisesta merkinnästä lähtien käyrässä näkyy myös kehityssuunta. Ylimpänä myös vastaava käyrä treenipäivän nostetulle kokonaispainolle.
 
-**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Uuden ohjelman tuonti tai rakentaminen sovelluksessa, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, merkintöjen vienti ja tuonti sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
+**Asetukset** (rataskuvake oikeassa yläkulmassa)**.** Uuden ohjelman tuonti tai rakentaminen sovelluksessa, liikekohtaisten 1RM-arvojen hallinta, lepoajastimen kytkeminen päälle/pois ja sen keston muuttaminen, varmuuskopion vienti ja palautus sekä kaikkien tietojen tyhjennys. 1RM-lista näyttää automaattisesti jokaisen ohjelmassa MAX-teholla merkityn liikkeen, myös ennen kuin sille on asetettu arvoa.
 
 **Ohje.** Tiivis käyttöohje: CSV:n ja PDF:n tuonti, ohjelman rakentaminen sovelluksessa, treenin kirjaaminen, painoehdotusten logiikka, sekä lyhyt kuvaus muista näkymistä. Näkyy myös ennen ensimmäistä tuontia linkkinä etusivulla.
+
+## Varmuuskopio
+
+Asetusten "Vie varmuuskopio CSV:nä" tallentaa yhteen tiedostoon kaiken, mitä sovelluksessa on: kirjatut treenit, sillä hetkellä käytössä olevan treeniohjelman ja käyttäjän itse lisäämät liikkeet. Tiedosto on yhä CSV ja avautuu taulukkolaskennassa, mutta se jakautuu osioihin, joista jokainen alkaa omalla `#`-rivillään:
+
+| Osio | Sisältö |
+|---|---|
+| `#MERKINNÄT` | Kirjatut sarjat: päivämäärä, liike, sarjanumero, paino, toistot, huomiot, tyyppi ja liikkeen tunniste |
+| `#OHJELMA` | Ohjelman jokainen liike viikkoineen ja treenipäivineen, mukaan lukien tyyppi, menetelmä, sarjakohtaiset toistot ja menetelmäselite |
+| `#OHJELMAN MUISTIINPANOT` | PDF-ohjelman mukana tullut ohjeteksti |
+| `#OMAT LIIKKEET` | Käyttäjän itse lisäämät liikkeet variaatioineen ja lihasryhmineen |
+
+Merkintärivin **Tunniste** on liikkeen ohjelma-id. Sen ansiosta palautus sitoo jokaisen merkinnän täsmälleen samaan ohjelman liikkeeseen kuin varmuuskopion hetkellä, eikä liikkeiden nimien varaan jäävää arvausta tarvita. Vanhemmissa, ennen tätä tehdyissä vientitiedostoissa saraketta ei ole; ne tuodaan yhä entiseen tapaan nimien perusteella kohdistaen.
+
+Palautus näyttää ensin, mitä tiedosto sisältää, ja tekee muutokset vasta vahvistuksesta — varmuuskopion ohjelma nimittäin **korvaa nykyisen ohjelman**. Omat liikkeet yhdistetään laitteella jo oleviin ilman kaksoiskappaleita, ja merkinnät yhdistetään olemassa oleviin: jo tallennettu merkintä ohitetaan, joten saman tiedoston voi tuoda turvallisesti useaan kertaan eikä mitään kirjattua poisteta. Pelkät merkinnät sisältävä vanha vientitiedosto tuodaan suoraan ilman vahvistusta, koska se ei voi korvata ohjelmaa.
+
+Varmuuskopioon **ei** sisälly Asetuksissa käsin syötettyjä 1RM-arvoja. Ne on toistaiseksi syötettävä uudelleen laitteella, jolle varmuuskopio palautetaan.
 
 ## Tietojen tallennus
 
 Merkinnät tallennetaan selaimen omaan tallennustilaan ja säilyvät sovelluksen sulkemisen jälkeen. Mitään ei lähetetä palvelimelle — data ei koskaan poistu laitteeltasi, ja julkaistu sivu on pelkkä staattinen tiedosto.
 
-Tallennustila on laite- ja osoitekohtainen, joten merkinnät eivät siirry toiseen selaimeen, laitteeseen tai osoitteeseen automaattisesti. Siirto ja varmuuskopiointi tehdään Asetusten vienti- ja tuontitoiminnoilla. Sovellus näyttää ohjelmanäkymässä muistutusbannerin, jos edellisestä viennistä on yli 14 päivää; muistutuksen voi ohittaa kuluvaksi istunnoksi tai tehdä viennin suoraan bannerista. Tuonti yhdistää tiedot olemassa oleviin merkintöihin ja ohittaa jo tallennetut, joten saman tiedoston voi tuoda turvallisesti useaan kertaan. Koska vientitiedostossa on vain päivämäärä ja liikkeen nimi, tuonti kohdistaa jokaisen tuodun treenipäivän siihen ohjelman päivään, jonka liikkeisiin sen nimet parhaiten täsmäävät — aikajärjestyksessä ja kukin ohjelmapäivä kerran, jolloin peräkkäiset samanmuotoiset treenit osuvat viikoille 1, 2, 3 jne. Näin palautetut treenit näkyvät myös Ohjelma-välilehdellä tehtyinä, eivät vain Historiassa ja Kehityksessä. Liikkeet, joita tuotavassa ohjelmassa ei ole, säilyvät Historiassa ja Kehityksessä, ja tuonti kertoo niiden määrän.
+Tallennustila on laite- ja osoitekohtainen, joten tiedot eivät siirry toiseen selaimeen, laitteeseen tai osoitteeseen automaattisesti. Siirto ja varmuuskopiointi tehdään Asetusten varmuuskopiotoiminnoilla (ks. edellinen osio). Sovellus näyttää ohjelmanäkymässä muistutusbannerin, jos edellisestä varmuuskopiosta on yli 14 päivää; muistutuksen voi ohittaa kuluvaksi istunnoksi tai ottaa varmuuskopion suoraan bannerista.
+
+Jos tuotavassa tiedostossa ei ole liikkeen tunnistetta — eli se on vanha, pelkät merkinnät sisältävä vienti — tuonti kohdistaa jokaisen tuodun treenipäivän siihen ohjelman päivään, jonka liikkeisiin sen nimet parhaiten täsmäävät. Päivät käydään aikajärjestyksessä ja kukin ohjelmapäivä varataan kerran, jolloin peräkkäiset samanmuotoiset treenit osuvat viikoille 1, 2, 3 jne. Näin palautetut treenit näkyvät myös Ohjelma-välilehdellä tehtyinä, eivät vain Historiassa ja Kehityksessä. Liikkeet, joita ohjelmassa ei ole, säilyvät Historiassa ja Kehityksessä, ja tuonti kertoo niiden määrän.
 
 Uuden treeniohjelman tuonti ei poista historiaa: merkinnät ja painoehdotukset säilyvät liikkeen nimen perusteella, joten uusi ohjelmajakso jatkaa siitä mihin edellinen jäi.
 

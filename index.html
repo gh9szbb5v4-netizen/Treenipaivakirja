@@ -222,6 +222,9 @@
     // Sovelluksessa rakennettava ohjelmaluonnos odottamassa ”Valmis”-painiketta.
     // Sama periaate kuin pdfImport-kentällä: mitään ei tallenneta ennen sitä.
     builder: null,
+    // Luettu varmuuskopio odottamassa vahvistusta. Ohjelman palautus korvaa
+    // nykyisen ohjelman, joten sitä ei tehdä kysymättä.
+    pendingRestore: null,
     showProgramNotes: false,
     manualExercises: [],
     userExercises: [],
@@ -270,6 +273,8 @@
   function todayISO(){ return toLocalISO(new Date()); }
   function daysAgoISO(n){ var d = new Date(); d.setDate(d.getDate() - n); return toLocalISO(d); }
   function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+  // Suomen lukusanataivutus: yksi saa yksikön, muut partitiivin.
+  function plural(n, yksikko, monikko){ return n + " " + (n === 1 ? yksikko : monikko); }
   function isStandaloneDisplay(){
     return (window.navigator.standalone === true) ||
       (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
@@ -1493,9 +1498,36 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!clean.liike) return null;
     if(!state.userExercises) state.userExercises = [];
     state.userExercises.push(clean);
-    try{ await storeSet(STORAGE_USER_EXERCISES_KEY, JSON.stringify(state.userExercises)); }
-    catch(e){ /* hiljainen virhe — liike jää silti käyttöön tämän istunnon ajaksi */ }
+    await saveUserExercises();
     return clean;
+  }
+
+  async function saveUserExercises(){
+    try{ await storeSet(STORAGE_USER_EXERCISES_KEY, JSON.stringify(state.userExercises)); }
+    catch(e){ /* hiljainen virhe — liikkeet jäävät silti käyttöön tämän istunnon ajaksi */ }
+  }
+
+  // Varmuuskopion omat liikkeet yhdistetään laitteella jo oleviin: sama rivi ei
+  // kahdennu eikä mitään poisteta. Katalogissa valmiina olevaa riviä ei lisätä
+  // käyttäjän listaan lainkaan, jottei liike näkyisi valintalistassa kahdesti.
+  async function mergeUserExerciseVariants(rows){
+    if(!state.userExercises) state.userExercises = [];
+    function key(r){
+      return normLiikeName(r.liike) + "|" + normLiikeName(r.variaatio || "") + "|" + normLiikeName(r.lisavariaatio || "");
+    }
+    var seen = {};
+    EXERCISE_VARIANTS.forEach(function(r){ seen[key(r)] = true; });
+    state.userExercises.forEach(function(r){ seen[key(r)] = true; });
+    var added = 0;
+    rows.forEach(function(r){
+      var k = key(r);
+      if(!r.liike || seen[k]) return;
+      seen[k] = true;
+      state.userExercises.push(r);
+      added++;
+    });
+    if(added) await saveUserExercises();
+    return added;
   }
 
   // ---------- actions ----------
@@ -2541,11 +2573,58 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }catch(e){ showToast("Poisto epäonnistui"); }
   }
 
+  // ---------- Varmuuskopion muoto ----------
+  // Varmuuskopio on yksi CSV-tiedosto, joka jakautuu osioihin. Merkinnät ovat
+  // ensimmäisenä samana taulukkona kuin ennenkin, jotta tiedosto avautuu yhä
+  // taulukkolaskennassa ja jotta vanhat, pelkät merkinnät sisältävät
+  // vientitiedostot tuodaan muuttumattomina. Osio alkaa omalla #-rivillään.
+  var BACKUP_SECTION_ENTRIES   = "#MERKINNÄT";
+  var BACKUP_SECTION_PROGRAM   = "#OHJELMA";
+  var BACKUP_SECTION_NOTES     = "#OHJELMAN MUISTIINPANOT";
+  var BACKUP_SECTION_EXERCISES = "#OMAT LIIKKEET";
+
+  function csvRows(rows){
+    return rows.map(function(r){
+      return r.map(function(v){ return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }).join(",");
+    }).join("\n");
+  }
+  // Teho kirjoitetaan takaisin samaan muotoon, josta parseIntensity() sen lukee,
+  // jotta tuonti tuottaa täsmälleen saman intensity-olion kuin viennin hetkellä.
+  function intensityToText(intensity){
+    if(!intensity) return "";
+    if(intensity.isMax) return "MAX";
+    if(intensity.percents && intensity.percents.length){
+      return intensity.percents.map(function(p){ return String(p) + " %"; }).join(", ");
+    }
+    return "";
+  }
+  function backupProgramRows(){
+    var rows = [["Viikko","Treenipäivä","Tunniste","Liike","Sarjat","Toistot","Yksiköt","Paino","Huomautus","Teho","Tyyppi","Menetelmä","Sarjakohtaiset","Menetelmäselite","Painoehdotus"]];
+    state.program.days.forEach(function(day){
+      (day.exercises || []).forEach(function(ex){
+        rows.push([
+          day.week == null ? "" : day.week,
+          day.name,
+          ex.id,
+          ex.name,
+          ex.sets, ex.reps, ex.unit, ex.weight, ex.notes,
+          intensityToText(ex.intensity),
+          ex.kind || "plain",
+          ex.method || "",
+          (ex.perSet && ex.perSet.length) ? ex.perSet.join("|") : "",
+          ex.methodNote || "",
+          ex.autoCalc === false ? "ei" : "kyllä"
+        ]);
+      });
+    });
+    return rows;
+  }
+
   async function exportAllCSV(){
     try{
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
-      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi"]];
+      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste"]];
       for(var i=0;i<keys.length;i++){
         var date = keys[i].replace("entries:", "");
         var entry = await loadEntry(date);
@@ -2554,11 +2633,32 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var exName = data.name || exKey;
           var kind = data.kind || "plain";
           (data.sets || []).forEach(function(s, idx){
-            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", (s.notes || "").replace(/"/g,'""'), kind]);
+            // Tunniste on merkinnän liike-id. Sen avulla tuonti sitoo merkinnän
+            // täsmälleen samaan ohjelman liikkeeseen kuin viennin hetkellä,
+            // ilman nimien varaan jäävää arvausta.
+            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", s.notes || "", kind, exKey]);
           });
         });
       }
-      var csv = rows.map(function(r){ return r.map(function(v){ return '"' + String(v) + '"'; }).join(","); }).join("\n");
+      var parts = ['"' + BACKUP_SECTION_ENTRIES + '"', csvRows(rows)];
+
+      if(state.program && state.program.days && state.program.days.length){
+        parts.push('"' + BACKUP_SECTION_PROGRAM + '"', csvRows(backupProgramRows()));
+        var progNotes = state.program.notes;
+        if(progNotes && progNotes.length){
+          var noteRows = [["Tiedosto","Teksti"]];
+          progNotes.forEach(function(n){ noteRows.push([n.file || "", n.text || ""]); });
+          parts.push('"' + BACKUP_SECTION_NOTES + '"', csvRows(noteRows));
+        }
+      }
+      if(state.userExercises && state.userExercises.length){
+        var exRows = [["Liike","Variaatio","Lisävariaatio","Lihasryhmä"]];
+        state.userExercises.forEach(function(r){
+          exRows.push([r.liike || "", r.variaatio || "", r.lisavariaatio || "", r.lihasryhma || ""]);
+        });
+        parts.push('"' + BACKUP_SECTION_EXERCISES + '"', csvRows(exRows));
+      }
+      var csv = parts.join("\n\n");
       // UTF-8-BOM eteen, jotta Excel (etenkin Windowsilla) ei arvaa merkistöksi
       // ANSI/Windows-1252:tä ja muuta ä/ö-merkkejä symboleiksi tiedostoa avattaessa.
       var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
@@ -2567,7 +2667,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       a.href = url; a.download = "treenipaivakirja_" + todayISO() + ".csv";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("Vienti valmis");
+      showToast("Varmuuskopio tallennettu");
       // render() tehdään tässä, jotta muistutusbanneri katoaa heti onnistuneen
       // viennin jälkeen riippumatta siitä, piirtääkö kutsupaikka uudelleen.
       state.lastExportDate = todayISO();
@@ -2578,10 +2678,119 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }catch(e){ showToast("Viennin luonti epäonnistui"); }
   }
 
+  // Jakaa varmuuskopiotiedoston osioihin #-merkkirivien perusteella. Ennen
+  // ensimmäistä merkkiriviä oleva teksti luetaan merkinnöiksi: vanhoissa
+  // vientitiedostoissa ei ole merkkirivejä lainkaan, ja ne on silti voitava
+  // tuoda ennallaan.
+  function splitBackupSections(text){
+    var lines = String(text).replace(/^\uFEFF/, "").split(/\r\n|\n|\r/);
+    var sections = {};
+    var current = BACKUP_SECTION_ENTRIES;
+    var buffer = [];
+    function flush(){
+      var body = buffer.join("\n").trim();
+      if(body) sections[current] = sections[current] ? sections[current] + "\n" + body : body;
+      buffer = [];
+    }
+    lines.forEach(function(line){
+      var raw = line.trim();
+      // Merkkirivi on yksi solu, jossa on vain #-alkuinen nimi. Ehto rajaa pois
+      // tavalliset datarivit, joiden ensimmäinen solu sattuisi alkamaan #:llä.
+      if(/^"?#[^",;\t]*"?$/.test(raw)){
+        flush();
+        current = raw.replace(/^"|"$/g, "").trim().toUpperCase();
+        return;
+      }
+      buffer.push(line);
+    });
+    flush();
+    return sections;
+  }
+
+  function parseBackupNotes(text){
+    var notes = [];
+    if(!text) return notes;
+    parseCSV(text).forEach(function(row){
+      var t = String(row["teksti"] || "").trim();
+      if(!t) return;
+      notes.push({ file: String(row["tiedosto"] || "").trim(), text: t });
+    });
+    return notes;
+  }
+
+  // Lukee ohjelmaosion takaisin täsmälleen samaan muotoon, jossa se oli
+  // state.program-kentässä: samat päivät, samat liike-id:t ja samat valinnaiset
+  // kentät. Valinnaiset kentät asetetaan vain jos ne olivat täytettyjä, jottei
+  // CSV:stä tuotuun ohjelmaan ilmesty tyhjiä PDF-kenttiä.
+  function parseBackupProgram(text, notesText){
+    var rows = parseCSV(text);
+    if(!rows.length) return null;
+    var dayMap = new Map();
+    var weekOrder = [];
+    var counter = 0;
+    var fallbackPrefix = "bak-" + Date.now();
+    rows.forEach(function(row){
+      var name = String(row["liike"] || "").trim();
+      if(!name) return;
+      var week = String(row["viikko"] || "").trim();
+      var dayName = String(row["treenipäivä"] || row["treenipaiva"] || "").trim() ||
+                    (week ? "Viikko " + week : "Ohjelma");
+      var key = week + "|" + dayName;
+      if(!dayMap.has(key)){
+        dayMap.set(key, { name: dayName, week: week || null, exercises: [] });
+        if(week && weekOrder.indexOf(week) === -1) weekOrder.push(week);
+      }
+      var ex = {
+        id: String(row["tunniste"] || "").trim() || (fallbackPrefix + "-" + counter),
+        name: name,
+        sets: String(row["sarjat"] || "").trim(),
+        reps: String(row["toistot"] || "").trim(),
+        unit: String(row["yksiköt"] || row["yksikot"] || "").trim(),
+        weight: String(row["paino"] || "").trim(),
+        notes: String(row["huomautus"] || "").trim(),
+        intensity: parseIntensity(row["teho"]),
+        kind: String(row["tyyppi"] || "").trim() || "plain",
+        autoCalc: String(row["painoehdotus"] || "").trim().toLowerCase() !== "ei"
+      };
+      counter++;
+      var method = String(row["menetelmä"] || row["menetelma"] || "").trim();
+      if(method) ex.method = method;
+      var perSet = String(row["sarjakohtaiset"] || "").trim();
+      if(perSet) ex.perSet = perSet.split("|").map(function(s){ return s.trim(); });
+      var methodNote = String(row["menetelmäselite"] || row["menetelmaselite"] || "").trim();
+      if(methodNote) ex.methodNote = methodNote;
+      dayMap.get(key).exercises.push(ex);
+    });
+    var days = [];
+    dayMap.forEach(function(day){ days.push(day); });
+    if(!days.length) return null;
+    var program = { days: days, weeks: weekOrder };
+    var notes = parseBackupNotes(notesText);
+    if(notes.length) program.notes = notes;
+    return program;
+  }
+
+  function parseBackupUserExercises(text){
+    var out = [];
+    parseCSV(text).forEach(function(row){
+      var liike = String(row["liike"] || "").trim();
+      if(!liike) return;
+      out.push({
+        liike: liike,
+        variaatio: String(row["variaatio"] || "").trim() || null,
+        lisavariaatio: String(row["lisävariaatio"] || row["lisavariaatio"] || "").trim() || null,
+        lihasryhma: String(row["lihasryhmä"] || row["lihasryhma"] || "").trim() || null
+      });
+    });
+    return out;
+  }
+
   function parseEntriesCSV(text){
     text = text.replace(/^\uFEFF/, "");
     var rows = parseCSV(text);
-    if(rows.length === 0) throw new Error("Tiedosto on tyhjä.");
+    // Pelkkä otsikkorivi ilman merkintöjä on kelvollinen: varmuuskopio voi
+    // sisältää ohjelman ja omat liikkeet ennen kuin yhtään treeniä on kirjattu.
+    if(rows.length === 0) return {};
     var headers = Object.keys(rows[0]);
     function findCol(cands){
       return headers.find(function(h){ return cands.some(function(c){ return h === c || h.indexOf(c) !== -1; }); });
@@ -2593,6 +2802,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var cReps = findCol(["toistot","toistoa","reps"]);
     var cNote = findCol(["huomiot","huomio","notes","kommentti"]);
     var cKind = findCol(["tyyppi","kind"]);
+    var cId   = findCol(["tunniste"]);
     if(!cDate || !cName) throw new Error("Tiedostosta puuttuu päivämäärä- tai liikesarake. Käytä tällä sovelluksella tehtyä vientitiedostoa.");
 
     var byDate = {};
@@ -2605,14 +2815,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var kind = cKind ? ((row[cKind] || "").trim().toLowerCase() || "plain") : "plain";
       if(["max","percent","plain"].indexOf(kind) === -1) kind = "plain";
       var setNo = cSet ? parseInt(row[cSet], 10) : NaN;
+      var exId = cId ? String(row[cId] || "").trim() : "";
 
       if(!byDate[date]) { byDate[date] = []; counters[date] = null; }
       var blocks = byDate[date];
       var lastBlock = blocks.length ? blocks[blocks.length-1] : null;
+      // Tunniste erottaa saman liikkeen kaksi eri esiintymää samana päivänä
+      // (esim. MAX-sarja ja prosenttisarjat) myös silloin kun nimi ja tyyppi
+      // ovat samat.
       var startsNew = !lastBlock || lastBlock.name !== name || lastBlock.kind !== kind ||
-                      (isFinite(setNo) && setNo === 1);
+                      lastBlock.id !== exId || (isFinite(setNo) && setNo === 1);
       if(startsNew){
-        lastBlock = { name: name, kind: kind, sets: [] };
+        lastBlock = { name: name, kind: kind, id: exId, sets: [] };
         blocks.push(lastBlock);
       }
       lastBlock.sets.push({
@@ -2662,17 +2876,94 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return matches;
   }
 
-  async function importEntriesFile(file){
+  // Varmuuskopion luku: tiedosto jäsennetään kokonaan, mutta mitään ei
+  // tallenneta vielä. Jos tiedostossa on ohjelma, palautus korvaisi nykyisen
+  // ohjelman, joten se vahvistetaan erikseen. Pelkät merkinnät sisältävä vanha
+  // vientitiedosto tuodaan suoraan kuten ennenkin.
+  async function readBackupFile(file){
     var text;
     try{ text = await readFileAsText(file); }
     catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
 
-    var byDate;
-    try{ byDate = parseEntriesCSV(text); }
-    catch(e){ showToast(e.message || "Tuonti epäonnistui", 4500); return; }
+    var sections = splitBackupSections(text);
+    var byDate = {};
+    if(sections[BACKUP_SECTION_ENTRIES]){
+      try{ byDate = parseEntriesCSV(sections[BACKUP_SECTION_ENTRIES]); }
+      catch(e){ showToast(e.message || "Tuonti epäonnistui", 4500); return; }
+    }
+    var program = sections[BACKUP_SECTION_PROGRAM]
+      ? parseBackupProgram(sections[BACKUP_SECTION_PROGRAM], sections[BACKUP_SECTION_NOTES])
+      : null;
+    var userExercises = sections[BACKUP_SECTION_EXERCISES]
+      ? parseBackupUserExercises(sections[BACKUP_SECTION_EXERCISES])
+      : [];
 
+    if(!program && !userExercises.length && Object.keys(byDate).length === 0){
+      showToast("Tiedostosta ei löytynyt tuotavaa sisältöä", 4000);
+      return;
+    }
+    var restore = { byDate: byDate, program: program, userExercises: userExercises, fileName: file.name };
+    if(!program){
+      await applyBackupRestore(restore);
+      return;
+    }
+    state.pendingRestore = restore;
+    render();
+  }
+
+  function cancelBackupRestore(){
+    state.pendingRestore = null;
+    render();
+  }
+
+  // Palauttaa varmuuskopion sisällön: ensin omat liikkeet, sitten ohjelma ja
+  // vasta lopuksi merkinnät. Järjestys on olennainen — merkinnät sidotaan
+  // ohjelman liike-id:eihin, joten ohjelman on oltava paikallaan ensin.
+  async function applyBackupRestore(restore){
+    state.pendingRestore = null;
+    var parts = [];
+
+    if(restore.userExercises && restore.userExercises.length){
+      var addedEx = await mergeUserExerciseVariants(restore.userExercises);
+      if(addedEx) parts.push(plural(addedEx, "oma liike", "omaa liikettä"));
+    }
+
+    if(restore.program){
+      state.program = restore.program;
+      await saveProgram();
+      // Ohjelma vaihtui, joten näkymän kesken jääneet tilat nollataan samoin
+      // kuin ohjelman tuonnissa. Merkintöihin ei kosketa.
+      state.manualExercises = [];
+      state.draftSets = {};
+      state.dirtySets = {};
+      state.openExercise = null;
+      state.swapExercise = null;
+      state.showAllWeeks = false;
+      state.showProgramNotes = false;
+      state.builder = null;
+      parts.push("ohjelma (" + plural(restore.program.days.length, "treenipäivä", "treenipäivää") + ")");
+    }
+
+    var entryMsg = await importEntriesData(restore.byDate);
+    if(entryMsg) parts.push(entryMsg);
+
+    if(restore.program){
+      await computeDefaultActiveWeek();
+      state.view = "ohjelma";
+    }
+    state.todayEntry = await loadEntry(state.draftDate);
+    state.exerciseLogIndex = await buildExerciseLogIndex();
+    var lead = restore.program ? "Varmuuskopio palautettu: " : "Tuotu: ";
+    showToast(parts.length ? lead + parts.join(", ") : "Tiedostosta ei löytynyt tuotavaa sisältöä", 5000);
+    render();
+  }
+
+  // Merkintöjen tuonti. Palauttaa yhteenvetotekstin; kutsuja päättää ilmoituksen,
+  // koska sama polku palvelee sekä pelkkää merkintöjen tuontia että koko
+  // varmuuskopion palautusta.
+  async function importEntriesData(byDate){
     var dates = Object.keys(byDate);
-    if(dates.length === 0){ showToast("Tiedostosta ei löytynyt tuotavia merkintöjä", 4000); return; }
+    if(dates.length === 0) return "";
 
     var dayMatches = matchImportedDatesToProgramDays(byDate);
     var addedBlocks = 0, skippedBlocks = 0, touchedNames = {}, failedDates = 0, boundBlocks = 0;
@@ -2697,7 +2988,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           block.sets.map(function(s){ return (s.weight||"") + "x" + (s.reps||""); }).join(";");
         if(signatures[sig]){ skippedBlocks++; return; }
         var newId = null;
-        if(matchedDay){
+        // Varmuuskopiossa on liikkeen alkuperäinen id. Jos se on tällä päivällä
+        // vapaana, merkintä palautuu täsmälleen samalle avaimelle kuin ennen
+        // vientiä — ja jos id kuuluu nykyiseen ohjelmaan, sidonta on eksakti
+        // eikä nimien varaan jäävää arvausta tarvita lainkaan.
+        if(block.id && !takenProgramIds[block.id] && !entry.exercises.hasOwnProperty(block.id)){
+          takenProgramIds[block.id] = true;
+          newId = block.id;
+          if(isProgramExercise(newId)) boundBlocks++;
+        }
+        if(!newId && matchedDay){
           // Sama liike voi esiintyä päivässä kahdesti (esim. MAX + prosentti),
           // joten kukin ohjelmarivi varataan vain kerran päivää kohti eikä
           // päivällä jo olevan merkinnän päälle kirjoiteta.
@@ -2745,14 +3045,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.todayEntry = await loadEntry(state.draftDate);
     state.exerciseLogIndex = await buildExerciseLogIndex();
 
-    var msg = "Tuotu " + addedBlocks + " merkintää";
-    if(skippedBlocks > 0) msg += ", ohitettu " + skippedBlocks + " jo olemassa olevaa";
+    var msg = plural(addedBlocks, "merkintä", "merkintää");
+    if(skippedBlocks > 0) msg += " (ohitettu " + skippedBlocks + " jo olemassa olevaa)";
     // Kerrotaan erikseen, jos osa jäi ilman ohjelmavastinetta: ne näkyvät
     // Historiassa ja Kehityksessä mutta eivät Ohjelma-näkymän merkintöinä.
     if(addedBlocks > boundBlocks) msg += " — " + (addedBlocks - boundBlocks) + " ei täsmännyt ohjelman liikkeisiin";
     if(failedDates > 0) msg += " — " + failedDates + " päivän tallennus epäonnistui";
-    showToast(msg, 4500);
-    render();
+    return msg;
   }
 
   async function resetAll(){
@@ -2770,6 +3069,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.program = null;
     state.manualExercises = [];
     state.userExercises = [];
+    state.pendingRestore = null;
     state.importNameWarnings = [];
     state.draftSets = {};
     state.openExercise = null;
@@ -3119,7 +3419,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function renderExportReminder(){
     return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
-      '<b style="color:var(--brass);">Varmuuskopio.</b> Viimeisimmästä varmuuskopiosta on jo yli ' + EXPORT_REMINDER_DAYS + ' päivää. Merkinnät ovat vain tässä selaimessa — kannattaa ottaa tuore CSV-vienti talteen.' +
+      '<b style="color:var(--brass);">Varmuuskopio.</b> Viimeisimmästä varmuuskopiosta on jo yli ' + EXPORT_REMINDER_DAYS + ' päivää. Merkinnät, ohjelma ja omat liikkeet ovat vain tässä selaimessa — kannattaa ottaa tuore varmuuskopio talteen.' +
       '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">' +
       '<button class="btn-secondary" data-export-reminder-now type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Vie nyt</button>' +
       '<button class="btn-secondary" data-dismiss-export-reminder type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">Muistuta myöhemmin</button>' +
@@ -3262,8 +3562,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Ohjelma</b> — tuo uusi ohjelma CSV- tai PDF-tiedostona tai rakenna se sovelluksessa. Uusi ohjelma korvaa vanhan, mutta kaikki jo kirjattu historia säilyy.",
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
-      "<b style=\"color:var(--chalk);\">Vie merkinnät CSV:nä</b> — ota säännöllisesti varmuuskopio, sillä data on vain tässä selaimessa. Sovellus muistuttaa asiasta, jos edellisestä viennistä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
-      "<b style=\"color:var(--chalk);\">Tuo merkinnät</b> — palauta varmuuskopio tai siirrä historia toiselle laitteelle. Tuodut treenipäivät kohdistetaan ohjelman päiviin liikkeiden nimien perusteella, joten ne näkyvät myös Ohjelma-välilehdellä tehtyinä.",
+      "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma ja itse lisäämäsi liikkeet. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
+      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Merkinnät yhdistetään olemassa oleviin eikä mitään jo kirjattua poisteta.",
       "<b style=\"color:var(--chalk);\">Simulointi</b> — täyttää koko ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten. Toimii vain, jos yhtään oikeaa merkintää ei ole vielä tallennettu.",
       "<b style=\"color:var(--chalk);\">Palaute</b> — lähetä havainto, virhe tai idea suoraan tekijälle sähköpostitse.",
       "<b style=\"color:var(--chalk);\">Tyhjennä kaikki tiedot</b> — poistaa pysyvästi kaiken. Kysyy vahvistuksen."
@@ -3906,7 +4206,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var html = '<div class="day-heading">Rakenna ohjelma</div>' +
       '<div class="exercise" style="padding:16px;">' +
       '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 10px;">Lisää viikkoja, viikkoon treenipäiviä ja päivään liikkeitä. Liikelista on ryhmitelty lihasryhmittäin, mutta voit aina kirjoittaa nimen myös itse. Ohjelma tallentuu vasta ”Valmis”-painikkeesta.</p>' +
-      '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0;">Luonnoksessa on nyt ' + b.weeks.length + ' viikkoa ja ' + exCount + ' liikettä. Uusi ohjelma korvaa nykyisen, mutta aiemmat merkinnät säilyvät liikkeen nimen perusteella ennallaan.</p>' +
+      '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0;">Luonnoksessa on nyt ' + plural(b.weeks.length, "viikko", "viikkoa") + ' ja ' + plural(exCount, "liike", "liikettä") + '. Uusi ohjelma korvaa nykyisen, mutta aiemmat merkinnät säilyvät liikkeen nimen perusteella ennallaan.</p>' +
       '</div>';
     b.weeks.forEach(function(week, wi){
       html += '<div class="day-heading">' + (wi+1) + '. viikko</div>' +
@@ -4149,6 +4449,34 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '</div>';
     }).join("");
   }
+  // Varmuuskopion palautus korvaa nykyisen ohjelman, joten tiedoston sisältö
+  // näytetään ensin ja palautus tehdään vasta erillisestä painikkeesta.
+  function renderRestoreConfirm(){
+    var pr = state.pendingRestore;
+    if(!pr) return "";
+    var lines = [];
+    if(pr.program){
+      var exCount = 0;
+      pr.program.days.forEach(function(day){ exCount += day.exercises.length; });
+      lines.push("Ohjelma: " + plural(pr.program.weeks.length || 1, "viikko", "viikkoa") + ", " +
+        plural(pr.program.days.length, "treenipäivä", "treenipäivää") + ", " +
+        plural(exCount, "liike", "liikettä"));
+      if(pr.program.notes && pr.program.notes.length){
+        lines.push("Ohjelman muistiinpanoja: " + plural(pr.program.notes.length, "rivi", "riviä"));
+      }
+    }
+    if(pr.userExercises.length) lines.push("Omia liikkeitä: " + pr.userExercises.length);
+    lines.push("Merkintöjä: " + Object.keys(pr.byDate).length + " päivältä");
+    return '<div style="background:rgba(201,162,39,0.12); border:1px solid var(--brass); border-radius:var(--radius-sm); padding:11px 13px; margin-bottom:16px; font-size:12.5px; line-height:1.5;">' +
+      '<b style="color:var(--brass);">Palautetaanko varmuuskopio?</b>' +
+      '<div style="margin-top:6px; color:var(--mist);">' + escapeHtml(pr.fileName || "") + '</div>' +
+      '<div style="margin-top:8px;">' + lines.map(function(l){ return escapeHtml(l); }).join("<br>") + '</div>' +
+      '<div style="margin-top:8px;">Varmuuskopion ohjelma <b style="color:var(--chalk);">korvaa nykyisen ohjelman</b>. Omat liikkeet ja merkinnät yhdistetään olemassa oleviin, eikä mitään jo kirjattua poisteta.</div>' +
+      '<div style="display:flex; gap:8px; margin-top:10px;">' +
+      '<button class="btn-secondary" data-restore-cancel type="button" style="padding:9px 12px; font-size:12.5px;">Peruuta</button>' +
+      '<button class="save-btn" data-restore-confirm type="button" style="margin-top:0; padding:9px 12px; font-size:12.5px;">Palauta</button>' +
+      '</div></div>';
+  }
   function renderAsetukset(){
     return '<div class="day-heading">Ohjelma</div>' +
       '<div class="exercise" style="padding:16px;">' +
@@ -4187,12 +4515,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<button class="btn-secondary" id="save-rest-duration-btn" type="button" style="margin-top:10px;">Tallenna</button>' +
       '</div>' +
       '</div>' +
-      '<div class="day-heading">Vienti ja tuonti</div>' +
+      '<div class="day-heading">Varmuuskopio</div>' +
       '<div class="exercise" style="padding:16px;">' +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Lataa kaikki kirjatut treenit CSV-tiedostona varmuuskopioksi.</p>' +
-      '<button class="btn-secondary" id="export-btn" type="button">Vie merkinnät CSV:nä</button>' +
-      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Palauta aiemmin viety varmuuskopio tai siirrä historiasi toiselta laitteelta. Jo olemassa olevat merkinnät ohitetaan, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.</p>' +
-      '<input type="file" accept=".csv" id="import-entries-input" aria-label="Valitse tuotavien merkintöjen CSV-tiedosto">' +
+      renderRestoreConfirm() +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:0 0 12px;">Lataa yhtenä CSV-tiedostona kaikki kirjatut treenit, nykyinen treeniohjelma ja itse lisäämäsi liikkeet.</p>' +
+      '<button class="btn-secondary" id="export-btn" type="button">Vie varmuuskopio CSV:nä</button>' +
+      '<p style="color:var(--mist); font-size:13px; line-height:1.5; margin:16px 0 12px;">Palauta varmuuskopio tai siirrä tietosi toiselta laitteelta. Ohjelma ja omat liikkeet palautuvat sellaisina kuin ne olivat varmuuskopion hetkellä; jo olemassa olevat merkinnät ohitetaan, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.</p>' +
+      '<input type="file" accept=".csv" id="import-entries-input" aria-label="Valitse palautettava varmuuskopiotiedosto">' +
       '</div>' +
       '<div class="day-heading">Simulointi</div>' +
       '<div class="exercise" style="padding:16px;">' +
@@ -4314,6 +4643,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       removePdfReviewExercise(parseInt(el.dataset.di, 10), parseInt(el.dataset.ei, 10));
       return;
     }
+    if(e.target.closest("[data-restore-confirm]")){
+      if(state.pendingRestore) await applyBackupRestore(state.pendingRestore);
+      return;
+    }
+    if(e.target.closest("[data-restore-cancel]")){
+      cancelBackupRestore();
+      return;
+    }
     if(e.target.closest("[data-builder-start]")){
       startProgramBuilder();
       return;
@@ -4376,6 +4713,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(state.builder){ showToast("Viimeistele tai peruuta ohjelman rakentaminen ensin"); return; }
       state.view = el.dataset.tab;
       state.confirmingReset = false;
+      // Vahvistamaton palautus ei jää roikkumaan taustalle, jos käyttäjä
+      // siirtyy pois Asetuksista.
+      state.pendingRestore = null;
       if(state.view === "historia" && state.historyDates === undefined){ await loadHistory(); }
       else if(state.view === "kehitys" && state.kehitys === undefined){ await loadKehitys(); }
       else render();
@@ -4646,7 +4986,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if(e.target.id === "import-entries-input"){
       var impFile = e.target.files[0];
-      if(impFile){ showToast("Tuodaan merkintöjä…"); importEntriesFile(impFile); }
+      if(impFile){ showToast("Luetaan varmuuskopiota…"); readBackupFile(impFile); }
       e.target.value = "";
       return;
     }

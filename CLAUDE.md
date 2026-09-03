@@ -72,3 +72,35 @@ ensimmäinen vapaa numero.
 olevan ohjelman jälkikäteinen muokkaus (lisää/poista/järjestä viikko tai liike)
 jätettiin tietoisesti tekemättä; tarve arvioidaan vasta käytön perusteella.
 Yksittäisen liikkeen vaihto on jo olemassa Ohjelma-näkymässä.
+
+## Varmuuskopio (toteutettu)
+
+Yksi CSV-tiedosto, joka jakautuu `#`-alkuisiin osioriveihin: `#MERKINNÄT`,
+`#OHJELMA`, `#OHJELMAN MUISTIINPANOT` ja `#OMAT LIIKKEET`. Merkinnät ovat
+ensimmäisenä samana taulukkona kuin ennen tätä, ja `splitBackupSections()` lukee
+ennen ensimmäistä merkkiriviä olevan tekstin merkinnöiksi — näin vanhat, pelkät
+merkinnät sisältävät vientitiedostot tuodaan yhä muuttumattomina.
+
+Merkintärivin `Tunniste`-sarake on liikkeen ohjelma-id. Palautuksessa merkintä
+kirjoitetaan takaisin täsmälleen samalle avaimelle, joten sidonta ohjelmaan on
+eksakti eikä `matchImportedDatesToProgramDays()`-heuristiikkaa tarvita —
+heuristiikka jää voimaan vain tunnisteettomille (vanhoille) tiedostoille.
+
+`intensityToText()` kirjoittaa tehon takaisin samaan muotoon, josta
+`parseIntensity()` sen lukee, jotta `intensity`-olio syntyy uudelleen samana.
+`parseBackupProgram()` asettaa valinnaiset PDF-kentät (`method`, `perSet`,
+`methodNote`) vain jos ne olivat täytettyjä; puuttuminen ja tyhjä arvo ovat
+sovelluksessa sama asia, koska kaikki lukupaikat testaavat totuusarvon.
+`program.definitions` jätetään tietoisesti pois: `attachDefinitions()` on jo
+kirjoittanut sen sisällön liikkeiden `methodNote`-kenttiin, eikä taulukkoa lueta
+enää tuonnin jälkeen missään.
+
+`applyBackupRestore()` palauttaa järjestyksessä omat liikkeet → ohjelma →
+merkinnät. Järjestys on pakollinen: merkinnät sidotaan ohjelman liike-id:eihin,
+joten ohjelman on oltava paikallaan ensin. Ohjelman palautus korvaa nykyisen
+ohjelman, joten se vahvistetaan erikseen (`state.pendingRestore` +
+`renderRestoreConfirm()`); ilman ohjelmaosiota oleva tiedosto tuodaan suoraan.
+
+**Ei mukana:** Asetuksissa käsin syötetyt 1RM-arvot (`state.manualMax`).
+Osiomekanismi on rakennettu niin, että sen lisääminen on yhden uuden osion työ,
+jos tarve ilmenee.
