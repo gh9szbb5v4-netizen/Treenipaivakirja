@@ -512,7 +512,15 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   jotta RPE:n vaihto samassa treenissä säätää uudelleen mutta käsin
   muokattu rivi jää rauhaan. `lastSet`-kerroilla ja merkinnöillä on
   `warmups: [{ weight, reps, rpe }]`; lämmittelyt eivät sisälly CSV-vientiin
-  eivätkä Kehityksen laskentaan.
+  eivätkä Kehityksen laskentaan. Tuntuma kysytään käyttöliittymässä
+  sanallisella asteikolla `WARMUP_SCALE` (Kevyt 6, Sujuva 7, Työläs 8,
+  Raskas 9, Äärirajoilla 10; kuvaus = toistoja varastossa), mutta `rpe`
+  tallennetaan yhä lukuna ja `data-rpe` on luku, joten käsittelijä, laskenta
+  ja vanhat kirjaukset ovat ennallaan. Painikkeen aria-label sisältää näkyvän
+  sanan ja kuvauksen, ryhmällä on `aria-labelledby` kysymyksestä ja valitun
+  pykälän kuvaus on `aria-live="polite"`-rivillä. Selitteet käyttävät
+  `warmupFeelWord(rpe)`-sanaa (keskiarvo pyöristetään lähimpään pykälään).
+  Testit: `test_feel.js`, `test_warmup.js`.
 - `PAIN_WINDOW_DAYS = 7`, `PAIN_VOLUME_RATIO = 1.2`, `PAIN_MIN_EPISODES = 3`
   ja `PAIN_MIN_SHARE = 0.6`: vaivalokin analyysin ikkuna, poikkeaman raja,
   kirjausten vähimmäismäärä ja löydöksen osuusraja (`buildPainAnalysis`).
