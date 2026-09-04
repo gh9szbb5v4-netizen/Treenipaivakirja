@@ -98,9 +98,9 @@ kentässä, koska CSV-tuonti ja `state.userExercises` käyttävät sitä.
 
 `valine` on käytössä kolmessa paikassa: `exercisePickEntries()` lisää sen
 hakusanoihin (`renderExercisePickList` osuu nimeen, lihasryhmään ja
-välineeseen), `renderVariantInfo()` näyttää rivin "Väline:"
-(`equipmentForLiike()` samalla ensimmäisen rivin säännöllä kuin
-`muscleGroupForLiike()`) ja `renderVariantPicker()` liittää sen
+välineeseen), `catalogPartsFor()` liittää sen Ohjelma-näkymän
+tarkenneriville (`equipmentForLiike()` samalla ensimmäisen rivin säännöllä
+kuin `muscleGroupForLiike()`) ja `renderVariantPicker()` liittää sen
 esikatseluun. Käyttäjän omilla liikkeillä ei ole välinettä (lomake ja
 varmuuskopion `#OMAT LIIKKEET` ennallaan), jolloin sitä ei näytetä.
 
@@ -113,8 +113,9 @@ nimi palauttaa null. Tulos muistetaan `catalogPartsCache`-oliossa avaimella
 `nimi|omien liikkeiden määrä`, joten omien liikkeiden lisäys ei vaadi
 tyhjennystä. `baseExerciseName(name)` palauttaa `liike`-osan tai koko
 nimen. Käyttöpaikat: `renderExercise()` (otsikkona `liike`, alla
-`.exercise-detail`-rivi `details.join(" · ")`; `renderVariantInfo()`
-luettelee enää vain tunnetut variaatiot), `buildAllOneRepMaxSeries()` ja
+`.exercise-detail`-rivi `details.join(" · ")`; aiempi "Tunnetut
+variaatiot" -rivi (`renderVariantInfo`) on poistettu käyttäjän pyynnöstä),
+`buildAllOneRepMaxSeries()` ja
 `buildPainAnalysis()` (sarjan avain on `baseExerciseName`, joten eri tangolla
 tai kahvalla kirjatut merkinnät ovat yksi liike; 1RM-sarja kerää
 `variants`-joukon ja kortti näyttää rivin "Variaatiot: …", kun niitä on

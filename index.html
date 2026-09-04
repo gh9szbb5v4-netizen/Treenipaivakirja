@@ -409,7 +409,7 @@
   var CHANGELOG = [
     { date: "2026-09-04", items: [
       "Lämmittelyn tuntuma kysytään nyt sanallisella asteikolla Kevyt, Sujuva, Työläs, Raskas ja Äärirajoilla RPE-numeroiden sijaan; jokainen pykälä kertoo, montako toistoa olisit vielä jaksanut, ja valinnan kuvaus näkyy rivin alla. Selitteet ja Ohje käyttävät samoja sanoja. Aiemmat kirjaukset ja painoehdotuksen säätö toimivat ennallaan.",
-      "Kehitys yhdistää saman liikkeen variaatiot: liikkeen 1RM, kokonaispaino ja vaivalokin analyysi lasketaan liikkeen nimen mukaan riippumatta siitä, millä tangolla tai kahvalla se on kirjattu, ja kortti kertoo kirjatut variaatiot. Ohjelma-näkymässä liikkeen otsikkona on liikkeen nimi ja sen alla pienellä väline, variaatio ja lihasryhmä.",
+      "Kehitys yhdistää saman liikkeen variaatiot: liikkeen 1RM, kokonaispaino ja vaivalokin analyysi lasketaan liikkeen nimen mukaan riippumatta siitä, millä tangolla tai kahvalla se on kirjattu, ja kortti kertoo kirjatut variaatiot. Ohjelma-näkymässä liikkeen otsikkona on liikkeen nimi ja sen alla pienellä väline, variaatio ja lihasryhmä; erillinen Tunnetut variaatiot -rivi on poistettu.",
       "Liikepankki päivitetty: 354 liikettä (aiemmin 97) ja jokaisella väline. Taljaliikkeille voi valita yhdeksästä kahvasta ja tankoliikkeille kuudesta tangosta, ja lihasryhmät on jaettu tarkemmin (esim. etureisi, takareisi, pakara, kyynärvarsi). Liikevalitsimen haku löytää myös välineen (esim. \"talja\" tai \"käsipaino\"), ja liikkeen tietopalkki sekä vaihdon esikatselu näyttävät välineen. Ohjelmiin ja Historiaan tallennetut nimet eivät muutu; vanhalla nimellä oleva liike näkyy valitsimessa ryhmässä Ohjelmassa ja historiassa.",
       "Vaivaloki: Ohjelma-välilehden \"Kirjaa vaiva\" -painikkeella kirjaat kehonosan, puolen ja voimakkuuden kirjauspäivälle. Kehitys-välilehden Vaivat-osio listaa kirjaukset ja kertoo vähintään kolmen kirjauksen jälkeen, minkä liikkeiden volyymi ylitti toistuvasti tavanomaisen vaivaa edeltävällä viikolla. Lokin voi viedä CSV:nä Asetusten Varmuuskopio-osiosta; varmuuskopioon se ei vielä sisälly.",
       "Lämmittelysarjat: liikkeelle voi lisätä lämmittelyrivejä, joille kirjataan paino, toistot ja tuntuma (RPE 6–10). Kun sama lämmittely on kirjattu aiemmin, tavallista raskaampi tuntuma keventää saman treenin työsarjojen ehdotusta (−5 tai −10 %) ja kevyempi nostaa (+2,5 %); käsin muokattuja sarjoja ei säädetä. Lämmittelyt eivät vaikuta Historiaan, Kehitykseen eivätkä lepoajastimeen, eivätkä vielä sisälly varmuuskopioon.",
@@ -6135,22 +6135,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     for(var i=0;i<sets.length;i++){ if(!sets[i].done) return i; }
     return sets.length - 1;
   }
-  function renderVariantInfo(ex){
-    // Näkyy aina kun liike tunnistetaan katalogista ja sillä on variaatioita —
-    // myös teholiikkeille, joilla ohjattua valintaa ei ole.
-    // Väline ja lihasryhmä näytetään otsikon tarkenteessa (renderExercise), joten
-    // tässä luetellaan vain katalogin tuntemat variaatiot.
-    var match = catalogPartsFor(ex.name);
-    if(!match) return "";
-    var vOpts = variaatioOptionsFor(match.liike);
-    if(!vOpts.options.length) return "";
-    return '<div style="color:var(--mist); font-size:11.5px; line-height:1.5; margin-bottom:10px;">' +
-      'Tunnetut variaatiot: ' + escapeHtml(vOpts.options.join(", ")) +
-      '</div>';
-  }
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
-    var hint = renderVariantInfo(ex) + renderMethodNote(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
+    // Liikkeen väline, variaatio ja lihasryhmä ovat otsikon tarkenteessa
+    // (renderExercise); erillistä variaatiolistaa ei enää näytetä.
+    var hint = renderMethodNote(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     var active = activeSetIndex(ex, sets);
     var extras = state.setExtra[ex.id] || {};
     var warmCount = 0;
