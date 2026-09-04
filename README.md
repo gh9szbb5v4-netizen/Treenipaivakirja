@@ -119,7 +119,9 @@ yksi toisto vajaaksi:   paino = edellinen_paino
 kaksi tai enemmän vajaaksi: paino = FLOOR( edellinen_paino × 0,95 , 2,5 )
 ```
 
-Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla; koska tämä on kevyillä painoilla pienempi kuin pyöristysaskel, nosto on aina vähintään 2,5 kg. Esimerkkejä tavoitteella 10 toistoa: 100 kg × 10 → 102,5 kg, 60 kg × 10 → 62,5 kg, 100 kg × 12 → 105 kg (katto), 100 kg × 9 → 100 kg, 100 kg × 7 → 95 kg, 60 kg × 7 → 55 kg. Ledgerin selite kertoo jokaisen sarjan perusteen. Historian laajennus useamman kerran taakse ja jumitunnistus tehdään erillisenä vaiheena.
+Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla; koska tämä on kevyillä painoilla pienempi kuin pyöristysaskel, nosto on aina vähintään 2,5 kg. Esimerkkejä tavoitteella 10 toistoa: 100 kg × 10 → 102,5 kg, 60 kg × 10 → 62,5 kg, 100 kg × 12 → 105 kg (katto), 100 kg × 9 → 100 kg, 100 kg × 7 → 95 kg, 60 kg × 7 → 55 kg. Ledgerin selite kertoo jokaisen sarjan perusteen.
+
+Sovellus muistaa liikkeen kolme viimeisintä kertaa. **Jumitunnistus:** jos käytetty maksimipaino ei ole noussut kolmen kerran aikana ja viimeisimmässä kerrassa vähintään yksi sarja jäi vajaaksi, ehdotus on 10 prosentin kevennys edellisen kerran sarjasta (alaspäin pyöristäen), ja selite kertoo syyn. Kevennyksen pohjalta kirjattu kerta merkitään, eikä uutta kevennystä ehdoteta ennen kuin sen jälkeen on kolme tavallista kertaa.
 
 Kehitys-näkymän laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
 

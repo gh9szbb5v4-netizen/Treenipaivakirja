@@ -402,6 +402,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Jumitunnistus: jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmässä jäi toistoja vajaaksi, painoehdotus on 10 %:n kevennys ja selite kertoo syyn. Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennystä.",
       "Painoehdotus lasketaan nyt jokaiselle sarjalle erikseen viime kerran samasta sarjasta: tavoitetoistot täyttyivät → nosto (vähintään 2,5 kg, enintään 5 %), yksi toisto vajaaksi → sama paino, kaksi tai enemmän vajaaksi → 5 %:n kevennys. Selite kertoo jokaisen sarjan perusteen.",
       "Tallennetun merkinnän korjaus säilyy alkuperäisellä treenipäivällä: kun avaat aiemmin kirjatun liikkeen, korjaat arvon ja tallennat, treeni ei siirry korjauspäivälle eikä näy Historiassa kahdesti.",
       "Kehitys: liikkeen 1RM on nyt paras arvo viimeiseltä neljältä viikolta, joten kevyempi ohjelmoitu treenipäivä ei enää pudota lukua. Viimeisimmän treenin oma arvio näkyy kortissa erikseen, yhden toiston sarja lasketaan mittauksena, ja vertailurivit ovat kuukausi, puoli vuotta, vuosi ja ennätys.",
@@ -442,6 +443,8 @@
   var WEIGHT_STEP = 2.5;             // Painon pyöristysaskel kiloina
   var PROGRESSION_MAX_FACTOR = 1.05; // Suurin sallittu nosto per kerta (+5 %)
   var REGRESSION_FACTOR = 0.95;      // Kevennys kun sarja jäi >= 2 toistoa vajaaksi
+  var HISTORY_DEPTH = 3;    // Montako viimeisintä kertaa lastSet säilyttää per liike
+  var DELOAD_FACTOR = 0.90; // Kevennys jumitilanteessa (−10 %)
   // Kehityksen 1RM on paras arvo liukuvalta jaksolta, jotta submaksimaaliset
   // treenipäivät eivät pudota lukua (Epley olettaa sarjan tehdyksi uupumukseen).
   // TARKISTETTAVA: 28 päivää on alkuarvo, jota on arvioitava uudelleen, kun
@@ -1345,6 +1348,21 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   async function saveLastSet(){
     try{ await storeSet(STORAGE_LASTSET_KEY, JSON.stringify(state.lastSet)); }
     catch(e){ /* hiljainen virhe, ei kriittinen */ }
+  }
+  function pushLastSet(norm, sets, date, deload){
+    var old = state.lastSet[norm];
+    var entry = { sets: sets, date: date, prior: [] };
+    if(deload) entry.deload = true;
+    if(old){
+      if(old.date === date){
+        entry.prior = old.prior || [];
+      } else {
+        var oldCopy = { sets: old.sets, date: old.date };
+        if(old.deload) oldCopy.deload = true;
+        entry.prior = [oldCopy].concat(old.prior || []).slice(0, HISTORY_DEPTH - 1);
+      }
+    }
+    state.lastSet[norm] = entry;
   }
   async function saveAppVersion(){
     try{ await storeSet(STORAGE_APP_VERSION_KEY, APP_VERSION); }
@@ -2766,8 +2784,40 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           formulaRows.push({ weight: weightVal, reps: draftRepsFor(ex, k), notes: "", done: false });
           perSet.push({ status: status, prevWeight: prevWeight, prevReps: prevReps });
         }
+        // Jumitunnistus: kolme peräkkäistä kertaa ilman että käytetty
+        // maksimipaino on noussut, ja viimeisimmässä vähintään yksi sarja jäi
+        // vajaaksi. Ei laukea, jos jokin kolmesta kerrasta oli jo kevennys —
+        // näin kevennyksen jälkeen on kolme puhdasta kertaa aikaa rakentaa.
+        var plateau = false;
+        if(anyComputed && last.prior && last.prior.length >= HISTORY_DEPTH - 1){
+          var sessions = [last].concat(last.prior);
+          var flagged = false;
+          var maxes = [];
+          for(var s=0;s<sessions.length;s++){
+            if(sessions[s].deload) flagged = true;
+            var mw = 0;
+            (sessions[s].sets || []).forEach(function(st){
+              var w = toNumber(st.weight);
+              if(isFinite(w) && w > mw) mw = w;
+            });
+            maxes.push(mw);
+          }
+          var anyShortfall = perSet.some(function(p){ return p.status === "near" || p.status === "missed"; });
+          if(!flagged && anyShortfall && maxes[0] > 0 && maxes[0] <= maxes[maxes.length - 1]){
+            plateau = true;
+            for(var d=0;d<formulaRows.length;d++){
+              var pw = perSet[d].prevWeight;
+              if(isFinite(pw) && pw > 0){
+                var dl = floorToStep(pw * DELOAD_FACTOR, WEIGHT_STEP);
+                if(dl <= 0) dl = WEIGHT_STEP;
+                formulaRows[d].weight = String(dl);
+                perSet[d].status = "deload";
+              }
+            }
+          }
+        }
         if(anyComputed){
-          state.autoCalcInfo[id] = { type:"formula", date: last.date, targetReps: targetReps, perSet: perSet };
+          state.autoCalcInfo[id] = { type:"formula", date: last.date, targetReps: targetReps, perSet: perSet, plateau: plateau };
           return formulaRows;
         }
       }
@@ -2802,15 +2852,21 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     var nowISO = new Date().toISOString();
     var prevLoggedAt = (correction && logged.data && logged.data.loggedAt) ? logged.data.loggedAt : null;
-    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO };
+    // Kevennystieto: uusi kirjaus saa sen ehdotuksen jumitunnistuksesta,
+    // korjaus säilyttää alkuperäisen merkinnän tiedon.
+    var calcInfo = state.autoCalcInfo[id];
+    var wasDeload = correction ? !!(logged.data && logged.data.deload) : !!(calcInfo && calcInfo.plateau);
+    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO, deload: wasDeload };
     // Korjausaika talteen; treenin ajankohta (loggedAt) säilyy alkuperäisenä.
     if(correction) record.editedAt = nowISO;
     entry.exercises[id] = record;
     if(!isCombo(ex.name) && !correction){
-      state.lastSet[ex.name.trim().toLowerCase()] = {
-        sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps, done: !!s.done }; }),
-        date: state.draftDate
-      };
+      pushLastSet(
+        ex.name.trim().toLowerCase(),
+        sets.map(function(s){ return { weight: s.weight, reps: s.reps, done: !!s.done }; }),
+        state.draftDate,
+        wasDeload
+      );
       await saveLastSet();
     }
     var maxUpdated = false;
@@ -3027,7 +3083,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     try{
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
-      var bestSet = null, bestSetAt = "";
+      var found = [];
       for(var i=0;i<keys.length;i++){
         var date = keys[i].replace("entries:", "");
         var entry = await loadEntry(date);
@@ -3037,10 +3093,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var data = entry.exercises[ek];
           if((data.name || "").trim().toLowerCase() !== norm) continue;
           var at = data.loggedAt || date;
-          if(at > bestSetAt){ bestSetAt = at; bestSet = { sets: data.sets, date: date }; }
+          found.push({ sets: data.sets, date: date, at: at, deload: !!data.deload });
         }
       }
-      if(bestSet){ state.lastSet[norm] = bestSet; } else { delete state.lastSet[norm]; }
+      found.sort(function(a, b){ return a.at < b.at ? 1 : (a.at > b.at ? -1 : 0); });
+      if(found.length){
+        var top = found[0];
+        var entry = { sets: top.sets, date: top.date, prior: [] };
+        if(top.deload) entry.deload = true;
+        entry.prior = found.slice(1, HISTORY_DEPTH).map(function(f){
+          var p = { sets: f.sets, date: f.date };
+          if(f.deload) p.deload = true;
+          return p;
+        });
+        state.lastSet[norm] = entry;
+      } else {
+        delete state.lastSet[norm];
+      }
       await saveLastSet();
     }catch(e){ /* hiljainen virhe, ei kriittinen */ }
   }
@@ -3154,7 +3223,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           if(sets.length === 0) return;
           entry.exercises[ex.id] = { name: ex.name, sets: sets, loggedAt: dateISO + "T12:00:00.000Z" };
           if(!isCombo(ex.name)){
-            state.lastSet[normName] = { sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }), date: dateISO };
+            pushLastSet(normName, sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }), dateISO, false);
           }
           hasAny = true;
         });
@@ -4483,7 +4552,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("3. Painoehdotukset", ohjeP(
-      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus lasketaan jokaiselle sarjalle erikseen viime kerran samasta sarjasta. Jos tavoitetoistot täyttyivät, paino nousee vähintään 2,5 kg ja enintään 5 %; jos toistoja jäi yksi vajaaksi, paino pysyy samana; jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 % alaspäin pyöristäen. Sarjarivin yläpuolella kerrotaan jokaisen sarjan peruste."
+      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus lasketaan jokaiselle sarjalle erikseen viime kerran samasta sarjasta. Jos tavoitetoistot täyttyivät, paino nousee vähintään 2,5 kg ja enintään 5 %; jos toistoja jäi yksi vajaaksi, paino pysyy samana; jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 % alaspäin pyöristäen. Sarjarivin yläpuolella kerrotaan jokaisen sarjan peruste. Jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmässä jäi toistoja vajaaksi, sovellus ehdottaa 10 %:n kevennystä; kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
     ) + ohjeP(
@@ -4923,9 +4992,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         if(p.status === "hit") return label + "tavoite täyttyi → nosto";
         if(p.status === "near") return label + "jäi 1 vajaaksi → sama paino";
         if(p.status === "missed") return label + "jäi ≥2 vajaaksi → kevennys";
+        if(p.status === "deload") return label + "kevennys";
         return label + "ei vertailudataa";
       });
-      text = "Ehdotus edellisen kerran (" + info.date + ") sarjoista, tavoite " +
+      text = (info.plateau ? "Ei kehitystä kolmeen kertaan — ehdotetaan kevennystä (−10 %). " : "") +
+        "Ehdotus edellisen kerran (" + info.date + ") sarjoista, tavoite " +
         info.targetReps + " toistoa. " + parts.join(" · ") + " — muokattavissa.";
     } else if(info.type === "saved"){
       text = "Tämä merkintä on jo tallennettu (" + capitalize(formatDateFI(info.date)) + ") — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
@@ -6685,6 +6756,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var lastRes = await storeGet(STORAGE_LASTSET_KEY);
       if(lastRes && lastRes.value) state.lastSet = JSON.parse(lastRes.value);
     }catch(e){}
+    Object.keys(state.lastSet).forEach(function(k){
+      if(state.lastSet[k] && !Array.isArray(state.lastSet[k].prior)) state.lastSet[k].prior = [];
+    });
     try{
       var manualMaxRes = await storeGet(STORAGE_MANUAL_MAX_KEY);
       if(manualMaxRes && manualMaxRes.value) state.manualMax = JSON.parse(manualMaxRes.value);
