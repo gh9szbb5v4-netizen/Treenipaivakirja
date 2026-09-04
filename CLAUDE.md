@@ -298,41 +298,91 @@ pohjalevyssä (`state.sheet`, `renderSheet()`, sulkeutuu taustasta,
 sulkupainikkeesta ja Escapesta). Valmiista pohjista ei vielä mainita mitään —
 asettelu on suunniteltu neljälle kortille.
 
-Vihjeet: yksi kerrallaan. `shouldShowFirstLogHint()` näyttää kolmen askeleen
-kirjausohjeen kunnes ensimmäinen merkintä on tallennettu tai kortti suljetaan
+Vihjeet: yksi kerrallaan. `shouldShowFirstLogHint()` näyttää lyhyen
+kirjausohjeen (`renderFirstLogHint()`, yksi `renderBanner("info")`-banneri
+Selvä-painikkeella, teksti mahtuu 390 px:ssä kahdelle riville) kunnes
+ensimmäinen merkintä on tallennettu tai banneri suljetaan
 (`STORAGE_FIRST_LOG_HINT_KEY`); aloitusnäyttövinkki näytetään vasta sen
 jälkeen ja on tiivis banneri, jonka ohjeen saa auki erikseen.
+Aloitusnäyttövinkkiä ei näytetä, kun liike on auki (`state.openExercise`),
+jottei se nouse kirjauksen päälle; kirjausohje sen sijaan näkyy avoimen
+liikkeen aikanakin, koska sen loppuosa (✓ ja tallennus) koskee juuri sitä.
 
 Ilmoitusruutu nousee alhaalta navigaation yläpuolelle, ei enää yläpalkin päälle.
 
 ## Ohjelma-näkymä ja kirjaus (toteutettu, UX-vaihe 3)
 
-Päiväkortti `renderDayCard(day, expanded, isNext)`: otsikkona päivän nimi
-(`dayCardTitle()`: viikkonäkymässä `day.label`, koko ohjelman näkymässä
-`dayDisplayName()` viikon nimen kanssa),
-alarivillä tila. Nimiosa on avaava painike ja seuraavaksi vuorossa olevan
-päivän "Aloita/Jatka"-painike (`[data-start-day]`) on sen sisar, ei sisällä —
-sisäkkäiset painikkeet olisivat saavutettavuusrike. Avattuna sama kortti
-toimii otsikkona ja liikkeet ovat `.day-exercises`-lohkossa sen alla; erillistä
-`.day-heading`-riviä ja "Piilota liikkeet" -linkkiä ei enää ole.
+Päiväkortti `renderDayCard(day, expanded, isNext)`: otsikkona päivän nimi,
+alarivillä tila. `dayCardTitle(day)` palauttaa **HTML:ää**, ei pelkkää
+tekstiä: viikkonäkymässä `escapeHtml(day.label)`, koko ohjelman näkymässä
+viikon nimi `.sr-only`-elementissä ja näkyvänä vain päivän nimi, koska
+viikko on jo `.day-heading`-otsikossa (Kaikki-tilassa jokaisen viikon
+päivät ovat oman otsikon alla, kun viikkoja on useampi). Nimiosa on avaava
+painike ja seuraavaksi vuorossa olevan päivän "Aloita/Jatka"-painike
+(`[data-start-day]`) on sen sisar, ei sisällä — sisäkkäiset painikkeet
+olisivat saavutettavuusrike. Avattuna kortti saa luokan `day-open` ja
+liikkeet ovat `.day-exercises`-lohkossa sen alla (vasen viiva ryhmittää ne
+päivän alle); erillistä "Piilota liikkeet" -linkkiä ei ole. Tehty-tilan
+värit ovat luokissa, ei inline-tyyleissä.
+
+Viikon otsikko on `renderWeekStepper()` (`.week-head`): nuolet
+`[data-week-nav]` ovat `.icon-btn`-painikkeita aria-labelein, viikon nimi on
+`h2.view-title` ja laskuri `.week-head-count` ("1 / 4"). Kaikki-tilassa
+otsikko on "Koko ohjelma" ja laskurin tilalla viikkojen ja treenipäivien
+määrä ilman nuolia. Viikko/kaikki-valinta on `renderWeekModeSwitch()`
+(`[data-week-mode]`), samalla rivillä päivämääräsirpaleen kanssa (vanha
+`[data-toggle-week-view]`-käsittelijä on poistettu). Näkyvä "Kirjataan
+päivälle" -teksti on ruudunlukijalle `.sr-only`-elementtinä. "Kirjaa vaiva"
+on `.pain-row`-tekstipainike (`[data-pain-open]`) treenipäivien jälkeen
+ennen ohjelman muistiinpanoja, ei otsikkorivin alla.
+
+Avattu liike vieritetään näkyviin: `toggleExercise()` ja
+`completeAndAdvance()` kutsuvat `afterRender(revealOpenExercise)`, joka
+kapealla näytöllä vierittää `.exercise.open`-otsikon näytön yläreunaan
+(`scroll-margin-top`, `scrollIntoView`, sujuvasti ellei
+`prefers-reduced-motion`) vain jos otsikko on näytön ulkopuolella tai
+alimmassa 40 %:ssa, ja siirtää fokuksen otsikkoon `preventScroll`-optiolla.
+Leveässä asettelussa ei vieritetä (paneeli on kiinnitetty).
 
 Sarjarivi: numero, paino, toistot, ✓ ja ⋮ yhdellä rivillä
-(`grid-template-columns:24px 1fr 0.72fr 42px 30px`). ±2,5 kg -säätimet näkyvät
-vain aktiivisen sarjan alla: `state.activeSet` asetetaan `focusin`-
-kuuntelijassa, joka vaihtaa `.hidden`-luokkaa suoraan DOM:ssa ilman render()-
-kutsua (fokus säilyy); render() lukee saman tilan `activeSetIndex()`:llä, ja
-ilman tilaa aktiivinen on ensimmäinen keskeneräinen sarja. Huomiokenttä ja
+(`grid-template-columns:24px 1fr 0.72fr 44px 40px`; kaikki kosketuskohteet
+vähintään 44 px korkeita). Sarjanumero pysyy numerona myös tehdyssä sarjassa
+(`.set-num.done` vaihtaa vain värin) ja tehty-tila näkyy ✓-painikkeen
+täytöstä (`aria-pressed="true"`); `state.justDone` antaa `.pop`-luokan
+molemmille. ±2,5 kg -säätimet näkyvät vain aktiivisen sarjan alla:
+`state.activeSet` asetetaan `focusin`-kuuntelijassa, joka vaihtaa
+`.hidden`-luokkaa suoraan DOM:ssa ilman render()-kutsua (fokus säilyy);
+render() lukee saman tilan `activeSetIndex()`:llä, ja ilman tilaa aktiivinen
+on ensimmäinen keskeneräinen sarja. ✓ nollaa `state.activeSet`-tilan, jotta
+säätimet siirtyvät seuraavaan keskeneräiseen sarjaan, ja peruttu ✓ tekee
+sarjasta taas aktiivisen. Tyhjässä kentässä ensimmäinen ± tuo viime kerran
+suurimman painon (`state.lastSet`), ei 2,5 kg nollasta. Huomiokenttä ja
 poisto ovat `state.setExtra[id][idx]`-lisärivillä, joka on auki myös aina kun
 huomio ei ole tyhjä.
+
+Kirjauslohkon (`renderLedger`) järjestys: selitteet `.calc-hint`-lohkoina
+(`renderMethodNote`, teholiikkeellä ilman 1RM:ää `renderNoMaxHint`, sitten
+`autoCalcHint`), lämmittelyt, sarakeotsikot, työsarjat, `.ledger-tools`
+(+ Sarja `[data-add-set]` ja + Lämmittely `[data-add-warmup]` rinnakkain;
+lämmittelyn lisäys fokusoi uuden rivin painokentän), `.subtotal` vain kun
+kiloja on kertynyt, ja `.ledger-save`. Tallenna on `disabled` kunnes kaikki
+sarjat on merkitty; sen selite on `.sr-only`-elementti, johon painike
+viittaa `aria-describedby`-attribuutilla, ja `.btn-primary:disabled` on
+haamutyylinen (läpinäkyvä, katkoviiva). Tallennuksen ilmoitus kertoo uuden
+1RM:n, kun tallennus nosti sitä eikä kyse ole korjauksesta. Tavoiterivi
+(`.exercise-target`) taivuttaa yksiköt (`plural`: "1 sarja · 1 toisto") ja
+ohittaa `notes`-tekstin, joka on sama kuin tehon teksti.
 
 Tallennuslohko ei ole kiinnitetty (position:sticky kokeiltiin ja hylättiin:
 se peitti sarjarivit heti kortin avautuessa, koska kortti on näyttöä
 korkeampi).
 
-Viikko/kaikki-valinta on `renderWeekModeSwitch()` (`[data-week-mode]`),
-samalla rivillä päivämääräsirpaleen kanssa (vanha `[data-toggle-week-view]`-
-käsittelijä on poistettu). Näkyvä "Kirjataan päivälle"
--teksti on ruudunlukijalle `.sr-only`-elementtinä.
+Testit: `test_ux.js` (0.4.2:n hyväksymiskriteerit: banneri, viikon otsikko,
+Kaikki-tilan otsikot, vieritys ja fokus avattaessa, kosketuskohteet,
+selitteet, 360 px:n leveys, leveä asettelu). Testissä on odotettava yli
+250 ms edellisen piirron jälkeen ennen klikkausta: piirron view transition
+on kesken, ja Playwright siirtyy sen aikana uusintayrityksiin, jotka
+vierittävät sivua itse.
 
 ## Asetukset, Historia ja Kehitys (toteutettu, UX-vaihe 4)
 

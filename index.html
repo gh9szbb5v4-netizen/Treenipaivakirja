@@ -96,10 +96,14 @@
      "Aloita"-painike — sisarelementteinä, ei sisäkkäin. */
   .day-card-head{display:flex; align-items:center; gap:10px; padding:13px 14px 13px 16px; min-height:44px;}
   .day-card-main{flex:1; min-width:0; display:flex; align-items:center; gap:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
-  .day-ring{flex-shrink:0; width:28px; height:28px; border-radius:50%; border:1.5px solid var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--brass);}
+  .day-ring{flex-shrink:0; width:28px; height:28px; border-radius:50%; border:1.5px solid var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:var(--fs-xs); font-weight:800; color:var(--brass);}
   .day-ring.partial{border-color:var(--brass);}
   .day-ring.done{background:var(--success); border-color:var(--success); color:var(--ink); font-size:15px;}
-  .day-exercises{margin:0 0 16px; padding-left:0;}
+  /* Avatun päivän liikkeet ryhmitellään päivän alle samalla viivalla kuin
+     muokkaustilan .editor-children; avattu päiväkortti saa vahvemman reunan. */
+  .day-exercises{margin:0 0 16px; padding-left:8px; border-left:2px solid var(--line);}
+  .exercise.day-open{margin-bottom:6px; border-color:var(--line-strong);}
+  .exercise.open{scroll-margin-top:calc(env(safe-area-inset-top) + 12px);}
   .day-exercises .exercise:last-child{margin-bottom:0;}
   .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
 
@@ -137,13 +141,22 @@
 
   /* ---------- Kaksiosainen valitsin ---------- */
   .segmented{display:inline-flex; padding:3px; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:999px;}
-  .segmented button{font:inherit; font-size:var(--fs-sm); font-weight:700; color:var(--mist); background:transparent; border:0; border-radius:999px; padding:5px 13px; min-height:30px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .segmented button{font:inherit; font-size:var(--fs-sm); font-weight:700; color:var(--mist); background:transparent; border:0; border-radius:999px; padding:5px 16px; min-height:38px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .segmented button.on{background:var(--brass); color:var(--ink);}
   .exercise-head{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; min-height:44px;}
   .exercise-head-main{flex:1; min-width:0; cursor:pointer;}
   .exercise-name{font-weight:600; font-size:15px;}
   .exercise-target{font-size:var(--fs-sm); color:var(--mist); margin-top:3px; font-variant-numeric:tabular-nums;}
-  .exercise-detail{font-size:11px; color:var(--mist); margin-top:2px; line-height:1.3;}
+  .exercise-detail{font-size:var(--fs-xs); color:var(--mist); margin-top:2px; line-height:1.3;}
+  /* Viikon otsikkorivi Ohjelma-näkymässä */
+  .week-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 10px;}
+  .week-head-title{flex:1; min-width:0; text-align:center;}
+  .week-head-title .view-title{font-size:var(--fs-lg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .week-head-count{display:block; font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; margin-top:1px;}
+  .icon-flip{display:flex; transform:rotate(180deg);}
+  .icon-btn:disabled{opacity:.3; cursor:default;}
+  .pain-row{display:flex; align-items:center; gap:10px; margin:4px 0 14px;}
+  .pain-row-note{font-size:var(--fs-xs); color:var(--mist);}
   /* Kehitys: ruudukot, mittaririvit, liikelista, taulukot ja liikenäkymä */
   .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0;}
   .stat{background:var(--surface-2); border-radius:var(--radius-sm); padding:10px 12px; min-width:0;}
@@ -194,23 +207,23 @@
   /* Sarjarivi: numero, paino, toistot, valmis ja lisävalikko yhdellä rivillä.
      Säätimet (±2,5 kg) näkyvät vain aktiivisen sarjan alla ja huomiokenttä
      lisävalikon takana, jolloin kolme sarjaa mahtuu puoleen entisestä. */
-  .ledger-row{display:grid; grid-template-columns:24px 1fr 0.72fr 42px 30px; gap:6px; align-items:center; padding:7px 0; border-bottom:1px dashed var(--line);}
+  .ledger-row{display:grid; grid-template-columns:24px 1fr 0.72fr 44px 40px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line);}
   .ledger-row:last-of-type{border-bottom:none;}
   .ledger-row.has-extra{border-bottom:none; padding-bottom:4px;}
   .set-extra{display:flex; gap:8px; align-items:center; padding:0 0 8px 30px; border-bottom:1px dashed var(--line);}
   .set-extra.warmup-feel{flex-direction:column; align-items:stretch; gap:6px;}
   .warmup-feel-head{display:flex; align-items:center; gap:8px;}
   .warmup-feel-q{font-size:var(--fs-sm); color:var(--chalk); font-weight:600;}
-  .warmup-feel-btns{display:flex; flex-wrap:wrap; gap:6px;}
+  .warmup-feel-btns{display:flex; flex-wrap:wrap; gap:8px;}
   .warmup-feel-desc{font-size:var(--fs-xs); color:var(--mist); line-height:1.4; min-height:1.4em;}
-  .set-more{width:30px; height:36px; padding:0; margin:0; background:transparent; border:0; border-radius:8px; color:var(--mist); display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .set-more{width:40px; height:44px; padding:0; margin:0; background:transparent; border:0; border-radius:8px; color:var(--mist); display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .set-more.on{color:var(--brass);}
   .weight-step-row.hidden{display:none;}
   /* Tallennuslohko ei ole kiinnitetty: kiinnitettynä se peitti sarjarivit
      heti kortin avautuessa, koska kortti on näyttöä korkeampi. Viimeisen
      sarjan merkinnyt käyttäjä on joka tapauksessa jo kortin alareunassa. */
   .ledger-save{margin-top:10px;}
-  .ledger-head{font-size:10px; text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
+  .ledger-head{font-size:var(--fs-xs); text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
   .weight-step-row{display:flex; gap:8px; margin:-2px 0 8px; padding-left:30px;}
   /* 22px täyte + rivin 8px väli = 30px = sarjan numero -sarake (24px) + ledger-rivin
      oma 6px väli, jotta painikerivi alkaa täsmälleen painokentän vasemmasta reunasta. */
@@ -218,13 +231,17 @@
   /* Pikasäätönapit ovat ääriviivatyyliä (läpinäkyvä tausta + messinkireunus),
      jotta täytetty messinkipinta jää yksinomaan hyväksyntänapille ja
      "Tallenna merkintä" -painikkeelle — ne ovat rivin varsinaiset toiminnot. */
-  .weight-step-btn{flex:0 0 auto; height:36px; padding:0 10px; font-size:12.5px; white-space:nowrap; display:flex; align-items:center; justify-content:center; background:transparent; color:var(--brass); border:1px solid var(--brass); border-radius:999px; font-weight:800; cursor:pointer;}
+  /* Toissijaiset säätimet ilman messinkiä: messinki on vain toiminnoille
+     (Aloita, ✓, Tallenna). Valittu tuntumapykälä saa inline-täytön. */
+  .weight-step-btn{flex:0 0 auto; height:44px; padding:0 14px; font-size:var(--fs-sm); white-space:nowrap; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:999px; font-weight:800; cursor:pointer;}
   /* margin-left:auto työntää Valmis-napin rivin oikeaan reunaan (Poista sarja
      -napin kohdalle) riippumatta -/+ -nappien kutistuneesta leveydestä. */
-  .set-done-btn{flex:0 0 auto; width:42px; height:38px; padding:0; font-size:19px; display:flex; align-items:center; justify-content:center; background:transparent; color:var(--brass); border:1px solid var(--brass); border-radius:999px; font-weight:500; cursor:pointer;}
-  .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--brass); font-weight:700; font-variant-numeric:tabular-nums; font-size:var(--fs-sm); width:24px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
-  .set-num.done{background:var(--success); color:var(--ink); font-size:14px;}
-  .ledger-input{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
+  .set-done-btn{flex:0 0 auto; width:44px; height:44px; padding:0; font-size:19px; display:flex; align-items:center; justify-content:center; background:transparent; color:var(--brass); border:1px solid var(--brass); border-radius:999px; font-weight:500; cursor:pointer;}
+  /* Painettu tila on painikkeessa itsessään: täytetty vihreä. */
+  .set-done-btn[aria-pressed="true"]{background:var(--success); border-color:var(--success); color:var(--ink);}
+  .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--mist); font-weight:700; font-variant-numeric:tabular-nums; font-size:var(--fs-sm); width:24px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
+  .set-num.done{color:var(--success);}
+  .ledger-input{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; min-height:44px; font-variant-numeric:tabular-nums;}
   /* Selaimen oletusvaalennus vihjetekstille jää alle kontrastivaatimuksen, joten väri asetetaan itse. */
   /* Ilman näitä pudotusvalikon sisältö renderöityy useassa selaimessa
      järjestelmän vaalealla oletusvärillä tumman teeman päälle. */
@@ -234,7 +251,10 @@
   .ledger-input::-webkit-input-placeholder, .date-picker-row input[type=date]::-webkit-input-placeholder{color:var(--mist); opacity:1;}
   .remove-set{background:none; border:none; color:var(--mist); font-size:18px; cursor:pointer; padding:0; line-height:1; width:100%; min-height:44px; display:flex; align-items:center; justify-content:center;}
 
-  .add-set-btn{width:100%; margin-top:10px; padding:11px; background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:999px; color:var(--mist); font-size:13px; font-weight:700; cursor:pointer;}
+  .add-set-btn{width:100%; min-height:44px; margin-top:10px; padding:10px; background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:999px; color:var(--mist); font-size:13px; font-weight:700; cursor:pointer;}
+  .ledger-tools{display:flex; gap:8px;}
+  .ledger-tools .add-set-btn{flex:1; min-width:0;}
+  .calc-hint{font-size:var(--fs-sm); color:var(--mist); line-height:1.45; margin-bottom:10px;}
   .subtotal{display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px; color:var(--mist);}
   .subtotal b{color:var(--brass); font-variant-numeric:tabular-nums;}
   /* ---------- Painikehierarkia ----------
@@ -253,13 +273,16 @@
   .btn-sm{min-height:40px; padding:8px 14px; font-size:var(--fs-sm);}
   .btn-auto{width:auto;}
   .btn-primary:active, .btn-secondary:active, .btn-danger:active{transform:scale(.98); opacity:.9;}
-  .btn-primary:disabled, .btn-secondary:disabled, .btn-tertiary:disabled, .btn-danger:disabled, .add-set-btn:disabled{opacity:.4; cursor:default; transform:none;}
+  /* Haamutyylinen Tallenna: luettava (mist) ääriviiva, joka syttyy messingiksi
+     kun viimeinen sarja on merkitty. Muut painikkeet himmenevät. */
+  .btn-primary:disabled{opacity:1; background:transparent; border:1px dashed var(--line-strong); color:var(--mist); cursor:default; transform:none;}
+  .btn-secondary:disabled, .btn-tertiary:disabled, .btn-danger:disabled, .add-set-btn:disabled{opacity:.4; cursor:default; transform:none;}
   .btn-primary svg, .btn-secondary svg, .btn-tertiary svg, .btn-danger svg{flex-shrink:0;}
 
   /* ---------- Merkki (chip) ----------
      Pieni pyöristetty tilamerkki: teho (MAX, %), tila (Tehty, Kesken) ja
      päivämäärä. Sama muoto kaikkialla, sävy kertoo merkityksen. */
-  .chip{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.02em; border:1px solid transparent; vertical-align:middle; white-space:nowrap; line-height:1.3;}
+  .chip{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:var(--fs-xs); font-weight:800; letter-spacing:.02em; border:1px solid transparent; vertical-align:middle; white-space:nowrap; line-height:1.3;}
   .chip-brass{color:var(--brass); border-color:var(--brass); background:transparent;}
   .chip-muted{background:rgba(136,145,160,0.2); color:var(--chalk);}
   /* Täytetty vihreä kuten valmis-rengas: vaalea vihreä teksti läpinäkyvällä
@@ -298,11 +321,11 @@
 
   /* ---------- Päivämääräsirpale ----------
      Sama idea: natiivi päivämääräkenttä läpinäkyvänä sirpaleen päällä. */
-  .date-picker-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; font-size:var(--fs-sm); color:var(--mist); min-height:36px;}
-  .date-chip{position:relative; display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:6px 12px 6px 10px; border-radius:999px; background:var(--surface-2); border:1px solid var(--line-strong); color:var(--chalk); font-size:var(--fs-sm); font-weight:700; font-variant-numeric:tabular-nums; cursor:pointer;}
+  .date-picker-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:var(--fs-sm); color:var(--mist); min-height:44px;}
+  .date-chip{position:relative; display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:6px 12px 6px 10px; border-radius:999px; background:var(--surface-2); border:1px solid var(--line-strong); color:var(--chalk); font-size:var(--fs-sm); font-weight:700; font-variant-numeric:tabular-nums; cursor:pointer;}
   .date-chip input[type=date]{position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; padding:0; border:0; cursor:pointer; font-size:16px;}
   .date-chip:focus-within{outline:2px solid var(--brass); outline-offset:2px;}
-  .date-chip svg{color:var(--brass);}
+  .date-chip svg{color:var(--mist);}
 
   .upload-box{border:1px dashed var(--line); border-radius:var(--radius); padding:26px 18px; margin-top:6px;}
 
@@ -443,13 +466,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.1";
+  var APP_VERSION = "0.4.2";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Ohjelma-näkymä selkeytyi (versio 0.4.2): avattu liike vieritetään näkyviin ja seuraava liike nousee esiin tallennuksen jälkeen; viikon nimi on näkymän otsikko nuolineen ja Koko ohjelma -tilassa viikot erottuvat otsikoin; Kirjaa vaiva siirtyi treenipäivien alapuolelle; kirjausohje on lyhyt banneri ja aloitusnäyttövihje odottaa, kunnes liike on tallennettu ja suljettu; ✓-painike täyttyy vihreäksi ja sarjanumero säilyy, ±2,5 kg -säätimet siirtyvät seuraavaan keskeneräiseen sarjaan ja aloittavat tyhjässä kentässä viime kerran painosta; sarjojen alla ovat + Sarja ja + Lämmittely rinnakkain, Tallenna näkyy harmaana ääriviivana kunnes kaikki sarjat on merkitty; maksimitesti kertoo avattaessa, että nosto tallentuu 1RM:ksi, ja tallennuksen ilmoitus näyttää uuden 1RM:n; painoehdotuksen selite on suurempaa tekstiä kahdella rivillä ja päivämäärä muodossa 28.8.; kosketuskohteet ovat vähintään 44 px; avatun päivän liikkeet on ryhmitelty päivän alle.",
       "Laitteen taaksepäin-ele ja selaimen taaksepäin-painike toimivat nyt sovelluksessa: ne palaavat edelliseen näkymään (esimerkiksi liikenäkymästä Kehitys-listaan tai Asetuksista Ohjelmaan) ja poistuvat sovelluksesta vasta Ohjelma-näkymästä. Sivun uudelleenlataus palaa samaan näkymään. Osoite ei muutu.",
       "Kehitys-välilehti uudistui (versio 0.4.0): etusivulla ovat viikon yhteenveto (kokonaispaino, sarjat, toistot, treenipäivät ja erot edelliseen viikkoon), kokonaispainon käyrä viikon tai päivän karkeudella, ohjelman toteutuminen viimeiseltä 28 päivältä (sarjat, toistotavoite, progressiotavoite ja pysähtyneet liikkeet) sekä liikelista hakukentällä. Liikkeen rivi avaa oman näkymän välilehdillä 1RM, Ennätykset (raskain paino, paras sarja, toistoalueet), Volyymi ja Toteutuminen. Uudet merkinnät tallentavat myös sen, mitä ohjelma ja painoehdotus edellyttivät; vanhoille merkinnöille toteutuminen on arvio.",
       "Varmuuskopion palautus tunnistaa Excelissä avatun ja tallennetun tiedoston: jos Excel on kirjoittanut jokaisen rivin yhdeksi soluksi, sovellus purkaa rivit itse, ja ohjelma, merkinnät ja 1RM-arvot palautuvat. Aiemmin tällainen tiedosto antoi ilmoituksen, ettei siitä löytynyt tuotavaa sisältöä.",
@@ -3389,7 +3413,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         state.draftSets[id] = buildDraftRows(ex, id);
       }
     }
-    render();
+    afterRender(revealOpenExercise);
+  }
+  // Avattu liike vieritetään näkyviin ja sen otsikko saa fokuksen, jotta
+  // Aloita, oma avaus ja tallennuksen jälkeinen automaattinen siirtymä eivät
+  // jätä korttia alanavigaation taakse kapealla näytöllä. Kirjaustoimet (✓,
+  // ±2,5 kg, sarjan lisäys) eivät vieritä. Leveässä asettelussa paneeli on
+  // kiinnitetty, joten vieritystä ei tarvita. Fokus otsikkoon kertoo
+  // ruudunlukijalle liikkeen nimen ja tilan; rengas näkyy vain :focus-visible.
+  function revealOpenExercise(){
+    if(isWideLayout()) return;
+    var head = document.querySelector(".exercise.open [data-toggle-ex]");
+    if(!head) return;
+    var r = head.getBoundingClientRect();
+    var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if(r.top < 0 || r.top > window.innerHeight * 0.6){
+      try{ head.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" }); }catch(e){ head.scrollIntoView(true); }
+    }
+    try{ head.focus({ preventScroll: true }); }catch(e){}
   }
 
   function isCombo(name){
@@ -3847,7 +3888,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         if(!isCombo(ex.name)) await rebuildTrackersForName(ex.name);
         if(ex.intensity && ex.intensity.isMax){ await rebuildManualMaxForName(ex.name); await saveManualMax(); }
       }
-      showToast(correction ? "Merkintä korjattu (" + formatDateShortFI(entryDate) + ")" : (maxUpdated ? "Tallennettu — 1RM päivitetty Asetuksiin" : "Merkintä tallennettu"));
+      if(maxUpdated && !correction){
+        // Ilmoitus kertoo arvon, ei toista näkymää.
+        showToast("Tallennettu — 1RM nyt " + String(state.manualMax[ex.name.trim().toLowerCase()].weight).replace(".", ",") + " kg", 3500);
+      } else {
+        showToast(correction ? "Merkintä korjattu (" + formatDateShortFI(entryDate) + ")" : "Merkintä tallennettu");
+      }
       state.openExercise = null;
       render();
     }catch(e){
@@ -3890,7 +3936,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var doneDay = findGroupForExerciseId(id);
     if(doneDay && isDayFullyDone(doneDay) && state.expandedDaySummaries[dayKey(doneDay)]){
       delete state.expandedDaySummaries[dayKey(doneDay)];
-      render();
+      // Kortti siirtyi, kun päiväkortti sulkeutui: avattu liike näkyviin.
+      afterRender(function(){ if(state.openExercise) revealOpenExercise(); });
     }
   }
 
@@ -5798,21 +5845,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!state.program || state.firstLogHintDismissed) return false;
     return Object.keys(state.exerciseLogIndex || {}).length === 0;
   }
+  // Ensikirjauksen ohje on yhden rivin banneri (sama komponentti kuin
+  // aloitusnäyttövihje), ei kolmen askeleen kortti: Aloita-painike näkyy
+  // samalla ruudulla, joten sitä ei tarvitse selittää erikseen.
   function renderFirstLogHint(){
-    function step(n, text){
-      return '<div style="display:flex; gap:10px; align-items:flex-start; padding:6px 0;">' +
-        '<div style="flex-shrink:0; width:24px; height:24px; border-radius:50%; background:var(--brass); color:var(--ink); font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center;">' + n + '</div>' +
-        '<div style="font-size:var(--fs-sm); line-height:1.45; padding-top:3px;">' + text + '</div></div>';
-    }
-    return '<div class="exercise" style="padding:14px 16px 12px; margin-bottom:14px;">' +
-      '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">' +
-      '<div style="font-weight:800; font-size:var(--fs-lg);">Näin kirjaat treenin</div>' +
-      '<button type="button" class="icon-btn" data-dismiss-first-log-hint aria-label="Sulje ohje" style="width:36px; height:36px;">' + icon("sulje", 18) + '</button>' +
-      '</div>' +
-      step(1, 'Avaa treenipäivä ja siitä liike.') +
-      step(2, 'Täytä paino ja toistot — ehdotus on valmiina — ja merkitse sarja valmiiksi <b>✓</b>.') +
-      step(3, 'Tallenna. Seuraava liike avautuu itsestään, ja lepoajastin käynnistyy sarjojen välissä.') +
-      '</div>';
+    return renderBanner("info", "tieto", "",
+      'Paina päivän <b style="color:var(--chalk);">Aloita</b>. Merkitse sarjat <b style="color:var(--chalk);">✓</b> ja tallenna — seuraava liike aukeaa itsestään.',
+      '<button type="button" class="btn-tertiary btn-sm" data-dismiss-first-log-hint>Selvä</button>');
   }
   function shouldShowExportReminder(){
     // Merkkijonovertailu riittää: sekä lastExportDate että daysAgoISO() ovat
@@ -5907,7 +5946,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     // Vain yksi vihje kerrallaan: ensimmäisen ohjelman jälkeen kirjausohje on
     // tärkeämpi, ja aloitusnäyttövinkki näytetään vasta kun se on ohi.
-    if(state.showHomescreenHint && !shouldShowFirstLogHint() && state.view === "ohjelma") html += renderHomescreenHint();
+    // Aloitusnäyttövihje ei koskaan avoimen liikkeen päälle: se odottaa,
+    // kunnes liike on tallennettu ja suljettu.
+    if(state.showHomescreenHint && !shouldShowFirstLogHint() && state.view === "ohjelma" && !state.openExercise) html += renderHomescreenHint();
     if(showNav) html += renderTabs();
     return html;
   }
@@ -6124,7 +6165,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet, jotka tuovat tyhjään kenttään ensin viime kerran painon; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"+ Lämmittely\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Lämmittelyn tuntuma</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut lämmittelysarjan jälkeen. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva."
     ) + ohjeList([
@@ -6401,9 +6442,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderPainEntry(){
     var todayCount = state.painLog.filter(function(p){ return p.date === state.draftDate; }).length;
     if(!state.showPainForm){
-      return '<div style="display:flex; align-items:center; gap:10px; margin:0 0 10px;">' +
-        '<button class="btn-secondary" data-pain-open type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">+ Kirjaa vaiva</button>' +
-        (todayCount > 0 ? '<span style="font-size:12px; color:var(--mist);">' + plural(todayCount, "vaiva kirjattu", "vaivaa kirjattu") + ' tälle päivälle</span>' : '') +
+      // Tekstipainike päivien jälkeen: poikkeustilanteen toiminto ei kilpaile
+      // Aloita-painikkeen kanssa.
+      return '<div class="pain-row">' +
+        '<button class="btn-tertiary btn-sm" data-pain-open type="button">' + icon("plus", 16) + '<span>Kirjaa vaiva</span></button>' +
+        (todayCount > 0 ? '<span class="pain-row-note">' + plural(todayCount, "vaiva kirjattu", "vaivaa kirjattu") + ' tälle päivälle</span>' : '') +
         '</div>';
     }
     var d = state.painDraft;
@@ -6412,29 +6455,29 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }).join("");
     var sideHtml = "";
     if(PAIN_PAIRED[d.region]){
-      sideHtml = '<div style="font-size:12px; color:var(--mist); margin:10px 0 6px;">Puoli</div>' +
+      sideHtml = '<div style="font-size:var(--fs-xs); color:var(--mist); margin:10px 0 6px;">Puoli</div>' +
         '<div style="display:flex; gap:6px; flex-wrap:wrap;" role="group" aria-label="Puoli">' +
         [["vasen","Vasen"],["oikea","Oikea"],["molemmat","Molemmat"]].map(function(s){
           return painChoiceButton("data-pain-side", "data-side", s[0], s[1], d.side === s[0]);
         }).join("") + '</div>';
     }
-    var severityHtml = '<div style="font-size:12px; color:var(--mist); margin:10px 0 6px;">Voimakkuus</div>' +
+    var severityHtml = '<div style="font-size:var(--fs-xs); color:var(--mist); margin:10px 0 6px;">Voimakkuus</div>' +
       '<div style="display:flex; gap:6px; flex-wrap:wrap;" role="group" aria-label="Voimakkuus">' +
       [[1,"Lievä"],[2,"Kohtalainen"],[3,"Voimakas"]].map(function(s){
         return painChoiceButton("data-pain-severity", "data-severity", s[0], s[1], d.severity === s[0]);
       }).join("") + '</div>';
     return '<div class="exercise" style="padding:14px; margin-bottom:10px;">' +
       '<div style="font-weight:700; margin-bottom:8px;">Kirjaa vaiva · ' + escapeHtml(formatDateShortFI(state.draftDate)) + '</div>' +
-      '<label for="pain-region" style="font-size:12px; color:var(--mist); display:block; margin-bottom:6px;">Kehonosa</label>' +
+      '<label for="pain-region" style="font-size:var(--fs-xs); color:var(--mist); display:block; margin-bottom:6px;">Kehonosa</label>' +
       '<select class="ledger-input" id="pain-region">' + options + '</select>' +
       sideHtml + severityHtml +
-      '<label for="pain-note" style="font-size:12px; color:var(--mist); display:block; margin:10px 0 6px;">Huomio</label>' +
+      '<label for="pain-note" style="font-size:var(--fs-xs); color:var(--mist); display:block; margin:10px 0 6px;">Huomio</label>' +
       '<input class="ledger-input" id="pain-note" type="text" placeholder="Huomio, esim. missä vaiheessa treeniä" value="' + escapeHtml(d.note || "") + '" maxlength="200">' +
       '<div style="display:flex; gap:8px; margin-top:12px;">' +
       '<button class="btn-secondary" data-pain-cancel type="button">Peruuta</button>' +
       '<button class="btn-primary" data-pain-save type="button" style="margin-top:0;">Tallenna</button>' +
       '</div>' +
-      '<div style="font-size:11.5px; color:var(--mist); margin-top:10px; line-height:1.4;">' + PAIN_DISCLAIMER + '</div>' +
+      '<div style="font-size:var(--fs-xs); color:var(--mist); margin-top:10px; line-height:1.4;">' + PAIN_DISCLAIMER + '</div>' +
       '</div>';
   }
   function renderWeekModeSwitch(){
@@ -6444,16 +6487,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<button type="button" class="' + (week ? "" : "on") + '" data-week-mode="all" aria-pressed="' + (week ? "false" : "true") + '">Kaikki</button>' +
       '</div>';
   }
+  // Viikon nimi on näkymän otsikko (sama malli kuin renderSubviewHeader):
+  // nuolet ovat 44 px:n kuvakepainikkeita aria-labelilla, laskuri pienellä
+  // otsikon alla ilman sulkeita. Kaikki-tilassa sama rivi ilman nuolia.
   function renderWeekStepper(){
     var weeks = state.program.weeks;
+    if(state.showAllWeeks){
+      return '<div class="week-head"><div class="week-head-title"><h2 class="view-title" style="margin:0;">Koko ohjelma</h2>' +
+        '<span class="week-head-count">' + plural(weeks.length, "viikko", "viikkoa") + ' · ' + plural(state.program.days.length, "treenipäivä", "treenipäivää") + '</span></div></div>';
+    }
     var idx = weeks.indexOf(state.activeWeek);
     if(idx === -1) idx = 0;
-    return '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; gap:8px;">' +
-      '<button class="btn-secondary" data-week-nav="prev" type="button" style="width:46px; padding:10px 0; font-size:22px; line-height:1; font-weight:400;" ' + (idx<=0?"disabled":"") + '>‹</button>' +
-      '<div style="text-align:center; flex:0 0 auto; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:3px 18px;">' +
-      '<div style="font-weight:700; font-size:15px; line-height:1.2;">' + escapeHtml(weekDisplayName(state.activeWeek)) + '</div>' +
-      '<div style="font-size:11px; color:var(--mist); line-height:1.2; margin-top:1px;">(' + (idx+1) + '/' + weeks.length + ')</div></div>' +
-      '<button class="btn-secondary" data-week-nav="next" type="button" style="width:46px; padding:10px 0; font-size:22px; line-height:1; font-weight:400;" ' + (idx>=weeks.length-1?"disabled":"") + '>›</button>' +
+    return '<div class="week-head">' +
+      '<button class="icon-btn" data-week-nav="prev" type="button" aria-label="Edellinen viikko"' + (idx<=0?" disabled":"") + '><span class="icon-flip">' + icon("nuoli", 20) + '</span></button>' +
+      '<div class="week-head-title"><h2 class="view-title" style="margin:0;">' + escapeHtml(weekDisplayName(state.activeWeek)) + '</h2>' +
+      '<span class="week-head-count">' + (idx+1) + ' / ' + weeks.length + '</span></div>' +
+      '<button class="icon-btn" data-week-nav="next" type="button" aria-label="Seuraava viikko"' + (idx>=weeks.length-1?" disabled":"") + '>' + icon("nuoli", 20) + '</button>' +
       '</div>';
   }
   function renderExerciseNameDatalist(){
@@ -6491,10 +6540,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="date-picker-row">' +
       (hasWeeks ? renderWeekModeSwitch() : '<span>Kirjataan päivälle</span>') +
       '<span class="sr-only">Kirjataan päivälle</span>' + renderDateChip() + '</div>';
-    html += renderPainEntry();
 
+    // Viikon otsikko (tai "Koko ohjelma") heti valitsimen alla; vaivan
+    // kirjaus on poikkeustilanteen toiminto ja tulee vasta päivien jälkeen.
+    if(hasWeeks) html += renderWeekStepper();
     if(hasWeeks && !state.showAllWeeks){
-      html += renderWeekStepper();
       groupsToShow = state.program.days.filter(function(d){ return d.week === state.activeWeek; });
     }
 
@@ -6508,11 +6558,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // vain se saa "Aloita"/"Jatka"-painikkeen.
     var nextKey = null;
     groupsToShow.forEach(function(day){ if(nextKey === null && !isDayFullyDone(day)) nextKey = dayKey(day); });
+    // Kaikki-tilassa viikot erotetaan väliotsikoin, kun viikkoja on useampi.
+    var showWeekHeadings = state.showAllWeeks && hasWeeks && state.program.weeks.length > 1;
+    var prevWeek = null;
     groupsToShow.forEach(function(day){
       // Jokainen treenipäivä on oma korttinsa, oletuksena kiinni
       // (state.expandedDaySummaries avaa sen), jotta ohjelmanäkymä pysyy
       // skannattavana useamman päivän ohjelmissa. Avattuna sama kortti toimii
       // otsikkona ja liikkeet seuraavat sen alla.
+      if(showWeekHeadings && day.week !== prevWeek){
+        list += '<div class="day-heading">' + escapeHtml(weekDisplayName(day.week)) + '</div>';
+        prevWeek = day.week;
+      }
       var expanded = !!state.expandedDaySummaries[dayKey(day)];
       list += renderDayCard(day, expanded, dayKey(day) === nextKey);
       if(expanded){
@@ -6535,6 +6592,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       list += '<div class="day-heading">Lisätyt liikkeet</div>';
       state.manualExercises.forEach(function(ex){ list += renderExercise(ex, wide); });
     }
+    list += renderPainEntry();
     list += renderProgramNotes();
     if(!wide) return html + list;
     // Tabletti: päivät ja liikkeet vasemmalla, avattu liike sarjoineen
@@ -6557,11 +6615,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     return '<span class="chip ' + cls + '" style="margin-left:8px;">' + escapeHtml(label) + '</span>';
   }
-  // Päivän nimi kortissa. Viikkonäkymässä pelkkä päivän oma nimi, koska viikko
-  // näkyy jo valitsimessa; koko ohjelman näkymässä viikon nimi edellä, jotta
-  // päivät erottuvat toisistaan.
+  // Päivän nimi kortissa (HTML). Viikkonäkymässä pelkkä päivän oma nimi, koska
+  // viikko näkyy jo otsikossa; koko ohjelman näkymässä viikot erottuvat
+  // väliotsikoin, joten viikon nimi on vain ruudunlukijalle (sr-only) — näin
+  // tekstihaku "Viikko 1 · Päivä 1" toimii, mutta kortissa lukee "Päivä 1".
   function dayCardTitle(day){
-    return state.showAllWeeks ? dayDisplayName(day) : (day.label || dayLabelFromName(day));
+    var label = day.label || dayLabelFromName(day);
+    if(!state.showAllWeeks) return escapeHtml(label);
+    return '<span class="sr-only">' + escapeHtml(weekDisplayName(day.week)) + ' · </span>' + escapeHtml(label);
   }
   function renderDayCard(day, expanded, isNext){
     var totalKg = 0;
@@ -6579,10 +6640,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     });
     var total = day.exercises.length;
     var fullyDone = isDayFullyDone(day);
-    var ring, statusParts = [], borderStyle = "";
+    var ring, statusParts = [];
     if(fullyDone){
       ring = '<div class="day-ring done' + (state.justDoneDay === dayKey(day) ? " pop" : "") + '" aria-hidden="true">✓</div>';
-      borderStyle = "border-color:rgba(111,174,111,0.35);";
       statusParts.push("Tehty");
       if(latestDate) statusParts.push(capitalize(formatDateFI(latestDate)));
     } else if(doneCount > 0){
@@ -6603,11 +6663,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     } else {
       right = '<div class="chevron" style="' + (expanded ? "transform:rotate(90deg); color:var(--brass);" : "") + '">›</div>';
     }
-    return '<div class="exercise" style="' + borderStyle + (expanded ? " margin-bottom:8px;" : "") + '">' +
+    // Avattu päivä saa day-open-luokan (tiukempi väli liikkeisiin ja vahvempi
+    // reuna); tehty-tila näkyy täytetystä vihreästä renkaasta, ei reunasta.
+    return '<div class="exercise' + (expanded ? " day-open" : "") + '">' +
       '<div class="day-card-head">' +
       '<div class="day-card-main" data-toggle-day-summary data-key="' + key + '" role="button" tabindex="0" aria-expanded="' + (expanded ? "true" : "false") + '">' +
       ring +
-      '<div style="min-width:0;"><div class="exercise-name">' + escapeHtml(dayCardTitle(day)) + '</div>' +
+      '<div style="min-width:0;"><div class="exercise-name">' + dayCardTitle(day) + '</div>' +
       '<div class="exercise-target">' + escapeHtml(statusParts.join(" · ")) + '</div></div>' +
       '</div>' + right + '</div>' +
       '</div>';
@@ -6616,10 +6678,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var open = state.openExercise === ex.id;
     var isSaved = isExerciseLogged(ex);
     var parts = [];
-    if(ex.sets) parts.push(ex.sets + " sarjaa");
-    if(ex.reps) parts.push(ex.reps + (ex.unit ? " " + ex.unit : ""));
+    // Taivutus: "1 sarja · 1 toisto", muut muodot (3–4, "6, 10, 10", "12 min") ennallaan.
+    var setsNum = /^\d+$/.test(String(ex.sets || "").trim()) ? parseInt(ex.sets, 10) : NaN;
+    if(ex.sets) parts.push(isFinite(setsNum) ? plural(setsNum, "sarja", "sarjaa") : ex.sets + " sarjaa");
+    var repsNum = /^\d+$/.test(String(ex.reps || "").trim()) ? parseInt(ex.reps, 10) : NaN;
+    if(ex.reps){
+      if(isFinite(repsNum) && (!ex.unit || ex.unit === "toistoa")) parts.push(plural(repsNum, "toisto", "toistoa"));
+      else parts.push(ex.reps + (ex.unit ? " " + ex.unit : ""));
+    }
     if(ex.weight) parts.push(ex.weight + " kg");
-    if(ex.notes) parts.push(ex.notes);
+    // Tehon toisto pois: kun huomautus on sama kuin chipin teho (MAX, 85 %),
+    // chip on tehon ainoa merkki; muu huomautus (menetelmä, PDF:n teksti) säilyy.
+    var notesIsIntensity = !!(ex.intensity && ex.notes &&
+      String(ex.notes).toLowerCase().replace(/\s+/g, "") === String(intensityToText(ex.intensity)).toLowerCase().replace(/\s+/g, ""));
+    if(ex.notes && !notesIsIntensity) parts.push(ex.notes);
     // Menetelmä (rest-pause, Cluster, drop) kuuluu tavoiteriville, mutta vain
     // kerran: jäsennin on osalle riveistä jo kopioinut sen huomautukseen.
     if(ex.method && String(ex.notes || "").indexOf(ex.method) === -1) parts.push(ex.method);
@@ -6641,7 +6713,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       : '';
     // Otsikkorivi on pelkkä säiliö; painikkeena toimii sen sisällä oleva nimiosa.
     // Näin sulkunuoli ei jää interaktiivisen elementin sisään (nested-interactive).
-    return '<div class="exercise ' + (open ? "open" : "") + '" style="' + (isSaved ? "border-color:rgba(111,174,111,0.35);" : "") + '">' +
+    return '<div class="exercise ' + (open ? "open" : "") + '">' +
       '<div class="exercise-head">' +
       '<div class="exercise-head-main" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' +
       '<div class="exercise-name">' + escapeHtml(title) + tehoBadge(ex) + '</div>' + detailHtml +
@@ -6656,10 +6728,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(info.type === "max"){
       var maxWeightStr = String(info.weight).replace(".", ",") + " kg";
       if(info.isMax){
-        text = "Paino perustuu manuaalisesti syötettyyn 1RM:ään (" + maxWeightStr + ") — muokattavissa.";
+        text = "Paino perustuu syötettyyn 1RM:ään (" + maxWeightStr + ").";
       } else {
         var pctStr = (info.percents || []).map(function(p){ return String(p).replace(".", ",") + " %"; }).join(" / ");
-        text = "Paino laskettu " + pctStr + " liikkeen 1RM:stä (" + maxWeightStr + ") — muokattavissa.";
+        text = "Paino " + pctStr + " liikkeen 1RM:stä (" + maxWeightStr + ").";
       }
     } else if(info.type === "formula"){
       var parts = (info.perSet || []).map(function(p, i){
@@ -6670,20 +6742,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         if(p.status === "deload") return label + "kevennys";
         return label + "ei vertailudataa";
       });
-      text = (info.plateau ? "Ei kehitystä kolmeen kertaan — ehdotetaan kevennystä (−10 %). " : "") +
-        "Ehdotus edellisen kerran (" + info.date + ") sarjoista, tavoite " +
-        info.targetReps + " toistoa. " + parts.join(" · ") + " — muokattavissa.";
+      // Kaksi riviä: ensin mihin ehdotus perustuu (suomalainen päivämäärä),
+      // sitten sarjakohtaiset perusteet; jumitunnistus omana rivinään edellä.
+      text = (info.plateau ? '<b style="color:var(--chalk);">Ei kehitystä kolmeen kertaan — ehdotetaan kevennystä (−10 %).</b><br>' : "") +
+        "Ehdotus edelliseltä kerralta " + escapeHtml(formatDateShortFI(info.date)) + ", tavoite " +
+        info.targetReps + " toistoa.<br>" + escapeHtml(parts.join(" · "));
     } else if(info.type === "saved"){
-      text = "Tämä merkintä on jo tallennettu (" + capitalize(formatDateFI(info.date)) + ") — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
+      text = "Tallennettu " + escapeHtml(capitalize(formatDateFI(info.date))) + " — arvot ladattu merkinnästä.";
     } else if(info.warmupAdjust){
       // Ei ehdotusta mutta lämmittelysäädön tila: näytetään pelkkä säätöteksti.
       text = "";
     } else {
       return "";
     }
-    var html = '<div style="font-size:11.5px; color:var(--mist); margin-bottom:10px; line-height:1.4;">' + text;
+    var html = '<div class="calc-hint">' + text;
     if(info.type === "saved"){
-      html += '<button class="btn-secondary" data-recalc data-id="' + id + '" type="button" style="margin-top:8px; padding:8px; font-size:12px; width:auto; display:block;">Poista merkintä ja laske uudelleen</button>';
+      html += '<div style="margin-top:8px;"><button class="btn-danger btn-sm btn-auto" data-recalc data-id="' + id + '" type="button">Poista merkintä ja laske uudelleen</button></div>';
     }
     var wa = info.warmupAdjust;
     if(wa){
@@ -6713,7 +6787,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // liikkeille, joille painoa ei voi laskea, ei jäisi mitään ohjetta.
   function renderMethodNote(ex){
     if(!ex.methodNote) return "";
-    return '<div style="background:rgba(201,162,39,0.10); border-left:2px solid var(--brass); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:10px; font-size:12px; line-height:1.5;">' +
+    return '<div style="background:rgba(201,162,39,0.10); border-left:2px solid var(--brass); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:10px; font-size:var(--fs-xs); line-height:1.5;">' +
       (ex.method ? '<b style="color:var(--brass);">' + escapeHtml(ex.method) + ':</b> ' : '') +
       escapeHtml(ex.methodNote) + '</div>';
   }
@@ -6728,7 +6802,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
     // Liikkeen väline, variaatio ja lihasryhmä ovat otsikon tarkenteessa
     // (renderExercise); erillistä variaatiolistaa ei enää näytetä.
-    var hint = renderMethodNote(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
+    var hint = renderMethodNote(ex);
+    // Teholiike ilman 1RM:ää ei ole mykkä: selite kertoo, mitä kirjataan.
+    if(ex.intensity && !state.autoCalcInfo[ex.id] && !isExerciseLogged(ex)) hint += renderNoMaxHint(ex);
+    hint += autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     var active = activeSetIndex(ex, sets);
     var extras = state.setExtra[ex.id] || {};
     var warmCount = 0;
@@ -6750,11 +6827,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           if(on) selectedStep = step;
           return '<button type="button" class="weight-step-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ': ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '"' + (on ? ' style="background:var(--brass); color:var(--ink);"' : '') + '>' + escapeHtml(step.label) + '</button>';
         }).join("");
+        var warmPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
         return '<div class="ledger-row has-extra">' +
-          '<div class="set-num' + (s.done ? " done" : "") + '" aria-hidden="true">' + (s.done ? "✓" : "L" + warmCount) + '</div>' +
+          '<div class="set-num' + (s.done ? " done" : "") + (warmPop ? " pop" : "") + '" aria-hidden="true">L' + warmCount + '</div>' +
           '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
           '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" aria-label="Lämmittely ' + warmCount + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
-          '<button type="button" class="set-done-btn" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Lämmittely " + warmCount + " merkitty valmiiksi" : "Merkitse lämmittely " + warmCount + " valmiiksi") + '">✓</button>' +
+          '<button type="button" class="set-done-btn' + (warmPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Lämmittely " + warmCount + " merkitty valmiiksi" : "Merkitse lämmittely " + warmCount + " valmiiksi") + '">✓</button>' +
           '<div></div>' +
           '</div>' +
           '<div class="set-extra warmup-feel">' +
@@ -6767,11 +6845,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           '</div>';
       }
       var extraOpen = !!(extras[idx] || (s.notes && String(s.notes).length));
+      // Sarjanumero on aina näkyvissä (selitteen "S2" viittaa siihen); tehty-
+      // tila näkyy ✓-painikkeen täytöstä ja numeron väristä.
+      var workPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
       return '<div class="ledger-row' + (extraOpen ? " has-extra" : "") + '">' +
-        '<div class="set-num' + (s.done ? " done" : "") + (s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx ? " pop" : "") + '" aria-hidden="true">' + (s.done ? "✓" : String(idx+1)) + '</div>' +
+        '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(idx+1) + '</div>' +
         '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" aria-label="Sarja ' + (idx+1) + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
         '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" aria-label="Sarja ' + (idx+1) + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
-        '<button type="button" class="set-done-btn" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">✓</button>' +
+        '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">✓</button>' +
         '<button type="button" class="set-more' + (extraOpen ? " on" : "") + '" data-set-more data-id="' + ex.id + '" data-idx="' + idx + '" aria-expanded="' + (extraOpen ? "true" : "false") + '" aria-label="Sarjan ' + (idx+1) + ' huomio ja poisto">' + icon("valikko", 18) + '</button>' +
         '</div>' +
         (extraOpen
@@ -6796,20 +6877,36 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }, 0);
     var allDone = isExerciseFullyDone(ex, ex.id);
     var warmupCount = warmupRows(ex.id).length;
+    // Järjestys: selitteet → lämmittelyt (jos on) → sarjat → lisäyspainikkeet
+    // rinnakkain → yhteensä (vain kun lukua on) → Tallenna → liikkeen vaihto.
+    // Ohjeteksti on vain ruudunlukijalle (aria-describedby); näkyvä vihje on
+    // haamutyylinen Tallenna, joka syttyy messingiksi viimeisestä ✓:stä.
+    var saveHintId = "save-hint-" + ex.id;
     return '<div class="ledger">' +
       hint +
       (warmupCount ? '<div class="ledger-head" style="margin-top:4px;">Lämmittely</div>' + warmHtml : '') +
-      '<button class="add-set-btn" data-add-warmup data-id="' + ex.id + '" type="button" style="margin:' + (warmupCount ? '10px' : '0') + ' 0 12px;">+ Lisää lämmittelysarja</button>' +
-      '<div class="ledger-row ledger-head"><div></div><div>Paino</div><div>Toistot</div><div></div><div></div></div>' +
+      '<div class="ledger-row ledger-head"' + (warmupCount ? ' style="margin-top:8px;"' : '') + '><div></div><div>Paino</div><div>Toistot</div><div></div><div></div></div>' +
       workHtml +
-      '<button class="add-set-btn" data-add-set data-id="' + ex.id + '" type="button">+ Lisää sarja</button>' +
-      '<div class="subtotal"><span>Nostettu yhteensä</span><b>' + (total>0 ? total.toLocaleString("fi-FI") : "0") + ' kg</b></div>' +
+      '<div class="ledger-tools">' +
+      '<button class="add-set-btn" data-add-set data-id="' + ex.id + '" type="button">+ Sarja</button>' +
+      '<button class="add-set-btn" data-add-warmup data-id="' + ex.id + '" type="button">+ Lämmittely</button>' +
+      '</div>' +
+      (total > 0 ? '<div class="subtotal"><span>Nostettu yhteensä</span><b>' + total.toLocaleString("fi-FI") + ' kg</b></div>' : '') +
       '<div class="ledger-save">' +
-      (allDone ? "" : '<div style="font-size:var(--fs-xs); color:var(--mist); margin-bottom:8px; text-align:center;">Merkitse jokainen sarja valmiiksi (✓) ennen tallennusta.</div>') +
-      '<button class="btn-primary" data-save-ex data-id="' + ex.id + '" type="button"' + (allDone ? "" : " disabled") + '>Tallenna merkintä</button>' +
+      (allDone ? "" : '<span class="sr-only" id="' + saveHintId + '">Merkitse jokainen sarja valmiiksi ennen tallennusta.</span>') +
+      '<button class="btn-primary" data-save-ex data-id="' + ex.id + '" type="button"' + (allDone ? "" : ' disabled aria-describedby="' + saveHintId + '"') + '>Tallenna merkintä</button>' +
       '</div>' +
       renderSwapExercise(ex) +
       '</div>';
+  }
+  // Teholiike ilman 1RM-arvoa: MAX-liikkeeseen kirjataan testinosto, joka
+  // tallentuu 1RM:ksi; prosenttiliikkeelle painoa ei voitu ehdottaa.
+  // Ei tilamuutoksia autoCalcInfo-olioon (lukupaikat testaavat totuusarvoa).
+  function renderNoMaxHint(ex){
+    var text = ex.intensity.isMax
+      ? "Maksimitesti: kirjaa raskain onnistunut nosto (1 toisto). Tulos tallentuu liikkeen 1RM:ksi, josta prosenttipainot lasketaan."
+      : "Liikkeelle ei ole vielä 1RM-arvoa, joten painoa ei ehdotettu. Kirjaa paino itse tai aseta 1RM Asetuksissa.";
+    return '<div class="calc-hint">' + escapeHtml(text) + '</div>';
   }
   var VARIANT_ADD_NEW = "__addnew__";
   var VARIANT_PLAIN = "__plain__";
@@ -6933,7 +7030,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     var occurrences = programExerciseOccurrences(ex.name).length;
     var html = '<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">' +
-      '<p style="color:var(--mist); font-size:12.5px; line-height:1.5; margin:0 0 10px;">Korvaa <b style="color:var(--chalk);">' + escapeHtml(ex.name) + '</b> toisella liikkeellä. Sarjat, toistot ja teho säilyvät ennallaan. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä.</p>';
+      '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:0 0 10px;">Korvaa <b style="color:var(--chalk);">' + escapeHtml(ex.name) + '</b> toisella liikkeellä. Sarjat, toistot ja teho säilyvät ennallaan. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä.</p>';
     // Teholiikkeillä (MAX/prosentti) säilyy entinen vapaa tekstikenttä; muille
     // näytetään ohjattu valinta liikekatalogista.
     var guided = !ex.intensity;
@@ -6948,7 +7045,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // joten valintaruudun tila luetaan tilasta — muuten käyttäjän poisrasti
       // palautuisi huomaamatta päälle seuraavassa piirrossa.
       var allWeeksChecked = guided ? (state.variantPicker.allWeeks !== false) : true;
-      html += '<label style="display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--mist); font-size:12.5px; cursor:pointer;">' +
+      html += '<label style="display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--mist); font-size:var(--fs-sm); cursor:pointer;">' +
         '<input type="checkbox" id="swap-all-weeks"' + (allWeeksChecked ? " checked" : "") + ' style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
         'Vaihda kaikissa viikoissa (' + occurrences + ' kohtaa)</label>';
     }
@@ -6971,9 +7068,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     });
     var multi = byFile.length > 1;
     return byFile.map(function(group){
-      return (multi && group.file ? '<div style="color:var(--brass); font-size:11.5px; font-weight:700; margin:10px 0 4px;">' + escapeHtml(group.file) + '</div>' : '') +
+      return (multi && group.file ? '<div style="color:var(--brass); font-size:var(--fs-xs); font-weight:700; margin:10px 0 4px;">' + escapeHtml(group.file) + '</div>' : '') +
         group.lines.map(function(t){
-          return '<div style="color:var(--mist); font-size:12.5px; line-height:1.55; margin-bottom:4px;">' + escapeHtml(t) + '</div>';
+          return '<div style="color:var(--mist); font-size:var(--fs-sm); line-height:1.55; margin-bottom:4px;">' + escapeHtml(t) + '</div>';
         }).join("");
     }).join("");
   }
@@ -7344,7 +7441,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var currentLine = "Paras 1RM viimeiseltä " + plural(weeks, "viikolta", "viikolta") + ": " +
       (p.currentMeasured ? "mitattu" : "laskennallinen") + " " + fmtSet(p.currentSet) + ", " + capitalize(formatDateFI(p.currentDate));
     var latestLine = p.latestDate !== p.currentDate
-      ? '<div style="font-size:11px; color:var(--mist); margin-top:3px;">Viimeisin treeni: ' + String(p.latest).replace(".", ",") + ' kg ' + (p.latestMeasured ? "mitattu" : "laskennallinen") + ' (' + escapeHtml(fmtSet(p.latestSet)) + '), ' + capitalize(formatDateFI(p.latestDate)) + '</div>'
+      ? '<div style="font-size:var(--fs-xs); color:var(--mist); margin-top:3px;">Viimeisin treeni: ' + String(p.latest).replace(".", ",") + ' kg ' + (p.latestMeasured ? "mitattu" : "laskennallinen") + ' (' + escapeHtml(fmtSet(p.latestSet)) + '), ' + capitalize(formatDateFI(p.latestDate)) + '</div>'
       : '';
     // Vertailurivi näytetään vain, kun vertailukohta on olemassa. Yhdellä
     // merkinnällä rivejä ei ole lainkaan, vaan yksi lause siitä mitä tarvitaan.
@@ -7362,7 +7459,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Kun samaa liikettä on kirjattu useammalla variaatiolla, kortti kertoo ne.
     var variantLine = "";
     if(item.variants && item.variants.length > 1){
-      variantLine = '<div style="font-size:11px; color:var(--mist);">Variaatiot: ' +
+      variantLine = '<div style="font-size:var(--fs-xs); color:var(--mist);">Variaatiot: ' +
         escapeHtml(item.variants.map(function(v){ return v || "ilman variaatiota"; }).join(", ")) + '</div>';
     }
     return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
@@ -7370,7 +7467,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div style="font-weight:600; font-size:15px;">' + escapeHtml(item.name) + '</div>' +
       '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:800; font-size:16px;">' + String(p.current).replace(".", ",") + ' kg</div>' +
       '</div>' +
-      '<div style="font-size:11px; color:var(--mist);">' + escapeHtml(currentLine) + '</div>' +
+      '<div style="font-size:var(--fs-xs); color:var(--mist);">' + escapeHtml(currentLine) + '</div>' +
       latestLine +
       variantLine +
       '<div style="margin-bottom:10px;"></div>' +
@@ -7445,7 +7542,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var isCurrent = wk.weekStart === isoWeekStartISO(todayISO());
     var html = '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
       '<div style="font-weight:600; font-size:15px;">Viikko ' + escapeHtml(formatWeekRangeFI(wk.weekStart)) + '</div>' +
-      (isCurrent ? '' : '<div style="font-size:11px; color:var(--mist);">Viimeisin treeniviikko</div>') +
+      (isCurrent ? '' : '<div style="font-size:var(--fs-xs); color:var(--mist);">Viimeisin treeniviikko</div>') +
       '<div class="stat-grid">' +
       (wk.tonnage > 0 ? renderStat("Kokonaispaino", fmtKg(wk.tonnage), prev ? neutralDelta(tonnageDeltaText(wk.tonnage, prev.tonnage)) : "") : "") +
       renderStat("Sarjat", fmtInt(wk.sets), prev ? neutralDelta(fmtSignedInt(wk.sets - prev.sets)) : "") +
@@ -7484,7 +7581,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div style="font-weight:600; font-size:15px;">Nostettu kokonaispaino</div>' +
       '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:800; font-size:16px;">' + fmtKg(last.value) + '</div>' +
       '</div>' +
-      '<div style="font-size:11px; color:var(--mist); margin-bottom:8px;">' + escapeHtml(sub) + '</div>' +
+      '<div style="font-size:var(--fs-xs); color:var(--mist); margin-bottom:8px;">' + escapeHtml(sub) + '</div>' +
       '<div class="segmented" role="group" aria-label="Kokonaispainon karkeus" style="margin-bottom:6px;">' +
       '<button type="button" class="' + (scale === "viikko" ? "on" : "") + '" data-volume-scale="viikko" aria-pressed="' + (scale === "viikko" ? "true" : "false") + '">Viikko</button>' +
       '<button type="button" class="' + (scale === "paiva" ? "on" : "") + '" data-volume-scale="paiva" aria-pressed="' + (scale === "paiva" ? "true" : "false") + '">Päivä</button>' +
@@ -7511,7 +7608,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
       '<div style="font-weight:600; font-size:15px;">Ohjelman toteutuminen</div>' +
-      '<div style="font-size:11px; color:var(--mist); margin-bottom:4px;">Viimeiset ' + ADHERENCE_WINDOW_DAYS + ' päivää</div>' +
+      '<div style="font-size:var(--fs-xs); color:var(--mist); margin-bottom:4px;">Viimeiset ' + ADHERENCE_WINDOW_DAYS + ' päivää</div>' +
       body + stalled + '</div>';
   }
   // Liikelistan rivit; suodatin osajonona ilman kirjainkoon merkitystä.
@@ -7593,7 +7690,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var last = pts[pts.length - 1];
     var prev = pts.length > 1 ? pts[pts.length - 2] : null;
     return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
-      '<div style="font-size:11px; color:var(--mist);">Viimeisin kerta ' + escapeHtml(capitalize(formatDateFI(last.date))) + '</div>' +
+      '<div style="font-size:var(--fs-xs); color:var(--mist);">Viimeisin kerta ' + escapeHtml(capitalize(formatDateFI(last.date))) + '</div>' +
       '<div class="stat-grid">' +
       renderStat("Kokonaispaino", fmtKg(last.tonnage), prev ? neutralDelta(tonnageDeltaText(last.tonnage, prev.tonnage)) : "") +
       renderStat("Sarjat", fmtInt(last.sets), prev ? neutralDelta(fmtSignedInt(last.sets - prev.sets)) : "") +
@@ -7679,7 +7776,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '</div>';
     });
     html += '</div>' +
-      '<div style="font-size:11.5px; color:var(--mist); margin:8px 2px 4px; line-height:1.4;">' + PAIN_DISCLAIMER + '</div>';
+      '<div style="font-size:var(--fs-xs); color:var(--mist); margin:8px 2px 4px; line-height:1.4;">' + PAIN_DISCLAIMER + '</div>';
     return html;
   }
   // Päivän yhteenveto: liikkeiden määrä ja nostettu kokonaispaino.
@@ -8399,7 +8496,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Lämmittelyt ovat taulukon alussa; lepoajastinta ei käynnistetä.
       state.draftSets[idw].unshift({ weight:"", reps:"", rpe:null, notes:"", done:false, kind:"warmup" });
       state.dirtySets[idw] = true;
-      render();
+      // Uusi rivi ilmestyy listan alkuun; fokus painokenttään vierittää sen näkyviin.
+      afterRender(function(){ var f = document.querySelector('.exercise.open [data-set-field][data-idx="0"][data-field="weight"]'); if(f) f.focus(); });
       return;
     }
     if((el = e.target.closest("[data-warmup-rpe]"))){
@@ -8419,6 +8517,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         state.draftSets[id2].splice(idx2, 1);
         if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });
         state.dirtySets[id2] = true;
+        if(state.activeSet && state.activeSet.id === id2 && state.activeSet.idx >= idx2) state.activeSet = null;
       }
       render();
       return;
@@ -8427,8 +8526,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var id3 = el.dataset.id, idx3 = parseInt(el.dataset.idx, 10), step3 = parseFloat(el.dataset.step);
       if(state.draftSets[id3] && state.draftSets[id3][idx3]){
         var current3 = toNumber(state.draftSets[id3][idx3].weight);
-        if(!isFinite(current3)) current3 = 0;
-        var next3 = Math.max(0, roundToStep(current3 + step3, 2.5));
+        var next3;
+        if(!isFinite(current3)){
+          // Tyhjä kenttä: ensimmäinen painallus tuo viime kerran suurimman
+          // painon (ei +2,5 nollasta); ilman historiaa lähdetään nollasta.
+          var ex3 = findExerciseById(id3);
+          var last3 = ex3 ? state.lastSet[ex3.name.trim().toLowerCase()] : null;
+          var lastMax3 = NaN;
+          ((last3 && last3.sets) || []).forEach(function(s3){ var w3 = toNumber(s3.weight); if(isFinite(w3) && (!isFinite(lastMax3) || w3 > lastMax3)) lastMax3 = w3; });
+          next3 = isFinite(lastMax3) ? lastMax3 : Math.max(0, roundToStep(step3, 2.5));
+        } else {
+          next3 = Math.max(0, roundToStep(current3 + step3, 2.5));
+        }
         state.draftSets[id3][idx3].weight = String(next3);
         state.dirtySets[id3] = true;
       }
@@ -8442,10 +8551,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(!ex4 || !row4){ return; }
       if(row4.done){
         row4.done = false;
+        // Peruttu sarja on taas aktiivinen (±-säätimet sen alla).
+        state.activeSet = { id: id4, idx: idx4 };
         // Lämmittelyn peruminen lasketaan säätö uudelleen jäljellä olevista.
         if(isWarmupRow(row4)) applyWarmupAdjustment(id4);
       } else if(isRowDoneEligible(ex4, row4)){
         row4.done = true;
+        // ±-säätimet siirtyvät seuraavaan keskeneräiseen sarjaan.
+        state.activeSet = null;
         state.justDone = { id: id4, idx: idx4 };
         if(isWarmupRow(row4)){
           // Lämmittely säätää työsarjat; lepoajastinta ei käynnistetä.
