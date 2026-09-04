@@ -402,6 +402,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Tallennetun merkinnän korjaus säilyy alkuperäisellä treenipäivällä: kun avaat aiemmin kirjatun liikkeen, korjaat arvon ja tallennat, treeni ei siirry korjauspäivälle eikä näy Historiassa kahdesti.",
       "Kehitys: liikkeen 1RM on nyt paras arvo viimeiseltä neljältä viikolta, joten kevyempi ohjelmoitu treenipäivä ei enää pudota lukua. Viimeisimmän treenin oma arvio näkyy kortissa erikseen, yhden toiston sarja lasketaan mittauksena, ja vertailurivit ovat kuukausi, puoli vuotta, vuosi ja ennätys.",
       "Painoehdotus: kun teit tavoitetoistot, ehdotus nousee vähintään seuraavaan 2,5 kg:n askeleeseen (esim. 15 → 17,5 kg). Aiemmin ehdotus jäi kevyillä painoilla samaksi."
     ]},
@@ -2754,9 +2755,29 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!ex) return;
     var sets = (state.draftSets[id] || []).filter(function(s){ return s.weight || s.reps || s.notes; });
     if(sets.length === 0){ showToast("Lisää vähintään yksi sarja ennen tallennusta"); return; }
-    if(!state.todayEntry) state.todayEntry = { date: state.draftDate, exercises: {} };
-    state.todayEntry.exercises[id] = { name: ex.name, sets: sets, loggedAt: new Date().toISOString() };
-    if(!isCombo(ex.name)){
+    // Jo tallennetun merkinnän korjaus säilyy alkuperäisellä päivällä: muuten
+    // sama liike tallentuisi toiseen kertaan korjauspäivälle, näkyisi
+    // Historiassa kahdesti ja koko treeni siirtyisi korjauspäivälle.
+    // Uudelleen kirjaaminen toiselle päivälle vaatii ensin "Poista merkintä".
+    var logged = state.exerciseLogIndex[id];
+    var correction = !!(logged && logged.date && logged.date !== state.draftDate);
+    var entryDate = correction ? logged.date : state.draftDate;
+    var entry;
+    if(correction){
+      try{ entry = await loadEntry(entryDate); }catch(e){ entry = null; }
+      if(!entry) entry = { date: entryDate, exercises: {} };
+      if(!entry.exercises) entry.exercises = {};
+    } else {
+      if(!state.todayEntry) state.todayEntry = { date: state.draftDate, exercises: {} };
+      entry = state.todayEntry;
+    }
+    var nowISO = new Date().toISOString();
+    var prevLoggedAt = (correction && logged.data && logged.data.loggedAt) ? logged.data.loggedAt : null;
+    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO };
+    // Korjausaika talteen; treenin ajankohta (loggedAt) säilyy alkuperäisenä.
+    if(correction) record.editedAt = nowISO;
+    entry.exercises[id] = record;
+    if(!isCombo(ex.name) && !correction){
       state.lastSet[ex.name.trim().toLowerCase()] = {
         sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }),
         date: state.draftDate
@@ -2764,7 +2785,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       await saveLastSet();
     }
     var maxUpdated = false;
-    if(ex.intensity && ex.intensity.isMax){
+    if(ex.intensity && ex.intensity.isMax && !correction){
       var maxWeight = toNumber(sets[0].weight);
       if(isFinite(maxWeight) && maxWeight > 0){
         // Uusi kirjattu MAX-arvo korvaa aina Asetuksiin tallennetun vanhan 1RM:n.
@@ -2774,13 +2795,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       }
     }
     try{
-      await storeSet("entries:" + state.draftDate, JSON.stringify(state.todayEntry));
+      await storeSet("entries:" + entryDate, JSON.stringify(entry));
       delete state.dirtySets[id];
       state.kehitys = undefined;
       // Päivitetään indeksi suoraan tähän tallennukseen — ei tarvitse skannata
       // koko historiaa uudelleen jokaisen tallennuksen jälkeen.
-      state.exerciseLogIndex[id] = { date: state.draftDate, data: state.todayEntry.exercises[id] };
-      showToast(maxUpdated ? "Tallennettu — 1RM päivitetty Asetuksiin" : "Merkintä tallennettu");
+      state.exerciseLogIndex[id] = { date: entryDate, data: record };
+      if(correction){
+        // Korjattu päivä voi olla muu kuin viimeisin, joten viimeisin sarja ja
+        // 1RM lasketaan koko historiasta, ei tästä merkinnästä suoraan.
+        if(state.historyCache && state.historyCache[entryDate]) state.historyCache[entryDate] = entry;
+        if(!isCombo(ex.name)) await rebuildTrackersForName(ex.name);
+        if(ex.intensity && ex.intensity.isMax){ await rebuildManualMaxForName(ex.name); await saveManualMax(); }
+      }
+      showToast(correction ? "Merkintä korjattu (" + formatDateShortFI(entryDate) + ")" : (maxUpdated ? "Tallennettu — 1RM päivitetty Asetuksiin" : "Merkintä tallennettu"));
       state.openExercise = null;
       render();
     }catch(e){
@@ -4418,7 +4446,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen."
+      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle."
     ) + ohjeP(
       "Merkinnän voi kirjata myös takautuvasti napauttamalla yläreunan päivämääräsirpaletta. \"Viikko | Kaikki\" -valitsin näyttää joko nykyisen viikon tai koko ohjelman."
     ) + ohjeP(
