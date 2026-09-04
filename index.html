@@ -85,7 +85,7 @@
      muissakin toimintopainikkeissa, mutta ainoana täytettynä pintana. */
   .tab.active{color:var(--ink); background:var(--brass); font-weight:800;}
 
-  .day-heading{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--mist); margin:20px 2px 8px; font-weight:700;}
+  .day-heading{font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.1em; color:var(--mist); margin:20px 2px 8px; font-weight:700;}
   .day-heading:first-of-type{margin-top:0;}
 
   .exercise{background:var(--surface); border-radius:var(--radius); margin-bottom:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.04);}
@@ -151,7 +151,7 @@
   /* Viikon otsikkorivi Ohjelma-näkymässä */
   .week-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 10px;}
   .week-head-title{flex:1; min-width:0; text-align:center;}
-  .week-head-title .view-title{font-size:var(--fs-lg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .week-head-title .view-title{font-size:var(--fs-lg); overflow-wrap:anywhere; line-height:1.2;}
   .week-head-count{display:block; font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; margin-top:1px;}
   .icon-flip{display:flex; transform:rotate(180deg);}
   .icon-btn:disabled{opacity:.3; cursor:default;}
@@ -228,11 +228,11 @@
   /* 22px täyte + rivin 8px väli = 30px = sarjan numero -sarake (24px) + ledger-rivin
      oma 6px väli, jotta painikerivi alkaa täsmälleen painokentän vasemmasta reunasta. */
   .weight-step-spacer{flex:0 0 22px;}
-  /* Pikasäätönapit ovat ääriviivatyyliä (läpinäkyvä tausta + messinkireunus),
-     jotta täytetty messinkipinta jää yksinomaan hyväksyntänapille ja
-     "Tallenna merkintä" -painikkeelle — ne ovat rivin varsinaiset toiminnot. */
-  /* Toissijaiset säätimet ilman messinkiä: messinki on vain toiminnoille
-     (Aloita, ✓, Tallenna). Valittu tuntumapykälä saa inline-täytön. */
+  /* Pikasäätönapit ovat toissijaisia säätimiä ilman messinkiä (surface-2-tausta,
+     line-strong-reunus), jotta täytetty messinkipinta jää yksinomaan
+     hyväksyntänapille ja "Tallenna merkintä" -painikkeelle — ne ovat rivin
+     varsinaiset toiminnot. Valittu tuntuma- tai vaivapykälä saa inline-täytön
+     messinkireunuksin. */
   .weight-step-btn{flex:0 0 auto; height:44px; padding:0 14px; font-size:var(--fs-sm); white-space:nowrap; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:999px; font-weight:800; cursor:pointer;}
   /* margin-left:auto työntää Valmis-napin rivin oikeaan reunaan (Poista sarja
      -napin kohdalle) riippumatta -/+ -nappien kutistuneesta leveydestä. */
@@ -241,7 +241,11 @@
   .set-done-btn[aria-pressed="true"]{background:var(--success); border-color:var(--success); color:var(--ink);}
   .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--mist); font-weight:700; font-variant-numeric:tabular-nums; font-size:var(--fs-sm); width:24px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
   .set-num.done{color:var(--success);}
-  .ledger-input{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; min-height:44px; font-variant-numeric:tabular-nums;}
+  .ledger-input{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
+  /* Kosketuskorkeus 44 px vain kirjauslohkossa ja vaivalomakkeessa; muualla
+     (muokkaustilan nimikentät, kirjaston nimeäminen) kenttä on 36 px:n
+     kuvakepainikkeiden rinnalla ja korkeampi kenttä rikkoisi rivin. */
+  .ledger .ledger-input, #pain-region, #pain-note{min-height:44px;}
   /* Selaimen oletusvaalennus vihjetekstille jää alle kontrastivaatimuksen, joten väri asetetaan itse. */
   /* Ilman näitä pudotusvalikon sisältö renderöityy useassa selaimessa
      järjestelmän vaalealla oletusvärillä tumman teeman päälle. */
@@ -275,7 +279,7 @@
   .btn-primary:active, .btn-secondary:active, .btn-danger:active{transform:scale(.98); opacity:.9;}
   /* Haamutyylinen Tallenna: luettava (mist) ääriviiva, joka syttyy messingiksi
      kun viimeinen sarja on merkitty. Muut painikkeet himmenevät. */
-  .btn-primary:disabled{opacity:1; background:transparent; border:1px dashed var(--line-strong); color:var(--mist); cursor:default; transform:none;}
+  .btn-primary:disabled{opacity:1; background:transparent; border:1px solid var(--line-strong); color:var(--mist); cursor:default; transform:none;}
   .btn-secondary:disabled, .btn-tertiary:disabled, .btn-danger:disabled, .add-set-btn:disabled{opacity:.4; cursor:default; transform:none;}
   .btn-primary svg, .btn-secondary svg, .btn-tertiary svg, .btn-danger svg{flex-shrink:0;}
 
@@ -413,7 +417,7 @@
   .icon-btn:active, .editor-icon:active, .tab:active, .set-done-btn:active, .set-more:active, .pick-item:active, .weight-step-btn:active, .chevron-btn:active, .segmented button:active, .editor-title:active, .add-set-btn:active, .btn-tertiary:active, .remove-set:active{transform:scale(.94);}
   .exercise-head-main:active, .day-card-main:active{opacity:.7;}
   @media (hover:hover){
-    .icon-btn:hover, .editor-icon:hover{border-color:var(--brass); color:var(--chalk);}
+    .icon-btn:hover:not(:disabled), .editor-icon:hover:not(:disabled){border-color:var(--brass); color:var(--chalk);}
     .btn-secondary:hover{border-color:var(--brass);}
     .tab:hover:not(.active){color:var(--chalk);}
   }
@@ -473,7 +477,12 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
-      "Ohjelma-näkymä selkeytyi (versio 0.4.2): avattu liike vieritetään näkyviin ja seuraava liike nousee esiin tallennuksen jälkeen; viikon nimi on näkymän otsikko nuolineen ja Koko ohjelma -tilassa viikot erottuvat otsikoin; Kirjaa vaiva siirtyi treenipäivien alapuolelle; kirjausohje on lyhyt banneri ja aloitusnäyttövihje odottaa, kunnes liike on tallennettu ja suljettu; ✓-painike täyttyy vihreäksi ja sarjanumero säilyy, ±2,5 kg -säätimet siirtyvät seuraavaan keskeneräiseen sarjaan ja aloittavat tyhjässä kentässä viime kerran painosta; sarjojen alla ovat + Sarja ja + Lämmittely rinnakkain, Tallenna näkyy harmaana ääriviivana kunnes kaikki sarjat on merkitty; maksimitesti kertoo avattaessa, että nosto tallentuu 1RM:ksi, ja tallennuksen ilmoitus näyttää uuden 1RM:n; painoehdotuksen selite on suurempaa tekstiä kahdella rivillä ja päivämäärä muodossa 28.8.; kosketuskohteet ovat vähintään 44 px; avatun päivän liikkeet on ryhmitelty päivän alle.",
+      "Ohjelma-näkymä selkeytyi (versio 0.4.2): Aloita ja tallennus vierittävät avatun liikkeen näkyviin, ja seuraava liike nousee esiin tallennuksen jälkeen. Avatun päivän liikkeet on ryhmitelty päivän kortin alle.",
+      "Viikon nimi on Ohjelma-näkymän otsikko, jonka vieressä ovat nuolet edelliseen ja seuraavaan viikkoon. Koko ohjelma -tilassa jokaisen viikon päivät ovat oman väliotsikon alla.",
+      "Kirjausohje on lyhyt banneri, ja aloitusnäyttövihjettä ei näytetä, kun liike on auki. Kirjaa vaiva siirtyi treenipäivien alapuolelle.",
+      "Sarjarivi: ✓-painike täyttyy vihreäksi ja sarjanumero säilyy. ±2,5 kg -säätimet siirtyvät seuraavaan keskeneräiseen sarjaan ja tuovat tyhjään kenttään ensin viime kerran painon. Sarjarivin kosketuskohteet (kentät, ✓, ⋮, ±2,5 kg) ovat vähintään 44 px.",
+      "Sarjojen alla ovat + Sarja ja + Lämmittely rinnakkain. Tallenna merkintä näkyy harmaana ääriviivana, kunnes kaikki sarjat on merkitty, ja Nostettu yhteensä -rivi näkyy vasta, kun kiloja on kertynyt. Tallennettu liike ja tehty päivä eivät enää saa vihreää reunaa.",
+      "Selitteet: maksimitesti kertoo avattaessa, että sarjan 1 nosto tallentuu 1RM:ksi, ja tallennuksen ilmoitus näyttää uuden 1RM:n; painoehdotuksen selite on suurempaa tekstiä kahdella rivillä ja päivämäärä muodossa 28.8.; tavoiterivi taipuu (1 sarja · 1 toisto). Pienimmät tekstit ovat 12 px myös Kehityksessä.",
       "Laitteen taaksepäin-ele ja selaimen taaksepäin-painike toimivat nyt sovelluksessa: ne palaavat edelliseen näkymään (esimerkiksi liikenäkymästä Kehitys-listaan tai Asetuksista Ohjelmaan) ja poistuvat sovelluksesta vasta Ohjelma-näkymästä. Sivun uudelleenlataus palaa samaan näkymään. Osoite ei muutu.",
       "Kehitys-välilehti uudistui (versio 0.4.0): etusivulla ovat viikon yhteenveto (kokonaispaino, sarjat, toistot, treenipäivät ja erot edelliseen viikkoon), kokonaispainon käyrä viikon tai päivän karkeudella, ohjelman toteutuminen viimeiseltä 28 päivältä (sarjat, toistotavoite, progressiotavoite ja pysähtyneet liikkeet) sekä liikelista hakukentällä. Liikkeen rivi avaa oman näkymän välilehdillä 1RM, Ennätykset (raskain paino, paras sarja, toistoalueet), Volyymi ja Toteutuminen. Uudet merkinnät tallentavat myös sen, mitä ohjelma ja painoehdotus edellyttivät; vanhoille merkinnöille toteutuminen on arvio.",
       "Varmuuskopion palautus tunnistaa Excelissä avatun ja tallennetun tiedoston: jos Excel on kirjoittanut jokaisen rivin yhdeksi soluksi, sovellus purkaa rivit itse, ja ohjelma, merkinnät ja 1RM-arvot palautuvat. Aiemmin tällainen tiedosto antoi ilmoituksen, ettei siitä löytynyt tuotavaa sisältöä.",
@@ -604,7 +613,7 @@
     expandedDaySummaries: {},
     showHomescreenHint: false,
     homescreenHintExpanded: false,
-    // Kertaluonteinen "Näin kirjaat treenin" -kortti: näkyy kunnes ensimmäinen
+    // Kertaluonteinen kirjausohje-banneri: näkyy kunnes ensimmäinen
     // merkintä on tallennettu tai käyttäjä sulkee sen.
     firstLogHintDismissed: false,
     // Avoinna oleva pohjalevy (esim. "csv" = CSV-muodon esimerkki) tai null.
@@ -3423,12 +3432,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // ruudunlukijalle liikkeen nimen ja tilan; rengas näkyy vain :focus-visible.
   function revealOpenExercise(){
     if(isWideLayout()) return;
-    var head = document.querySelector(".exercise.open [data-toggle-ex]");
-    if(!head) return;
-    var r = head.getBoundingClientRect();
+    var card = document.querySelector(".exercise.open");
+    var head = card ? card.querySelector("[data-toggle-ex]") : null;
+    if(!card || !head) return;
+    // Vieritetään korttia, ei otsikkoa: scroll-margin-top on kortilla, joten
+    // kortin reunus ja täyte jäävät näkyviin yläreunan alle.
+    var r = card.getBoundingClientRect();
     var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     if(r.top < 0 || r.top > window.innerHeight * 0.6){
-      try{ head.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" }); }catch(e){ head.scrollIntoView(true); }
+      try{ card.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" }); }catch(e){ card.scrollIntoView(true); }
     }
     try{ head.focus({ preventScroll: true }); }catch(e){}
   }
@@ -6437,7 +6449,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function painChoiceButton(attr, valueAttr, value, label, on){
     return '<button type="button" class="weight-step-btn" ' + attr + ' ' + valueAttr + '="' + value + '" aria-pressed="' + (on ? "true" : "false") + '"' +
-      (on ? ' style="background:var(--brass); color:var(--ink);"' : '') + '>' + label + '</button>';
+      (on ? ' style="background:var(--brass); color:var(--ink); border-color:var(--brass);"' : '') + '>' + label + '</button>';
   }
   function renderPainEntry(){
     var todayCount = state.painLog.filter(function(p){ return p.date === state.draftDate; }).length;
@@ -6498,10 +6510,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     var idx = weeks.indexOf(state.activeWeek);
     if(idx === -1) idx = 0;
+    // Omalla nimellä (esim. Kevennysviikko) laskuri saa sanan "viikko", jottei
+    // "4 / 4" lukisi kuin päiväkortin tehtyjen liikkeiden osuus.
+    var labels = state.program.weekLabels || {};
+    var counter = (labels[state.activeWeek] ? "viikko " : "") + (idx+1) + ' / ' + weeks.length;
     return '<div class="week-head">' +
       '<button class="icon-btn" data-week-nav="prev" type="button" aria-label="Edellinen viikko"' + (idx<=0?" disabled":"") + '><span class="icon-flip">' + icon("nuoli", 20) + '</span></button>' +
       '<div class="week-head-title"><h2 class="view-title" style="margin:0;">' + escapeHtml(weekDisplayName(state.activeWeek)) + '</h2>' +
-      '<span class="week-head-count">' + (idx+1) + ' / ' + weeks.length + '</span></div>' +
+      '<span class="week-head-count">' + counter + '</span></div>' +
       '<button class="icon-btn" data-week-nav="next" type="button" aria-label="Seuraava viikko"' + (idx>=weeks.length-1?" disabled":"") + '>' + icon("nuoli", 20) + '</button>' +
       '</div>';
   }
@@ -6567,7 +6583,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // skannattavana useamman päivän ohjelmissa. Avattuna sama kortti toimii
       // otsikkona ja liikkeet seuraavat sen alla.
       if(showWeekHeadings && day.week !== prevWeek){
-        list += '<div class="day-heading">' + escapeHtml(weekDisplayName(day.week)) + '</div>';
+        // Väliotsikko on h3 (Koko ohjelma on h2), jotta ruudunlukijalla voi
+        // hyppiä viikoittain; viikoton päivä saa oman otsikkonsa.
+        var hasWeekKey = day.week !== null && day.week !== undefined && day.week !== "";
+        list += '<h3 class="day-heading">' + (hasWeekKey ? escapeHtml(weekDisplayName(day.week)) : "Ilman viikkoa") + '</h3>';
         prevWeek = day.week;
       }
       var expanded = !!state.expandedDaySummaries[dayKey(day)];
@@ -6622,6 +6641,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function dayCardTitle(day){
     var label = day.label || dayLabelFromName(day);
     if(!state.showAllWeeks) return escapeHtml(label);
+    // Viikoton päivä (day.week null) näytetään ilman viikko-osaa, kuten
+    // dayDisplayNameIn tekee — muuten ruudunlukija kuulisi "Viikko null".
+    if(day.week === null || day.week === undefined || day.week === "") return escapeHtml(label);
     return '<span class="sr-only">' + escapeHtml(weekDisplayName(day.week)) + ' · </span>' + escapeHtml(label);
   }
   function renderDayCard(day, expanded, isNext){
@@ -6728,7 +6750,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(info.type === "max"){
       var maxWeightStr = String(info.weight).replace(".", ",") + " kg";
       if(info.isMax){
-        text = "Paino perustuu syötettyyn 1RM:ään (" + maxWeightStr + ").";
+        text = "Sarjassa 1 on valmiina nykyinen 1RM (" + maxWeightStr + "). Kirjaa raskain onnistunut nosto (1 toisto) — tulos korvaa 1RM:n.";
       } else {
         var pctStr = (info.percents || []).map(function(p){ return String(p).replace(".", ",") + " %"; }).join(" / ");
         text = "Paino " + pctStr + " liikkeen 1RM:stä (" + maxWeightStr + ").";
@@ -6748,7 +6770,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         "Ehdotus edelliseltä kerralta " + escapeHtml(formatDateShortFI(info.date)) + ", tavoite " +
         info.targetReps + " toistoa.<br>" + escapeHtml(parts.join(" · "));
     } else if(info.type === "saved"){
-      text = "Tallennettu " + escapeHtml(capitalize(formatDateFI(info.date))) + " — arvot ladattu merkinnästä.";
+      text = "Tallennettu " + escapeHtml(formatDateFI(info.date)) + " — arvot ladattu merkinnästä.";
     } else if(info.warmupAdjust){
       // Ei ehdotusta mutta lämmittelysäädön tila: näytetään pelkkä säätöteksti.
       text = "";
@@ -6825,7 +6847,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         var rpeButtons = WARMUP_SCALE.map(function(step){
           var on = s.rpe === step.rpe;
           if(on) selectedStep = step;
-          return '<button type="button" class="weight-step-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ': ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '"' + (on ? ' style="background:var(--brass); color:var(--ink);"' : '') + '>' + escapeHtml(step.label) + '</button>';
+          return '<button type="button" class="weight-step-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ': ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '"' + (on ? ' style="background:var(--brass); color:var(--ink); border-color:var(--brass);"' : '') + '>' + escapeHtml(step.label) + '</button>';
         }).join("");
         var warmPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
         return '<div class="ledger-row has-extra">' +
@@ -6903,9 +6925,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // tallentuu 1RM:ksi; prosenttiliikkeelle painoa ei voitu ehdottaa.
   // Ei tilamuutoksia autoCalcInfo-olioon (lukupaikat testaavat totuusarvoa).
   function renderNoMaxHint(ex){
-    var text = ex.intensity.isMax
-      ? "Maksimitesti: kirjaa raskain onnistunut nosto (1 toisto). Tulos tallentuu liikkeen 1RM:ksi, josta prosenttipainot lasketaan."
-      : "Liikkeelle ei ole vielä 1RM-arvoa, joten painoa ei ehdotettu. Kirjaa paino itse tai aseta 1RM Asetuksissa.";
+    var text;
+    if(ex.intensity.isMax){
+      // 1RM luetaan sarjasta 1 (saveExerciseLog), joten selite sanoo sen.
+      text = "Maksimitesti: kirjaa sarjaan 1 raskain onnistunut nosto (1 toisto). Se tallentuu liikkeen 1RM:ksi, josta prosenttipainot lasketaan.";
+    } else {
+      // Jos 1RM on mutta ehdotus on kytketty pois (autoCalc === false,
+      // menetelmäliike), syy ei ole puuttuva 1RM eikä selitettä näytetä.
+      if(state.manualMax[ex.name.trim().toLowerCase()]) return "";
+      text = "Liikkeelle ei ole vielä 1RM-arvoa, joten painoa ei ehdotettu. Kirjaa paino itse tai aseta 1RM Asetuksissa.";
+    }
     return '<div class="calc-hint">' + escapeHtml(text) + '</div>';
   }
   var VARIANT_ADD_NEW = "__addnew__";
@@ -7750,7 +7779,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderPainSection(){
     var html = '<div class="day-heading">Vaivat</div>';
     if(!state.painLog.length){
-      return html + '<div class="exercise" style="padding:14px;"><div style="font-size:13px; color:var(--mist);">Ei kirjattuja vaivoja. Kirjaa vaiva Ohjelma-välilehdeltä.</div></div>';
+      return html + '<div class="exercise" style="padding:14px;"><div style="font-size:13px; color:var(--mist);">Ei kirjattuja vaivoja. Kirjaa vaiva Ohjelma-välilehden lopusta.</div></div>';
     }
     (state.painAnalysis || []).forEach(function(g){
       html += '<div class="exercise" style="padding:14px;">' +
@@ -8467,7 +8496,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.program.days.forEach(function(d){ if(dayKey(d) === startKey) startDay = d; });
       var firstEx = startDay ? startDay.exercises.filter(function(x){ return !isExerciseLogged(x); })[0] : null;
       if(firstEx && state.openExercise !== firstEx.id){ await toggleExercise(firstEx.id); }
-      else { render(); }
+      // Liike oli jo auki (päivä suljettiin otsikosta): vieritetään se näkyviin.
+      else { afterRender(revealOpenExercise); }
       return;
     }
     if((el = e.target.closest("[data-week-mode]"))){
