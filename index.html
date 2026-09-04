@@ -181,8 +181,11 @@
   .kehitys-back{font:inherit; font-size:var(--fs-md); font-weight:700; background:transparent; border:0; color:var(--brass); min-height:44px; min-width:44px; padding:0 8px 0 0; cursor:pointer; border-radius:8px;}
   .kehitys-back:focus-visible{outline:2px solid var(--brass);}
   .kehitys-detail-title{font-size:var(--fs-xl); font-weight:800; margin:0; flex:1; min-width:0; overflow-wrap:anywhere;}
-  .week-ex-row{display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-top:1px dashed var(--line); font-size:var(--fs-sm); flex-wrap:wrap;}
-  .week-ex-stats{color:var(--mist); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  /* Viikon liikelista: aina kaksi riviä (nimi, sen alla luvut), jotta rivit
+     eivät rivity eri tavoin nimen pituuden mukaan. */
+  .week-ex-row{display:block; padding:8px 0; border-top:1px dashed var(--line); font-size:var(--fs-sm);}
+  .week-ex-name{display:block; color:var(--chalk); overflow-wrap:anywhere;}
+  .week-ex-stats{display:block; color:var(--mist); font-size:var(--fs-xs); font-variant-numeric:tabular-nums; margin-top:2px;}
   .chevron{color:var(--mist); font-size:20px; transition:transform .2s, color .2s; flex-shrink:0; margin-left:10px;}
   .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
   .chevron-btn{background:none; border:none; padding:0; margin:0; cursor:pointer; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; flex-shrink:0;}
@@ -7457,7 +7460,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         return (b.tonnage - a.tonnage) || a.name.localeCompare(b.name, "fi");
       });
       html += '<div style="margin-top:6px;">' + rows.map(function(r){
-        return '<div class="week-ex-row"><span>' + escapeHtml(capitalize(r.name)) + '</span><span class="week-ex-stats">' +
+        return '<div class="week-ex-row"><span class="week-ex-name">' + escapeHtml(capitalize(r.name)) + '</span><span class="week-ex-stats">' +
           plural(r.sets, "sarja", "sarjaa") + ' · ' + plural(Math.round(r.reps), "toisto", "toistoa") + ((r.combo || !(r.tonnage > 0)) ? '' : ' · ' + fmtKg(r.tonnage)) + '</span></div>';
       }).join("") + '</div>';
     }
