@@ -108,17 +108,18 @@ Sovellus ehdottaa painon kahdella eri säännöllä sen mukaan, onko liikkeelle 
 
 1RM-arvoa voi muokata milloin tahansa käsin Asetuksissa (alavalikon viimeinen kohta), mutta se päivittyy myös automaattisesti: kun kirjaat merkinnän `MAX`-teholliselle liikkeelle, sen ensimmäisen sarjan paino tallentuu 1RM:ksi ja korvaa Asetuksiin aiemmin tallennetun arvon.
 
-**Liikkeellä ei ole tehoa.** Ehdotus perustuu liikkeen **viimeksi kirjattuun sarjaan** ja Epley-kaavaan: edellisestä sarjasta arvioidaan 1RM, siihen sovelletaan progressiokerrointa, ja tuloksesta lasketaan takaisin paino tavoitetoistomäärälle.
+**Liikkeellä ei ole tehoa.** Ehdotus lasketaan **jokaiselle sarjalle erikseen** liikkeen viime kerran samasta sarjasta (tai viimeisestä sarjasta, jos sarjoja oli vähemmän) sen mukaan, toteutuiko tavoitetoistomäärä. Jos toistot täyttyivät, uusi paino johdetaan Epley-kaavalla ja progressiokertoimella, mutta nosto rajataan vähintään 2,5 kilon ja enintään 5 prosentin nostoon. Jos toistoja jäi yksi vajaaksi, paino pysyy samana. Jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 prosenttia ja pyöristetään alaspäin 2,5 kilon askeleeseen.
 
 ```
-1RM_edellinen = edellinen_paino × (1 + edelliset_toistot / 30)
-1RM_tavoite   = 1RM_edellinen × progressiokerroin
-paino         = MROUND( 1RM_tavoite / (1 + tavoitetoistot / 30) , 2,5 )
-jos kaava osoittaa nousua mutta paino ≤ edellinen_paino:
-paino         = MROUND( edellinen_paino + 2,5 , 2,5 )          (vähimmäisaskel)
+toistot täyttyivät (edelliset_toistot ≥ tavoitetoistot):
+  1RM_edellinen = edellinen_paino × (1 + edelliset_toistot / 30)
+  paino = MROUND( 1RM_edellinen × progressiokerroin / (1 + tavoitetoistot / 30) , 2,5 )
+  rajattuna välille [ edellinen_paino + 2,5 ; edellinen_paino × 1,05 ]
+yksi toisto vajaaksi:   paino = edellinen_paino
+kaksi tai enemmän vajaaksi: paino = FLOOR( edellinen_paino × 0,95 , 2,5 )
 ```
 
-Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla. Jos tavoitetoistomäärä on sama kuin edellisellä kerralla, kaava supistuu muotoon `paino = edellinen_paino × progressiokerroin`. Alle 102,5 kg:n painoilla tämä nousu on pienempi kuin puoli pyöristysaskelta, joten pelkkä pyöristys palauttaisi aina saman painon; siksi ehdotus nousee vähintään seuraavaan 2,5 kg:n askeleeseen aina, kun kaava osoittaa nousua (esim. 15 kg × 10 → 17,5 kg), ja ledgerin selite kertoo, kun vähimmäisaskelta on käytetty. Jos toistoja tuli tavoitetta vähemmän, kaava voi laskea painoa, eikä vähimmäisaskelta silloin sovelleta.
+Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla; koska tämä on kevyillä painoilla pienempi kuin pyöristysaskel, nosto on aina vähintään 2,5 kg. Esimerkkejä tavoitteella 10 toistoa: 100 kg × 10 → 102,5 kg, 60 kg × 10 → 62,5 kg, 100 kg × 12 → 105 kg (katto), 100 kg × 9 → 100 kg, 100 kg × 7 → 95 kg, 60 kg × 7 → 55 kg. Ledgerin selite kertoo jokaisen sarjan perusteen. Historian laajennus useamman kerran taakse ja jumitunnistus tehdään erillisenä vaiheena.
 
 Kehitys-näkymän laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
 

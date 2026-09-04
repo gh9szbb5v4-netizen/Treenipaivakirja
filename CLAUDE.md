@@ -401,9 +401,13 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   testausväliä.
 - `PROGRESSION_COEFFICIENT = 1.0125`: painoehdotuksen tavoiteltu kehitys
   per treenikerta.
-- Painoehdotuksen vähimmäisaskel 2,5 kg (`buildDraftRows`, `minStep`):
-  askel on sama kaikilla liikkeillä, myös käsipainoilla, käyttäjän
-  päätöksellä.
+- `WEIGHT_STEP = 2.5`, `PROGRESSION_MAX_FACTOR = 1.05` ja
+  `REGRESSION_FACTOR = 0.95`: painoehdotuksen askel (sama kaikilla
+  liikkeillä, myös käsipainoilla, käyttäjän päätöksellä), noston katto ja
+  kevennys. Ehdotus on sarjakohtainen ja ehdollinen (`buildDraftRows`,
+  `autoCalcInfo.perSet`, tilat `hit`/`near`/`missed`); `state.lastSet`
+  tallentaa sarjan `done`-tiedon. Vaihe 2 (historian laajennus ja
+  jumitunnistus) on vielä tekemättä.
 
 ## Muutoskooste koekäyttäjille (toteutettu)
 

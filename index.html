@@ -402,6 +402,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Painoehdotus lasketaan nyt jokaiselle sarjalle erikseen viime kerran samasta sarjasta: tavoitetoistot täyttyivät → nosto (vähintään 2,5 kg, enintään 5 %), yksi toisto vajaaksi → sama paino, kaksi tai enemmän vajaaksi → 5 %:n kevennys. Selite kertoo jokaisen sarjan perusteen.",
       "Tallennetun merkinnän korjaus säilyy alkuperäisellä treenipäivällä: kun avaat aiemmin kirjatun liikkeen, korjaat arvon ja tallennat, treeni ei siirry korjauspäivälle eikä näy Historiassa kahdesti.",
       "Kehitys: liikkeen 1RM on nyt paras arvo viimeiseltä neljältä viikolta, joten kevyempi ohjelmoitu treenipäivä ei enää pudota lukua. Viimeisimmän treenin oma arvio näkyy kortissa erikseen, yhden toiston sarja lasketaan mittauksena, ja vertailurivit ovat kuukausi, puoli vuotta, vuosi ja ennätys.",
       "Painoehdotus: kun teit tavoitetoistot, ehdotus nousee vähintään seuraavaan 2,5 kg:n askeleeseen (esim. 15 → 17,5 kg). Aiemmin ehdotus jäi kevyillä painoilla samaksi."
@@ -438,6 +439,9 @@
   var STORAGE_REST_TIMER_KEY = "rest-timer-state";
   var SIMULATION_GROWTH = 0.30;
   var PROGRESSION_COEFFICIENT = 1.0125; // Progressiokerroin p: 1,0125 = 1,25 % tavoiteltu kehitys per treenikerta
+  var WEIGHT_STEP = 2.5;             // Painon pyöristysaskel kiloina
+  var PROGRESSION_MAX_FACTOR = 1.05; // Suurin sallittu nosto per kerta (+5 %)
+  var REGRESSION_FACTOR = 0.95;      // Kevennys kun sarja jäi >= 2 toistoa vajaaksi
   // Kehityksen 1RM on paras arvo liukuvalta jaksolta, jotta submaksimaaliset
   // treenipäivät eivät pudota lukua (Epley olettaa sarjan tehdyksi uupumukseen).
   // TARKISTETTAVA: 28 päivää on alkuarvo, jota on arvioitava uudelleen, kun
@@ -579,6 +583,10 @@
   }
   function roundToStep(value, step){
     var r = Math.round(value / step) * step;
+    return Math.round(r * 100) / 100;
+  }
+  function floorToStep(value, step){
+    var r = Math.floor(value / step) * step;
     return Math.round(r * 100) / 100;
   }
   function parseIntensity(raw){
@@ -2712,33 +2720,54 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!isCombo(ex.name)){
       var normName = ex.name.trim().toLowerCase();
       var last = state.lastSet[normName];
-      if(last && last.sets && last.sets.length){
-        var refSet = last.sets[last.sets.length - 1];
-        var refReps = toNumber(refSet.reps);
-        var refWeight = toNumber(refSet.weight);
-        var targetReps = toNumber(ex.reps);
-        if(isFinite(targetReps) && isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
-          // Epley-kaava (sama vakio 30 kuin buildAllOneRepMaxSeries)
-          // edellisen sarjan 1RM-arviolle, kerrottuna progressiokertoimella, ja
-          // takaisin tavoitetoistomäärän painoksi. Kun targetReps === refReps,
-          // tämä supistuu muotoon refWeight * PROGRESSION_COEFFICIENT.
-          var estimatedOneRepMax = refWeight * (1 + refReps/30);
-          var targetOneRepMax = estimatedOneRepMax * PROGRESSION_COEFFICIENT;
-          var rawTarget = targetOneRepMax / (1 + targetReps/30);
-          var computed = roundToStep(rawTarget, 2.5);
-          // Vähimmäisaskel: alle 102,5 kg:n painoilla 1,25 %:n nousu on
-          // pienempi kuin puoli pyöristysaskelta, jolloin pyöristys palauttaisi
-          // saman painon eikä ehdotus nousisi koskaan. Kun kaava osoittaa
-          // nousua mutta pyöristys ei, ehdotetaan seuraavaa 2,5 kg:n askelta.
-          // Laskua (toistoja tavoitetta vähemmän) askel ei koske.
-          var minStep = false;
-          if(rawTarget > refWeight && computed <= refWeight){
-            computed = roundToStep(refWeight + 2.5, 2.5);
-            minStep = true;
+      var targetReps = toNumber(ex.reps);
+      if(last && last.sets && last.sets.length && isFinite(targetReps)){
+        // Ehdollinen, sarjakohtainen progressio. Uuden sarjan k paino
+        // johdetaan edellisen kerran sarjasta k (tai viimeisestä, jos
+        // sarjoja oli vähemmän). Nosto vain jos tavoitetoistot täyttyivät;
+        // yhden toiston vaje pitää painon ennallaan; kahden tai useamman
+        // vaje keventää. Epley-kaava (vakio 30, sama kuin
+        // buildAllOneRepMaxSeries) toimii nostotilanteessa muunnoksena,
+        // mutta nosto rajataan välille [+WEIGHT_STEP, +PROGRESSION_MAX_FACTOR].
+        var formulaRows = [];
+        var perSet = [];
+        var anyComputed = false;
+        for(var k=0;k<count2;k++){
+          var prev = last.sets[k] !== undefined ? last.sets[k] : last.sets[last.sets.length - 1];
+          var prevReps = toNumber(prev.reps);
+          var prevWeight = toNumber(prev.weight);
+          var weightVal = "";
+          var status = "none";
+          if(isFinite(prevReps) && isFinite(prevWeight) && prevWeight > 0){
+            var diff = prevReps - targetReps;
+            var next;
+            if(diff >= 0){
+              status = "hit";
+              var estimatedOneRepMax = prevWeight * (1 + prevReps/30);
+              var targetOneRepMax = estimatedOneRepMax * PROGRESSION_COEFFICIENT;
+              next = targetOneRepMax / (1 + targetReps/30);
+              var minNext = prevWeight + WEIGHT_STEP;
+              var maxNext = Math.max(prevWeight * PROGRESSION_MAX_FACTOR, minNext);
+              if(next < minNext) next = minNext;
+              if(next > maxNext) next = maxNext;
+              next = roundToStep(next, WEIGHT_STEP);
+              if(next <= prevWeight) next = prevWeight + WEIGHT_STEP;
+            } else if(diff === -1){
+              status = "near";
+              next = prevWeight;
+            } else {
+              status = "missed";
+              next = floorToStep(prevWeight * REGRESSION_FACTOR, WEIGHT_STEP);
+              if(next <= 0) next = WEIGHT_STEP;
+            }
+            weightVal = String(next);
+            anyComputed = true;
           }
-          var formulaRows = [];
-          for(var k=0;k<count2;k++){ formulaRows.push({ weight: String(computed), reps: draftRepsFor(ex, k), notes: "", done: false }); }
-          state.autoCalcInfo[id] = { type:"formula", refWeight: refWeight, refReps: refReps, date: last.date, progressionPercent: (PROGRESSION_COEFFICIENT - 1) * 100, minStep: minStep, rawTarget: rawTarget };
+          formulaRows.push({ weight: weightVal, reps: draftRepsFor(ex, k), notes: "", done: false });
+          perSet.push({ status: status, prevWeight: prevWeight, prevReps: prevReps });
+        }
+        if(anyComputed){
+          state.autoCalcInfo[id] = { type:"formula", date: last.date, targetReps: targetReps, perSet: perSet };
           return formulaRows;
         }
       }
@@ -2779,7 +2808,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     entry.exercises[id] = record;
     if(!isCombo(ex.name) && !correction){
       state.lastSet[ex.name.trim().toLowerCase()] = {
-        sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }),
+        sets: sets.map(function(s){ return { weight: s.weight, reps: s.reps, done: !!s.done }; }),
         date: state.draftDate
       };
       await saveLastSet();
@@ -4454,7 +4483,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("3. Painoehdotukset", ohjeP(
-      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus perustuu viime kerran viimeiseen sarjaan. Jos teit enemmän tai vähemmän toistoja kuin tavoite, paino lasketaan automaattisesti ylös- tai alaspäin. Kun kaava osoittaa nousua, ehdotus nousee aina vähintään seuraavaan 2,5 kg:n askeleeseen (esim. 15 kg → 17,5 kg), koska pelkkä 1,25 %:n laskennallinen nousu pyöristyisi kevyillä painoilla pois."
+      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus lasketaan jokaiselle sarjalle erikseen viime kerran samasta sarjasta. Jos tavoitetoistot täyttyivät, paino nousee vähintään 2,5 kg ja enintään 5 %; jos toistoja jäi yksi vajaaksi, paino pysyy samana; jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 % alaspäin pyöristäen. Sarjarivin yläpuolella kerrotaan jokaisen sarjan peruste."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
     ) + ohjeP(
@@ -4889,11 +4918,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         text = "Paino laskettu " + pctStr + " liikkeen 1RM:stä (" + maxWeightStr + ") — muokattavissa.";
       }
     } else if(info.type === "formula"){
-      var progressionStr = String(Math.round(info.progressionPercent * 100) / 100).replace(".", ",");
-      text = "Paino laskettu Epley-kaavalla edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + "), tavoitteena " + progressionStr + " % kehitys — muokattavissa.";
-      if(info.minStep){
-        text += " Laskennallinen nousu (" + String(Math.round(info.rawTarget * 10) / 10).replace(".", ",") + " kg) pyöristyisi samaan painoon, joten ehdotus on seuraava 2,5 kg:n askel.";
-      }
+      var parts = (info.perSet || []).map(function(p, i){
+        var label = "S" + (i+1) + ": ";
+        if(p.status === "hit") return label + "tavoite täyttyi → nosto";
+        if(p.status === "near") return label + "jäi 1 vajaaksi → sama paino";
+        if(p.status === "missed") return label + "jäi ≥2 vajaaksi → kevennys";
+        return label + "ei vertailudataa";
+      });
+      text = "Ehdotus edellisen kerran (" + info.date + ") sarjoista, tavoite " +
+        info.targetReps + " toistoa. " + parts.join(" · ") + " — muokattavissa.";
     } else if(info.type === "saved"){
       text = "Tämä merkintä on jo tallennettu (" + capitalize(formatDateFI(info.date)) + ") — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
     } else {
