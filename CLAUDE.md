@@ -104,6 +104,25 @@ välineeseen), `renderVariantInfo()` näyttää rivin "Väline:"
 esikatseluun. Käyttäjän omilla liikkeillä ei ole välinettä (lomake ja
 varmuuskopion `#OMAT LIIKKEET` ennallaan), jolloin sitä ei näytetä.
 
+`catalogPartsFor(name)` jakaa liikkeen nimen katalogin mukaan: pisin
+pilkuilla rajattu alkuosa, joka osuu `resolveCatalogMatch()`-funktioon
+(koostettu rivi tai pelkkä liikenimi), on `liike`; loput ovat
+`variantText` (variaatio, lisävariaatio ja muu häntä) ja `details` on
+`[valine, variantText, lihasryhma]` ilman tyhjiä. Katalogin ulkopuolinen
+nimi palauttaa null. Tulos muistetaan `catalogPartsCache`-oliossa avaimella
+`nimi|omien liikkeiden määrä`, joten omien liikkeiden lisäys ei vaadi
+tyhjennystä. `baseExerciseName(name)` palauttaa `liike`-osan tai koko
+nimen. Käyttöpaikat: `renderExercise()` (otsikkona `liike`, alla
+`.exercise-detail`-rivi `details.join(" · ")`; `renderVariantInfo()`
+luettelee enää vain tunnetut variaatiot), `buildAllOneRepMaxSeries()` ja
+`buildPainAnalysis()` (sarjan avain on `baseExerciseName`, joten eri tangolla
+tai kahvalla kirjatut merkinnät ovat yksi liike; 1RM-sarja kerää
+`variants`-joukon ja kortti näyttää rivin "Variaatiot: …", kun niitä on
+useampi). Historia, painoehdotus (`state.lastSet`) ja 1RM-arvot
+(`state.manualMax`) käyttävät edelleen koko nimeä, koska eri tanko voi
+vaatia eri painon. Testi: `test_variant_merge.js` (fixture
+`prog_variants.csv`).
+
 Edellinen katalogi (97 liikettä, 10 lihasryhmää, mm. "Jalat", "Ojentajat",
 "Olkapäät") korvattiin kokonaan; vain 14 nimeä säilyi. Ohjelmien ja
 merkintöjen nimiin ei koskettu, koska katalogi on vain valitsimien
