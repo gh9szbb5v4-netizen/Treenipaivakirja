@@ -144,6 +144,45 @@
   .exercise-name{font-weight:600; font-size:15px;}
   .exercise-target{font-size:var(--fs-sm); color:var(--mist); margin-top:3px; font-variant-numeric:tabular-nums;}
   .exercise-detail{font-size:11px; color:var(--mist); margin-top:2px; line-height:1.3;}
+  /* Kehitys: ruudukot, mittaririvit, liikelista, taulukot ja liikenäkymä */
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0;}
+  .stat{background:var(--surface-2); border-radius:var(--radius-sm); padding:10px 12px; min-width:0;}
+  .stat-label{font-size:var(--fs-xs); color:var(--mist);}
+  .stat-value{font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--chalk); line-height:1.2; margin-top:2px; overflow-wrap:anywhere;}
+  .stat-delta{font-size:var(--fs-xs); color:var(--chalk); font-variant-numeric:tabular-nums; margin-top:2px;}
+  .stat-sub{color:var(--mist);}
+  .metric-row{padding:8px 0;}
+  .metric-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:var(--fs-sm);}
+  .metric-value{font-variant-numeric:tabular-nums; font-weight:700; white-space:nowrap;}
+  .metric-pct{color:var(--mist); font-weight:600; margin-left:6px;}
+  .metric-bar{height:4px; background:var(--line); border-radius:2px; margin-top:6px; overflow:hidden;}
+  .metric-fill{height:100%; background:var(--brass);}
+  .kehitys-row{display:flex; align-items:center; gap:10px; min-height:56px; padding:8px 8px 8px 14px; border-bottom:1px solid var(--line); cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .kehitys-row:last-child{border-bottom:0;}
+  .kehitys-row:active{background:var(--surface-2);}
+  .kehitys-row:focus-visible{outline:2px solid var(--brass); outline-offset:-2px;}
+  .kehitys-row-body{flex:1; min-width:0;}
+  .kehitys-row-name{font-weight:700; font-size:var(--fs-md);}
+  .kehitys-row-sub{font-size:var(--fs-xs); color:var(--mist); margin-top:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .kehitys-row-right{text-align:right; font-variant-numeric:tabular-nums; flex-shrink:0;}
+  .kehitys-row-value{font-weight:800; color:var(--brass); font-size:var(--fs-lg);}
+  .kehitys-row-delta{font-size:var(--fs-xs);}
+  .kehitys-table{width:100%; border-collapse:collapse; font-size:var(--fs-sm); font-variant-numeric:tabular-nums;}
+  .kehitys-table th{text-align:left; color:var(--mist); font-weight:600; font-size:var(--fs-xs); padding:6px 4px; border-bottom:1px solid var(--line);}
+  .kehitys-table td{padding:8px 4px; border-bottom:1px dashed var(--line);}
+  .kehitys-table tr:last-child td{border-bottom:0;}
+  .kehitys-table td.num, .kehitys-table th.num{text-align:right; white-space:nowrap;}
+  .chip-danger{color:var(--danger-text); border-color:var(--danger-text); background:transparent;}
+  .chip-btn{font:inherit; font-size:var(--fs-sm); font-weight:700; cursor:pointer; min-height:44px; padding:0 14px;}
+  .kehitys-tabs{display:flex; width:100%; margin-bottom:12px;}
+  .kehitys-tabs button{flex:1; padding:5px 2px; min-height:38px;}
+  .kehitys-tabs button.dim{opacity:.55;}
+  .kehitys-detail-head{display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+  .kehitys-back{font:inherit; font-size:var(--fs-md); font-weight:700; background:transparent; border:0; color:var(--brass); min-height:44px; min-width:44px; padding:0 8px 0 0; cursor:pointer; border-radius:8px;}
+  .kehitys-back:focus-visible{outline:2px solid var(--brass);}
+  .kehitys-detail-title{font-size:var(--fs-xl); font-weight:800; margin:0; flex:1; min-width:0; overflow-wrap:anywhere;}
+  .week-ex-row{display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-top:1px dashed var(--line); font-size:var(--fs-sm); flex-wrap:wrap;}
+  .week-ex-stats{color:var(--mist); white-space:nowrap; font-variant-numeric:tabular-nums;}
   .chevron{color:var(--mist); font-size:20px; transition:transform .2s, color .2s; flex-shrink:0; margin-left:10px;}
   .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
   .chevron-btn{background:none; border:none; padding:0; margin:0; cursor:pointer; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; flex-shrink:0;}
@@ -401,13 +440,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.3.0";
+  var APP_VERSION = "0.4.0";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Kehitys-välilehti uudistui (versio 0.4.0): etusivulla ovat viikon yhteenveto (kokonaispaino, sarjat, toistot, treenipäivät ja erot edelliseen viikkoon), kokonaispainon käyrä viikon tai päivän karkeudella, ohjelman toteutuminen viimeiseltä 28 päivältä (sarjat, toistotavoite, progressiotavoite ja pysähtyneet liikkeet) sekä liikelista hakukentällä. Liikkeen rivi avaa oman näkymän välilehdillä 1RM, Ennätykset (raskain paino, paras sarja, toistoalueet), Volyymi ja Toteutuminen. Uudet merkinnät tallentavat myös sen, mitä ohjelma ja painoehdotus edellyttivät; vanhoille merkinnöille toteutuminen on arvio.",
       "Varmuuskopion palautus tunnistaa Excelissä avatun ja tallennetun tiedoston: jos Excel on kirjoittanut jokaisen rivin yhdeksi soluksi, sovellus purkaa rivit itse, ja ohjelma, merkinnät ja 1RM-arvot palautuvat. Aiemmin tällainen tiedosto antoi ilmoituksen, ettei siitä löytynyt tuotavaa sisältöä.",
       "Lämmittelyn tuntuma kysytään nyt sanallisella asteikolla Kevyt, Sujuva, Työläs, Raskas ja Äärirajoilla RPE-numeroiden sijaan; jokainen pykälä kertoo, montako toistoa olisit vielä jaksanut, ja valinnan kuvaus näkyy rivin alla. Selitteet ja Ohje käyttävät samoja sanoja. Aiemmat kirjaukset ja painoehdotuksen säätö toimivat ennallaan.",
       "Kehitys yhdistää saman liikkeen variaatiot: liikkeen 1RM, kokonaispaino ja vaivalokin analyysi lasketaan liikkeen nimen mukaan riippumatta siitä, millä tangolla tai kahvalla se on kirjattu, ja kortti kertoo kirjatut variaatiot. Ohjelma-näkymässä liikkeen otsikkona on liikkeen nimi ja sen alla pienellä väline, variaatio ja lihasryhmä; erillinen Tunnetut variaatiot -rivi on poistettu.",
@@ -458,6 +498,11 @@
   // Parilliset kehonosat, joille kysytään puoli.
   var PAIN_PAIRED = { olkapaa: true, kyynarpaa: true, ranne: true, lonkka: true, polvi: true, nilkka: true };
   var PAIN_DISCLAIMER = "Loki näyttää ajallisia yhteyksiä omissa kirjauksissasi, ei syitä. Jos vaiva jatkuu tai pahenee, ota yhteys terveydenhuollon ammattilaiseen.";
+  // Kehityksen laajennus: ennätysten toistoalueet, toteutumisen aikaikkuna ja
+  // liikelistan suodatuskentän raja.
+  var REP_RANGE_BINS = [[1,3],[4,6],[7,10],[11,15],[16,Infinity]];
+  var ADHERENCE_WINDOW_DAYS = 28;
+  var KEHITYS_LIST_FILTER_MIN = 8;
   var STORAGE_LAST_EXPORT_KEY = "last-export-date";
   var EXPORT_REMINDER_DAYS = 14;
   var REST_DURATION_SECONDS = 90;
@@ -606,6 +651,18 @@
     kehitys: undefined,
     kehitysTotalWeight: undefined,
     kehitysLoading: false,
+    // Kehityksen laajennus: viikkoyhteenveto, toteutumisen yhteenveto,
+    // volyymikortin karkeus, liikenäkymä (normalisoitu nimi tai null), sen
+    // välilehti ja etusivun vieritysasento, liikelistan suodatin ja viikon
+    // liikelistan avaus.
+    kehitysWeekly: undefined,
+    kehitysAdherenceSummary: undefined,
+    kehitysVolumeScale: "viikko",
+    kehitysDetail: null,
+    kehitysDetailTab: "1rm",
+    kehitysScrollY: 0,
+    kehitysFilter: "",
+    expandedWeekExercises: false,
     storageMode: "claude",
     storageWarn: false,
     lastError: null,
@@ -3633,7 +3690,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           }
         }
         if(anyComputed){
-          state.autoCalcInfo[id] = { type:"formula", date: last.date, targetReps: targetReps, perSet: perSet, plateau: plateau };
+          // Kerran ehdotettu paino (painavin ehdotettu työsarja) tallennetaan
+          // merkinnän plan-kenttään toteutumisen laskentaa varten.
+          var suggestedMax = null;
+          formulaRows.forEach(function(fr){ var fw = toNumber(fr.weight); if(isFinite(fw) && (suggestedMax === null || fw > suggestedMax)) suggestedMax = fw; });
+          state.autoCalcInfo[id] = { type:"formula", date: last.date, targetReps: targetReps, perSet: perSet, plateau: plateau, weight: suggestedMax };
           return formulaRows;
         }
       }
@@ -3728,7 +3789,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // korjaus säilyttää alkuperäisen merkinnän tiedon.
     var calcInfo = state.autoCalcInfo[id];
     var wasDeload = correction ? !!(logged.data && logged.data.deload) : !!(calcInfo && calcInfo.plateau);
-    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO, deload: wasDeload, warmups: warmups };
+    // Suunnitelma: mitä ohjelma ja painoehdotus tällä kerralla edellyttivät
+    // (Kehityksen toteutuminen). Jo tallennetun merkinnän suunnitelma
+    // säilytetään, jottei korjaus korvaa sitä null-arvoilla.
+    var existingPlan = (logged && logged.data && logged.data.plan) ? logged.data.plan : null;
+    var plan = (correction || (calcInfo && calcInfo.type === "saved")) && existingPlan ? existingPlan : buildPlanForExercise(ex, calcInfo);
+    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO, deload: wasDeload, warmups: warmups, plan: plan };
     // Korjausaika talteen; treenin ajankohta (loggedAt) säilyy alkuperäisenä.
     if(correction) record.editedAt = nowISO;
     entry.exercises[id] = record;
@@ -3775,6 +3841,21 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
   }
 
+  // Merkinnän suunnitelma: ohjelman sarjat ja toistot sekä progressiologiikan
+  // ehdottama paino (autoCalcInfo.type "formula"). Teholiikkeillä paino
+  // johdetaan 1RM:stä, joten niille ehdotus on aina null.
+  function buildPlanForExercise(ex, calcInfo){
+    var plannedSets = parseInt(ex.sets, 10);
+    var plannedReps = toNumber(ex.reps);
+    var suggested = null;
+    if(!ex.intensity && calcInfo && calcInfo.type === "formula" && isFinite(toNumber(calcInfo.weight))) suggested = toNumber(calcInfo.weight);
+    return {
+      sets: (isFinite(plannedSets) && plannedSets > 0) ? plannedSets : null,
+      reps: isFinite(plannedReps) ? plannedReps : null,
+      suggestedWeight: suggested
+    };
+  }
+
   async function completeAndAdvance(id){
     // Kutsutaan vasta kun kaikki liikkeen sarjat on merkitty valmiiksi: tallentaa
     // (saveExerciseLog sulkee liikkeen state.openExercise = null onnistuessaan) ja
@@ -3798,15 +3879,52 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
   }
 
-  async function buildAllOneRepMaxSeries(){
-    var seriesByName = {};
+  // ---------- Kehitys: yhteinen laskentapohja ----------
+  // Koko historia luetaan kerran (yksi storeList-kutsu per loadKehitys) ja
+  // sama päivämäärän mukaan nouseva taulukko [{ date, entry }] annetaan
+  // kaikille rakentajille.
+  async function loadAllEntries(){
+    var out = [];
     try{
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
       var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
       for(var i=0;i<dates.length;i++){
-        var date = dates[i];
-        var entry = await loadEntry(date);
+        out.push({ date: dates[i], entry: await loadEntry(dates[i]) });
+      }
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return out;
+  }
+  // Kehityksen liikeavain: katalogin liikenimi variaatiosta riippumatta
+  // (baseExerciseName), pienin kirjaimin. Sama avain 1RM-sarjoissa,
+  // ennätyksissä, volyymissä ja toteutumisessa.
+  function kehitysKeyFor(fullName){
+    var name = baseExerciseName(fullName);
+    return { name: name, norm: name.toLowerCase() };
+  }
+  // Merkinnän liikkeet loggedAt-järjestyksessä, jotta saman päivän kaksi
+  // merkintää samalle liikkeelle käsitellään aina samassa järjestyksessä.
+  function entryExerciseKeys(entry){
+    var ex = (entry && entry.exercises) || {};
+    return Object.keys(ex).sort(function(a, b){
+      var la = String(ex[a].loggedAt || ""), lb = String(ex[b].loggedAt || "");
+      return la < lb ? -1 : (la > lb ? 1 : (a < b ? -1 : (a > b ? 1 : 0)));
+    });
+  }
+  // Kalenteriviikon maanantai paikallisena päivänä (ISO 8601: viikko alkaa
+  // maanantaista). Paikallinen tulkinta kuten formatDateFI, ei UTC.
+  function isoWeekStartISO(dateISO){
+    var d = new Date(dateISO + "T00:00:00");
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return toLocalISO(d);
+  }
+
+  function buildAllOneRepMaxSeries(entries){
+    var seriesByName = {};
+    try{
+      for(var i=0;i<entries.length;i++){
+        var date = entries[i].date;
+        var entry = entries[i].entry;
         var exKeys = Object.keys(entry.exercises || {});
         for(var j=0;j<exKeys.length;j++){
           var ek = exKeys[j];
@@ -3860,18 +3978,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return seriesByName;
   }
 
-  async function buildTotalWeightSeries(){
+  function buildTotalWeightSeries(entries){
     // Sama tietolähde kuin buildAllOneRepMaxSeries, mutta liikkeen 1RM:n sijaan
     // summataan koko treenipäivän nostettu kokonaispaino (paino × toistot,
     // kaikki sarjat kaikista liikkeistä yhteen laskettuna).
     var points = [];
     try{
-      var res = await storeList("entries:");
-      var keys = (res && res.keys) || [];
-      var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
-      for(var i=0;i<dates.length;i++){
-        var date = dates[i];
-        var entry = await loadEntry(date);
+      for(var i=0;i<entries.length;i++){
+        var date = entries[i].date;
+        var entry = entries[i].entry;
         var total = 0;
         var exKeys = Object.keys(entry.exercises || {});
         for(var j=0;j<exKeys.length;j++){
@@ -3885,6 +4000,262 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       }
     }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
     return points;
+  }
+
+  // ---------- Kehitys: ennätykset ----------
+  // Jokaiselle ei-yhdistelmäliikkeelle raskain paino (tasatilanteessa enemmän
+  // toistoja, sitten aikaisin päivä), paras sarja (paino × toistot, tasatilan-
+  // teessa aikaisin päivä) ja toistoaluekohtaiset ennätykset REP_RANGE_BINS-
+  // alueille. Vain sarjat, joissa paino > 0 ja toistot >= 1. Merkinnät käydään
+  // päivämäärän mukaan, joten "ei korvata tasatilanteessa" tuottaa aikaisimman.
+  function buildRecordsByName(entries){
+    var out = {};
+    try{
+      entries.forEach(function(item){
+        var date = item.date, exs = (item.entry && item.entry.exercises) || {};
+        Object.keys(exs).forEach(function(ek){
+          var data = exs[ek];
+          var fullName = String(data.name || "").trim();
+          if(!fullName || isCombo(fullName)) return;
+          var key = kehitysKeyFor(fullName);
+          if(!out[key.norm]) out[key.norm] = { name: key.name, heaviest: null, bestSet: null, byRepRange: REP_RANGE_BINS.map(function(){ return null; }) };
+          var rec = out[key.norm];
+          (data.sets || []).forEach(function(s){
+            var w = toNumber(s.weight), r = toNumber(s.reps);
+            if(!isFinite(w) || !isFinite(r) || w <= 0 || r < 1) return;
+            if(!rec.heaviest || w > rec.heaviest.weight || (w === rec.heaviest.weight && r > rec.heaviest.reps)){
+              rec.heaviest = { weight: w, reps: r, date: date };
+            }
+            var tonnage = w * r;
+            if(!rec.bestSet || tonnage > rec.bestSet.tonnage){
+              rec.bestSet = { weight: w, reps: r, tonnage: tonnage, date: date };
+            }
+            for(var b=0;b<REP_RANGE_BINS.length;b++){
+              var bin = REP_RANGE_BINS[b];
+              if(r >= bin[0] && r <= bin[1]){
+                var cur = rec.byRepRange[b];
+                if(!cur || w > cur.weight || (w === cur.weight && r > cur.reps)){
+                  rec.byRepRange[b] = { min: bin[0], max: bin[1], weight: w, reps: r, date: date };
+                }
+                break;
+              }
+            }
+          });
+        });
+      });
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return out;
+  }
+
+  // ---------- Kehitys: volyymi ----------
+  // Yksi piste per treenipäivä per liike: tonnage (paino × toistot, sama sääntö
+  // kuin buildTotalWeightSeries), sarjojen määrä ja toistojen summa.
+  // Yhdistelmäliikkeillä tonnage on aina 0, mutta sarjat ja toistot lasketaan.
+  function buildVolumeByName(entries){
+    var out = {};
+    try{
+      entries.forEach(function(item){
+        var date = item.date, exs = (item.entry && item.entry.exercises) || {};
+        Object.keys(exs).forEach(function(ek){
+          var data = exs[ek];
+          var fullName = String(data.name || "").trim();
+          if(!fullName) return;
+          var combo = isCombo(fullName);
+          var key = kehitysKeyFor(fullName);
+          if(!out[key.norm]) out[key.norm] = { name: key.name, combo: combo, points: [], byDate: {} };
+          var store = out[key.norm];
+          var sets = data.sets || [];
+          var tonnage = 0, reps = 0;
+          sets.forEach(function(s){
+            var w = toNumber(s.weight), r = toNumber(s.reps);
+            if(isFinite(r)) reps += r;
+            if(!combo && isFinite(w) && isFinite(r)) tonnage += w * r;
+          });
+          if(store.byDate[date] === undefined){
+            store.byDate[date] = store.points.length;
+            store.points.push({ date: date, tonnage: 0, sets: 0, reps: 0 });
+          }
+          var pt = store.points[store.byDate[date]];
+          pt.tonnage = Math.round((pt.tonnage + tonnage) * 10) / 10;
+          pt.sets += sets.length;
+          pt.reps += reps;
+        });
+      });
+      Object.keys(out).forEach(function(norm){ delete out[norm].byDate; });
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return out;
+  }
+
+  // Viikkoyhteenveto: nousevasti lajiteltu taulukko viikoista, joina on
+  // merkintöjä. weekStart on viikon maanantai, days eri treenipäivien määrä ja
+  // byExercise liikekohtaiset sarjat, toistot ja tonnage (yhdistelmät ilman
+  // tonnagea).
+  function buildWeeklySummary(entries){
+    var byWeek = {}, order = [];
+    try{
+      entries.forEach(function(item){
+        var date = item.date, exs = (item.entry && item.entry.exercises) || {};
+        var exKeys = Object.keys(exs);
+        if(!exKeys.length) return;
+        var ws = isoWeekStartISO(date);
+        if(!byWeek[ws]){ byWeek[ws] = { weekStart: ws, tonnage: 0, sets: 0, reps: 0, days: 0, dayMap: {}, byExercise: {} }; order.push(ws); }
+        var wk = byWeek[ws];
+        if(!wk.dayMap[date]){ wk.dayMap[date] = true; wk.days++; }
+        exKeys.forEach(function(ek){
+          var data = exs[ek];
+          var fullName = String(data.name || "").trim();
+          if(!fullName) return;
+          var combo = isCombo(fullName);
+          var key = kehitysKeyFor(fullName);
+          if(!wk.byExercise[key.norm]) wk.byExercise[key.norm] = { name: key.name, combo: combo, sets: 0, reps: 0, tonnage: 0 };
+          var agg = wk.byExercise[key.norm];
+          var sets = data.sets || [];
+          agg.sets += sets.length; wk.sets += sets.length;
+          sets.forEach(function(s){
+            var w = toNumber(s.weight), r = toNumber(s.reps);
+            if(isFinite(r)){ agg.reps += r; wk.reps += r; }
+            if(!combo && isFinite(w) && isFinite(r)){ agg.tonnage += w * r; wk.tonnage += w * r; }
+          });
+        });
+      });
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return order.sort().map(function(ws){
+      var wk = byWeek[ws];
+      wk.tonnage = Math.round(wk.tonnage * 10) / 10;
+      Object.keys(wk.byExercise).forEach(function(n){ wk.byExercise[n].tonnage = Math.round(wk.byExercise[n].tonnage * 10) / 10; });
+      delete wk.dayMap;
+      return wk;
+    });
+  }
+
+  // ---------- Kehitys: ohjelman toteutuminen ----------
+  // Ilman plan-kenttää olevan merkinnän (ennen versiota 0.4.0 tai varmuus-
+  // kopiosta palautettu) suunnitelma päätellään: sarjat ja toistot nykyisen
+  // ohjelman liikkeestä, jos avain täsmää (uudelleentuonti ja liikkeen vaihto
+  // antavat uudet id:t, jolloin null), ja ehdotettu paino samalla kaavalla kuin
+  // buildDraftRows käyttäisi edellisen kerran viimeisestä sarjasta. Päättely on
+  // arvio: se ei tiedä takautuvista kirjauksista tai muutetuista tavoitteista.
+  function inferPlan(key, data, previousSession){
+    var ex = findExerciseById(key);
+    var plan = { sets: null, reps: null, suggestedWeight: null, inferred: true };
+    if(ex){
+      var sc = parseInt(ex.sets, 10);
+      if(isFinite(sc) && sc > 0) plan.sets = sc;
+      var tr = toNumber(ex.reps);
+      if(isFinite(tr)) plan.reps = tr;
+      if(ex.intensity) return plan;
+    }
+    if(previousSession && previousSession.sets && previousSession.sets.length){
+      var ref = previousSession.sets[previousSession.sets.length - 1];
+      var refWeight = toNumber(ref.weight), refReps = toNumber(ref.reps);
+      var targetReps = plan.reps !== null ? plan.reps : refReps;
+      if(isFinite(refWeight) && isFinite(refReps) && refWeight > 0 && isFinite(targetReps)){
+        plan.suggestedWeight = roundToStep(refWeight * (1 + refReps/30) * PROGRESSION_COEFFICIENT / (1 + targetReps/30), 2.5);
+      }
+    }
+    return plan;
+  }
+  // Nykyisen ohjelman teholiikkeet (MAX tai prosentti) avaimittain: niille ei
+  // lasketa ehdotetun painon eikä progressiotavoitteen toteutumista.
+  function programIntensityNorms(){
+    var out = {};
+    if(!state.program || !state.program.days) return out;
+    state.program.days.forEach(function(d){
+      (d.exercises || []).forEach(function(ex){ if(ex.intensity) out[kehitysKeyFor(ex.name).norm] = true; });
+    });
+    return out;
+  }
+  // Kerta = yksi merkintä (päivä + liike). Sarjat verrataan suunniteltuihin,
+  // toistotavoite täyttyy kun kaikissa sarjoissa toistot >= tavoite, ehdotettu
+  // paino kun jossakin sarjassa paino >= ehdotus ja samassa sarjassa toistot >=
+  // tavoite, ja progressiotavoite kun päivän 1RM-piste >= edellinen piste ×
+  // PROGRESSION_COEFFICIENT (pyöristetty nykyarvo, pyöristämätön tavoite).
+  // Pysähtynyt: vähintään neljä 1RM-pistettä ja kolme viimeisintä kukin <=
+  // edeltävä. Teho- ja yhdistelmäliikkeille progressio ja pysähtyminen ohitetaan.
+  function buildAdherenceByName(entries, seriesByName){
+    var out = {};
+    var lastSessionByNorm = {};
+    var tehoNorms = programIntensityNorms();
+    try{
+      entries.forEach(function(item){
+        var date = item.date, exs = (item.entry && item.entry.exercises) || {};
+        entryExerciseKeys(item.entry).forEach(function(ek){
+          var data = exs[ek];
+          var fullName = String(data.name || "").trim();
+          if(!fullName) return;
+          var combo = isCombo(fullName);
+          var key = kehitysKeyFor(fullName);
+          var plan = (data.plan && typeof data.plan === "object") ? data.plan : inferPlan(ek, data, lastSessionByNorm[key.norm] || null);
+          lastSessionByNorm[key.norm] = data;
+          if(!out[key.norm]){
+            out[key.norm] = { name: key.name, combo: combo, sessions: 0, setsDone: 0, setsPlanned: 0, setsSessions: 0,
+              repsHit: 0, repsSessions: 0, suggestedHit: 0, suggestedSessions: 0, progressionHit: 0, progressionSessions: 0,
+              stalled: false, all: [], recent: [] };
+          }
+          var a = out[key.norm];
+          var sets = data.sets || [];
+          var session = { date: date, setsDone: sets.length, setsPlanned: null, repsHit: null, suggestedHit: null, progressionHit: null };
+          a.sessions++;
+          var plannedSets = toNumber(plan.sets);
+          if(isFinite(plannedSets) && plannedSets > 0){
+            session.setsPlanned = plannedSets;
+            a.setsDone += sets.length; a.setsPlanned += plannedSets; a.setsSessions++;
+          }
+          var planReps = toNumber(plan.reps);
+          if(isFinite(planReps) && sets.length > 0 && sets.every(function(s){ return isFinite(toNumber(s.reps)); })){
+            session.repsHit = sets.every(function(s){ return toNumber(s.reps) >= planReps; });
+            a.repsSessions++; if(session.repsHit) a.repsHit++;
+          }
+          var sw = toNumber(plan.suggestedWeight);
+          if(!combo && isFinite(sw) && sw > 0){
+            session.suggestedHit = sets.some(function(s){
+              var w = toNumber(s.weight), r = toNumber(s.reps);
+              return isFinite(w) && w >= sw && (!isFinite(planReps) || (isFinite(r) && r >= planReps));
+            });
+            a.suggestedSessions++; if(session.suggestedHit) a.suggestedHit++;
+          }
+          if(!combo && !tehoNorms[key.norm]){
+            var pts = seriesByName[key.norm] ? seriesByName[key.norm].points : [];
+            var idx = -1;
+            for(var p=0;p<pts.length;p++){ if(pts[p].date === date){ idx = p; break; } }
+            if(idx > 0){
+              session.progressionHit = pts[idx].value >= pts[idx-1].value * PROGRESSION_COEFFICIENT;
+              a.progressionSessions++; if(session.progressionHit) a.progressionHit++;
+            }
+          }
+          a.all.push(session);
+        });
+      });
+      Object.keys(out).forEach(function(norm){
+        var a = out[norm];
+        var pts = seriesByName[norm] ? seriesByName[norm].points : [];
+        if(!a.combo && !tehoNorms[norm] && pts.length >= 4){
+          var n = pts.length;
+          a.stalled = pts[n-1].value <= pts[n-2].value && pts[n-2].value <= pts[n-3].value && pts[n-3].value <= pts[n-4].value;
+        }
+        a.recent = a.all.slice(-5).reverse();
+      });
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return out;
+  }
+  // Etusivun yhteenveto viimeisiltä ADHERENCE_WINDOW_DAYS päivältä: kaikkien
+  // liikkeiden sarjat, toistotavoite ja progressiotavoite yhteenlaskettuina
+  // sekä pysähtyneet liikkeet.
+  function buildAdherenceSummary(adherenceByName){
+    var since = daysAgoISO(ADHERENCE_WINDOW_DAYS);
+    var sum = { setsDone: 0, setsPlanned: 0, setsSessions: 0, repsHit: 0, repsSessions: 0, progressionHit: 0, progressionSessions: 0, stalled: [] };
+    Object.keys(adherenceByName).forEach(function(norm){
+      var a = adherenceByName[norm];
+      if(a.stalled) sum.stalled.push({ norm: norm, name: capitalize(a.name) });
+      a.all.forEach(function(s){
+        if(s.date < since) return;
+        if(s.setsPlanned !== null){ sum.setsDone += s.setsDone; sum.setsPlanned += s.setsPlanned; sum.setsSessions++; }
+        if(s.repsHit !== null){ sum.repsSessions++; if(s.repsHit) sum.repsHit++; }
+        if(s.progressionHit !== null){ sum.progressionSessions++; if(s.progressionHit) sum.progressionHit++; }
+      });
+    });
+    sum.stalled.sort(function(a, b){ return a.name.localeCompare(b.name, "fi"); });
+    return sum;
   }
 
   // ISO-viikon avain "vuosi-Wnn" (viikko alkaa maanantaista; viikko 1 on se,
@@ -3904,17 +4275,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // on liikkeen koko volyymi (paino × toistot, työsarjat) jaettuna niiden
   // ISO-viikkojen määrällä, joilla liikettä on kirjattu. Yhteys on ajallinen,
   // ei syy — teksti sanoo sen käyttäjälle.
-  async function buildPainAnalysis(){
+  function buildPainAnalysis(entries){
     var groups = {}, order = [];
     try{
       var dayVolumes = {}; // päivä → { liike → volyymi }
       var totals = {};     // liike → { name, volume, weeks }
-      var res = await storeList("entries:");
-      var keys = (res && res.keys) || [];
-      var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
-      for(var i=0;i<dates.length;i++){
-        var date = dates[i];
-        var entry = await loadEntry(date);
+      for(var i=0;i<entries.length;i++){
+        var date = entries[i].date;
+        var entry = entries[i].entry;
         var exKeys = Object.keys(entry.exercises || {});
         for(var j=0;j<exKeys.length;j++){
           var data = entry.exercises[exKeys[j]];
@@ -4032,18 +4400,29 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   async function loadKehitys(){
     state.kehitysLoading = true; render();
     try{
-      var seriesByName = await buildAllOneRepMaxSeries();
-      var names = Object.keys(seriesByName).sort();
+      var entries = await loadAllEntries();
+      var seriesByName = buildAllOneRepMaxSeries(entries);
+      var records = buildRecordsByName(entries);
+      var volume = buildVolumeByName(entries);
+      var adherence = buildAdherenceByName(entries, seriesByName);
       var results = [];
-      names.forEach(function(norm){
+      Object.keys(seriesByName).forEach(function(norm){
         var series = seriesByName[norm];
         var progress = computeProgress(series.points);
-        if(progress){ results.push({ name: capitalize(series.displayName), progress: progress, points: series.points, variants: Object.keys(series.variants || {}) }); }
+        if(progress){
+          results.push({ name: capitalize(series.displayName), norm: norm, progress: progress, points: series.points, variants: Object.keys(series.variants || {}),
+            records: records[norm] || null, volume: volume[norm] || null, adherence: adherence[norm] || null });
+        }
       });
+      results.sort(function(a, b){ return a.name.localeCompare(b.name, "fi"); });
       state.kehitys = results;
-      state.kehitysTotalWeight = await buildTotalWeightSeries();
-      state.painAnalysis = await buildPainAnalysis();
-    }catch(e){ state.kehitys = []; state.kehitysTotalWeight = []; state.painAnalysis = []; }
+      state.kehitysTotalWeight = buildTotalWeightSeries(entries);
+      state.kehitysWeekly = buildWeeklySummary(entries);
+      state.kehitysAdherenceSummary = buildAdherenceSummary(adherence);
+      state.painAnalysis = buildPainAnalysis(entries);
+      // Liikenäkymä säilyy uudelleenlaskennassa; poistunut liike sulkee sen.
+      if(state.kehitysDetail && !results.some(function(r){ return r.norm === state.kehitysDetail; })) state.kehitysDetail = null;
+    }catch(e){ state.kehitys = []; state.kehitysTotalWeight = []; state.kehitysWeekly = []; state.kehitysAdherenceSummary = null; state.painAnalysis = []; state.kehitysDetail = null; }
     state.kehitysLoading = false;
     render();
   }
@@ -4176,6 +4555,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var targetReps = toNumber(ex.reps);
           var repsVal = isFinite(targetReps) ? targetReps : 1;
           var sets = [];
+          var simSuggested = null;
           if(ex.intensity && ex.intensity.isMax){
             var weight = roundToStep(simulationBaseline(ex.name) * growth, 2.5);
             for(var k=0;k<count;k++){ sets.push({ weight: String(weight), reps: String(repsVal), notes: "" }); }
@@ -4191,9 +4571,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           } else {
             var weight2 = roundToStep(simulationBaseline(ex.name) * growth, 2.5);
             for(var k3=0;k3<count;k3++){ sets.push({ weight: String(weight2), reps: String(repsVal), notes: "" }); }
+            simSuggested = weight2;
           }
           if(sets.length === 0) return;
-          entry.exercises[ex.id] = { name: ex.name, sets: sets, loggedAt: dateISO + "T12:00:00.000Z" };
+          // Suunnitelma samalla säännöllä kuin saveExerciseLog: sarjat ja toistot
+          // ohjelmasta, ehdotettu paino simuloitu paino ei-teholiikkeille.
+          entry.exercises[ex.id] = { name: ex.name, sets: sets, loggedAt: dateISO + "T12:00:00.000Z",
+            plan: { sets: (explicitCount && explicitCount > 0) ? explicitCount : null, reps: isFinite(targetReps) ? targetReps : null, suggestedWeight: ex.intensity ? null : simSuggested } };
           if(!isCombo(ex.name)){
             pushLastSet(normName, sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }), dateISO, false);
           }
@@ -5605,8 +5989,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("4. Historia ja Kehitys", ohjeP(
       "<b style=\"color:var(--chalk);\">Historia</b> näyttää kaikki kirjatut päivät sekä laskennallisen yhden toiston maksimin jokaiselle liikkeelle. Yksittäisen päivän voi poistaa avaamalla sen."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Kehitys</b> näyttää jokaiselle liikkeelle 1RM:n parhaana arvona viimeiseltä neljältä viikolta sekä muutoksen kuukauteen, puoleen vuoteen, vuoteen ja ennätykseen verrattuna. Yhden toiston sarja on mittaus; muista sarjoista arvo lasketaan Epley-kaavalla päivän raskaimmasta sarjasta. Ohjelmoitu kevyempi päivä (esim. 4 × 8 seitsemälläkymmenellä prosentilla) ei pudota lukua, koska se ei ole maksimisuoritus — luku laskee vasta, kun vastaava suoritus jää toistamatta neljään viikkoon. Kortti näyttää erikseen viimeisimmän treenin oman arvion. Saman liikkeen eri variaatiot (esimerkiksi eri tanko tai kahva) lasketaan yhteen liikkeen nimen alle, ja kortti kertoo, millä variaatioilla liike on kirjattu."
-    ));
+      "<b style=\"color:var(--chalk);\">Kehitys</b> avautuu etusivuun, joka vastaa kysymykseen ”miten menee”. Viikko-kortti näyttää kuluvan (tai viimeisimmän) treeniviikon kokonaispainon, sarjat, toistot ja treenipäivät sekä erot edelliseen viikkoon; ”Näytä liikkeet” avaa viikon liikkeet. Nostettu kokonaispaino -kortissa karkeuden voi vaihtaa viikon ja päivän välillä. Ohjelman toteutuminen -kortti kertoo viimeiseltä 28 päivältä tehdyt sarjat suhteessa ohjelmoituihin, kuinka usein tavoitetoistot täyttyivät ja kuinka usein 1,25 %:n progressiotavoite toteutui, sekä pysähtyneet liikkeet. Alimpana on liikelista, jossa on jokaisen liikkeen 1RM ja ero edelliseen kertaan; yli kahdeksan liikkeen listaa voi suodattaa hakukentällä. Liike näkyy heti ensimmäisestä merkinnästä lähtien."
+    ) + ohjeP(
+      "Liikkeen rivi avaa liikenäkymän neljällä välilehdellä. <b style=\"color:var(--chalk);\">1RM</b> näyttää parhaan arvon viimeiseltä neljältä viikolta sekä muutoksen kuukauteen, puoleen vuoteen, vuoteen ja ennätykseen verrattuna. Yhden toiston sarja on mittaus; muista sarjoista arvo lasketaan Epley-kaavalla päivän raskaimmasta sarjasta. Ohjelmoitu kevyempi päivä ei pudota lukua, koska se ei ole maksimisuoritus — luku laskee vasta, kun vastaava suoritus jää toistamatta neljään viikkoon. Saman liikkeen eri variaatiot (eri tanko tai kahva) lasketaan yhteen liikkeen nimen alle. <b style=\"color:var(--chalk);\">Ennätykset</b> kertoo raskaimman painon, parhaan sarjan (paino × toistot) ja toistoaluekohtaiset ennätykset alueille 1–3, 4–6, 7–10, 11–15 ja 16+. <b style=\"color:var(--chalk);\">Volyymi</b> näyttää viimeisimmän kerran kokonaispainon, sarjat ja toistot erojen kanssa sekä käyrän. <b style=\"color:var(--chalk);\">Toteutuminen</b> vertaa kertoja siihen, mitä ohjelma ja painoehdotus edellyttivät: sarjat, toistotavoite, ehdotettu paino ja progressiotavoite, sekä viisi viimeisintä kertaa taulukkona. Pysähtynyt-tunniste tarkoittaa, että 1RM ei ole noussut kolmeen viimeisimpään kertaan."
+    ) + ohjeP(
+      "Ohjelman toteutuminen lasketaan täsmällisesti merkinnöistä, jotka on kirjattu versiosta 0.4.0 alkaen: merkintään tallentuu, mitä ohjelma ja painoehdotus edellyttivät. Aiemmille ja varmuuskopiosta palautetuille merkinnöille toteutuminen on arvio, joka päätellään nykyisestä ohjelmasta ja edellisestä kerrasta; se ei tiedä takautuvista kirjauksista eikä muutetuista tavoitetoistoista. Yhdistelmäliikkeet (nimessä kauttaviiva) näkyvät vain viikon sarja- ja toistomäärissä."    ));
 
     html += ohjeSection("Vaivaloki", ohjeP(
       "Ohjelma-välilehden \"Kirjaa vaiva\" -painikkeella kirjaat kehonosakohtaisen vaivan — puolen, voimakkuuden ja vapaan huomion — valitulle kirjauspäivälle. Kirjaukset näkyvät Kehitys-välilehden Vaivat-osiossa, jossa yksittäisen kirjauksen voi poistaa."
@@ -6828,23 +7215,276 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       rows +
       '</div>';
   }
-  function renderTotalWeightCard(points){
-    if(!points || points.length === 0) return "";
-    var last = points[points.length - 1];
-    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
-      '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">' +
-      '<div style="font-weight:600; font-size:15px;">Nostettu kokonaispaino</div>' +
-      '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:800; font-size:16px;">' + String(last.value).replace(".", ",") + ' kg</div>' +
+  // ---------- Kehitys: esitysapurit ----------
+  // Suomalainen lukumuoto: desimaalipilkku, tuhaterotin sitovana välilyöntinä
+  // (4 800 kg) ja yksikkö sitovalla välilyönnillä, jottei luku katkea.
+  function fmtNumberFI(value){
+    var n = Math.round(toNumber(value) * 10) / 10;
+    if(!isFinite(n)) return "–";
+    var neg = n < 0;
+    n = Math.abs(n);
+    var intPart = Math.floor(n);
+    var frac = Math.round((n - intPart) * 10);
+    if(frac === 10){ intPart += 1; frac = 0; }
+    var s = String(intPart).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    if(frac > 0) s += "," + frac;
+    return (neg ? "−" : "") + s;
+  }
+  function fmtKg(value){ return fmtNumberFI(value) + " kg"; }
+  function fmtInt(n){ return String(Math.round(toNumber(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+  function fmtSignedInt(n){
+    var r = Math.round(n);
+    return r > 0 ? "+" + fmtInt(r) : (r < 0 ? "−" + fmtInt(-r) : "0");
+  }
+  function fmtSetKg(weight, reps){ return fmtKg(weight) + " × " + reps; }
+  // Viikon alku ja loppu: "7.–13.9." samassa kuussa, muuten "31.8.–6.9.".
+  function formatWeekRangeFI(weekStart){
+    var end = isoAddDays(weekStart, 6);
+    var s = new Date(weekStart + "T00:00:00"), e = new Date(end + "T00:00:00");
+    if(s.getMonth() === e.getMonth()) return s.getDate() + ".–" + e.getDate() + "." + (e.getMonth() + 1) + ".";
+    return formatDateShortFI(weekStart) + "–" + formatDateShortFI(end);
+  }
+  // Volyymin, sarjojen ja toistojen erot ovat neutraaleja (kevyt viikko voi olla
+  // suunniteltu), joten ne esitetään etumerkillisinä chalk-värillä.
+  function neutralDelta(text){ return text ? '<span style="color:var(--chalk); font-variant-numeric:tabular-nums;">' + text + '</span>' : ""; }
+  function tonnageDeltaText(cur, past){
+    return fmtSignedKg(cur - past) + fmtSignedPct(past ? (cur - past) / past * 100 : null);
+  }
+  // Yhteinen mittaririvi: nimi, "44 / 48" ja prosentti sekä 4 px palkki.
+  // Rivi jätetään pois, kun nimittäjä on 0.
+  function renderMetricRow(label, hit, total){
+    if(!total) return "";
+    var pct = Math.round(hit / total * 100);
+    return '<div class="metric-row">' +
+      '<div class="metric-head"><span class="metric-label">' + escapeHtml(label) + '</span>' +
+      '<span class="metric-value">' + fmtInt(hit) + ' / ' + fmtInt(total) + '<span class="metric-pct">· ' + pct + ' %</span></span></div>' +
+      '<div class="metric-bar" aria-hidden="true"><div class="metric-fill" style="width:' + Math.max(0, Math.min(100, pct)) + '%;"></div></div>' +
+      '</div>';
+  }
+  function renderStat(label, valueHtml, subHtml){
+    return '<div class="stat"><div class="stat-label">' + label + '</div><div class="stat-value">' + valueHtml + '</div>' +
+      (subHtml ? '<div class="stat-delta">' + subHtml + '</div>' : '') + '</div>';
+  }
+  // Kuluva viikko, tai jos sillä ei ole merkintöjä, viimeisin merkintäviikko.
+  function currentWeekIndex(weekly){
+    var cur = isoWeekStartISO(todayISO());
+    for(var i=weekly.length-1;i>=0;i--){ if(weekly[i].weekStart === cur) return i; }
+    return weekly.length - 1;
+  }
+  // Viikko-kortti: 2 × 2 -ruudukko (kokonaispaino vain, jos sitä on) ja
+  // avattava viikon liikelista tonnagen mukaan, yhdistelmät lopuksi.
+  function renderWeekCard(){
+    var weekly = state.kehitysWeekly || [];
+    if(!weekly.length) return "";
+    var idx = currentWeekIndex(weekly);
+    var wk = weekly[idx];
+    var prev = idx > 0 ? weekly[idx - 1] : null;
+    var isCurrent = wk.weekStart === isoWeekStartISO(todayISO());
+    var html = '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
+      '<div style="font-weight:600; font-size:15px;">Viikko ' + escapeHtml(formatWeekRangeFI(wk.weekStart)) + '</div>' +
+      (isCurrent ? '' : '<div style="font-size:11px; color:var(--mist);">Viimeisin treeniviikko</div>') +
+      '<div class="stat-grid">' +
+      (wk.tonnage > 0 ? renderStat("Kokonaispaino", fmtKg(wk.tonnage), prev ? neutralDelta(tonnageDeltaText(wk.tonnage, prev.tonnage)) : "") : "") +
+      renderStat("Sarjat", fmtInt(wk.sets), prev ? neutralDelta(fmtSignedInt(wk.sets - prev.sets)) : "") +
+      renderStat("Toistot", fmtInt(wk.reps), prev ? neutralDelta(fmtSignedInt(wk.reps - prev.reps)) : "") +
+      renderStat("Treenipäivät", fmtInt(wk.days), prev ? neutralDelta(fmtSignedInt(wk.days - prev.days)) : "") +
       '</div>' +
-      '<div style="font-size:11px; color:var(--mist); margin-bottom:10px;">Treenipäivän nostettu kokonaispaino, viimeksi ' + capitalize(formatDateFI(last.date)) + '</div>' +
+      '<button type="button" class="btn-tertiary btn-sm" data-toggle-week-exercises aria-expanded="' + (state.expandedWeekExercises ? "true" : "false") + '">' +
+      (state.expandedWeekExercises ? "Piilota liikkeet" : "Näytä liikkeet ›") + '</button>';
+    if(state.expandedWeekExercises){
+      var rows = Object.keys(wk.byExercise).map(function(n){ return wk.byExercise[n]; }).sort(function(a, b){
+        if(a.combo !== b.combo) return a.combo ? 1 : -1;
+        return (b.tonnage - a.tonnage) || a.name.localeCompare(b.name, "fi");
+      });
+      html += '<div style="margin-top:6px;">' + rows.map(function(r){
+        return '<div class="week-ex-row"><span>' + escapeHtml(capitalize(r.name)) + '</span><span class="week-ex-stats">' +
+          plural(r.sets, "sarja", "sarjaa") + ' · ' + plural(Math.round(r.reps), "toisto", "toistoa") + ((r.combo || !(r.tonnage > 0)) ? '' : ' · ' + fmtKg(r.tonnage)) + '</span></div>';
+      }).join("") + '</div>';
+    }
+    return html + '</div>';
+  }
+  // Volyymi-kortti: yksi käyrä, karkeus Viikko | Päivä. Päivä-karkeus on
+  // täsmälleen aiempi Nostettu kokonaispaino -kortti (samat pisteet ja otsikko).
+  function renderVolumeCard(){
+    var dayPoints = state.kehitysTotalWeight || [];
+    var weekPoints = (state.kehitysWeekly || []).filter(function(w){ return w.tonnage > 0; }).map(function(w){ return { date: w.weekStart, value: w.tonnage }; });
+    if(!dayPoints.length && !weekPoints.length) return "";
+    var scale = state.kehitysVolumeScale === "paiva" ? "paiva" : "viikko";
+    var points = scale === "viikko" ? weekPoints : dayPoints;
+    if(!points.length){ scale = scale === "viikko" ? "paiva" : "viikko"; points = scale === "viikko" ? weekPoints : dayPoints; }
+    var last = points[points.length - 1];
+    var sub = scale === "viikko"
+      ? "Viikon nostettu kokonaispaino, viimeksi viikolla " + formatWeekRangeFI(last.date)
+      : "Treenipäivän nostettu kokonaispaino, viimeksi " + capitalize(formatDateFI(last.date));
+    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; gap:8px;">' +
+      '<div style="font-weight:600; font-size:15px;">Nostettu kokonaispaino</div>' +
+      '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:800; font-size:16px;">' + fmtKg(last.value) + '</div>' +
+      '</div>' +
+      '<div style="font-size:11px; color:var(--mist); margin-bottom:8px;">' + escapeHtml(sub) + '</div>' +
+      '<div class="segmented" role="group" aria-label="Kokonaispainon karkeus" style="margin-bottom:6px;">' +
+      '<button type="button" class="' + (scale === "viikko" ? "on" : "") + '" data-volume-scale="viikko" aria-pressed="' + (scale === "viikko" ? "true" : "false") + '">Viikko</button>' +
+      '<button type="button" class="' + (scale === "paiva" ? "on" : "") + '" data-volume-scale="paiva" aria-pressed="' + (scale === "paiva" ? "true" : "false") + '">Päivä</button>' +
+      '</div>' +
       renderProgressChart(points, "Nostettu kokonaispaino", "kg") +
       '</div>';
   }
+  var ADHERENCE_EMPTY_TEXT = "Toteutumista ei voi vielä laskea. Se lasketaan merkinnöistä, jotka on kirjattu ohjelman liikkeille.";
+  // Toteutuminen-kortti: kolme mittaririviä viimeisiltä 28 päivältä ja
+  // pysähtyneet liikkeet napautettavina tunnisteina.
+  function renderAdherenceCard(){
+    var s = state.kehitysAdherenceSummary;
+    if(!s) return "";
+    var rows = renderMetricRow("Sarjat", s.setsDone, s.setsPlanned) +
+      renderMetricRow("Toistotavoite", s.repsHit, s.repsSessions) +
+      renderMetricRow("Progressiotavoite", s.progressionHit, s.progressionSessions);
+    var body = rows || '<div style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5;">' + ADHERENCE_EMPTY_TEXT + '</div>';
+    var stalled = "";
+    if(s.stalled.length){
+      stalled = '<div style="margin-top:10px;"><div style="font-size:var(--fs-xs); color:var(--mist); margin-bottom:6px;">Pysähtyneet liikkeet</div>' +
+        '<div style="display:flex; flex-wrap:wrap; gap:6px;">' +
+        s.stalled.map(function(x){ return '<button type="button" class="chip chip-danger chip-btn" data-open-kehitys="' + escapeHtml(x.norm) + '">' + escapeHtml(x.name) + '</button>'; }).join("") +
+        '</div></div>';
+    }
+    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
+      '<div style="font-weight:600; font-size:15px;">Ohjelman toteutuminen</div>' +
+      '<div style="font-size:11px; color:var(--mist); margin-bottom:4px;">Viimeiset ' + ADHERENCE_WINDOW_DAYS + ' päivää</div>' +
+      body + stalled + '</div>';
+  }
+  // Liikelistan rivit; suodatin osajonona ilman kirjainkoon merkitystä.
+  // Päivitetään suoraan #kehitys-list-elementtiin input-tapahtumassa.
+  function kehitysListRowsHtml(filter){
+    var q = String(filter || "").trim().toLowerCase();
+    var items = (state.kehitys || []).filter(function(it){ return !q || it.name.toLowerCase().indexOf(q) !== -1; });
+    if(!items.length) return '<div style="color:var(--mist); font-size:var(--fs-sm); padding:12px;">Ei osumia.</div>';
+    return items.map(function(it){
+      var pts = it.points;
+      var lastPt = pts[pts.length - 1];
+      var prevPt = pts.length > 1 ? pts[pts.length - 2] : null;
+      var stalled = !!(it.adherence && it.adherence.stalled);
+      return '<div class="kehitys-row" role="button" tabindex="0" data-open-kehitys="' + escapeHtml(it.norm) + '">' +
+        '<div class="kehitys-row-body"><div class="kehitys-row-name">' + escapeHtml(it.name) + '</div>' +
+        '<div class="kehitys-row-sub"><span>' + escapeHtml(formatDateShortFI(lastPt.date)) + '</span>' +
+        (stalled ? '<span class="chip chip-danger">Pysähtynyt</span>' : '') + '</div></div>' +
+        '<div class="kehitys-row-right"><div class="kehitys-row-value">' + fmtKg(it.progress.current) + '</div>' +
+        (prevPt ? '<div class="kehitys-row-delta">' + renderDeltaValue(lastPt.value, prevPt.value) + '</div>' : '') + '</div>' +
+        '<span class="choice-chevron" aria-hidden="true">' + icon("nuoli", 20) + '</span>' +
+        '</div>';
+    }).join("");
+  }
+  function renderKehitysList(){
+    var items = state.kehitys || [];
+    var html = '<div class="day-heading" style="display:flex; justify-content:space-between;"><span>Liikkeet</span><span>' + items.length + '</span></div>';
+    if(items.length > KEHITYS_LIST_FILTER_MIN){
+      html += '<input type="search" class="ledger-input" data-kehitys-filter placeholder="Hae liikettä" aria-label="Hae liikettä" autocomplete="off" value="' + escapeHtml(state.kehitysFilter || "") + '" style="margin-bottom:8px;">';
+    }
+    return html + '<div class="exercise" id="kehitys-list">' + kehitysListRowsHtml(state.kehitysFilter) + '</div>';
+  }
+  // Liikenäkymä: otsikkopalkki, neljä välilehteä ja valitun sisältö. Välilehti
+  // ilman dataa on himmennetty mutta valittava; sen sisältö on yksi lause.
+  function renderKehitysDetail(item){
+    var tab = state.kehitysDetailTab || "1rm";
+    var a = item.adherence;
+    var hasRecords = !!(item.records && item.records.heaviest);
+    var hasVolume = !!(item.volume && item.volume.points.length);
+    var hasAdherence = !!(a && (a.setsSessions || a.repsSessions || a.suggestedSessions || a.progressionSessions));
+    var tabs = [["1rm", "1RM", true], ["ennatykset", "Ennätykset", hasRecords], ["volyymi", "Volyymi", hasVolume], ["toteutuminen", "Toteutuminen", hasAdherence]];
+    var html = '<div class="kehitys-detail-head">' +
+      '<button type="button" class="kehitys-back" data-close-kehitys>‹ Kehitys</button>' +
+      '<h2 class="kehitys-detail-title">' + escapeHtml(item.name) + '</h2>' +
+      ((a && a.stalled) ? '<span class="chip chip-danger">Pysähtynyt</span>' : '') + '</div>' +
+      '<div class="segmented kehitys-tabs" role="tablist" aria-label="Liikkeen tiedot">' +
+      tabs.map(function(t){
+        var on = tab === t[0];
+        return '<button type="button" role="tab" class="' + (on ? "on" : "") + (t[2] ? "" : " dim") + '" data-kehitys-tab="' + t[0] + '" aria-selected="' + (on ? "true" : "false") + '">' + t[1] + '</button>';
+      }).join("") + '</div>';
+    if(tab === "ennatykset") html += renderRecordsTab(item);
+    else if(tab === "volyymi") html += renderVolumeTab(item);
+    else if(tab === "toteutuminen") html += renderAdherenceTab(item);
+    else html += renderKehitysCard(item);
+    return html;
+  }
+  function detailSentence(text){
+    return '<div class="exercise" style="padding:16px;"><div style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5;">' + text + '</div></div>';
+  }
+  function renderRecordsTab(item){
+    var rec = item.records;
+    if(!rec || !rec.heaviest) return detailSentence("Ennätykset lasketaan sarjoista, joissa on paino ja toistot.");
+    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
+      '<div class="stat-grid" style="margin-top:0;">' +
+      renderStat("Raskain paino", escapeHtml(fmtSetKg(rec.heaviest.weight, rec.heaviest.reps)), '<span class="stat-sub">' + escapeHtml(capitalize(formatDateFI(rec.heaviest.date))) + '</span>') +
+      renderStat("Paras sarja", escapeHtml(fmtSetKg(rec.bestSet.weight, rec.bestSet.reps)) + '<div style="font-size:var(--fs-sm); font-weight:600;">= ' + escapeHtml(fmtKg(rec.bestSet.tonnage)) + '</div>', '<span class="stat-sub">' + escapeHtml(capitalize(formatDateFI(rec.bestSet.date))) + '</span>') +
+      '</div>' +
+      '<table class="kehitys-table"><thead><tr><th scope="col">Toistoalue</th><th scope="col" class="num">Paino</th><th scope="col" class="num">Toistot</th><th scope="col" class="num">Pvm</th></tr></thead><tbody>' +
+      rec.byRepRange.map(function(r, i){
+        var bin = REP_RANGE_BINS[i];
+        var label = bin[1] === Infinity ? bin[0] + "+" : bin[0] + "–" + bin[1];
+        if(!r) return '<tr style="color:var(--mist);"><td>' + label + '</td><td class="num" aria-label="Ei vielä sarjoja">–</td><td class="num" aria-label="Ei vielä sarjoja">–</td><td class="num" aria-label="Ei vielä sarjoja">–</td></tr>';
+        return '<tr><td>' + label + '</td><td class="num">' + escapeHtml(fmtKg(r.weight)) + '</td><td class="num">' + r.reps + '</td><td class="num">' + escapeHtml(formatDateShortFI(r.date)) + '</td></tr>';
+      }).join("") + '</tbody></table></div>';
+  }
+  function renderVolumeTab(item){
+    var v = item.volume;
+    if(!v || !v.points.length) return detailSentence("Volyymi lasketaan kirjatuista sarjoista.");
+    var pts = v.points;
+    var last = pts[pts.length - 1];
+    var prev = pts.length > 1 ? pts[pts.length - 2] : null;
+    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' +
+      '<div style="font-size:11px; color:var(--mist);">Viimeisin kerta ' + escapeHtml(capitalize(formatDateFI(last.date))) + '</div>' +
+      '<div class="stat-grid">' +
+      renderStat("Kokonaispaino", fmtKg(last.tonnage), prev ? neutralDelta(tonnageDeltaText(last.tonnage, prev.tonnage)) : "") +
+      renderStat("Sarjat", fmtInt(last.sets), prev ? neutralDelta(fmtSignedInt(last.sets - prev.sets)) : "") +
+      renderStat("Toistot", fmtInt(last.reps), prev ? neutralDelta(fmtSignedInt(last.reps - prev.reps)) : "") +
+      '</div>' +
+      (pts.some(function(p){ return p.tonnage > 0; })
+        ? renderProgressChart(pts.map(function(p){ return { date: p.date, value: p.tonnage }; }), item.name + " — volyymi", "kg")
+        : "") +
+      '</div>';
+  }
+  function renderAdherenceTab(item){
+    var a = item.adherence;
+    var rows = a ? renderMetricRow("Sarjat", a.setsDone, a.setsPlanned) +
+      renderMetricRow("Toistotavoite", a.repsHit, a.repsSessions) +
+      renderMetricRow("Ehdotettu paino", a.suggestedHit, a.suggestedSessions) +
+      renderMetricRow("Progressiotavoite", a.progressionHit, a.progressionSessions) : "";
+    if(!rows) return detailSentence("Toteutumista ei voi laskea tälle liikkeelle. Se lasketaan merkinnöistä, jotka on kirjattu ohjelman liikkeille.");
+    function sym(v){
+      if(v === true) return '<td class="num" aria-label="Saavutettu">✓</td>';
+      if(v === false) return '<td class="num" aria-label="Ei saavutettu">✗</td>';
+      return '<td class="num" aria-label="Ei laskettavissa">–</td>';
+    }
+    var recent = a.recent || [];
+    var table = recent.length
+      ? '<div style="font-size:var(--fs-xs); color:var(--mist); margin:12px 0 4px;">Viimeiset treenikerrat</div>' +
+        '<table class="kehitys-table"><thead><tr><th scope="col">Pvm</th><th scope="col" class="num">Sarjat</th><th scope="col" class="num">Toistot</th><th scope="col" class="num">Progressio</th></tr></thead><tbody>' +
+        recent.map(function(s){
+          return '<tr><td>' + escapeHtml(formatDateShortFI(s.date)) + '</td>' +
+            (s.setsPlanned === null ? '<td class="num" aria-label="Ei laskettavissa">–</td>' : '<td class="num">' + s.setsDone + ' / ' + s.setsPlanned + '</td>') +
+            sym(s.repsHit) + sym(s.progressionHit) + '</tr>';
+        }).join("") + '</tbody></table>' +
+        '<div style="font-size:var(--fs-xs); color:var(--mist); margin-top:6px;">✓ saavutettu · ✗ ei · – ei laskettavissa</div>'
+      : "";
+    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' + rows + table + '</div>';
+  }
   function renderKehitys(){
     if(state.kehitysLoading) return '<div class="empty">Lasketaan kehitystä…</div>';
-    var data = state.kehitys;
-    if(!data || data.length === 0) return renderEmptyState("kehitys", "Ei vielä kehitystä", "Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.", goToProgramButton()) + renderPainSection();
-    return renderTotalWeightCard(state.kehitysTotalWeight) + data.map(function(item){ return renderKehitysCard(item); }).join("") + renderPainSection();
+    var data = state.kehitys || [];
+    var weekly = state.kehitysWeekly || [];
+    if(!data.length && !weekly.length){
+      return renderEmptyState("kehitys", "Ei vielä kehitystä", "Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.", goToProgramButton()) + renderPainSection();
+    }
+    if(state.kehitysDetail){
+      var item = null;
+      data.forEach(function(it){ if(it.norm === state.kehitysDetail) item = it; });
+      if(item) return renderKehitysDetail(item);
+    }
+    var html = renderWeekCard();
+    if(data.length){
+      html += renderVolumeCard() + renderAdherenceCard() + renderKehitysList();
+    } else {
+      html += detailSentence("Laskennallinen 1RM vaatii painon ja toistot. Yhdistelmäliikkeet näkyvät vain viikon sarja- ja toistomäärissä.");
+    }
+    return html + renderPainSection();
   }
   // Kehityksen Vaivat-osio: analyysi kehonosittain ja kirjaukset uusin ensin.
   function renderPainSection(){
@@ -7470,6 +8110,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         return;
       }
       state.view = el.dataset.tab;
+      // Alanavigaation Kehitys palaa aina liikelistaan.
+      if(state.view === "kehitys") state.kehitysDetail = null;
       state.confirmingReset = false;
       // Asetukset avautuu aina riviluetteloon, ei edelliseen alinäkymään.
       state.settingsSection = null;
@@ -7732,6 +8374,34 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("[data-history-date]"))){ await toggleHistoryDate(el.dataset.date); return; }
+    if((el = e.target.closest("[data-open-kehitys]"))){
+      // Etusivun vieritysasento talteen; liikenäkymä avataan ylös vieritettynä.
+      state.kehitysScrollY = window.scrollY || 0;
+      state.kehitysDetail = el.dataset.openKehitys;
+      state.kehitysDetailTab = "1rm";
+      afterRender(function(){ window.scrollTo(0, 0); });
+      return;
+    }
+    if((el = e.target.closest("[data-close-kehitys]"))){
+      state.kehitysDetail = null;
+      afterRender(function(){ window.scrollTo(0, state.kehitysScrollY || 0); });
+      return;
+    }
+    if((el = e.target.closest("[data-kehitys-tab]"))){
+      state.kehitysDetailTab = el.dataset.kehitysTab;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-volume-scale]"))){
+      state.kehitysVolumeScale = el.dataset.volumeScale;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-toggle-week-exercises]"))){
+      state.expandedWeekExercises = !state.expandedWeekExercises;
+      render();
+      return;
+    }
     if((el = e.target.closest("[data-pain-open]"))){
       state.showPainForm = true;
       afterRender(function(){ var painSel = document.getElementById("pain-region"); if(painSel) painSel.focus(); });
@@ -7782,7 +8452,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         await savePainLog();
         state.painAnalysis = undefined;
         // Poisto tehdään Kehitys-näkymässä, joten analyysi päivitetään heti.
-        if(state.view === "kehitys") state.painAnalysis = await buildPainAnalysis();
+        if(state.view === "kehitys") state.painAnalysis = buildPainAnalysis(await loadAllEntries());
         render();
       }
       return;
@@ -7908,6 +8578,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   });
 
   app.addEventListener("input", function(e){
+    if(e.target.hasAttribute("data-kehitys-filter")){
+      // Liikelista päivitetään suoraan DOM:iin, jottei fokus katoa kentästä.
+      state.kehitysFilter = e.target.value;
+      var kl = document.getElementById("kehitys-list");
+      if(kl) kl.innerHTML = kehitysListRowsHtml(state.kehitysFilter);
+      return;
+    }
     if(e.target.id === "liike-haku"){
       // Hakulista päivitetään suoraan DOM:iin, jottei fokus katoa kentästä.
       state.editor.pickerQuery = e.target.value;
@@ -8010,7 +8687,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Välilehdet, liikeotsikot ja historian päivät ovat div-elementtejä, joten
     // Enter ja välilyönti ohjataan olemassa olevaan click-käsittelijään.
     if(e.key !== "Enter" && e.key !== " ") return;
-    var el = e.target.closest("[data-tab], [data-toggle-ex], [data-history-date], [data-toggle-day-summary]");
+    var el = e.target.closest("[data-tab], [data-toggle-ex], [data-history-date], [data-toggle-day-summary], [data-open-kehitys], [data-close-kehitys], [data-kehitys-tab]");
     if(!el) return;
     e.preventDefault();
     el.click();

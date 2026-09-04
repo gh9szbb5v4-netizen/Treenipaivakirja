@@ -435,6 +435,64 @@ ne on sidottu liike-id:eihin, jotka ovat ohjelmakohtaisia, joten
 ohjelmaan palattaessa `buildExerciseLogIndex()` löytää sen tehty-tilan
 ennallaan. `resetAll()` poistaa myös kirjaston. Testit: `test_programs.js`.
 
+## Kehityksen laajennus: ennätykset, volyymi ja toteutuminen (toteutettu, 0.4.0)
+
+Yhteinen laskentapohja: `loadAllEntries()` tekee yhden `storeList("entries:")`-
+skannauksen ja palauttaa `[{ date, entry }]` nousevasti; `buildAllOneRepMaxSeries`,
+`buildTotalWeightSeries`, `buildPainAnalysis` ja uudet rakentajat ottavat sen
+parametrina (eivät ole enää async). `loadKehitys()` kutsuu sitä kerran; vaivalokin
+poistokäsittelijä kutsuu `buildPainAnalysis(await loadAllEntries())`. Liikeavain on
+kaikkialla `kehitysKeyFor(fullName)` = `baseExerciseName` pienin kirjaimin (sama
+kuin 1RM-sarjoissa variaatioiden yhdistämisen jälkeen). `isoWeekStartISO(date)`
+palauttaa viikon maanantain paikallisena päivänä.
+
+Rakentajat: `buildRecordsByName` (raskain paino, paras sarja, `byRepRange`
+`REP_RANGE_BINS`-alueille; vain paino > 0 ja toistot >= 1; tasatilanteessa
+enemmän toistoja, sitten aikaisin päivä), `buildVolumeByName` (piste per päivä:
+tonnage, sets, reps; yhdistelmillä tonnage 0), `buildWeeklySummary`
+(`weekStart`, tonnage, sets, reps, days, byExercise) ja `buildAdherenceByName`
+(kerta = merkintä; sarjat vs. `plan.sets`, toistotavoite, ehdotettu paino,
+progressiotavoite 1RM-pisteestä ≥ edellinen × `PROGRESSION_COEFFICIENT`;
+`stalled` = vähintään neljä pistettä ja kolme viimeisintä kukin ≤ edeltävä;
+teho- ja yhdistelmäliikkeet ohitetaan progressiosta ja pysähtymisestä,
+teholiikkeet tunnistetaan nykyisestä ohjelmasta `programIntensityNorms()`).
+`buildAdherenceSummary` summaa `ADHERENCE_WINDOW_DAYS` (28) päivän kerrat ja
+kerää pysähtyneet. `state.kehitys`-alkioissa ovat `norm`, `records`, `volume`
+ja `adherence`; lisäksi `state.kehitysWeekly` ja `state.kehitysAdherenceSummary`.
+
+Tietomalli: `saveExerciseLog` tallentaa merkintään `plan: { sets, reps,
+suggestedWeight }` (`buildPlanForExercise`; `autoCalcInfo.type "formula"` sai
+kentän `weight` = painavin ehdotettu työsarja; teholiikkeillä null). Jo
+tallennetun merkinnän `plan` säilytetään korjauksessa. Simulointi kirjoittaa
+saman kentän. Ilman kenttää olevat merkinnät päätellään `inferPlan(key, data,
+previousSession)`: sarjat ja toistot `findExerciseById(key)`:stä, ehdotus
+edellisen kerran viimeisestä sarjasta samalla kaavalla kuin `buildDraftRows`
+(arvio, mainittu Ohjeessa). Vientiä ja tuontia ei muutettu.
+
+Näkymä (master–detail): `renderKehitys()` piirtää etusivun `renderWeekCard()`
+(2 × 2 `.stat-grid`, kokonaispaino vain jos > 0, `[data-toggle-week-exercises]`,
+`state.expandedWeekExercises`), `renderVolumeCard()` (korvaa
+`renderTotalWeightCard`; `[data-volume-scale]`, `state.kehitysVolumeScale`,
+Päivä-karkeus on täsmälleen entinen käyrä), `renderAdherenceCard()`
+(`renderMetricRow(label, hit, total)`, nimittäjä 0 → rivi pois; kaikki pois →
+`ADHERENCE_EMPTY_TEXT`; pysähtyneet `.chip-danger.chip-btn`
+`[data-open-kehitys]`) ja `renderKehitysList()` (`.kehitys-row` `role="button"`
+`[data-open-kehitys]`, suodatin `[data-kehitys-filter]` kun liikkeitä >
+`KEHITYS_LIST_FILTER_MIN`, päivitetään `#kehitys-list`-elementtiin input-
+tapahtumassa ilman render()-kutsua). Vain yhdistelmämerkinnät → viikko-kortti
+ja yksi lause. Liikenäkymä `renderKehitysDetail(item)`: `state.kehitysDetail`
+(norm), `state.kehitysDetailTab` (`1rm | ennatykset | volyymi | toteutuminen`,
+`role="tablist"`, datattomat `.dim`), `[data-close-kehitys]`; avaus tallentaa
+`state.kehitysScrollY` ja vierittää ylös, paluu palauttaa asennon
+`afterRender`-kutsulla; alanavigaation Kehitys nollaa `kehitysDetail`.
+`loadKehitys` nollaa sen, jos liike ei enää ole tuloksissa. Näppäimistö:
+`[data-open-kehitys]`, `[data-close-kehitys]`, `[data-kehitys-tab]` keydown-
+listassa. Luvut `fmtKg`/`fmtInt`/`fmtSignedInt` (tuhaterotin ja yksikön
+välilyönti ovat sitovia välilyöntejä; huomioi testien regexeissä); volyymin ja
+määrien erot neutraalilla värillä (`neutralDelta`), 1RM-erot `renderDeltaValue`.
+Testit: `test_kehitys2.js` (fixture `prog_10.csv`), `test_kehitys.js` ja
+`test_variant_merge.js` avaavat liikenäkymän rivistä.
+
 ## Kehityksen 1RM: liukuva paras (toteutettu)
 
 `buildAllOneRepMaxSeries()` antaa jokaiselle päivälle raskaimman sarjan
