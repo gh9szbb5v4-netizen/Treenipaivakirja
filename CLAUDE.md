@@ -416,6 +416,16 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   maksimipainon nousua ja vaje viimeisimmässä → `autoCalcInfo.plateau`,
   kaikille sarjoille `floorToStep(prevWeight × DELOAD_FACTOR)`; ei laukea,
   jos jokin kolmesta kerrasta oli kevennys.
+- `WARMUP_ADJUST_TOLERANCE = 2.5`, `WARMUP_MIN_MATCHES = 1`,
+  `WARMUP_FACTOR_HEAVY = 0.95`, `WARMUP_FACTOR_VERY_HEAVY = 0.90` ja
+  `WARMUP_FACTOR_LIGHT = 1.025`: lämmittelysäätö (`applyWarmupAdjustment`).
+  Luonnosrivillä on `kind` (`"work"` | `"warmup"`), lämmittelyllä `rpe`,
+  progressiorivillä `base` (ehdotus) ja säädön jälkeen `adjusted`; säätö
+  koskee vain rivejä, joilla `weight === base` tai `weight === adjusted`,
+  jotta RPE:n vaihto samassa treenissä säätää uudelleen mutta käsin
+  muokattu rivi jää rauhaan. `lastSet`-kerroilla ja merkinnöillä on
+  `warmups: [{ weight, reps, rpe }]`; lämmittelyt eivät sisälly CSV-vientiin
+  eivätkä Kehityksen laskentaan.
 
 ## Muutoskooste koekäyttäjille (toteutettu)
 

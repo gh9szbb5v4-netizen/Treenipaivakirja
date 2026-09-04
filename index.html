@@ -402,6 +402,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Lämmittelysarjat: liikkeelle voi lisätä lämmittelyrivejä, joille kirjataan paino, toistot ja tuntuma (RPE 6–10). Kun sama lämmittely on kirjattu aiemmin, tavallista raskaampi tuntuma keventää saman treenin työsarjojen ehdotusta (−5 tai −10 %) ja kevyempi nostaa (+2,5 %); käsin muokattuja sarjoja ei säädetä. Lämmittelyt eivät vaikuta Historiaan, Kehitykseen eivätkä lepoajastimeen, eivätkä vielä sisälly varmuuskopioon.",
       "Jumitunnistus: jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmässä jäi toistoja vajaaksi, painoehdotus on 10 %:n kevennys ja selite kertoo syyn. Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennystä.",
       "Painoehdotus lasketaan nyt jokaiselle sarjalle erikseen viime kerran samasta sarjasta: tavoitetoistot täyttyivät → nosto (vähintään 2,5 kg, enintään 5 %), yksi toisto vajaaksi → sama paino, kaksi tai enemmän vajaaksi → 5 %:n kevennys. Selite kertoo jokaisen sarjan perusteen.",
       "Tallennetun merkinnän korjaus säilyy alkuperäisellä treenipäivällä: kun avaat aiemmin kirjatun liikkeen, korjaat arvon ja tallennat, treeni ei siirry korjauspäivälle eikä näy Historiassa kahdesti.",
@@ -445,6 +446,11 @@
   var REGRESSION_FACTOR = 0.95;      // Kevennys kun sarja jäi >= 2 toistoa vajaaksi
   var HISTORY_DEPTH = 3;    // Montako viimeisintä kertaa lastSet säilyttää per liike
   var DELOAD_FACTOR = 0.90; // Kevennys jumitilanteessa (−10 %)
+  var WARMUP_ADJUST_TOLERANCE = 2.5; // Lämmittelyn painovertailun toleranssi (kg)
+  var WARMUP_MIN_MATCHES = 1;        // Montako aiempaa vastaavaa lämmittelyä vaaditaan
+  var WARMUP_FACTOR_HEAVY = 0.95;    // Tuntui ≥1 RPE raskaammalta kuin tavallisesti
+  var WARMUP_FACTOR_VERY_HEAVY = 0.90; // Tuntui ≥2 RPE raskaammalta
+  var WARMUP_FACTOR_LIGHT = 1.025;   // Tuntui ≥1 RPE kevyemmältä
   // Kehityksen 1RM on paras arvo liukuvalta jaksolta, jotta submaksimaaliset
   // treenipäivät eivät pudota lukua (Epley olettaa sarjan tehdyksi uupumukseen).
   // TARKISTETTAVA: 28 päivää on alkuarvo, jota on arvioitava uudelleen, kun
@@ -1349,16 +1355,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     try{ await storeSet(STORAGE_LASTSET_KEY, JSON.stringify(state.lastSet)); }
     catch(e){ /* hiljainen virhe, ei kriittinen */ }
   }
-  function pushLastSet(norm, sets, date, deload){
+  function pushLastSet(norm, sets, date, deload, warmups){
     var old = state.lastSet[norm];
     var entry = { sets: sets, date: date, prior: [] };
     if(deload) entry.deload = true;
+    if(warmups && warmups.length) entry.warmups = warmups;
     if(old){
       if(old.date === date){
         entry.prior = old.prior || [];
       } else {
         var oldCopy = { sets: old.sets, date: old.date };
         if(old.deload) oldCopy.deload = true;
+        if(old.warmups && old.warmups.length) oldCopy.warmups = old.warmups;
         entry.prior = [oldCopy].concat(old.prior || []).slice(0, HISTORY_DEPTH - 1);
       }
     }
@@ -2500,7 +2508,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(existing && existing.sets && existing.sets.length){
         // Aiemmin tallennettu merkintä: sarjat näytetään jo valmiiksi merkittyinä,
         // mutta arvoja voi silti muokata (ks. isRowDoneEligible/data-set-field).
-        state.draftSets[id] = existing.sets.map(function(s){ return Object.assign({}, s, { done: true }); });
+        var restoredWork = existing.sets.map(function(s){ return Object.assign({}, s, { done: true, kind: "work" }); });
+        var restoredWarm = (existing.warmups || []).map(function(w){ return { weight: w.weight, reps: w.reps, rpe: (w.rpe === undefined ? null : w.rpe), notes: "", done: true, kind: "warmup" }; });
+        state.draftSets[id] = restoredWarm.concat(restoredWork);
         state.autoCalcInfo[id] = { type:"saved", date: logged.date };
       } else {
         state.draftSets[id] = buildDraftRows(ex, id);
@@ -2523,11 +2533,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return !isCombo(ex.name);
   }
   function isRowDoneEligible(ex, row){
+    if(isWarmupRow(row)) return !!(row.weight && row.reps);
     return exerciseRequiresWeightForDone(ex) ? !!row.weight : !!(row.weight || row.reps || row.notes);
   }
+  function isWarmupRow(row){ return !!row && row.kind === "warmup"; }
+  function workRows(id){ return (state.draftSets[id] || []).filter(function(r){ return !isWarmupRow(r); }); }
+  function warmupRows(id){ return (state.draftSets[id] || []).filter(isWarmupRow); }
   function isExerciseFullyDone(ex, id){
-    var rows = state.draftSets[id];
-    if(!rows || !rows.length) return false;
+    var rows = workRows(id);
+    if(!rows.length) return false;
     for(var i=0;i<rows.length;i++){ if(!rows[i].done) return false; }
     return true;
   }
@@ -2702,7 +2716,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       delete state.autoCalcInfo[id];
       var manualRows = [];
       var mc = draftRowCount(ex);
-      for(var mi=0; mi<mc; mi++){ manualRows.push({ weight:"", reps: draftRepsFor(ex, mi), notes:"", done:false }); }
+      for(var mi=0; mi<mc; mi++){ manualRows.push({ weight:"", reps: draftRepsFor(ex, mi), notes:"", done:false, kind:"work" }); }
       return manualRows;
     }
 
@@ -2726,7 +2740,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           }
           usedMax = true;
         }
-        maxRows.push({ weight: weightVal, reps: draftRepsFor(ex, i), notes: "", done: false });
+        maxRows.push({ weight: weightVal, reps: draftRepsFor(ex, i), notes: "", done: false, kind: "work" });
       }
       if(usedMax){ state.autoCalcInfo[id] = { type:"max", weight: maxEntry.weight, isMax: ex.intensity.isMax, percents: percents }; }
       else{ delete state.autoCalcInfo[id]; }
@@ -2781,7 +2795,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             weightVal = String(next);
             anyComputed = true;
           }
-          formulaRows.push({ weight: weightVal, reps: draftRepsFor(ex, k), notes: "", done: false });
+          formulaRows.push({ weight: weightVal, reps: draftRepsFor(ex, k), notes: "", done: false, kind: "work", base: weightVal });
           perSet.push({ status: status, prevWeight: prevWeight, prevReps: prevReps });
         }
         // Jumitunnistus: kolme peräkkäistä kertaa ilman että käytetty
@@ -2811,6 +2825,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
                 var dl = floorToStep(pw * DELOAD_FACTOR, WEIGHT_STEP);
                 if(dl <= 0) dl = WEIGHT_STEP;
                 formulaRows[d].weight = String(dl);
+                formulaRows[d].base = formulaRows[d].weight;
                 perSet[d].status = "deload";
               }
             }
@@ -2825,15 +2840,71 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
     delete state.autoCalcInfo[id];
     var blankRows = [];
-    for(var m=0;m<count2;m++){ blankRows.push({ weight:"", reps: draftRepsFor(ex, m), notes:"", done: false }); }
+    for(var m=0;m<count2;m++){ blankRows.push({ weight:"", reps: draftRepsFor(ex, m), notes:"", done: false, kind:"work" }); }
     return blankRows;
+  }
+  // Lämmittelysäätö: saman treenin painavin valmis lämmittely (RPE kirjattu)
+  // verrataan liikkeen aiempiin lämmittelyihin samalla painolla ja toistoilla.
+  // Jos tuntuma poikkeaa tavanomaisesta, työsarjojen progressioehdotusta
+  // säädetään kertoimella. Säätö koskee vain rivejä, joita käyttäjä ei ole
+  // muokannut käsin (weight === base tai edellinen säätöarvo).
+  function applyWarmupAdjustment(id){
+    var ex = findExerciseById(id);
+    if(!ex || ex.intensity || isCombo(ex.name)) return;
+    var normName = ex.name.trim().toLowerCase();
+    var last = state.lastSet[normName];
+    var hist = [];
+    if(last){
+      [last].concat(last.prior || []).forEach(function(session){
+        (session && session.warmups ? session.warmups : []).forEach(function(w){ hist.push(w); });
+      });
+    }
+    var todays = warmupRows(id).filter(function(w){
+      return w.done === true && isFinite(w.rpe) && w.rpe !== null && isFinite(toNumber(w.weight)) && isFinite(toNumber(w.reps));
+    });
+    if(!todays.length){
+      if(state.autoCalcInfo[id]) delete state.autoCalcInfo[id].warmupAdjust;
+      return;
+    }
+    var ref = todays[0];
+    todays.forEach(function(w){ if(toNumber(w.weight) > toNumber(ref.weight)) ref = w; });
+    var refWeight = toNumber(ref.weight), refReps = toNumber(ref.reps), refRpe = ref.rpe;
+    var matches = hist.filter(function(h){
+      return isFinite(toNumber(h.weight)) && Math.abs(toNumber(h.weight) - refWeight) <= WARMUP_ADJUST_TOLERANCE &&
+        toNumber(h.reps) === refReps && isFinite(h.rpe) && h.rpe !== null;
+    });
+    if(!state.autoCalcInfo[id]) state.autoCalcInfo[id] = { type: "none" };
+    if(matches.length < WARMUP_MIN_MATCHES){
+      state.autoCalcInfo[id].warmupAdjust = { status: "learning", refWeight: refWeight, refReps: refReps, refRpe: refRpe };
+      return;
+    }
+    var sum = 0;
+    matches.forEach(function(h){ sum += h.rpe; });
+    var baseline = sum / matches.length;
+    var delta = refRpe - baseline;
+    var factor = 1;
+    if(delta >= 2) factor = WARMUP_FACTOR_VERY_HEAVY;
+    else if(delta >= 1) factor = WARMUP_FACTOR_HEAVY;
+    else if(delta <= -1) factor = WARMUP_FACTOR_LIGHT;
+    workRows(id).forEach(function(row){
+      if(row.done !== false || row.base === undefined) return;
+      if(row.weight !== row.base && row.weight !== row.adjusted) return;
+      var nextVal = String(factor === 1 ? toNumber(row.base) : floorToStep(toNumber(row.base) * factor, WEIGHT_STEP));
+      row.weight = nextVal;
+      row.adjusted = nextVal;
+    });
+    state.autoCalcInfo[id].warmupAdjust = { status: "applied", refWeight: refWeight, refReps: refReps, refRpe: refRpe, baseline: baseline, delta: delta, factor: factor };
+    state.dirtySets[id] = true;
   }
 
   async function saveExerciseLog(id){
     var ex = findExerciseById(id);
     if(!ex) return;
-    var sets = (state.draftSets[id] || []).filter(function(s){ return s.weight || s.reps || s.notes; });
+    var sets = workRows(id).filter(function(s){ return s.weight || s.reps || s.notes; });
     if(sets.length === 0){ showToast("Lisää vähintään yksi sarja ennen tallennusta"); return; }
+    // Vain valmiiksi merkityt lämmittelyt tallennetaan; RPE saa puuttua.
+    var warmups = warmupRows(id).filter(function(w){ return w.done && w.weight && w.reps; })
+      .map(function(w){ return { weight: w.weight, reps: w.reps, rpe: (isFinite(w.rpe) && w.rpe !== null ? w.rpe : null) }; });
     // Jo tallennetun merkinnän korjaus säilyy alkuperäisellä päivällä: muuten
     // sama liike tallentuisi toiseen kertaan korjauspäivälle, näkyisi
     // Historiassa kahdesti ja koko treeni siirtyisi korjauspäivälle.
@@ -2856,7 +2927,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // korjaus säilyttää alkuperäisen merkinnän tiedon.
     var calcInfo = state.autoCalcInfo[id];
     var wasDeload = correction ? !!(logged.data && logged.data.deload) : !!(calcInfo && calcInfo.plateau);
-    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO, deload: wasDeload };
+    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO, deload: wasDeload, warmups: warmups };
     // Korjausaika talteen; treenin ajankohta (loggedAt) säilyy alkuperäisenä.
     if(correction) record.editedAt = nowISO;
     entry.exercises[id] = record;
@@ -2865,7 +2936,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         ex.name.trim().toLowerCase(),
         sets.map(function(s){ return { weight: s.weight, reps: s.reps, done: !!s.done }; }),
         state.draftDate,
-        wasDeload
+        wasDeload,
+        warmups
       );
       await saveLastSet();
     }
@@ -3093,7 +3165,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var data = entry.exercises[ek];
           if((data.name || "").trim().toLowerCase() !== norm) continue;
           var at = data.loggedAt || date;
-          found.push({ sets: data.sets, date: date, at: at, deload: !!data.deload });
+          found.push({ sets: data.sets, date: date, at: at, deload: !!data.deload, warmups: data.warmups || [] });
         }
       }
       found.sort(function(a, b){ return a.at < b.at ? 1 : (a.at > b.at ? -1 : 0); });
@@ -3101,9 +3173,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         var top = found[0];
         var entry = { sets: top.sets, date: top.date, prior: [] };
         if(top.deload) entry.deload = true;
+        entry.warmups = top.warmups || [];
         entry.prior = found.slice(1, HISTORY_DEPTH).map(function(f){
           var p = { sets: f.sets, date: f.date };
           if(f.deload) p.deload = true;
+          p.warmups = f.warmups || [];
           return p;
         });
         state.lastSet[norm] = entry;
@@ -3462,6 +3536,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
 
   async function exportAllCSV(){
+    // Lämmittelysarjat (warmups, RPE) eivät tässä vaiheessa sisälly
+    // CSV-vientiin; vain työsarjat viedään.
     try{
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
@@ -4544,7 +4620,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle."
+      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma (RPE 6–10); kun sama lämmittely on kirjattu aiemmin, poikkeava tuntuma säätää saman treenin työsarjojen painoehdotusta (raskaampi −5 tai −10 %, kevyempi +2,5 %). Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
     ) + ohjeP(
       "Merkinnän voi kirjata myös takautuvasti napauttamalla yläreunan päivämääräsirpaletta. \"Viikko | Kaikki\" -valitsin näyttää joko nykyisen viikon tai koko ohjelman."
     ) + ohjeP(
@@ -5000,12 +5076,35 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         info.targetReps + " toistoa. " + parts.join(" · ") + " — muokattavissa.";
     } else if(info.type === "saved"){
       text = "Tämä merkintä on jo tallennettu (" + capitalize(formatDateFI(info.date)) + ") — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
+    } else if(info.warmupAdjust){
+      // Ei ehdotusta mutta lämmittelysäädön tila: näytetään pelkkä säätöteksti.
+      text = "";
     } else {
       return "";
     }
     var html = '<div style="font-size:11.5px; color:var(--mist); margin-bottom:10px; line-height:1.4;">' + text;
     if(info.type === "saved"){
       html += '<button class="btn-secondary" data-recalc data-id="' + id + '" type="button" style="margin-top:8px; padding:8px; font-size:12px; width:auto; display:block;">Poista merkintä ja laske uudelleen</button>';
+    }
+    var wa = info.warmupAdjust;
+    if(wa){
+      var waText;
+      var rw = String(wa.refWeight).replace(".", ",");
+      if(wa.status === "learning"){
+        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " @ RPE " + wa.refRpe +
+          " kirjattu — ei vielä vertailudataa tälle painolle, työsarjoja ei säädetty.";
+      } else if(wa.factor === 1){
+        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " tuntui tavanomaiselta (RPE " +
+          wa.refRpe + ", aiemmin ~" + String(Math.round(wa.baseline * 10) / 10).replace(".", ",") + ") — työsarjat ennallaan.";
+      } else {
+        // Yksi desimaali, koska +2,5 % pyöristyisi liukuluvun takia "+2 %":ksi.
+        var pct = Math.round((wa.factor - 1) * 1000) / 10;
+        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " tuntui " +
+          (pct < 0 ? "raskaammalta" : "kevyemmältä") + " kuin tavallisesti (RPE " + wa.refRpe +
+          ", aiemmin ~" + String(Math.round(wa.baseline * 10) / 10).replace(".", ",") + ") → työsarjat " +
+          (pct > 0 ? "+" : "") + String(pct).replace(".", ",") + " %.";
+      }
+      html += '<div style="margin-top:6px; color:var(--chalk);">' + escapeHtml(waText) + '</div>';
     }
     html += '</div>';
     return html;
@@ -5045,9 +5144,30 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var hint = renderVariantInfo(ex) + renderMethodNote(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     var active = activeSetIndex(ex, sets);
     var extras = state.setExtra[ex.id] || {};
-    var rows = sets.map(function(s, idx){
+    var warmCount = 0;
+    var rowParts = sets.map(function(s, idx){
       // Sarjan numero on pelkkä visuaalinen merkki — hyväksyntä tehdään aina
       // erillisestä, selvästi nimetystä painikkeesta.
+      if(isWarmupRow(s)){
+        // Lämmittelyrivi: L-numero, paino, toistot, valmis; RPE-valitsin ja
+        // poisto omalla rivillään aina näkyvissä (ei huomiokenttää).
+        warmCount++;
+        var rpeButtons = [6, 7, 8, 9, 10].map(function(v){
+          var on = s.rpe === v;
+          return '<button type="button" class="weight-step-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + v + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ' RPE ' + v + '"' + (on ? ' style="background:var(--brass); color:var(--ink);"' : '') + '>' + v + '</button>';
+        }).join("");
+        return '<div class="ledger-row has-extra">' +
+          '<div class="set-num' + (s.done ? " done" : "") + '" aria-hidden="true">' + (s.done ? "✓" : "L" + warmCount) + '</div>' +
+          '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+          '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" aria-label="Lämmittely ' + warmCount + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
+          '<button type="button" class="set-done-btn" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Lämmittely " + warmCount + " merkitty valmiiksi" : "Merkitse lämmittely " + warmCount + " valmiiksi") + '">✓</button>' +
+          '<div></div>' +
+          '</div>' +
+          '<div class="set-extra" style="flex-wrap:wrap;">' +
+          '<span style="font-size:var(--fs-xs); color:var(--mist); flex-shrink:0;">RPE</span>' + rpeButtons +
+          '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista lämmittely ' + warmCount + '" style="padding:6px 10px; margin-left:auto;">' + icon("poista", 18) + '</button>' +
+          '</div>';
+      }
       var extraOpen = !!(extras[idx] || (s.notes && String(s.notes).length));
       return '<div class="ledger-row' + (extraOpen ? " has-extra" : "") + '">' +
         '<div class="set-num' + (s.done ? " done" : "") + (s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx ? " pop" : "") + '" aria-hidden="true">' + (s.done ? "✓" : String(idx+1)) + '</div>' +
@@ -5066,16 +5186,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '<button class="weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" aria-label="Vähennä sarjan ' + (idx+1) + ' painoa 2,5 kg">−2,5 kg</button>' +
         '<button class="weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" aria-label="Lisää sarjan ' + (idx+1) + ' painoa 2,5 kg">+2,5 kg</button>' +
         '</div>';
-    }).join("");
+    });
+    // Rivit on tuotettu yhdellä silmukalla todellisilla indekseillä; tässä
+    // ne vain jaetaan lämmittely- ja työsarjalohkoihin näyttöä varten.
+    var warmHtml = "", workHtml = "";
+    rowParts.forEach(function(h, i){ if(isWarmupRow(sets[i])) warmHtml += h; else workHtml += h; });
     var total = sets.reduce(function(sum, s){
+      if(isWarmupRow(s)) return sum;
       var w = parseFloat(String(s.weight).replace(",", ".")), r = parseFloat(String(s.reps).replace(",", "."));
       return sum + ((isFinite(w) && isFinite(r)) ? w*r : 0);
     }, 0);
     var allDone = isExerciseFullyDone(ex, ex.id);
+    var warmupCount = warmupRows(ex.id).length;
     return '<div class="ledger">' +
       hint +
+      (warmupCount ? '<div class="ledger-head" style="margin-top:4px;">Lämmittely</div>' + warmHtml : '') +
+      '<button class="add-set-btn" data-add-warmup data-id="' + ex.id + '" type="button" style="margin:' + (warmupCount ? '10px' : '0') + ' 0 12px;">+ Lisää lämmittelysarja</button>' +
       '<div class="ledger-row ledger-head"><div></div><div>Paino</div><div>Toistot</div><div></div><div></div></div>' +
-      rows +
+      workHtml +
       '<button class="add-set-btn" data-add-set data-id="' + ex.id + '" type="button">+ Lisää sarja</button>' +
       '<div class="subtotal"><span>Nostettu yhteensä</span><b>' + (total>0 ? total.toLocaleString("fi-FI") : "0") + ' kg</b></div>' +
       '<div class="ledger-save">' +
@@ -6367,8 +6495,28 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-add-set]"))){
       var id1 = el.dataset.id;
       if(!state.draftSets[id1]) state.draftSets[id1] = [];
-      state.draftSets[id1].push({ weight:"", reps:"", notes:"", done:false });
+      state.draftSets[id1].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });
       state.dirtySets[id1] = true;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-add-warmup]"))){
+      var idw = el.dataset.id;
+      if(!state.draftSets[idw]) state.draftSets[idw] = [];
+      // Lämmittelyt ovat taulukon alussa; lepoajastinta ei käynnistetä.
+      state.draftSets[idw].unshift({ weight:"", reps:"", rpe:null, notes:"", done:false, kind:"warmup" });
+      state.dirtySets[idw] = true;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-warmup-rpe]"))){
+      var idr = el.dataset.id, idxr = parseInt(el.dataset.idx, 10);
+      var rowr = state.draftSets[idr] && state.draftSets[idr][idxr];
+      if(rowr){
+        rowr.rpe = parseInt(el.dataset.rpe, 10);
+        state.dirtySets[idr] = true;
+        applyWarmupAdjustment(idr);
+      }
       render();
       return;
     }
@@ -6376,7 +6524,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var id2 = el.dataset.id, idx2 = parseInt(el.dataset.idx, 10);
       if(state.draftSets[id2]){
         state.draftSets[id2].splice(idx2, 1);
-        if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"", done:false });
+        if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });
         state.dirtySets[id2] = true;
       }
       render();
@@ -6401,9 +6549,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(!ex4 || !row4){ return; }
       if(row4.done){
         row4.done = false;
+        // Lämmittelyn peruminen lasketaan säätö uudelleen jäljellä olevista.
+        if(isWarmupRow(row4)) applyWarmupAdjustment(id4);
       } else if(isRowDoneEligible(ex4, row4)){
         row4.done = true;
         state.justDone = { id: id4, idx: idx4 };
+        if(isWarmupRow(row4)){
+          // Lämmittely säätää työsarjat; lepoajastinta ei käynnistetä.
+          applyWarmupAdjustment(id4);
+        } else
         // Ajastin käynnistyy sarjan valmiiksi merkitsemisestä heti, paitsi kun
         // kyseessä on liikkeen VIIMEINEN vielä tekemätön sarja — silloin
         // seuraavaksi tallennetaan koko merkintä, ei levätä ennen seuraavaa
