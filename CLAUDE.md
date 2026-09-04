@@ -228,6 +228,19 @@ täsmälleen viedyn kaltainen (testi vertaa merkkijonoja).
 kirjoittanut sen sisällön liikkeiden `methodNote`-kenttiin, eikä taulukkoa lueta
 enää tuonnin jälkeen missään.
 
+`unwrapExcelBackupText(text)` ajetaan `readBackupFile()`:ssä ennen
+`splitBackupSections()`-kutsua: suomalainen Excel lukee pilkuilla erotellun
+tiedoston jokaisen rivin yhdeksi soluksi ja tallentaa rivin muodossa
+`"2026-09-04,""Liike, Variaatio"",""1"",…"`. Rivi, joka jäsentyy yhdeksi
+kentäksi ja sisältää `,"`, puretaan (`parseCSVLine` kahdesti) ja kirjoitetaan
+takaisin `csvRows()`-muotoon; jos kenttiä on osion otsikkoa enemmän, koska
+Excel poisti ensimmäisen kentän lainausmerkit ja nimessä oli pilkku,
+ylimääräiset alkukentät liitetään yhteen `", "`-erottimella. Tavallinen
+vientitiedosto ei muutu (rivit jakautuvat useaan kenttään). Osion otsikon
+kenttämäärä nollataan `#`-merkkirivillä. Desimaalipilkun lukee `toNumber()`.
+Testi: `test_backup_excel.js` (fixturet `backup_excel1.csv`, `backup_excel2.csv`
+koekäyttäjän tiedostoista).
+
 `applyBackupRestore()` palauttaa järjestyksessä omat liikkeet → 1RM → ohjelma →
 merkinnät. Järjestys on pakollinen: merkinnät sidotaan ohjelman liike-id:eihin,
 joten ohjelman on oltava paikallaan ensin. Ohjelmaosio sisältää kaikki

@@ -408,6 +408,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Varmuuskopion palautus tunnistaa Excelissä avatun ja tallennetun tiedoston: jos Excel on kirjoittanut jokaisen rivin yhdeksi soluksi, sovellus purkaa rivit itse, ja ohjelma, merkinnät ja 1RM-arvot palautuvat. Aiemmin tällainen tiedosto antoi ilmoituksen, ettei siitä löytynyt tuotavaa sisältöä.",
       "Lämmittelyn tuntuma kysytään nyt sanallisella asteikolla Kevyt, Sujuva, Työläs, Raskas ja Äärirajoilla RPE-numeroiden sijaan; jokainen pykälä kertoo, montako toistoa olisit vielä jaksanut, ja valinnan kuvaus näkyy rivin alla. Selitteet ja Ohje käyttävät samoja sanoja. Aiemmat kirjaukset ja painoehdotuksen säätö toimivat ennallaan.",
       "Kehitys yhdistää saman liikkeen variaatiot: liikkeen 1RM, kokonaispaino ja vaivalokin analyysi lasketaan liikkeen nimen mukaan riippumatta siitä, millä tangolla tai kahvalla se on kirjattu, ja kortti kertoo kirjatut variaatiot. Ohjelma-näkymässä liikkeen otsikkona on liikkeen nimi ja sen alla pienellä väline, variaatio ja lihasryhmä; erillinen Tunnetut variaatiot -rivi on poistettu.",
       "Liikepankki päivitetty: 354 liikettä (aiemmin 97) ja jokaisella väline. Taljaliikkeille voi valita yhdeksästä kahvasta ja tankoliikkeille kuudesta tangosta, ja lihasryhmät on jaettu tarkemmin (esim. etureisi, takareisi, pakara, kyynärvarsi). Liikevalitsimen haku löytää myös välineen (esim. \"talja\" tai \"käsipaino\"), ja liikkeen tietopalkki sekä vaihdon esikatselu näyttävät välineen. Ohjelmiin ja Historiaan tallennetut nimet eivät muutu; vanhalla nimellä oleva liike näkyy valitsimessa ryhmässä Ohjelmassa ja historiassa.",
@@ -4525,6 +4526,43 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // ensimmäistä merkkiriviä oleva teksti luetaan merkinnöiksi: vanhoissa
   // vientitiedostoissa ei ole merkkirivejä lainkaan, ja ne on silti voitava
   // tuoda ennallaan.
+  // Excel suomalaisilla asetuksilla (luetteloerotin ;) lukee pilkuilla
+  // erotellun varmuuskopion jokaisen rivin yhdeksi soluksi ja kirjoittaa
+  // tallennettaessa koko rivin lainausmerkkeihin kahdentaen sisäiset
+  // lainausmerkit: "2026-09-04,""Liike, Variaatio"",""1"",…". Tällainen
+  // tiedosto puretaan takaisin alkuperäisiksi riveiksi ennen jäsennystä, jotta
+  // Excelissä avattu ja tallennettu varmuuskopio palautuu eikä sovellus
+  // ilmoita, ettei tiedostosta löytynyt sisältöä. Excel poistaa ensimmäisen
+  // kentän lainausmerkit, joten jos kentässä oli pilkku (1RM-osion "Liike,
+  // Variaatio"), rivillä on otsikkoa enemmän kenttiä; ylimääräiset alkukentät
+  // liitetään takaisin yhteen pilkulla. Tavallinen vientitiedosto jää
+  // koskematta, koska sen rivit jakautuvat useaan kenttään. Desimaalipilkun
+  // (97,5) toNumber() lukee jo ennestään.
+  function unwrapExcelBackupText(text){
+    var lines = String(text).replace(/^\uFEFF/, "").split(/\r\n|\n|\r/);
+    var changed = false;
+    var headerCount = 0;
+    var out = lines.map(function(line){
+      var t = line.trim();
+      if(/^"?#[^",;\t]*"?$/.test(t)){ headerCount = 0; return line; }
+      if(!t) return line;
+      var wrapped = t.length >= 2 && t.charAt(0) === '"' && t.charAt(t.length - 1) === '"';
+      var fields = parseCSVLine(t, ",");
+      if(wrapped && fields.length === 1 && fields[0].indexOf(',"') !== -1){
+        changed = true;
+        fields = parseCSVLine(fields[0], ",");
+        if(headerCount && fields.length > headerCount){
+          var lead = fields.length - headerCount + 1;
+          fields = [fields.slice(0, lead).join(", ")].concat(fields.slice(lead));
+        }
+        line = csvRows([fields]);
+      }
+      if(!headerCount) headerCount = fields.length;
+      return line;
+    });
+    return changed ? out.join("\n") : text;
+  }
+
   function splitBackupSections(text){
     var lines = String(text).replace(/^\uFEFF/, "").split(/\r\n|\n|\r/);
     var sections = {};
@@ -4778,6 +4816,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var text;
     try{ text = await readFileAsText(file); }
     catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
+    text = unwrapExcelBackupText(text);
 
     var sections = splitBackupSections(text);
     var byDate = {};
@@ -5590,7 +5629,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
-      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta.",
+      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta. Tiedoston voi avata Excelissä katsottavaksi; myös Excelin tallentama versio tunnistetaan palautuksessa.",
       "<b style=\"color:var(--chalk);\">Muutokset</b> — kooste koekäytön aikana tehdyistä muutoksista ja niiden vaikutuksesta käyttöön, uusin ensin.",
       "<b style=\"color:var(--chalk);\">Lisää</b> — simulointi (täyttää ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten; toimii vain ilman oikeita merkintöjä), palaute tekijälle sähköpostitse, tietoja sovelluksesta sekä kaikkien tietojen tyhjennys, joka kysyy vahvistuksen."
     ]));

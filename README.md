@@ -191,6 +191,8 @@ Palautus näyttää ensin, mitä tiedosto sisältää, ja tekee muutokset vasta 
 
 1RM-osiossa liikkeen nimi kirjoitetaan ohjelman kirjoitusasussa ja luetaan takaisin pienin kirjaimin — se on avain, jolla painoehdotus etsii arvon, joten kirjoitusasun vaihtelu ei vaikuta palautukseen.
 
+Varmuuskopion voi avata Excelissä katsottavaksi. Suomalaisilla asetuksilla Excel lukee pilkuilla erotellun tiedoston jokaisen rivin yhdeksi soluksi ja kirjoittaa tallennettaessa koko rivin lainausmerkkeihin; palautus tunnistaa tämän muodon ja purkaa rivit itse, joten myös Excelin tallentama tiedosto palautuu. Purku liittää takaisin yhteen myös liikkeen nimen, jonka pilkun Excel on jättänyt ilman lainausmerkkejä (1RM-osion "Liike, Variaatio"), ja desimaalipilkulliset luvut (97,5) luetaan oikein.
+
 ## Tietojen tallennus
 
 Merkinnät tallennetaan selaimen omaan tallennustilaan ja säilyvät sovelluksen sulkemisen jälkeen. Mitään ei lähetetä palvelimelle — data ei koskaan poistu laitteeltasi, ja julkaistu sivu on pelkkä staattinen tiedosto.
