@@ -114,9 +114,11 @@ Sovellus ehdottaa painon kahdella eri säännöllä sen mukaan, onko liikkeelle 
 1RM_edellinen = edellinen_paino × (1 + edelliset_toistot / 30)
 1RM_tavoite   = 1RM_edellinen × progressiokerroin
 paino         = MROUND( 1RM_tavoite / (1 + tavoitetoistot / 30) , 2,5 )
+jos kaava osoittaa nousua mutta paino ≤ edellinen_paino:
+paino         = MROUND( edellinen_paino + 2,5 , 2,5 )          (vähimmäisaskel)
 ```
 
-Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla. Jos tavoitetoistomäärä on sama kuin edellisellä kerralla, kaava supistuu muotoon `paino = MROUND( edellinen_paino × progressiokerroin , 2,5 )` — ehdotus siis nousee hieman aina, eikä jää koskaan täysin samaksi kuin viimeksi.
+Progressiokerroin on oletuksena 1,0125 eli tavoitteena 1,25 % kehitys jokaisella kirjauskerralla. Jos tavoitetoistomäärä on sama kuin edellisellä kerralla, kaava supistuu muotoon `paino = edellinen_paino × progressiokerroin`. Alle 102,5 kg:n painoilla tämä nousu on pienempi kuin puoli pyöristysaskelta, joten pelkkä pyöristys palauttaisi aina saman painon; siksi ehdotus nousee vähintään seuraavaan 2,5 kg:n askeleeseen aina, kun kaava osoittaa nousua (esim. 15 kg × 10 → 17,5 kg), ja ledgerin selite kertoo, kun vähimmäisaskelta on käytetty. Jos toistoja tuli tavoitetta vähemmän, kaava voi laskea painoa, eikä vähimmäisaskelta silloin sovelleta.
 
 Kehitys-näkymän laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
 
