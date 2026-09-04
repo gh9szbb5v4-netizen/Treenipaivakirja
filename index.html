@@ -412,6 +412,12 @@
   var STORAGE_REST_TIMER_KEY = "rest-timer-state";
   var SIMULATION_GROWTH = 0.30;
   var PROGRESSION_COEFFICIENT = 1.0125; // Progressiokerroin p: 1,0125 = 1,25 % tavoiteltu kehitys per treenikerta
+  // Kehityksen 1RM on paras arvo liukuvalta jaksolta, jotta submaksimaaliset
+  // treenipäivät eivät pudota lukua (Epley olettaa sarjan tehdyksi uupumukseen).
+  // TARKISTETTAVA: 28 päivää on alkuarvo, jota on arvioitava uudelleen, kun
+  // sovelluksen toiminnasta on kokemusta pidemmältä jaksolta (ks. CLAUDE.md,
+  // "Tarkistettavat laskentaparametrit").
+  var ONE_REP_MAX_WINDOW_DAYS = 28;
 
   var ALIASES = {
     week: ["viikko","week","vko"],
@@ -2796,29 +2802,33 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           if(!name || isCombo(name)) continue;
           var norm = name.toLowerCase();
           // Sama Epley-kaava (1RM = w × (1 + r/30)) jokaiselle merkinnälle riippumatta
-          // siitä, oliko sen teho MAX, prosentti vai vapaa — ei erillistä MAX-oikotietä.
+          // siitä, oliko sen teho MAX, prosentti vai vapaa. Poikkeus: yhden toiston
+          // sarja on mittaus, ja sen arvo on paino sellaisenaan — Epley antaisi
+          // yhdelle toistolle 3,3 % liikaa (100 kg × 1 → 103,3).
           // Päivän RASKAIN sarja (suurin laskennallinen 1RM) määrittää päivän arvon,
           // ei esim. ensimmäinen sarja — sarjat voivat olla nousujohteisia (esim.
           // 40/60/70 kg), jolloin ensimmäinen sarja aliarvioisi liikkeen 1RM:n rajusti.
-          var value = null;
+          var value = null, bestSet = null;
           var sets = data.sets || [];
           for(var s=0;s<sets.length;s++){
             var refReps = toNumber(sets[s].reps), refWeight = toNumber(sets[s].weight);
             if(isFinite(refReps) && isFinite(refWeight) && refWeight > 0){
-              var setValue = roundToStep(refWeight * (1 + refReps/30), 2.5);
-              if(value === null || setValue > value){ value = setValue; }
+              var setValue = refReps === 1 ? refWeight : roundToStep(refWeight * (1 + refReps/30), 2.5);
+              if(value === null || setValue > value){ value = setValue; bestSet = { weight: refWeight, reps: refReps }; }
             }
           }
           if(value === null) continue;
+          // Yhden toiston sarja on mittaus, ei arvio: kortti kertoo eron.
+          var measured = bestSet.reps === 1;
           if(!seriesByName[norm]) seriesByName[norm] = { displayName: name, points: [], byDate: {} };
           var store = seriesByName[norm];
           var at = data.loggedAt || date;
           if(store.byDate[date] === undefined){
             store.byDate[date] = store.points.length;
-            store.points.push({ date: date, value: value, at: at });
+            store.points.push({ date: date, value: value, at: at, set: bestSet, measured: measured });
           } else {
             var pt = store.points[store.byDate[date]];
-            if(value > pt.value){ pt.value = value; }
+            if(value > pt.value){ pt.value = value; pt.set = bestSet; pt.measured = measured; }
             if(at > pt.at){ pt.at = at; }
           }
         }
@@ -2858,26 +2868,55 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return points;
   }
 
+  function isoAddDays(iso, delta){
+    var d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    return toLocalISO(d);
+  }
+  // Paras piste jaksolta, joka päättyy endISO-päivään ja kattaa days päivää.
+  function bestWithin(points, endISO, days){
+    var startISO = isoAddDays(endISO, -(days - 1));
+    var best = null;
+    points.forEach(function(p){
+      if(p.date >= startISO && p.date <= endISO && (best === null || p.value > best.value)) best = p;
+    });
+    return best;
+  }
+  // Kortin luku on paras arvo ONE_REP_MAX_WINDOW_DAYS päivän jaksolta, joka
+  // päättyy viimeisimpään merkintään: ohjelmoitu submaksimaalinen päivä
+  // (esim. 4 × 8 seitsemälläkymmenellä prosentilla) ei pudota mitattua
+  // maksimia, koska Epley-arvio olettaa sarjan tehdyksi uupumukseen. Luku
+  // laskee vasta, kun vastaava suoritus jää toistamatta koko jakson ajan.
+  // Vertailukohdat lasketaan samalla säännöllä kunkin ajankohdan jaksolta;
+  // jos jaksolla ei ole merkintöjä, käytetään viimeisintä arvoa ennen sitä.
   function computeProgress(points){
     if(!points || points.length === 0) return null;
-    var current = points[points.length - 1].value;
-    var currentDate = points[points.length - 1].date;
-    var previous = points.length >= 2 ? points[points.length - 2].value : null;
-    function valueAsOf(cutoffISO){
+    var latest = points[points.length - 1];
+    var best = bestWithin(points, latest.date, ONE_REP_MAX_WINDOW_DAYS) || latest;
+    function bestAsOf(cutoffISO){
+      var b = bestWithin(points, cutoffISO, ONE_REP_MAX_WINDOW_DAYS);
+      if(b) return b.value;
       var found = null;
       for(var i=0;i<points.length;i++){
         if(points[i].date <= cutoffISO) found = points[i].value; else break;
       }
       return found;
     }
+    var record = null;
+    points.forEach(function(p){ if(record === null || p.value > record) record = p.value; });
     return {
-      current: current,
-      currentDate: currentDate,
-      previous: previous,
-      month: valueAsOf(daysAgoISO(30)),
-      halfYear: valueAsOf(daysAgoISO(182)),
-      year: valueAsOf(daysAgoISO(365)),
-      allTime: points[0].value
+      current: best.value,
+      currentDate: best.date,
+      currentSet: best.set || null,
+      currentMeasured: !!best.measured,
+      latest: latest.value,
+      latestDate: latest.date,
+      latestSet: latest.set || null,
+      latestMeasured: !!latest.measured,
+      month: bestAsOf(daysAgoISO(30)),
+      halfYear: bestAsOf(daysAgoISO(182)),
+      year: bestAsOf(daysAgoISO(365)),
+      record: record
     };
   }
 
@@ -4370,7 +4409,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("4. Historia ja Kehitys", ohjeP(
       "<b style=\"color:var(--chalk);\">Historia</b> näyttää kaikki kirjatut päivät sekä laskennallisen yhden toiston maksimin jokaiselle liikkeelle. Yksittäisen päivän voi poistaa avaamalla sen."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Kehitys</b> näyttää jokaiselle liikkeelle muutoksen edelliseen treeniin, kuukauteen, puoleen vuoteen, vuoteen ja koko historiaan verrattuna. Näkyy kun liikkeelle on vähintään kaksi merkintää."
+      "<b style=\"color:var(--chalk);\">Kehitys</b> näyttää jokaiselle liikkeelle 1RM:n parhaana arvona viimeiseltä neljältä viikolta sekä muutoksen kuukauteen, puoleen vuoteen, vuoteen ja ennätykseen verrattuna. Yhden toiston sarja on mittaus; muista sarjoista arvo lasketaan Epley-kaavalla päivän raskaimmasta sarjasta. Ohjelmoitu kevyempi päivä (esim. 4 × 8 seitsemälläkymmenellä prosentilla) ei pudota lukua, koska se ei ole maksimisuoritus — luku laskee vasta, kun vastaava suoritus jää toistamatta neljään viikkoon. Kortti näyttää erikseen viimeisimmän treenin oman arvion."
     ));
 
     html += ohjeSection("5. Muokkaa ohjelmaa", ohjeP(
@@ -5301,9 +5340,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return '<span style="color:' + color + '; font-variant-numeric:tabular-nums; font-weight:600;">' + fmtSignedKg(diff) + fmtSignedPct(pct) + '</span>';
   }
   function renderOneRepMaxChart(points, name){
-    return renderProgressChart(points, name + " — laskennallinen 1RM", "kg");
+    // Viiva on liukuva paras (sama luku kuin kortissa), päiväkohtaiset arviot
+    // katkoviivana sen alla, jotta submaksimaaliset päivät näkyvät mutta
+    // eivät hallitse käyrää.
+    var bestPoints = points.map(function(p){
+      var b = bestWithin(points, p.date, ONE_REP_MAX_WINDOW_DAYS) || p;
+      return { date: p.date, value: b.value };
+    });
+    var daily = points.map(function(p){ return p.value; });
+    return renderProgressChart(bestPoints, name + " — 1RM, paras " + Math.round(ONE_REP_MAX_WINDOW_DAYS / 7) + " viikolta", "kg", daily);
   }
-  function renderProgressChart(points, titlePrefix, unit){
+  function renderProgressChart(points, titlePrefix, unit, secondary){
     // Staattinen, yleiskäyttöinen SVG-viivakäyrä (käytetään sekä liikkeen
     // laskennalliselle 1RM:lle että treenipäivän kokonaispainolle). Vaaka-akseli
     // skaalataan todellisen ajan mukaan, jotta treenitauot näkyvät käyrässä.
@@ -5323,6 +5370,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(values[i] < vMin) vMin = values[i];
       if(values[i] > vMax) vMax = values[i];
     }
+    // Toissijainen sarja (päiväkohtaiset arviot) vaikuttaa asteikkoon.
+    var sec = (secondary && secondary.length === points.length) ? secondary : null;
+    if(sec){ for(i=0;i<sec.length;i++){ if(sec[i] < vMin) vMin = sec[i]; if(sec[i] > vMax) vMax = sec[i]; } }
     var calcMin, calcMax;
     if(vMax === vMin){
       calcMin = vMin - 1;
@@ -5346,6 +5396,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     var last = coords[coords.length - 1];
     var linePoints = coords.map(function(c){ return c.x + "," + c.y; }).join(" ");
+    var secondaryLine = "";
+    if(sec && coords.length > 1){
+      var secPoints = coords.map(function(c, idx){ return c.x + "," + yAt(sec[idx]); }).join(" ");
+      secondaryLine = '<polyline points="' + secPoints + '" fill="none" stroke="var(--mist)" stroke-width="1.2" stroke-dasharray="3 3" stroke-linejoin="round"></polyline>';
+    }
     var areaPoints = coords[0].x + ",110 " + linePoints + " " + last.x + ",110";
 
     var dots = "";
@@ -5375,6 +5430,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<line x1="40" y1="12" x2="310" y2="12" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"></line>' +
       '<line x1="40" y1="110" x2="310" y2="110" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"></line>' +
       '<polygon points="' + areaPoints + '" fill="rgba(201,162,39,0.10)" stroke="none"></polygon>' +
+      secondaryLine +
       '<polyline points="' + linePoints + '" fill="none" stroke="var(--brass)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>' +
       dots +
       '<text x="34" y="' + round1(yAt(vMax) + 3) + '" text-anchor="end" font-size="9" fill="var(--mist)">' + fmtValue(vMax) + '</text>' +
@@ -5385,18 +5441,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderKehitysCard(item){
     var p = item.progress;
     var entries = [
-      ["Edelliseen treeniin", renderDeltaValue(p.current, p.previous), p.previous],
       ["Kuukauden aikana", renderDeltaValue(p.current, p.month), p.month],
       ["Puolen vuoden aikana", renderDeltaValue(p.current, p.halfYear), p.halfYear],
       ["Vuoden aikana", renderDeltaValue(p.current, p.year), p.year],
-      ["Koko historian aikana", renderDeltaValue(p.current, p.allTime), p.allTime]
+      ["Ennätykseen verrattuna", renderDeltaValue(p.current, p.record), p.record]
     ];
+    function fmtSet(set){ return set ? String(set.weight).replace(".", ",") + " kg × " + set.reps : ""; }
+    var weeks = Math.round(ONE_REP_MAX_WINDOW_DAYS / 7);
+    var currentLine = "Paras 1RM viimeiseltä " + plural(weeks, "viikolta", "viikolta") + ": " +
+      (p.currentMeasured ? "mitattu" : "laskennallinen") + " " + fmtSet(p.currentSet) + ", " + capitalize(formatDateFI(p.currentDate));
+    var latestLine = p.latestDate !== p.currentDate
+      ? '<div style="font-size:11px; color:var(--mist); margin-top:3px;">Viimeisin treeni: ' + String(p.latest).replace(".", ",") + ' kg ' + (p.latestMeasured ? "mitattu" : "laskennallinen") + ' (' + escapeHtml(fmtSet(p.latestSet)) + '), ' + capitalize(formatDateFI(p.latestDate)) + '</div>'
+      : '';
     // Vertailurivi näytetään vain, kun vertailukohta on olemassa. Yhdellä
     // merkinnällä rivejä ei ole lainkaan, vaan yksi lause siitä mitä tarvitaan.
     var available = entries.filter(function(e){ return e[2] !== null && e[2] !== undefined; });
     var rows;
     if(!item.points || item.points.length < 2 || !available.length){
-      rows = '<div style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; padding-top:6px;">Vertailu edelliseen treeniin näkyy, kun liikkeelle on kirjattu toinen merkintä.</div>';
+      rows = '<div style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; padding-top:6px;">Vertailut näkyvät, kun liikkeelle on kirjattu merkintöjä pidemmältä ajalta.</div>';
     } else {
       rows = available.map(function(e, idx){
         var border = (idx === available.length - 1) ? "border-bottom:none;" : "border-bottom:1px dashed var(--line);";
@@ -5409,7 +5471,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div style="font-weight:600; font-size:15px;">' + escapeHtml(item.name) + '</div>' +
       '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:800; font-size:16px;">' + String(p.current).replace(".", ",") + ' kg</div>' +
       '</div>' +
-      '<div style="font-size:11px; color:var(--mist); margin-bottom:10px;">Laskennallinen 1RM, viimeksi ' + capitalize(formatDateFI(p.currentDate)) + '</div>' +
+      '<div style="font-size:11px; color:var(--mist);">' + escapeHtml(currentLine) + '</div>' +
+      latestLine +
+      '<div style="margin-bottom:10px;"></div>' +
       renderOneRepMaxChart(item.points, item.name) +
       rows +
       '</div>';

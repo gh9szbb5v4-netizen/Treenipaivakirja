@@ -369,3 +369,39 @@ ne on sidottu liike-id:eihin, jotka ovat ohjelmakohtaisia, joten
 ohjelmaan palattaessa `buildExerciseLogIndex()` löytää sen tehty-tilan
 ennallaan. `resetAll()` poistaa myös kirjaston. Testit: `test_programs.js`.
 
+## Kehityksen 1RM: liukuva paras (toteutettu)
+
+`buildAllOneRepMaxSeries()` antaa jokaiselle päivälle raskaimman sarjan
+Epley-arvion ja tallentaa pisteeseen myös sarjan (`set`) ja `measured`-lipun
+(yhden toiston sarja on mittaus). `computeProgress()` ei käytä viimeisintä
+pistettä vaan `bestWithin(points, latest.date, ONE_REP_MAX_WINDOW_DAYS)`:ia:
+kortin luku on paras arvo jaksolta, joka päättyy viimeisimpään merkintään,
+ja vertailukohdat (`month`, `halfYear`, `year`) lasketaan samalla säännöllä
+kunkin ajankohdan jaksolta (jaksolla ilman merkintöjä viimeisin arvo ennen
+sitä). `record` on kaikkien aikojen paras; "Edelliseen treeniin" ja "Koko
+historian aikana" -rivit poistettiin ja tilalle tuli "Ennätykseen
+verrattuna" sekä kortin rivi viimeisimmän treenin omasta arviosta.
+`renderOneRepMaxChart()` piirtää liukuvan parhaan viivana ja päiväarviot
+katkoviivana (`renderProgressChart`-funktion valinnainen `secondary`).
+Syy: Epley olettaa sarjan tehdyksi uupumukseen, joten ohjelmoitu
+submaksimaalinen päivä ei saa pudottaa mitattua maksimia. Testit:
+`test_kehitys.js`.
+
+## Tarkistettavat laskentaparametrit
+
+Sovelluksen laskentakaavojen vakiot ovat alkuarvoja, joita on arvioitava
+uudelleen, kun sovelluksen toiminnasta on kokemusta pidemmältä jaksolta.
+Käynnissä on 10 viikon testijakso (ensimmäinen viikko alkoi syyskuussa
+2026); kaavoja säädetään viimeistään testijakson päätyttyä, mutta niitä voi
+muuttaa myös sen aikana. Tarkasteltavat arvot:
+
+- `ONE_REP_MAX_WINDOW_DAYS = 28`: Kehityksen 1RM:n liukuvan jakson pituus.
+  Lyhyempi jakso reagoi nopeammin mutta pudottaa lukua pelkkien kevyiden
+  viikkojen jälkeen; kahdeksan viikkoa vastaisi tavallista maksimien
+  testausväliä.
+- `PROGRESSION_COEFFICIENT = 1.0125`: painoehdotuksen tavoiteltu kehitys
+  per treenikerta.
+- Painoehdotuksen vähimmäisaskel 2,5 kg (`buildDraftRows`, `minStep`):
+  askel on sama kaikilla liikkeillä, myös käsipainoilla, käyttäjän
+  päätöksellä.
+
