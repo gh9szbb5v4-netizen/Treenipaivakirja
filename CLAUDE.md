@@ -387,6 +387,41 @@ Syy: Epley olettaa sarjan tehdyksi uupumukseen, joten ohjelmoitu
 submaksimaalinen päivä ei saa pudottaa mitattua maksimia. Testit:
 `test_kehitys.js`.
 
+## Vaivaloki (toteutettu)
+
+`state.painLog` on taulukko `{ id: "pain-<aikaleima>", date, region, side,
+severity, note }` avaimella `pain-log` (`STORAGE_PAIN_KEY`, `savePainLog()`);
+`region` on `PAIN_REGIONS`-taulukon avain, `side` on `"vasen"`, `"oikea"`,
+`"molemmat"` tai `""` (puoli kysytään vain `PAIN_PAIRED`-kehonosilta) ja
+`severity` 1–3. Kirjaus tehdään Ohjelma-näkymässä (`renderPainEntry()` heti
+päivämäärärivin jälkeen; `state.showPainForm`, `state.painDraft`) ja
+kohdistuu kirjauspäivälle `state.draftDate`, kuten merkinnätkin.
+Puoli- ja voimakkuuspainikkeet piirtävät näkymän uudelleen, joten
+`painNoteFromDom()` kopioi huomiokentän luonnokseen ennen piirtoa; kehonosan
+vaihto (`change`-käsittelijä, `#pain-region`) nollaa puolen ja palauttaa
+fokuksen `afterRender`-kutsulla. Tallennus ja poisto asettavat
+`state.painAnalysis = undefined`; tallennus lisäksi `state.kehitys =
+undefined`, jotta Kehitys lasketaan uudelleen seuraavalla avauksella, ja
+poisto (Kehitys-näkymässä) laskee analyysin heti uudelleen.
+
+`buildPainAnalysis()` (`buildTotalWeightSeries()`:n jäljessä) lukee
+merkinnät kuten Kehityksen muut sarjat: liikkeen päivävolyymi on työsarjojen
+paino × toistot (lämmittelyt ovat erillisessä `warmups`-taulukossa eivätkä
+sisälly), yhdistelmäliikkeet (`isCombo`) ohitetaan. Tavanomainen
+viikkovolyymi on liikkeen koko volyymi jaettuna niiden ISO-viikkojen
+(`isoWeekKey`) määrällä, joilla liikettä on kirjattu. Kirjaukset ryhmitellään
+avaimella `region|side`; ryhmälle, jolla on vähintään `PAIN_MIN_EPISODES`
+kirjausta, lasketaan jokaisen kirjauksen ikkuna `date−PAIN_WINDOW_DAYS …
+date−1`, ja liike poikkeaa, kun ikkunan volyymi > `PAIN_VOLUME_RATIO` ×
+tavanomainen. Löydös (`findings: [{ name, count, share }]`) näytetään, kun
+`share ≥ PAIN_MIN_SHARE`; pienemmät ryhmät palautetaan `tooFew: true`.
+`loadKehitys()` tallentaa tuloksen `state.painAnalysis`-tilaan ja
+`renderPainSection()` lisätään `renderKehitys()`:n molempiin haaroihin
+(myös tyhjään tilaan), jotta loki näkyy ilman 1RM-dataa. Vienti
+`exportPainLogCSV()` on oma tiedosto (`vaivaloki_<pvm>.csv`, BOM);
+varmuuskopion muotoon ei kosketa, eikä loki sisälly siihen. `resetAll()`
+poistaa lokin. Testit: `test_pain.js`, `a11y_pain.js`.
+
 ## Tarkistettavat laskentaparametrit
 
 Sovelluksen laskentakaavojen vakiot ovat alkuarvoja, joita on arvioitava
@@ -426,6 +461,11 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   muokattu rivi jää rauhaan. `lastSet`-kerroilla ja merkinnöillä on
   `warmups: [{ weight, reps, rpe }]`; lämmittelyt eivät sisälly CSV-vientiin
   eivätkä Kehityksen laskentaan.
+- `PAIN_WINDOW_DAYS = 7`, `PAIN_VOLUME_RATIO = 1.2`, `PAIN_MIN_EPISODES = 3`
+  ja `PAIN_MIN_SHARE = 0.6`: vaivalokin analyysin ikkuna, poikkeaman raja,
+  kirjausten vähimmäismäärä ja löydöksen osuusraja (`buildPainAnalysis`).
+  Raja 1,2 × tavanomainen viikkovolyymi on arvaus; jos löydöksiä tulee
+  jokaisesta liikkeestä tai ei mistään, säädetään ensin tätä.
 
 ## Muutoskooste koekäyttäjille (toteutettu)
 

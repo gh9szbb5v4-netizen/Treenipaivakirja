@@ -402,6 +402,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Vaivaloki: Ohjelma-välilehden \"Kirjaa vaiva\" -painikkeella kirjaat kehonosan, puolen ja voimakkuuden kirjauspäivälle. Kehitys-välilehden Vaivat-osio listaa kirjaukset ja kertoo vähintään kolmen kirjauksen jälkeen, minkä liikkeiden volyymi ylitti toistuvasti tavanomaisen vaivaa edeltävällä viikolla. Lokin voi viedä CSV:nä Asetusten Varmuuskopio-osiosta; varmuuskopioon se ei vielä sisälly.",
       "Lämmittelysarjat: liikkeelle voi lisätä lämmittelyrivejä, joille kirjataan paino, toistot ja tuntuma (RPE 6–10). Kun sama lämmittely on kirjattu aiemmin, tavallista raskaampi tuntuma keventää saman treenin työsarjojen ehdotusta (−5 tai −10 %) ja kevyempi nostaa (+2,5 %); käsin muokattuja sarjoja ei säädetä. Lämmittelyt eivät vaikuta Historiaan, Kehitykseen eivätkä lepoajastimeen, eivätkä vielä sisälly varmuuskopioon.",
       "Jumitunnistus: jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmässä jäi toistoja vajaaksi, painoehdotus on 10 %:n kevennys ja selite kertoo syyn. Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennystä.",
       "Painoehdotus lasketaan nyt jokaiselle sarjalle erikseen viime kerran samasta sarjasta: tavoitetoistot täyttyivät → nosto (vähintään 2,5 kg, enintään 5 %), yksi toisto vajaaksi → sama paino, kaksi tai enemmän vajaaksi → 5 %:n kevennys. Selite kertoo jokaisen sarjan perusteen.",
@@ -433,6 +434,20 @@
   var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
   var STORAGE_FIRST_LOG_HINT_KEY = "first-log-hint-dismissed";
   var STORAGE_CHANGELOG_SEEN_KEY = "changelog-seen";
+  // Vaivaloki: kehonosakohtaiset kirjaukset ja Kehityksen yhteysanalyysi.
+  var STORAGE_PAIN_KEY = "pain-log";
+  // Analyysin ikkuna: vaivaa edeltävät päivät (päivä−7 … päivä−1).
+  var PAIN_WINDOW_DAYS = 7;
+  // Liike "ylittää tavanomaisen", kun ikkunan volyymi > 1,2 × tavanomainen viikkovolyymi.
+  var PAIN_VOLUME_RATIO = 1.2;
+  // Yhteyksiä etsitään vasta, kun samalle kehonosalle on vähintään kolme kirjausta.
+  var PAIN_MIN_EPISODES = 3;
+  // Löydös näytetään, kun liike poikkesi vähintään 60 %:ssa kirjauksista.
+  var PAIN_MIN_SHARE = 0.6;
+  var PAIN_REGIONS = [["niska","Niska"],["olkapaa","Olkapää"],["kyynarpaa","Kyynärpää"],["ranne","Ranne"],["alaselka","Alaselkä"],["lonkka","Lonkka"],["polvi","Polvi"],["nilkka","Nilkka"],["muu","Muu"]];
+  // Parilliset kehonosat, joille kysytään puoli.
+  var PAIN_PAIRED = { olkapaa: true, kyynarpaa: true, ranne: true, lonkka: true, polvi: true, nilkka: true };
+  var PAIN_DISCLAIMER = "Loki näyttää ajallisia yhteyksiä omissa kirjauksissasi, ei syitä. Jos vaiva jatkuu tai pahenee, ota yhteys terveydenhuollon ammattilaiseen.";
   var STORAGE_LAST_EXPORT_KEY = "last-export-date";
   var EXPORT_REMINDER_DAYS = 14;
   var REST_DURATION_SECONDS = 90;
@@ -496,6 +511,12 @@
     pendingProgram: null,
     // Uusin luettu muutoskooste (CHANGELOG[0].date); ennen sitä rivillä lukee "uutta".
     changelogSeen: null,
+    // Vaivaloki: kirjaukset, lomakkeen luonnos ja Kehityksen analyysi.
+    painLog: [],
+    painDraft: { region: "", side: "", severity: 1, note: "" },
+    showPainForm: false,
+    painAnalysis: undefined,
+    confirmingDeletePain: null,
     programRename: null,
     confirmingDeleteProgram: null,
     // PDF-tuonnin jäsennystulos odottamassa käyttäjän hyväksyntää. Ohjelma
@@ -1354,6 +1375,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   async function saveLastSet(){
     try{ await storeSet(STORAGE_LASTSET_KEY, JSON.stringify(state.lastSet)); }
     catch(e){ /* hiljainen virhe, ei kriittinen */ }
+  }
+  async function savePainLog(){
+    try{ await storeSet(STORAGE_PAIN_KEY, JSON.stringify(state.painLog)); }
+    catch(e){ showToast("Vaivalokin tallennus epäonnistui"); }
   }
   function pushLastSet(norm, sets, date, deload, warmups){
     var old = state.lastSet[norm];
@@ -3080,6 +3105,94 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return points;
   }
 
+  // ISO-viikon avain "vuosi-Wnn" (viikko alkaa maanantaista; viikko 1 on se,
+  // jolla on vuoden ensimmäinen torstai). Tavanomaisen viikkovolyymin jakaja.
+  function isoWeekKey(iso){
+    var d = new Date(iso + "T00:00:00");
+    var weekday = (d.getDay() + 6) % 7; // ma = 0 … su = 6
+    d.setDate(d.getDate() - weekday + 3); // saman viikon torstai
+    var year = d.getFullYear();
+    var firstThursday = new Date(year, 0, 4);
+    firstThursday.setDate(firstThursday.getDate() - ((firstThursday.getDay() + 6) % 7) + 3);
+    var week = 1 + Math.round((d - firstThursday) / (7 * 24 * 3600 * 1000));
+    return year + "-W" + (week < 10 ? "0" : "") + week;
+  }
+  // Vaivalokin analyysi: mitkä liikkeet ylittivät tavanomaisen viikkovolyyminsa
+  // vaivaa edeltävällä viikolla (päivä−7 … päivä−1). Tavanomainen viikkovolyymi
+  // on liikkeen koko volyymi (paino × toistot, työsarjat) jaettuna niiden
+  // ISO-viikkojen määrällä, joilla liikettä on kirjattu. Yhteys on ajallinen,
+  // ei syy — teksti sanoo sen käyttäjälle.
+  async function buildPainAnalysis(){
+    var groups = {}, order = [];
+    try{
+      var dayVolumes = {}; // päivä → { liike → volyymi }
+      var totals = {};     // liike → { name, volume, weeks }
+      var res = await storeList("entries:");
+      var keys = (res && res.keys) || [];
+      var dates = keys.map(function(k){ return k.replace("entries:", ""); }).sort();
+      for(var i=0;i<dates.length;i++){
+        var date = dates[i];
+        var entry = await loadEntry(date);
+        var exKeys = Object.keys(entry.exercises || {});
+        for(var j=0;j<exKeys.length;j++){
+          var data = entry.exercises[exKeys[j]];
+          var name = (data.name || "").trim();
+          if(!name || isCombo(name)) continue;
+          var norm = name.toLowerCase();
+          var vol = 0;
+          var sets = data.sets || [];
+          for(var s=0;s<sets.length;s++){
+            var w = toNumber(sets[s].weight), r = toNumber(sets[s].reps);
+            if(isFinite(w) && isFinite(r) && w > 0) vol += w * r;
+          }
+          if(vol <= 0) continue;
+          if(!dayVolumes[date]) dayVolumes[date] = {};
+          dayVolumes[date][norm] = (dayVolumes[date][norm] || 0) + vol;
+          if(!totals[norm]) totals[norm] = { name: name, volume: 0, weeks: {} };
+          totals[norm].volume += vol;
+          totals[norm].weeks[isoWeekKey(date)] = true;
+        }
+      }
+      var typical = {};
+      Object.keys(totals).forEach(function(norm){
+        var n = Object.keys(totals[norm].weeks).length;
+        typical[norm] = n > 0 ? totals[norm].volume / n : 0;
+      });
+      state.painLog.forEach(function(p){
+        var key = p.region + "|" + (p.side || "");
+        if(!groups[key]){
+          groups[key] = { region: p.region, side: p.side || "", label: painGroupLabel(p.region, p.side), episodes: 0, findings: [], entries: [] };
+          order.push(key);
+        }
+        groups[key].episodes++;
+        groups[key].entries.push(p);
+      });
+      var volumeDates = Object.keys(dayVolumes);
+      order.forEach(function(key){
+        var g = groups[key];
+        if(g.episodes < PAIN_MIN_EPISODES){ g.tooFew = true; delete g.entries; return; }
+        var counts = {};
+        g.entries.forEach(function(p){
+          var start = isoAddDays(p.date, -PAIN_WINDOW_DAYS), end = isoAddDays(p.date, -1);
+          var windowVol = {};
+          volumeDates.forEach(function(d){
+            if(d < start || d > end) return;
+            Object.keys(dayVolumes[d]).forEach(function(norm){ windowVol[norm] = (windowVol[norm] || 0) + dayVolumes[d][norm]; });
+          });
+          Object.keys(windowVol).forEach(function(norm){
+            if(typical[norm] > 0 && windowVol[norm] > PAIN_VOLUME_RATIO * typical[norm]) counts[norm] = (counts[norm] || 0) + 1;
+          });
+        });
+        g.findings = Object.keys(counts).map(function(norm){
+          return { name: totals[norm].name, count: counts[norm], share: counts[norm] / g.episodes };
+        }).filter(function(f){ return f.share >= PAIN_MIN_SHARE; })
+          .sort(function(a,b){ return (b.share - a.share) || (b.count - a.count) || (a.name < b.name ? -1 : (a.name > b.name ? 1 : 0)); });
+        delete g.entries;
+      });
+    }catch(e){ /* hiljainen virhe, palautetaan mitä ehdittiin koota */ }
+    return order.map(function(key){ return groups[key]; });
+  }
+
   function isoAddDays(iso, delta){
     var d = new Date(iso + "T00:00:00");
     d.setDate(d.getDate() + delta);
@@ -3145,7 +3258,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       });
       state.kehitys = results;
       state.kehitysTotalWeight = await buildTotalWeightSeries();
-    }catch(e){ state.kehitys = []; state.kehitysTotalWeight = []; }
+      state.painAnalysis = await buildPainAnalysis();
+    }catch(e){ state.kehitys = []; state.kehitysTotalWeight = []; state.painAnalysis = []; }
     state.kehitysLoading = false;
     render();
   }
@@ -3535,6 +3649,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return noteRows;
   }
 
+  // Vaivalokin vienti omana CSV-tiedostonaan; varmuuskopion muotoon ei kosketa.
+  function exportPainLogCSV(){
+    if(!state.painLog.length){ showToast("Ei kirjattuja vaivoja"); return; }
+    var rows = [["Päivämäärä", "Kehonosa", "Puoli", "Aste", "Huomio"]];
+    state.painLog.slice().sort(function(a,b){ return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); }).forEach(function(p){
+      rows.push([p.date, painRegionLabel(p.region), painSideLabel(p.side), p.severity, p.note || ""]);
+    });
+    // UTF-8-BOM kuten varmuuskopiossa, jotta ä/ö näkyvät Excelissä oikein.
+    var blob = new Blob(["\uFEFF" + csvRows(rows)], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "vaivaloki_" + todayISO() + ".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Vaivaloki tallennettu");
+  }
   async function exportAllCSV(){
     // Lämmittelysarjat (warmups, RPE) eivät tässä vaiheessa sisälly
     // CSV-vientiin; vain työsarjat viedään.
@@ -4070,6 +4200,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       await storeDelete(STORAGE_PROGRAM_KEY);
       await storeDelete(STORAGE_PROGRAMS_KEY);
       await storeDelete(STORAGE_LASTSET_KEY);
+      await storeDelete(STORAGE_PAIN_KEY);
       await storeDelete(STORAGE_MANUAL_MAX_KEY);
       await storeDelete(STORAGE_USER_EXERCISES_KEY);
       await storeDelete(STORAGE_SIMULATION_KEY);
@@ -4081,6 +4212,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.program = null;
     state.programs = [];
     state.pendingProgram = null;
+    state.painLog = [];
+    state.painAnalysis = undefined;
+    state.showPainForm = false;
+    state.confirmingDeletePain = null;
     state.manualExercises = [];
     state.userExercises = [];
     state.pendingRestore = null;
@@ -4641,6 +4776,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Kehitys</b> näyttää jokaiselle liikkeelle 1RM:n parhaana arvona viimeiseltä neljältä viikolta sekä muutoksen kuukauteen, puoleen vuoteen, vuoteen ja ennätykseen verrattuna. Yhden toiston sarja on mittaus; muista sarjoista arvo lasketaan Epley-kaavalla päivän raskaimmasta sarjasta. Ohjelmoitu kevyempi päivä (esim. 4 × 8 seitsemälläkymmenellä prosentilla) ei pudota lukua, koska se ei ole maksimisuoritus — luku laskee vasta, kun vastaava suoritus jää toistamatta neljään viikkoon. Kortti näyttää erikseen viimeisimmän treenin oman arvion."
     ));
 
+    html += ohjeSection("Vaivaloki", ohjeP(
+      "Ohjelma-välilehden \"Kirjaa vaiva\" -painikkeella kirjaat kehonosakohtaisen vaivan — puolen, voimakkuuden ja vapaan huomion — valitulle kirjauspäivälle. Kirjaukset näkyvät Kehitys-välilehden Vaivat-osiossa, jossa yksittäisen kirjauksen voi poistaa."
+    ) + ohjeP(
+      "Kun samalle kehonosalle on vähintään kolme kirjausta, Kehitys näyttää, minkä liikkeiden volyymi (paino × toistot) on toistuvasti ylittänyt tavanomaisen viikkovolyymin vaivaa edeltävällä viikolla. Vaivalokin voi viedä omana CSV-tiedostonaan Asetusten Varmuuskopio-osiosta."
+    ) + ohjeP(PAIN_DISCLAIMER));
+
     html += ohjeSection("5. Muokkaa ohjelmaa", ohjeP(
       "Ohjelmaa voi muokata ilman uutta tuontia: Ohjelma-välilehden kynäkuvakkeesta (tai Asetusten Ohjelma-osiosta) avautuu muokkaustila, jossa voit lisätä, poistaa, kopioida ja järjestää viikkoja, treenipäiviä ja liikkeitä sekä nimetä viikot ja päivät. Muutokset tallentuvat vasta \"Valmis\"-painikkeesta; \"Peruuta\" hylkää ne."
     ) + ohjeList([
@@ -4846,6 +4987,73 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       body +
       '</div></div>';
   }
+  // Vaivaloki: nimet ja Ohjelma-näkymän kirjauslohko. Kirjaus kohdistuu
+  // kirjauspäivälle (state.draftDate), kuten merkinnätkin.
+  function painRegionLabel(region){
+    for(var i=0;i<PAIN_REGIONS.length;i++){ if(PAIN_REGIONS[i][0] === region) return PAIN_REGIONS[i][1]; }
+    return region || "";
+  }
+  function painSideLabel(side){
+    return (side === "vasen" || side === "oikea" || side === "molemmat") ? side : "";
+  }
+  // "Olkapää (oikea)"; ilman puolta pelkkä kehonosa.
+  function painGroupLabel(region, side){
+    var s = painSideLabel(side);
+    return painRegionLabel(region) + (s ? " (" + s + ")" : "");
+  }
+  function painSeverityLabel(severity){
+    return severity === 3 ? "voimakas" : (severity === 2 ? "kohtalainen" : "lievä");
+  }
+  function blankPainDraft(){ return { region: "", side: "", severity: 1, note: "" }; }
+  // Huomiokenttä kirjoitetaan luonnokseen ennen uudelleenpiirtoa, jotta
+  // puoli- tai voimakkuuspainikkeen painallus ei tyhjennä kirjoitettua tekstiä.
+  function painNoteFromDom(){
+    var el = document.getElementById("pain-note");
+    if(el) state.painDraft.note = el.value;
+  }
+  function painChoiceButton(attr, valueAttr, value, label, on){
+    return '<button type="button" class="weight-step-btn" ' + attr + ' ' + valueAttr + '="' + value + '" aria-pressed="' + (on ? "true" : "false") + '"' +
+      (on ? ' style="background:var(--brass); color:var(--ink);"' : '') + '>' + label + '</button>';
+  }
+  function renderPainEntry(){
+    var todayCount = state.painLog.filter(function(p){ return p.date === state.draftDate; }).length;
+    if(!state.showPainForm){
+      return '<div style="display:flex; align-items:center; gap:10px; margin:0 0 10px;">' +
+        '<button class="btn-secondary" data-pain-open type="button" style="width:auto; padding:8px 14px; font-size:12.5px;">+ Kirjaa vaiva</button>' +
+        (todayCount > 0 ? '<span style="font-size:12px; color:var(--mist);">' + plural(todayCount, "vaiva kirjattu", "vaivaa kirjattu") + ' tälle päivälle</span>' : '') +
+        '</div>';
+    }
+    var d = state.painDraft;
+    var options = '<option value="">Valitse kehonosa</option>' + PAIN_REGIONS.map(function(r){
+      return '<option value="' + r[0] + '"' + (d.region === r[0] ? ' selected' : '') + '>' + escapeHtml(r[1]) + '</option>';
+    }).join("");
+    var sideHtml = "";
+    if(PAIN_PAIRED[d.region]){
+      sideHtml = '<div style="font-size:12px; color:var(--mist); margin:10px 0 6px;">Puoli</div>' +
+        '<div style="display:flex; gap:6px; flex-wrap:wrap;" role="group" aria-label="Puoli">' +
+        [["vasen","Vasen"],["oikea","Oikea"],["molemmat","Molemmat"]].map(function(s){
+          return painChoiceButton("data-pain-side", "data-side", s[0], s[1], d.side === s[0]);
+        }).join("") + '</div>';
+    }
+    var severityHtml = '<div style="font-size:12px; color:var(--mist); margin:10px 0 6px;">Voimakkuus</div>' +
+      '<div style="display:flex; gap:6px; flex-wrap:wrap;" role="group" aria-label="Voimakkuus">' +
+      [[1,"Lievä"],[2,"Kohtalainen"],[3,"Voimakas"]].map(function(s){
+        return painChoiceButton("data-pain-severity", "data-severity", s[0], s[1], d.severity === s[0]);
+      }).join("") + '</div>';
+    return '<div class="exercise" style="padding:14px; margin-bottom:10px;">' +
+      '<div style="font-weight:700; margin-bottom:8px;">Kirjaa vaiva · ' + escapeHtml(formatDateShortFI(state.draftDate)) + '</div>' +
+      '<label for="pain-region" style="font-size:12px; color:var(--mist); display:block; margin-bottom:6px;">Kehonosa</label>' +
+      '<select class="ledger-input" id="pain-region">' + options + '</select>' +
+      sideHtml + severityHtml +
+      '<label for="pain-note" style="font-size:12px; color:var(--mist); display:block; margin:10px 0 6px;">Huomio</label>' +
+      '<input class="ledger-input" id="pain-note" type="text" placeholder="Huomio, esim. missä vaiheessa treeniä" value="' + escapeHtml(d.note || "") + '" maxlength="200">' +
+      '<div style="display:flex; gap:8px; margin-top:12px;">' +
+      '<button class="btn-secondary" data-pain-cancel type="button">Peruuta</button>' +
+      '<button class="btn-primary" data-pain-save type="button" style="margin-top:0;">Tallenna</button>' +
+      '</div>' +
+      '<div style="font-size:11.5px; color:var(--mist); margin-top:10px; line-height:1.4;">' + PAIN_DISCLAIMER + '</div>' +
+      '</div>';
+  }
   function renderWeekModeSwitch(){
     var week = !state.showAllWeeks;
     return '<div class="segmented" role="group" aria-label="Näytettävät viikot">' +
@@ -4900,6 +5108,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="date-picker-row">' +
       (hasWeeks ? renderWeekModeSwitch() : '<span>Kirjataan päivälle</span>') +
       '<span class="sr-only">Kirjataan päivälle</span>' + renderDateChip() + '</div>';
+    html += renderPainEntry();
 
     if(hasWeeks && !state.showAllWeeks){
       html += renderWeekStepper();
@@ -5781,8 +5990,41 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderKehitys(){
     if(state.kehitysLoading) return '<div class="empty">Lasketaan kehitystä…</div>';
     var data = state.kehitys;
-    if(!data || data.length === 0) return renderEmptyState("kehitys", "Ei vielä kehitystä", "Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.", goToProgramButton());
-    return renderTotalWeightCard(state.kehitysTotalWeight) + data.map(function(item){ return renderKehitysCard(item); }).join("");
+    if(!data || data.length === 0) return renderEmptyState("kehitys", "Ei vielä kehitystä", "Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.", goToProgramButton()) + renderPainSection();
+    return renderTotalWeightCard(state.kehitysTotalWeight) + data.map(function(item){ return renderKehitysCard(item); }).join("") + renderPainSection();
+  }
+  // Kehityksen Vaivat-osio: analyysi kehonosittain ja kirjaukset uusin ensin.
+  function renderPainSection(){
+    var html = '<div class="day-heading">Vaivat</div>';
+    if(!state.painLog.length){
+      return html + '<div class="exercise" style="padding:14px;"><div style="font-size:13px; color:var(--mist);">Ei kirjattuja vaivoja. Kirjaa vaiva Ohjelma-välilehdeltä.</div></div>';
+    }
+    (state.painAnalysis || []).forEach(function(g){
+      html += '<div class="exercise" style="padding:14px;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;"><b>' + escapeHtml(g.label) + '</b><span style="font-size:12px; color:var(--mist); white-space:nowrap;">' + plural(g.episodes, "merkintä", "merkintää") + '</span></div>';
+      if(g.tooFew){
+        html += '<div style="font-size:13px; color:var(--mist); margin-top:6px; line-height:1.4;">Yhteyksiä liikkeisiin etsitään, kun merkintöjä on vähintään ' + PAIN_MIN_EPISODES + '.</div>';
+      } else if(!g.findings.length){
+        html += '<div style="font-size:13px; color:var(--mist); margin-top:6px; line-height:1.4;">Mikään liike ei ole toistuvasti poikennut tavanomaisesta vaivaa edeltävällä viikolla.</div>';
+      } else {
+        g.findings.forEach(function(f){
+          html += '<div style="font-size:13px; margin-top:6px; line-height:1.4;">' + f.count + ' / ' + g.episodes + ' kertaa edelsi viikko, jolloin <b style="color:var(--chalk);">' + escapeHtml(capitalize(f.name)) + '</b> ylitti tavanomaisen volyymin</div>';
+        });
+      }
+      html += '</div>';
+    });
+    var entries = state.painLog.slice().sort(function(a,b){ return a.date < b.date ? 1 : (a.date > b.date ? -1 : (a.id < b.id ? 1 : (a.id > b.id ? -1 : 0))); });
+    html += '<div class="exercise" style="padding:14px;"><div style="font-weight:700; margin-bottom:4px;">Kirjaukset</div>';
+    entries.forEach(function(p){
+      var confirming = state.confirmingDeletePain === p.id;
+      html += '<div style="display:grid; grid-template-columns:1fr 44px; align-items:center; gap:6px; border-top:1px solid var(--line); padding:2px 0;">' +
+        '<div style="font-size:13px; line-height:1.4;">' + escapeHtml(formatDateShortFI(p.date)) + ' · ' + escapeHtml(painGroupLabel(p.region, p.side)) + ' · ' + painSeverityLabel(p.severity) + (p.note ? ' · ' + escapeHtml(p.note) : '') + '</div>' +
+        '<button type="button" class="remove-set" data-pain-delete data-id="' + escapeHtml(p.id) + '" aria-label="' + (confirming ? "Vahvista poisto" : "Poista kirjaus") + '"' + (confirming ? ' style="color:var(--danger);"' : '') + '>' + (confirming ? "✓" : "×") + '</button>' +
+        '</div>';
+    });
+    html += '</div>' +
+      '<div style="font-size:11.5px; color:var(--mist); margin:8px 2px 4px; line-height:1.4;">' + PAIN_DISCLAIMER + '</div>';
+    return html;
   }
   // Päivän yhteenveto: liikkeiden määrä ja nostettu kokonaispaino.
   function historyDaySummary(entry){
@@ -6018,6 +6260,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="exercise" style="padding:16px;">' +
       settingsP("Yksi CSV-tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Data on vain tässä selaimessa, joten ota varmuuskopio säännöllisesti.") +
       '<button class="btn-secondary" id="export-btn" type="button">' + icon("tiedosto", 20) + '<span>Vie varmuuskopio CSV:nä</span></button>' +
+      '<button class="btn-secondary" id="export-pain-btn" type="button" style="margin-top:10px;">Vie vaivaloki CSV:nä</button>' +
       settingsP("Palauta varmuuskopio tai siirrä tietosi toiselta laitteelta. Ohjelma palautuu sellaisena kuin se oli varmuuskopion hetkellä; omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin ohittaen jo olemassa olevat, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.", "16px 0 12px") +
       renderFilePicker("import-entries-input", ".csv,text/csv", false, "btn-secondary", "palauta", "Palauta varmuuskopio", "Valitse palautettava varmuuskopiotiedosto") +
       '</div>';
@@ -6623,6 +6866,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("#export-btn"))){ await exportAllCSV(); return; }
+    if((el = e.target.closest("#export-pain-btn"))){ exportPainLogCSV(); return; }
     if((el = e.target.closest("#simulation-toggle-btn"))){
       if(state.simulationBusy) return;
       if(state.simulation.active){ await stopSimulation(); }
@@ -6635,6 +6879,61 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("[data-history-date]"))){ await toggleHistoryDate(el.dataset.date); return; }
+    if((el = e.target.closest("[data-pain-open]"))){
+      state.showPainForm = true;
+      afterRender(function(){ var painSel = document.getElementById("pain-region"); if(painSel) painSel.focus(); });
+      return;
+    }
+    if((el = e.target.closest("[data-pain-cancel]"))){
+      state.showPainForm = false;
+      state.painDraft = blankPainDraft();
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-pain-side]"))){
+      painNoteFromDom();
+      state.painDraft.side = el.dataset.side;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-pain-severity]"))){
+      painNoteFromDom();
+      state.painDraft.severity = parseInt(el.dataset.severity, 10) || 1;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-pain-save]"))){
+      var painRegionEl = document.getElementById("pain-region");
+      var painNoteEl = document.getElementById("pain-note");
+      var painRegion = painRegionEl ? painRegionEl.value : "";
+      var painNote = painNoteEl ? painNoteEl.value.trim() : "";
+      if(!painRegion){ showToast("Valitse kehonosa"); return; }
+      if(PAIN_PAIRED[painRegion] && !state.painDraft.side){ showToast("Valitse puoli"); return; }
+      state.painLog.push({ id: "pain-" + Date.now(), date: state.draftDate, region: painRegion, side: PAIN_PAIRED[painRegion] ? state.painDraft.side : "", severity: state.painDraft.severity, note: painNote });
+      await savePainLog();
+      state.showPainForm = false;
+      state.painDraft = blankPainDraft();
+      // Kehitys lasketaan uudelleen seuraavalla avauksella.
+      state.painAnalysis = undefined;
+      state.kehitys = undefined;
+      showToast("Vaiva kirjattu");
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-pain-delete]"))){
+      var painId = el.dataset.id;
+      if(state.confirmingDeletePain !== painId){ state.confirmingDeletePain = painId; render(); }
+      else{
+        state.painLog = state.painLog.filter(function(p){ return p.id !== painId; });
+        state.confirmingDeletePain = null;
+        await savePainLog();
+        state.painAnalysis = undefined;
+        // Poisto tehdään Kehitys-näkymässä, joten analyysi päivitetään heti.
+        if(state.view === "kehitys") state.painAnalysis = await buildPainAnalysis();
+        render();
+      }
+      return;
+    }
     if((el = e.target.closest("[data-delete-history]"))){
       var d = el.dataset.date;
       if(state.confirmingDeleteDate !== d){ state.confirmingDeleteDate = d; render(); }
@@ -6708,6 +7007,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var impFile = e.target.files[0];
       if(impFile){ showToast("Luetaan varmuuskopiota…"); readBackupFile(impFile); }
       e.target.value = "";
+      return;
+    }
+    if(e.target.id === "pain-region"){
+      painNoteFromDom();
+      state.painDraft.region = e.target.value;
+      state.painDraft.side = "";
+      afterRender(function(){ var painSel = document.getElementById("pain-region"); if(painSel) painSel.focus(); });
       return;
     }
     if(e.target.id === "log-date"){ changeLogDate(e.target.value); return; }
@@ -6916,6 +7222,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     try{
       var manualMaxRes = await storeGet(STORAGE_MANUAL_MAX_KEY);
       if(manualMaxRes && manualMaxRes.value) state.manualMax = JSON.parse(manualMaxRes.value);
+    }catch(e){}
+    try{
+      var painRes = await storeGet(STORAGE_PAIN_KEY);
+      if(painRes && painRes.value){
+        var painParsed = JSON.parse(painRes.value);
+        if(Array.isArray(painParsed)) state.painLog = painParsed;
+      }
     }catch(e){}
     try{
       var userExRes = await storeGet(STORAGE_USER_EXERCISES_KEY);
