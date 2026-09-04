@@ -435,6 +435,49 @@ ne on sidottu liike-id:eihin, jotka ovat ohjelmakohtaisia, joten
 ohjelmaan palattaessa `buildExerciseLogIndex()` löytää sen tehty-tilan
 ennallaan. `resetAll()` poistaa myös kirjaston. Testit: `test_programs.js`.
 
+## Selaimen historiapino (History API, toteutettu, 0.4.1)
+
+Ruudun vaihdot kulkevat `navigate({ view, detail })`-funktion kautta, ja vain
+ne viedään selaimen historiapinoon (ei avattuja liikkeitä, päiviä,
+vahvistuksia eikä Kehityksen välilehteä). URL ei muutu: `pushState` ja
+`replaceState` kutsutaan `location.href`-osoitteella. Merkintä on
+`{ view, detail, depth }`; `depth` 0 = juuri (Ohjelma tai tuontiruutu),
+1 = välilehti (Historia, Kehitys, Ohje), 2 = päällysruutu (Asetukset,
+Kehityksen liikenäkymä). Nykyinen merkintä luetaan aina `history.state`-
+oliosta (`currentHistoryScreen()`), joten sovellus ei pidä peilipinoa;
+`state.navDepth` peilaa syvyyden. Säännöt (`navigate`): juuresta välilehdelle
+`pushScreen`, välilehdeltä toiselle `replaceScreen`, välilehdeltä Ohjelmaan
+`historyBack()`, päällysruutu aina `pushScreen`. Aktiivisen välilehden
+napautus uudelleen (myös Asetukset) ei muuta pinoa vaan palauttaa ruudun
+perustilan (`resetScreenState()`: riviluettelo, vieritys ylös) — poikkeaa
+kehotteen rataskuvakelauseesta tietoisesti, koska Asetukset on alanavigaation
+kohde ja aktiivisen kohteen napautus palaa sen juureen; sulkeminen tapahtuu
+eleellä tai toisella välilehdellä. Kun
+päällysruutu on auki ja pyydetään muuta ruutua, `state.navPending` saa
+kohteen ja `historyBack()` kutsutaan; `popstate` tyhjentää sen ja kutsuu
+`navigate(pending)` uudelleen (kaksivaiheinen siirtymä ilman välirenderöintiä).
+`state.navSuppress` merkitsee sovelluksen itse aiheuttamaa paluuta; jos
+popstate ei tule 800 ms:ssa, `finishPendingWithoutHistory()` tekee siirtymän
+`replaceScreen`-kutsulla.
+
+`applyScreen(screen)` on ainoa paikka, jossa `state.view` ja
+`state.kehitysDetail` asetetaan (testi tarkistaa tämän grep-haulla); se nollaa
+`confirmingReset`, `settingsSection`, `programRename`,
+`confirmingDeleteProgram` ja `pendingRestore`, lataa Historian tai Kehityksen
+tarvittaessa, vierittää uuden ruudun ylös ja palauttaa `kehitysScrollY`:n
+liikenäkymästä listaan palattaessa. `restoreHistoryScreen()` ajetaan initin
+lopussa: `history.state` palautetaan (uudelleenlataus välitilassa), muuten
+nykyinen merkintä korvataan juurella. `loadKehitys` sulkee liikenäkymän, jos
+liikettä ei enää ole: avoin päällysruutu `navigate`-kutsulla (back), ladattu
+sivu `replaceScreen`-kutsulla syvyydelle 1. `resetAll` korvaa merkinnän
+juurella. Kutsupaikat: `[data-tab]`, `[data-open-kehitys]`,
+`[data-close-kehitys]`, `[data-open-settings]` (asettaa osion navigaten
+jälkeen, koska se avataan juuresta synkronisesti), `applyImportedProgram`,
+`applyBackupRestore`, `acceptPendingProgram`, `cancelProgramEdit`. Ohjelma-
+näkymän avattu liike ei ole pinossa: taaksepäin poistuu sovelluksesta kuten
+ennen. Ei hash-reititystä, ei beforeunload-varoitusta. Testi:
+`test_history.js` (goBack/goForward, pinon pituus, URL, uudelleenlataus).
+
 ## Kehityksen laajennus: ennätykset, volyymi ja toteutuminen (toteutettu, 0.4.0)
 
 Yhteinen laskentapohja: `loadAllEntries()` tekee yhden `storeList("entries:")`-
