@@ -2690,10 +2690,21 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           // tämä supistuu muotoon refWeight * PROGRESSION_COEFFICIENT.
           var estimatedOneRepMax = refWeight * (1 + refReps/30);
           var targetOneRepMax = estimatedOneRepMax * PROGRESSION_COEFFICIENT;
-          var computed = roundToStep(targetOneRepMax / (1 + targetReps/30), 2.5);
+          var rawTarget = targetOneRepMax / (1 + targetReps/30);
+          var computed = roundToStep(rawTarget, 2.5);
+          // Vähimmäisaskel: alle 102,5 kg:n painoilla 1,25 %:n nousu on
+          // pienempi kuin puoli pyöristysaskelta, jolloin pyöristys palauttaisi
+          // saman painon eikä ehdotus nousisi koskaan. Kun kaava osoittaa
+          // nousua mutta pyöristys ei, ehdotetaan seuraavaa 2,5 kg:n askelta.
+          // Laskua (toistoja tavoitetta vähemmän) askel ei koske.
+          var minStep = false;
+          if(rawTarget > refWeight && computed <= refWeight){
+            computed = roundToStep(refWeight + 2.5, 2.5);
+            minStep = true;
+          }
           var formulaRows = [];
           for(var k=0;k<count2;k++){ formulaRows.push({ weight: String(computed), reps: draftRepsFor(ex, k), notes: "", done: false }); }
-          state.autoCalcInfo[id] = { type:"formula", refWeight: refWeight, refReps: refReps, date: last.date, progressionPercent: (PROGRESSION_COEFFICIENT - 1) * 100 };
+          state.autoCalcInfo[id] = { type:"formula", refWeight: refWeight, refReps: refReps, date: last.date, progressionPercent: (PROGRESSION_COEFFICIENT - 1) * 100, minStep: minStep, rawTarget: rawTarget };
           return formulaRows;
         }
       }
@@ -4349,7 +4360,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("3. Painoehdotukset", ohjeP(
-      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus perustuu viime kerran viimeiseen sarjaan. Jos teit enemmän tai vähemmän toistoja kuin tavoite, paino lasketaan automaattisesti ylös- tai alaspäin."
+      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus perustuu viime kerran viimeiseen sarjaan. Jos teit enemmän tai vähemmän toistoja kuin tavoite, paino lasketaan automaattisesti ylös- tai alaspäin. Kun kaava osoittaa nousua, ehdotus nousee aina vähintään seuraavaan 2,5 kg:n askeleeseen (esim. 15 kg → 17,5 kg), koska pelkkä 1,25 %:n laskennallinen nousu pyöristyisi kevyillä painoilla pois."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
     ) + ohjeP(
@@ -4785,6 +4796,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     } else if(info.type === "formula"){
       var progressionStr = String(Math.round(info.progressionPercent * 100) / 100).replace(".", ",");
       text = "Paino laskettu Epley-kaavalla edellisestä merkinnästä (" + String(info.refWeight).replace(".", ",") + " kg × " + info.refReps + " toistoa, " + info.date + "), tavoitteena " + progressionStr + " % kehitys — muokattavissa.";
+      if(info.minStep){
+        text += " Laskennallinen nousu (" + String(Math.round(info.rawTarget * 10) / 10).replace(".", ",") + " kg) pyöristyisi samaan painoon, joten ehdotus on seuraava 2,5 kg:n askel.";
+      }
     } else if(info.type === "saved"){
       text = "Tämä merkintä on jo tallennettu (" + capitalize(formatDateFI(info.date)) + ") — arvot ladattu aiemmasta tallennuksesta, ei tuoreesta laskennasta.";
     } else {
