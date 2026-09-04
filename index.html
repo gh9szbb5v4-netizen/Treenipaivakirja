@@ -396,6 +396,30 @@
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
   var APP_VERSION = "0.3.0";
+  // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
+  // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
+  // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
+  // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
+  var CHANGELOG = [
+    { date: "2026-09-04", items: [
+      "Kehitys: liikkeen 1RM on nyt paras arvo viimeiseltä neljältä viikolta, joten kevyempi ohjelmoitu treenipäivä ei enää pudota lukua. Viimeisimmän treenin oma arvio näkyy kortissa erikseen, yhden toiston sarja lasketaan mittauksena, ja vertailurivit ovat kuukausi, puoli vuotta, vuosi ja ennätys.",
+      "Painoehdotus: kun teit tavoitetoistot, ehdotus nousee vähintään seuraavaan 2,5 kg:n askeleeseen (esim. 15 → 17,5 kg). Aiemmin ehdotus jäi kevyillä painoilla samaksi."
+    ]},
+    { date: "2026-09-03", items: [
+      "Ohjelmakirjasto: uusi ohjelma ei enää korvaa käytössä olevaa. Tuonnin tai rakentamisen lopuksi valitset, otatko uuden käyttöön vai jätätkö sen kirjastoon, ja Asetukset › Ohjelma -osiossa ohjelmia voi vaihtaa, nimetä ja poistaa. Merkinnät säilyvät aina.",
+      "Ohje löytyy nyt oikean yläkulman kysymysmerkistä ja Asetukset alavalikon viimeisestä kohdasta.",
+      "Ohjelman muokkaus: Ohjelma-näkymän kynäkuvake avaa muokkaustilan, jossa viikkoja, treenipäiviä ja liikkeitä voi lisätä, järjestää, kopioida, nimetä ja poistaa. Ohjelman rakentaminen ja PDF-tuonnin tarkistus käyttävät samaa näkymää, ja liike valitaan hakukentällä.",
+      "Uusi ulkoasu: tervetulo- ja aloitusruutu, treenipäivät kortteina Aloita-painikkeella, tiiviimpi sarjarivi (±2,5 kg vain aktiivisen sarjan alla), Asetukset osioina, Historian päiväyhteenvedot ja tabletilla kaksipalstainen Ohjelma-näkymä. Versio 0.3.0.",
+      "Varmuuskopio sisältää merkintöjen lisäksi ohjelmat, omat liikkeet ja 1RM-arvot; palautus yhdistää laitteella jo olevaan eikä poista mitään.",
+      "Ohjelman voi tuoda valmentajan PDF-tiedostosta tai rakentaa sovelluksessa CSV-tuonnin rinnalla."
+    ]},
+    { date: "2026-09-02", items: [
+      "Liikkeen vaihto tuntee variaatiot ja lihasryhmät, ja ohjelman CSV:ssä voi olla Variaatio- ja Lisävariaatio-sarakkeet.",
+      "Sovellus muistuttaa varmuuskopiosta, kun edellisestä viennistä on yli 14 päivää.",
+      "Näkymien vaihdossa on siirtymäanimaatio."
+    ]}
+  ];
+  function changelogHasNew(){ return CHANGELOG.length > 0 && state.changelogSeen !== CHANGELOG[0].date; }
   // Sovelluksen logo otsikkorivillä. Upotettu data-URI:na, koska sovellus on
   // yhden tiedoston kokonaisuus ilman ulkoisia riippuvuuksia — sama merkki kuin
   // aloitusnäytön kuvakkeissa, mutta läpinäkyvällä taustalla.
@@ -404,6 +428,7 @@
   var FEEDBACK_EMAIL = "jarkko_palokangas@hotmail.com";
   var STORAGE_HOMESCREEN_HINT_KEY = "homescreen-hint-dismissed";
   var STORAGE_FIRST_LOG_HINT_KEY = "first-log-hint-dismissed";
+  var STORAGE_CHANGELOG_SEEN_KEY = "changelog-seen";
   var STORAGE_LAST_EXPORT_KEY = "last-export-date";
   var EXPORT_REMINDER_DAYS = 14;
   var REST_DURATION_SECONDS = 90;
@@ -455,6 +480,8 @@
     // Ohjelmakirjasto: muut kuin käytössä oleva ohjelma (ks. allPrograms).
     programs: [],
     pendingProgram: null,
+    // Uusin luettu muutoskooste (CHANGELOG[0].date); ennen sitä rivillä lukee "uutta".
+    changelogSeen: null,
     programRename: null,
     confirmingDeleteProgram: null,
     // PDF-tuonnin jäsennystulos odottamassa käyttäjän hyväksyntää. Ohjelma
@@ -4428,6 +4455,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
       "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta.",
+      "<b style=\"color:var(--chalk);\">Muutokset</b> — kooste koekäytön aikana tehdyistä muutoksista ja niiden vaikutuksesta käyttöön, uusin ensin.",
       "<b style=\"color:var(--chalk);\">Lisää</b> — simulointi (täyttää ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten; toimii vain ilman oikeita merkintöjä), palaute tekijälle sähköpostitse, tietoja sovelluksesta sekä kaikkien tietojen tyhjennys, joka kysyy vahvistuksen."
     ]));
 
@@ -5612,6 +5640,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     { key:"1rm", icon:"kehitys", title:"Liikkeiden 1RM" },
     { key:"lepo", icon:"historia", title:"Lepoajastin" },
     { key:"varmuuskopio", icon:"palauta", title:"Varmuuskopio" },
+    { key:"muutokset", icon:"tieto", title:"Muutokset" },
     { key:"lisaa", icon:"valikko", title:"Lisää" }
   ];
   function settingsSubtitle(key){
@@ -5627,6 +5656,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if(key === "lepo") return state.restTimerEnabled ? "Käytössä · " + state.restDurationSeconds + " s" : "Pois käytöstä";
     if(key === "varmuuskopio") return "Vie tai palauta CSV-tiedostona";
+    if(key === "muutokset") return "Uusin " + formatDateFI(CHANGELOG[0].date) + (changelogHasNew() ? " · uutta" : "");
     if(key === "lisaa") return "Simulointi, palaute, tietoja, tyhjennys";
     return "";
   }
@@ -5759,6 +5789,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       (state.confirmingReset ? "Vahvista tyhjennys" : "Tyhjennä kaikki tiedot") + '</button>' +
       '</div>';
   }
+  function renderSettingsMuutokset(){
+    var html = '<div class="exercise" style="padding:16px; margin-bottom:12px;">' +
+      settingsP("Koekäytön aikana tehdyt muutokset ja niiden vaikutus käyttöön, uusin ensin. Sovelluksen versio " + APP_VERSION + ".", 0) + '</div>';
+    CHANGELOG.forEach(function(entry){
+      html += '<div class="exercise" style="padding:14px 16px 6px; margin-bottom:10px;">' +
+        '<div class="exercise-name" style="margin-bottom:8px;">' + escapeHtml(capitalize(formatDateFI(entry.date))) + '</div>' +
+        ohjeList(entry.items.map(function(i){ return escapeHtml(i); })) + '</div>';
+    });
+    return html;
+  }
   function renderAsetukset(){
     var section = state.settingsSection;
     if(!section) return renderSettingsList();
@@ -5768,6 +5808,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     else if(section === "1rm") body = renderSettings1rm();
     else if(section === "lepo") body = renderSettingsLepo();
     else if(section === "varmuuskopio") body = renderSettingsVarmuuskopio();
+    else if(section === "muutokset") body = renderSettingsMuutokset();
     else body = renderSettingsLisaa();
     return renderSubviewHeader(def ? def.title : "Asetukset") + body;
   }
@@ -5941,6 +5982,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.confirmingReset = false;
       state.programRename = null;
       state.confirmingDeleteProgram = null;
+      if(state.settingsSection === "muutokset" && changelogHasNew()){
+        state.changelogSeen = CHANGELOG[0].date;
+        try{ await storeSet(STORAGE_CHANGELOG_SEEN_KEY, state.changelogSeen); }
+        catch(e){ /* hiljainen virhe, ei kriittinen */ }
+      }
       render();
       return;
     }
@@ -6605,6 +6651,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(homescreenHintRes && homescreenHintRes.value === "1"){ state.homescreenHintDismissed = true; }
     }catch(e){}
     try{
+      var changelogRes = await storeGet(STORAGE_CHANGELOG_SEEN_KEY);
+      if(changelogRes && changelogRes.value) state.changelogSeen = changelogRes.value;
       var firstLogHintRes = await storeGet(STORAGE_FIRST_LOG_HINT_KEY);
       if(firstLogHintRes && firstLogHintRes.value === "1"){ state.firstLogHintDismissed = true; }
     }catch(e){}
