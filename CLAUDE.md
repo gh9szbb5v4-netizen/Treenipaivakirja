@@ -82,6 +82,39 @@ liikkeen vaihdon käytössä.
 olevan ohjelman muokkaus on sama muokkaustila tilassa `"edit"`, ei erillinen
 toteutus. Yksittäisen liikkeen vaihto on lisäksi Ohjelma-näkymässä.
 
+## Liikepankki (toteutettu, versio 4.9.2026)
+
+`EXERCISE_VARIANTS` on generoitu tiedostosta
+`Kuntosaliliikkeet_ja_lihasryhmat_v4_9_2026.xlsx` (taulukko
+"Kuntosaliliikkeet", sarakkeet Liikkeen nimi, Väline, Variaatio, Lihasryhmä;
+ei Lisävariaatio-saraketta): 905 riviä / 354 liikettä lähteen järjestyksessä,
+rivin muoto `{ liike, valine, variaatio, lisavariaatio:null, lihasryhma }`.
+Lähdetaulukko ja generointiskripti eivät ole repossa; katalogin
+otsikkokommentti kertoo tuonnissa tehdyt tarkistukset (ei kaksoisrivejä,
+yksi väline ja yksi lihasryhmä per liike) sekä variaatiosäännön: vain talja-
+(9 kahvaa) ja tankoliikkeillä (6 tankoa) on variaatiot, aina koko sarja, ja
+27 talja-/tankoliikettä on tarkoituksella ilman. `lisavariaatio` säilyy
+kentässä, koska CSV-tuonti ja `state.userExercises` käyttävät sitä.
+
+`valine` on käytössä kolmessa paikassa: `exercisePickEntries()` lisää sen
+hakusanoihin (`renderExercisePickList` osuu nimeen, lihasryhmään ja
+välineeseen), `renderVariantInfo()` näyttää rivin "Väline:"
+(`equipmentForLiike()` samalla ensimmäisen rivin säännöllä kuin
+`muscleGroupForLiike()`) ja `renderVariantPicker()` liittää sen
+esikatseluun. Käyttäjän omilla liikkeillä ei ole välinettä (lomake ja
+varmuuskopion `#OMAT LIIKKEET` ennallaan), jolloin sitä ei näytetä.
+
+Edellinen katalogi (97 liikettä, 10 lihasryhmää, mm. "Jalat", "Ojentajat",
+"Olkapäät") korvattiin kokonaan; vain 14 nimeä säilyi. Ohjelmien ja
+merkintöjen nimiin ei koskettu, koska katalogi on vain valitsimien
+viitetaulukko; vanhalla nimellä oleva liike näkyy liikevalitsimessa ryhmässä
+"Ohjelmassa ja historiassa" (`knownExerciseNames()`, luetaan tallennetusta
+ohjelmasta, ei muokkaustilan luonnoksesta). Testien fixture `prog_swap.csv`
+käyttää katalogin nimiä; testit `test_catalog.js`, `test_swap_regression.js`.
+Huomio: kiinteä alavalikko on läpikuultava, joten axe voi ilmoittaa
+välilehden tekstin kontrastista, kun messinkinen painike osuu sen alle —
+riippuu vierityskohdasta eikä katalogista.
+
 ## Ohjelman muokkaustila (toteutettu)
 
 Tietomalli sai kolme kenttää, kaikki valinnaisia vanhojen tallennusten takia:

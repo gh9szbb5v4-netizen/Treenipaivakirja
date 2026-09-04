@@ -23,8 +23,8 @@ Ainoa pakollinen sarake on liikkeen nimi. Muut sarakkeet tunnistetaan automaatti
 | Viikko | `Viikko`, `Week`, `Vko` | Ryhmittelee ohjelman viikoittain |
 | Treenipäivä | `Treenipäivä`, `Päivä`, `Day` | Ryhmittelee päivittäin |
 | Liike | `Liike`, `Exercise` | **Pakollinen** — liikkeen nimi |
-| Variaatio | `Variaatio`, `Variation` | Liitetään nimeen pilkulla, esim. `Maastaveto, Tangolla` |
-| Lisävariaatio | `Lisävariaatio`, `Subvariation` | Liitetään nimen loppuun, esim. `Hauiskääntö taljassa, Maaten, Scott-kahva` |
+| Variaatio | `Variaatio`, `Variation` | Liitetään nimeen pilkulla, esim. `Kulmasoutu tangolla, Trap bar` |
+| Lisävariaatio | `Lisävariaatio`, `Subvariation` | Liitetään nimen loppuun, esim. `Kulmasoutu tangolla, Suora tanko, Vastaotteella`; vapaa teksti, liikepankissa ei ole lisävariaatioita |
 | Sarjat | `Sarjat`, `Sets` | Ledgeriin luotavien rivien määrä |
 | Toistot | `Toistot`, `Reps` | Tavoitetoistot |
 | Yksiköt | `Yksiköt`, `Unit` | Esim. `toistoa`, `min`, `käsi` |
@@ -100,6 +100,12 @@ Ohjelmakirjasto on Asetusten Ohjelma-osiossa. Siellä ohjelman voi ottaa käytt�
 
 Ohjelman vaihto ei koske merkintöjä. Historia ja Kehitys näyttävät kaikki kirjatut treenit riippumatta siitä, mikä ohjelma on käytössä, ja koska merkinnät on sidottu ohjelmakohtaisiin liiketunnisteisiin, ohjelmaan palattaessa sen tehty-merkinnät ja keskeneräiset päivät löytyvät ennallaan. Myös ohjelman poisto kirjastosta jättää merkinnät Historiaan. Varmuuskopio sisältää kaikki ohjelmat, ja palautus lisää puuttuvat ohjelmat kirjastoon poistamatta mitään.
 
+## Liikepankki
+
+Sovellukseen on leivottu liikepankki, jota liikevalitsin (ohjelman rakentaminen ja muokkaus), "Vaihda liike toiseksi" ja liikkeen tietopalkki käyttävät. Versio 4.9.2026 sisältää 354 liikettä ja 905 riviä: jokaisella liikkeellä on väline (kahvakuula, kehonpaino, kelkka, kone, kuntopallo, käsipaino, muu, Smith-kone, TRX, talja, tanko tai vastuskuminauha) ja lihasryhmä (alaselkä, etureisi, hauis, kyynärvarsi, loitontaja, lähentäjä, niska, ojentaja, olkapää, pakara, pohje, rinta, selkä, takareisi tai vatsa). Taljaliikkeille voi valita yhdeksästä kahvasta (H-kahva, hihnat, köysi, lapiokahva, lat-tanko, Scott-kahva, suora tanko, V-kahva, yhden käden kahva) ja tankoliikkeille kuudesta tangosta (suora tanko, Scott-tanko, trap bar, moniotetanko, safety squat bar, Smith-tanko); 27 talja- ja tankoliikettä on ilman variaatioita, koska kahva tai tanko on jo nimessä tai tanko on kiinteä (yhden käden taljaliikkeet, landmine-liikkeet). Variaatio liitetään nimeen pilkulla, esim. "Kulmasoutu tangolla, Trap bar".
+
+Liikevalitsimen haku kohdistuu nimeen, lihasryhmään ja välineeseen, joten esimerkiksi "talja köysi" tai "käsipaino etureisi" rajaa listan. Liikepankki on vain ehdotuslista: ohjelmaan voi kirjoittaa minkä tahansa nimen, ja ohjelmassa tai historiassa jo olevat nimet näkyvät valitsimessa omassa ryhmässään. Liikepankin päivitys ei muuta ohjelmiin tai historiaan tallennettuja nimiä.
+
 ## Sarjapainojen laskenta
 
 Sovellus ehdottaa painon kahdella eri säännöllä sen mukaan, onko liikkeelle määritelty teho. Ehdotus on aina muokattavissa, ja ledgerin yläpuolella kerrotaan, mihin se perustuu.
@@ -155,7 +161,7 @@ Ohjelma, Historia, Kehitys ja Asetukset vaihdetaan näytön alareunassa kelluvas
 
 Vähintään 768 pikseliä leveällä näytöllä (tabletti, tietokone) Ohjelma-näkymä on kaksipalstainen: päivät ja liikkeet ovat vasemmalla ja avattu liike sarjoineen oikealla omassa paneelissaan, joka pysyy paikallaan listaa vieritettäessä. Puhelimella näkymä on yksi palsta. Valmiiksi merkitty sarja, tallennettu liike ja valmistunut päivä saavat pienen ponnahdusanimaation; se ja painikkeiden siirtymät ovat pois päältä, jos laitteen asetuksissa on valittu liikkeen vähentäminen.
 
-Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa liike ja valitse "Vaihda liike toiseksi". Sarjat, toistot ja teho säilyvät ennallaan, ja vaihdon voi kohdistaa joko vain kyseiseen kohtaan tai kaikkiin saman liikkeen esiintymiin ohjelmassa. Vaihdettu liike aloittaa oman historiansa uudella nimellä; vanhalla nimellä tallennetut merkinnät säilyvät Historiassa ennallaan.
+Ohjelman liikkeen voi myös vaihtaa toiseksi ilman CSV:n uudelleentuontia: avaa liike ja valitse "Vaihda liike toiseksi". Sarjat, toistot ja teho säilyvät ennallaan, ja vaihdon voi kohdistaa joko vain kyseiseen kohtaan tai kaikkiin saman liikkeen esiintymiin ohjelmassa. Liike valitaan liikepankista lihasryhmittäin, talja- ja tankoliikkeille myös kahva tai tanko, ja esikatselu näyttää uuden nimen, välineen ja lihasryhmän (ks. Liikepankki). Vaihdettu liike aloittaa oman historiansa uudella nimellä; vanhalla nimellä tallennetut merkinnät säilyvät Historiassa ennallaan.
 
 **Historia.** Merkinnät päivittäin; ennen ensimmäistä merkintää näkymä kertoo, mistä aloittaa, ja vie painikkeella Ohjelmaan. jokainen päiväkortti näyttää jo suljettuna liikkeiden määrän ja nostetun kokonaispainon. Yksittäisen päivän voi poistaa kortin alareunasta kahdella painalluksella, jolloin painoehdotukset ja Kehitys-näkymän laskennalliset maksimit lasketaan uudelleen jäljellä olevasta historiasta.
 
