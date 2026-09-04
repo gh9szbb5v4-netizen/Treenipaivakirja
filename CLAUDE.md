@@ -82,6 +82,58 @@ liikkeen vaihdon käytössä.
 olevan ohjelman muokkaus on sama muokkaustila tilassa `"edit"`, ei erillinen
 toteutus. Yksittäisen liikkeen vaihto on lisäksi Ohjelma-näkymässä.
 
+## Liikepankki (toteutettu, versio 4.9.2026)
+
+`EXERCISE_VARIANTS` on generoitu tiedostosta
+`Kuntosaliliikkeet_ja_lihasryhmat_v4_9_2026.xlsx` (taulukko
+"Kuntosaliliikkeet", sarakkeet Liikkeen nimi, Väline, Variaatio, Lihasryhmä;
+ei Lisävariaatio-saraketta): 905 riviä / 354 liikettä lähteen järjestyksessä,
+rivin muoto `{ liike, valine, variaatio, lisavariaatio:null, lihasryhma }`.
+Lähdetaulukko ja generointiskripti eivät ole repossa; katalogin
+otsikkokommentti kertoo tuonnissa tehdyt tarkistukset (ei kaksoisrivejä,
+yksi väline ja yksi lihasryhmä per liike) sekä variaatiosäännön: vain talja-
+(9 kahvaa) ja tankoliikkeillä (6 tankoa) on variaatiot, aina koko sarja, ja
+27 talja-/tankoliikettä on tarkoituksella ilman. `lisavariaatio` säilyy
+kentässä, koska CSV-tuonti ja `state.userExercises` käyttävät sitä.
+
+`valine` on käytössä kolmessa paikassa: `exercisePickEntries()` lisää sen
+hakusanoihin (`renderExercisePickList` osuu nimeen, lihasryhmään ja
+välineeseen), `renderVariantInfo()` näyttää rivin "Väline:"
+(`equipmentForLiike()` samalla ensimmäisen rivin säännöllä kuin
+`muscleGroupForLiike()`) ja `renderVariantPicker()` liittää sen
+esikatseluun. Käyttäjän omilla liikkeillä ei ole välinettä (lomake ja
+varmuuskopion `#OMAT LIIKKEET` ennallaan), jolloin sitä ei näytetä.
+
+`catalogPartsFor(name)` jakaa liikkeen nimen katalogin mukaan: pisin
+pilkuilla rajattu alkuosa, joka osuu `resolveCatalogMatch()`-funktioon
+(koostettu rivi tai pelkkä liikenimi), on `liike`; loput ovat
+`variantText` (variaatio, lisävariaatio ja muu häntä) ja `details` on
+`[valine, variantText, lihasryhma]` ilman tyhjiä. Katalogin ulkopuolinen
+nimi palauttaa null. Tulos muistetaan `catalogPartsCache`-oliossa avaimella
+`nimi|omien liikkeiden määrä`, joten omien liikkeiden lisäys ei vaadi
+tyhjennystä. `baseExerciseName(name)` palauttaa `liike`-osan tai koko
+nimen. Käyttöpaikat: `renderExercise()` (otsikkona `liike`, alla
+`.exercise-detail`-rivi `details.join(" · ")`; `renderVariantInfo()`
+luettelee enää vain tunnetut variaatiot), `buildAllOneRepMaxSeries()` ja
+`buildPainAnalysis()` (sarjan avain on `baseExerciseName`, joten eri tangolla
+tai kahvalla kirjatut merkinnät ovat yksi liike; 1RM-sarja kerää
+`variants`-joukon ja kortti näyttää rivin "Variaatiot: …", kun niitä on
+useampi). Historia, painoehdotus (`state.lastSet`) ja 1RM-arvot
+(`state.manualMax`) käyttävät edelleen koko nimeä, koska eri tanko voi
+vaatia eri painon. Testi: `test_variant_merge.js` (fixture
+`prog_variants.csv`).
+
+Edellinen katalogi (97 liikettä, 10 lihasryhmää, mm. "Jalat", "Ojentajat",
+"Olkapäät") korvattiin kokonaan; vain 14 nimeä säilyi. Ohjelmien ja
+merkintöjen nimiin ei koskettu, koska katalogi on vain valitsimien
+viitetaulukko; vanhalla nimellä oleva liike näkyy liikevalitsimessa ryhmässä
+"Ohjelmassa ja historiassa" (`knownExerciseNames()`, luetaan tallennetusta
+ohjelmasta, ei muokkaustilan luonnoksesta). Testien fixture `prog_swap.csv`
+käyttää katalogin nimiä; testit `test_catalog.js`, `test_swap_regression.js`.
+Huomio: kiinteä alavalikko on läpikuultava, joten axe voi ilmoittaa
+välilehden tekstin kontrastista, kun messinkinen painike osuu sen alle —
+riippuu vierityskohdasta eikä katalogista.
+
 ## Ohjelman muokkaustila (toteutettu)
 
 Tietomalli sai kolme kenttää, kaikki valinnaisia vanhojen tallennusten takia:
@@ -387,6 +439,41 @@ Syy: Epley olettaa sarjan tehdyksi uupumukseen, joten ohjelmoitu
 submaksimaalinen päivä ei saa pudottaa mitattua maksimia. Testit:
 `test_kehitys.js`.
 
+## Vaivaloki (toteutettu)
+
+`state.painLog` on taulukko `{ id: "pain-<aikaleima>", date, region, side,
+severity, note }` avaimella `pain-log` (`STORAGE_PAIN_KEY`, `savePainLog()`);
+`region` on `PAIN_REGIONS`-taulukon avain, `side` on `"vasen"`, `"oikea"`,
+`"molemmat"` tai `""` (puoli kysytään vain `PAIN_PAIRED`-kehonosilta) ja
+`severity` 1–3. Kirjaus tehdään Ohjelma-näkymässä (`renderPainEntry()` heti
+päivämäärärivin jälkeen; `state.showPainForm`, `state.painDraft`) ja
+kohdistuu kirjauspäivälle `state.draftDate`, kuten merkinnätkin.
+Puoli- ja voimakkuuspainikkeet piirtävät näkymän uudelleen, joten
+`painNoteFromDom()` kopioi huomiokentän luonnokseen ennen piirtoa; kehonosan
+vaihto (`change`-käsittelijä, `#pain-region`) nollaa puolen ja palauttaa
+fokuksen `afterRender`-kutsulla. Tallennus ja poisto asettavat
+`state.painAnalysis = undefined`; tallennus lisäksi `state.kehitys =
+undefined`, jotta Kehitys lasketaan uudelleen seuraavalla avauksella, ja
+poisto (Kehitys-näkymässä) laskee analyysin heti uudelleen.
+
+`buildPainAnalysis()` (`buildTotalWeightSeries()`:n jäljessä) lukee
+merkinnät kuten Kehityksen muut sarjat: liikkeen päivävolyymi on työsarjojen
+paino × toistot (lämmittelyt ovat erillisessä `warmups`-taulukossa eivätkä
+sisälly), yhdistelmäliikkeet (`isCombo`) ohitetaan. Tavanomainen
+viikkovolyymi on liikkeen koko volyymi jaettuna niiden ISO-viikkojen
+(`isoWeekKey`) määrällä, joilla liikettä on kirjattu. Kirjaukset ryhmitellään
+avaimella `region|side`; ryhmälle, jolla on vähintään `PAIN_MIN_EPISODES`
+kirjausta, lasketaan jokaisen kirjauksen ikkuna `date−PAIN_WINDOW_DAYS …
+date−1`, ja liike poikkeaa, kun ikkunan volyymi > `PAIN_VOLUME_RATIO` ×
+tavanomainen. Löydös (`findings: [{ name, count, share }]`) näytetään, kun
+`share ≥ PAIN_MIN_SHARE`; pienemmät ryhmät palautetaan `tooFew: true`.
+`loadKehitys()` tallentaa tuloksen `state.painAnalysis`-tilaan ja
+`renderPainSection()` lisätään `renderKehitys()`:n molempiin haaroihin
+(myös tyhjään tilaan), jotta loki näkyy ilman 1RM-dataa. Vienti
+`exportPainLogCSV()` on oma tiedosto (`vaivaloki_<pvm>.csv`, BOM);
+varmuuskopion muotoon ei kosketa, eikä loki sisälly siihen. `resetAll()`
+poistaa lokin. Testit: `test_pain.js`, `a11y_pain.js`.
+
 ## Tarkistettavat laskentaparametrit
 
 Sovelluksen laskentakaavojen vakiot ovat alkuarvoja, joita on arvioitava
@@ -416,6 +503,21 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   maksimipainon nousua ja vaje viimeisimmässä → `autoCalcInfo.plateau`,
   kaikille sarjoille `floorToStep(prevWeight × DELOAD_FACTOR)`; ei laukea,
   jos jokin kolmesta kerrasta oli kevennys.
+- `WARMUP_ADJUST_TOLERANCE = 2.5`, `WARMUP_MIN_MATCHES = 1`,
+  `WARMUP_FACTOR_HEAVY = 0.95`, `WARMUP_FACTOR_VERY_HEAVY = 0.90` ja
+  `WARMUP_FACTOR_LIGHT = 1.025`: lämmittelysäätö (`applyWarmupAdjustment`).
+  Luonnosrivillä on `kind` (`"work"` | `"warmup"`), lämmittelyllä `rpe`,
+  progressiorivillä `base` (ehdotus) ja säädön jälkeen `adjusted`; säätö
+  koskee vain rivejä, joilla `weight === base` tai `weight === adjusted`,
+  jotta RPE:n vaihto samassa treenissä säätää uudelleen mutta käsin
+  muokattu rivi jää rauhaan. `lastSet`-kerroilla ja merkinnöillä on
+  `warmups: [{ weight, reps, rpe }]`; lämmittelyt eivät sisälly CSV-vientiin
+  eivätkä Kehityksen laskentaan.
+- `PAIN_WINDOW_DAYS = 7`, `PAIN_VOLUME_RATIO = 1.2`, `PAIN_MIN_EPISODES = 3`
+  ja `PAIN_MIN_SHARE = 0.6`: vaivalokin analyysin ikkuna, poikkeaman raja,
+  kirjausten vähimmäismäärä ja löydöksen osuusraja (`buildPainAnalysis`).
+  Raja 1,2 × tavanomainen viikkovolyymi on arvaus; jos löydöksiä tulee
+  jokaisesta liikkeestä tai ei mistään, säädetään ensin tätä.
 
 ## Muutoskooste koekäyttäjille (toteutettu)
 
