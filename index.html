@@ -181,8 +181,11 @@
   .kehitys-back{font:inherit; font-size:var(--fs-md); font-weight:700; background:transparent; border:0; color:var(--brass); min-height:44px; min-width:44px; padding:0 8px 0 0; cursor:pointer; border-radius:8px;}
   .kehitys-back:focus-visible{outline:2px solid var(--brass);}
   .kehitys-detail-title{font-size:var(--fs-xl); font-weight:800; margin:0; flex:1; min-width:0; overflow-wrap:anywhere;}
-  .week-ex-row{display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-top:1px dashed var(--line); font-size:var(--fs-sm); flex-wrap:wrap;}
-  .week-ex-stats{color:var(--mist); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  /* Viikon liikelista: aina kaksi riviä (nimi, sen alla luvut), jotta rivit
+     eivät rivity eri tavoin nimen pituuden mukaan. */
+  .week-ex-row{display:block; padding:8px 0; border-top:1px dashed var(--line); font-size:var(--fs-sm);}
+  .week-ex-name{display:block; color:var(--chalk); overflow-wrap:anywhere;}
+  .week-ex-stats{display:block; color:var(--mist); font-size:var(--fs-xs); font-variant-numeric:tabular-nums; margin-top:2px;}
   .chevron{color:var(--mist); font-size:20px; transition:transform .2s, color .2s; flex-shrink:0; margin-left:10px;}
   .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
   .chevron-btn{background:none; border:none; padding:0; margin:0; cursor:pointer; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; flex-shrink:0;}
@@ -440,13 +443,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.0";
+  var APP_VERSION = "0.4.1";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
+      "Laitteen taaksepäin-ele ja selaimen taaksepäin-painike toimivat nyt sovelluksessa: ne palaavat edelliseen näkymään (esimerkiksi liikenäkymästä Kehitys-listaan tai Asetuksista Ohjelmaan) ja poistuvat sovelluksesta vasta Ohjelma-näkymästä. Sivun uudelleenlataus palaa samaan näkymään. Osoite ei muutu.",
       "Kehitys-välilehti uudistui (versio 0.4.0): etusivulla ovat viikon yhteenveto (kokonaispaino, sarjat, toistot, treenipäivät ja erot edelliseen viikkoon), kokonaispainon käyrä viikon tai päivän karkeudella, ohjelman toteutuminen viimeiseltä 28 päivältä (sarjat, toistotavoite, progressiotavoite ja pysähtyneet liikkeet) sekä liikelista hakukentällä. Liikkeen rivi avaa oman näkymän välilehdillä 1RM, Ennätykset (raskain paino, paras sarja, toistoalueet), Volyymi ja Toteutuminen. Uudet merkinnät tallentavat myös sen, mitä ohjelma ja painoehdotus edellyttivät; vanhoille merkinnöille toteutuminen on arvio.",
       "Varmuuskopion palautus tunnistaa Excelissä avatun ja tallennetun tiedoston: jos Excel on kirjoittanut jokaisen rivin yhdeksi soluksi, sovellus purkaa rivit itse, ja ohjelma, merkinnät ja 1RM-arvot palautuvat. Aiemmin tällainen tiedosto antoi ilmoituksen, ettei siitä löytynyt tuotavaa sisältöä.",
       "Lämmittelyn tuntuma kysytään nyt sanallisella asteikolla Kevyt, Sujuva, Työläs, Raskas ja Äärirajoilla RPE-numeroiden sijaan; jokainen pykälä kertoo, montako toistoa olisit vielä jaksanut, ja valinnan kuvaus näkyy rivin alla. Selitteet ja Ohje käyttävät samoja sanoja. Aiemmat kirjaukset ja painoehdotuksen säätö toimivat ennallaan.",
@@ -655,6 +659,14 @@
     // volyymikortin karkeus, liikenäkymä (normalisoitu nimi tai null), sen
     // välilehti ja etusivun vieritysasento, liikelistan suodatin ja viikon
     // liikelistan avaus.
+    // Selaimen historiapino (History API): navDepth 0 = juuri (Ohjelma),
+    // 1 = välilehti, 2 = päällysruutu (Asetukset, Kehityksen liikenäkymä).
+    // navPending on siirtymä, joka tehdään sovelluksen oman history.back()-
+    // kutsun popstate-tapahtuman jälkeen; navSuppress kertoo, että seuraava
+    // popstate on sovelluksen itse aiheuttama.
+    navDepth: 0,
+    navPending: null,
+    navSuppress: false,
     kehitysWeekly: undefined,
     kehitysAdherenceSummary: undefined,
     kehitysVolumeScale: "viikko",
@@ -2816,7 +2828,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     await computeDefaultActiveWeek();
     state.todayEntry = await loadEntry(state.draftDate);
     state.exerciseLogIndex = await buildExerciseLogIndex();
-    state.view = "ohjelma";
+    await navigate({ view: "ohjelma", detail: null });
     showToast(successMessage || "Ohjelma tuotu onnistuneesti");
     if(isFirstImport && !state.homescreenHintDismissed && !isStandaloneDisplay()){ state.showHomescreenHint = true; }
     if(isFirstImport){
@@ -2877,7 +2889,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(activate){ await applyImportedProgram(pp.program, "Ohjelma tallennettu ja otettu käyttöön"); return; }
     state.programs.push(pp.program);
     await saveProgramLibrary();
-    if(back) state.view = back;
+    if(back && back !== state.view) await navigate({ view: back, detail: null });
     showToast("Ohjelma tallennettu kirjastoon");
     render();
   }
@@ -3018,7 +3030,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.editor = blankEditor();
     if(state.sheet === "liike") state.sheet = null;
   }
-  function cancelProgramEdit(){
+  async function cancelProgramEdit(){
     if(editorHasChanges() && !state.editor.confirmCancel){
       state.editor.confirmCancel = true;
       render();
@@ -3026,7 +3038,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     var back = state.editor.returnView;
     resetEditor();
-    if(back) state.view = back;
+    // Muokkaustila ei ole oma ruutunsa: paluu samaan ruutuun (tavallisin
+    // tapaus, esim. Asetusten Ohjelma-osioon) on pelkkä piirto, jottei
+    // navigate tulkitse sitä päällysruudun sulkemiseksi eikä nollaa osiota.
+    if(back && back !== state.view) await navigate({ view: back, detail: null });
     render();
   }
   // Tarkistaa luonnoksen ennen tallennusta ja palauttaa virhetekstin tai null.
@@ -4420,10 +4435,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.kehitysWeekly = buildWeeklySummary(entries);
       state.kehitysAdherenceSummary = buildAdherenceSummary(adherence);
       state.painAnalysis = buildPainAnalysis(entries);
-      // Liikenäkymä säilyy uudelleenlaskennassa; poistunut liike sulkee sen.
-      if(state.kehitysDetail && !results.some(function(r){ return r.norm === state.kehitysDetail; })) state.kehitysDetail = null;
-    }catch(e){ state.kehitys = []; state.kehitysTotalWeight = []; state.kehitysWeekly = []; state.kehitysAdherenceSummary = null; state.painAnalysis = []; state.kehitysDetail = null; }
+    }catch(e){ state.kehitys = []; state.kehitysTotalWeight = []; state.kehitysWeekly = []; state.kehitysAdherenceSummary = null; state.painAnalysis = []; }
     state.kehitysLoading = false;
+    // Liikenäkymä säilyy uudelleenlaskennassa; poistunut liike sulkee sen.
+    // Avoin päällysruutu suljetaan history.back()-kutsulla, uudelleenladattu
+    // sivu pudotetaan listaan korvaamalla merkintä syvyydellä 1.
+    if(state.kehitysDetail && !(state.kehitys || []).some(function(r){ return r.norm === state.kehitysDetail; })){
+      var listScreen = { view: "kehitys", detail: null };
+      if(state.navDepth === 2 && !state.loading){ await navigate(listScreen); }
+      else { replaceScreen(listScreen, 1); await applyScreen(listScreen); }
+      return;
+    }
     render();
   }
 
@@ -5296,7 +5318,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
     if(restore.programs && restore.programs.length){
       await computeDefaultActiveWeek();
-      state.view = "ohjelma";
+      await navigate({ view: "ohjelma", detail: null });
     }
     state.todayEntry = await loadEntry(state.draftDate);
     state.exerciseLogIndex = await buildExerciseLogIndex();
@@ -5444,10 +5466,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.activeWeek = null;
     state.showAllWeeks = false;
     state.exerciseLogIndex = {};
-    state.view = "ohjelma";
+    // Asetukset-ruutu lakkaa olemasta mielekäs: nykyinen merkintä korvataan
+    // juurella eikä pinoon jätetä päällysruutua.
+    replaceScreen({ view: "ohjelma", detail: null }, 0);
+    await applyScreen({ view: "ohjelma", detail: null });
     stopRestTimer();
     showToast("Kaikki tiedot tyhjennetty");
-    render();
   }
 
   function showToast(msg, durationMs){
@@ -5894,6 +5918,145 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return '<div class="tab ' + (state.view===t[0] ? "active" : "") + '" data-tab="' + t[0] + '" role="button" tabindex="0"' + (state.view===t[0] ? ' aria-current="page" style="view-transition-name:active-tab;"' : "") + '>' +
         icon(t[0], 20) + '<span>' + t[1] + '</span></div>';
     }).join("") + '</nav>';
+  }
+  // ---------- Navigointi ja selaimen historiapino ----------
+  // Ruudun vaihdot kulkevat navigate()-funktion kautta, ja vain ne viedään
+  // selaimen historiapinoon (ei avattuja liikkeitä, päiviä tai vahvistuksia).
+  // Näin laitteen taaksepäin-ele sulkee päällimmäisen ruudun ja poistuu
+  // sovelluksesta vasta juuresta. URL ei muutu: merkinnät tehdään nykyisellä
+  // osoitteella. Pinon säännöt (Android-käytäntö alanavigaatiolle): juuri on
+  // Ohjelma; juuresta välilehdelle pushState, välilehdeltä toiselle
+  // replaceState, takaisin Ohjelmaan history.back(); päällysruutu pushState
+  // sen ruudun päälle, josta se avattiin, ja sen sulkeminen history.back().
+  // Historiamerkintä on { view, detail, depth }. state.view ja
+  // state.kehitysDetail asetetaan vain applyScreen()-funktiossa.
+  var NAV_VIEWS = ["ohjelma", "historia", "kehitys", "asetukset", "ohje"];
+  var hasHistoryApi = !!(window.history && typeof window.history.pushState === "function");
+  function screenDepth(screen){
+    if(screen.view === "asetukset") return 2;
+    if(screen.view === "kehitys" && screen.detail) return 2;
+    if(screen.view === "ohjelma") return 0;
+    return 1;
+  }
+  function normalizeScreen(target){
+    var view = (target && NAV_VIEWS.indexOf(target.view) !== -1) ? target.view : "ohjelma";
+    var detail = (view === "kehitys" && target && target.detail) ? String(target.detail) : null;
+    return { view: view, detail: detail };
+  }
+  function sameScreen(a, b){ return a.view === b.view && (a.detail || null) === (b.detail || null); }
+  // Nykyinen historiamerkintä (history.state); ilman merkintää juuri.
+  function currentHistoryScreen(){
+    var hs = hasHistoryApi ? window.history.state : null;
+    if(hs && NAV_VIEWS.indexOf(hs.view) !== -1) return normalizeScreen(hs);
+    return { view: "ohjelma", detail: null };
+  }
+  function historyEntryFor(screen, depth){ return { view: screen.view, detail: screen.detail || null, depth: depth }; }
+  function pushScreen(screen, depth){
+    if(hasHistoryApi){ try{ window.history.pushState(historyEntryFor(screen, depth), "", window.location.href); }catch(e){} }
+    state.navDepth = depth;
+  }
+  function replaceScreen(screen, depth){
+    if(hasHistoryApi){ try{ window.history.replaceState(historyEntryFor(screen, depth), "", window.location.href); }catch(e){} }
+    state.navDepth = depth;
+  }
+  // Sovelluksen oma paluu pinossa. popstate saapuu asynkronisesti; jos sitä ei
+  // jostain syystä tule (ei edeltävää merkintää), odottava siirtymä tehdään
+  // varmistusajastimella replaceState-kutsulla.
+  function historyBack(){
+    if(!hasHistoryApi){ finishPendingWithoutHistory(); return; }
+    state.navSuppress = true;
+    window.history.back();
+    setTimeout(function(){ if(state.navSuppress){ finishPendingWithoutHistory(); } }, 800);
+  }
+  async function finishPendingWithoutHistory(){
+    state.navSuppress = false;
+    var pending = state.navPending || currentHistoryScreen();
+    state.navPending = null;
+    replaceScreen(pending, screenDepth(pending));
+    await applyScreen(pending);
+  }
+  async function navigate(target){
+    target = normalizeScreen(target);
+    var cur = currentHistoryScreen();
+    var depth = state.navDepth;
+    if(sameScreen(cur, target) && !state.navSuppress){
+      // Sama ruutu (aktiivisen välilehden napautus): palautetaan ruudun
+      // perustila — Asetukset riviluetteloon, vieritys ylös — ilman
+      // historiapinon muutosta. Päällysruutua ei suljeta tästä: Asetukset on
+      // alanavigaation kohde, ja aktiivisen kohteen napautus palaa sen juureen
+      // (Material-käytäntö); sulkeminen tapahtuu eleellä tai toisella
+      // välilehdellä. Kehityksen liikenäkymä ei ole sama ruutu kuin Kehitys-
+      // lista, joten sen napautus alanavigaatiosta sulkee liikenäkymän.
+      resetScreenState();
+      afterRender(function(){ window.scrollTo(0, 0); });
+      return;
+    }
+    if(depth === 2 || state.navSuppress){
+      // Päällysruutu auki (tai paluu jo käynnissä): suljetaan ensin, loput
+      // popstate-käsittelijässä (kaksivaiheinen siirtymä).
+      state.navPending = target;
+      if(!state.navSuppress) historyBack();
+      return;
+    }
+    var tDepth = screenDepth(target);
+    if(tDepth === 2){ pushScreen(target, 2); await applyScreen(target); return; }
+    if(tDepth === 0){
+      // Takaisin Ohjelmaan: välilehdeltä yhdellä askeleella pinossa alaspäin.
+      if(depth === 1){ state.navPending = target; historyBack(); return; }
+      replaceScreen(target, 0); await applyScreen(target); return;
+    }
+    if(depth === 0) pushScreen(target, 1);
+    else replaceScreen(target, 1);
+    await applyScreen(target);
+  }
+  // Ruudun vaihdon nollaukset: Asetukset avautuu aina riviluetteloon, ei
+  // edelliseen alinäkymään, eikä vahvistamaton palautus tai vahvistus jää
+  // roikkumaan taustalle.
+  function resetScreenState(){
+    state.confirmingReset = false;
+    state.settingsSection = null;
+    state.programRename = null;
+    state.confirmingDeleteProgram = null;
+    state.pendingRestore = null;
+  }
+  // Ainoa paikka, jossa state.view ja state.kehitysDetail asetetaan.
+  async function applyScreen(screen){
+    screen = normalizeScreen(screen);
+    var prevView = state.view, prevDetail = state.kehitysDetail;
+    state.view = screen.view;
+    state.kehitysDetail = screen.detail;
+    resetScreenState();
+    var backToList = state.view === "kehitys" && prevView === "kehitys" && prevDetail && !state.kehitysDetail;
+    if(state.view === "historia" && state.historyDates === undefined){ await loadHistory(); window.scrollTo(0, 0); }
+    else if(state.view === "kehitys" && state.kehitys === undefined){ await loadKehitys(); window.scrollTo(0, 0); }
+    else if(backToList){ afterRender(function(){ window.scrollTo(0, state.kehitysScrollY || 0); }); }
+    else if(prevView !== state.view || prevDetail !== state.kehitysDetail){ afterRender(function(){ window.scrollTo(0, 0); }); }
+    else render();
+  }
+  if(hasHistoryApi){
+    window.addEventListener("popstate", async function(e){
+      if(state.loading) return;
+      var screen = (e.state && NAV_VIEWS.indexOf(e.state.view) !== -1) ? e.state : { view: "ohjelma", detail: null, depth: 0 };
+      state.navDepth = isFinite(screen.depth) ? screen.depth : screenDepth(screen);
+      var pending = state.navPending;
+      state.navPending = null;
+      state.navSuppress = false;
+      if(pending && !sameScreen(normalizeScreen(pending), normalizeScreen(screen))){ await navigate(pending); return; }
+      await applyScreen(screen);
+    });
+  }
+  // Käynnistys ja uudelleenlataus: välitilassa ladattu sivu palaa samaan
+  // ruutuun history.state-oliosta; muuten nykyinen merkintä korvataan juurella.
+  async function restoreHistoryScreen(){
+    var hs = hasHistoryApi ? window.history.state : null;
+    if(hs && NAV_VIEWS.indexOf(hs.view) !== -1){
+      var screen = normalizeScreen(hs);
+      state.navDepth = isFinite(hs.depth) ? hs.depth : screenDepth(screen);
+      await applyScreen(screen);
+      return;
+    }
+    replaceScreen({ view: "ohjelma", detail: null }, 0);
+    render();
   }
   function renderBody(){
     if(state.loading) return '<div class="empty">Ladataan…</div>';
@@ -7297,7 +7460,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         return (b.tonnage - a.tonnage) || a.name.localeCompare(b.name, "fi");
       });
       html += '<div style="margin-top:6px;">' + rows.map(function(r){
-        return '<div class="week-ex-row"><span>' + escapeHtml(capitalize(r.name)) + '</span><span class="week-ex-stats">' +
+        return '<div class="week-ex-row"><span class="week-ex-name">' + escapeHtml(capitalize(r.name)) + '</span><span class="week-ex-stats">' +
           plural(r.sets, "sarja", "sarjaa") + ' · ' + plural(Math.round(r.reps), "toisto", "toistoa") + ((r.combo || !(r.tonnage > 0)) ? '' : ' · ' + fmtKg(r.tonnage)) + '</span></div>';
       }).join("") + '</div>';
     }
@@ -7996,7 +8159,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("[data-open-settings]"))){
-      state.view = "asetukset";
+      // Avataan Ohjelma-näkymästä (juuri), joten navigate on synkroninen ja
+      // osio voidaan asettaa heti sen jälkeen.
+      await navigate({ view: "asetukset", detail: null });
       state.settingsSection = el.dataset.openSettings;
       render();
       return;
@@ -8021,7 +8186,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if(e.target.closest("[data-edit-program]")){ await startProgramEdit(); return; }
-    if(e.target.closest("[data-edit-cancel]")){ cancelProgramEdit(); return; }
+    if(e.target.closest("[data-edit-cancel]")){ await cancelProgramEdit(); return; }
     if(e.target.closest("[data-edit-done]")){ await finishProgramEdit(); return; }
     if((el = e.target.closest("[data-edit-open-week]"))){
       var wk = el.dataset.editOpenWeek;
@@ -8109,20 +8274,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         showToast("Viimeistele tai peruuta ohjelman " + guardWord + " ensin");
         return;
       }
-      state.view = el.dataset.tab;
-      // Alanavigaation Kehitys palaa aina liikelistaan.
-      if(state.view === "kehitys") state.kehitysDetail = null;
-      state.confirmingReset = false;
-      // Asetukset avautuu aina riviluetteloon, ei edelliseen alinäkymään.
-      state.settingsSection = null;
-      state.programRename = null;
-      state.confirmingDeleteProgram = null;
-      // Vahvistamaton palautus ei jää roikkumaan taustalle, jos käyttäjä
-      // siirtyy pois Asetuksista.
-      state.pendingRestore = null;
-      if(state.view === "historia" && state.historyDates === undefined){ await loadHistory(); }
-      else if(state.view === "kehitys" && state.kehitys === undefined){ await loadKehitys(); }
-      else render();
+      // Välilehti on ruutu: navigate hoitaa historiapinon, tilan nollaukset
+      // (applyScreen) ja tarvittaessa Historian tai Kehityksen latauksen.
+      // Alanavigaation Kehitys palaa aina liikelistaan (detail null).
+      await navigate({ view: el.dataset.tab, detail: null });
       return;
     }
     if((el = e.target.closest("[data-week-nav]"))){
@@ -8375,16 +8530,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if((el = e.target.closest("[data-history-date]"))){ await toggleHistoryDate(el.dataset.date); return; }
     if((el = e.target.closest("[data-open-kehitys]"))){
-      // Etusivun vieritysasento talteen; liikenäkymä avataan ylös vieritettynä.
+      // Etusivun vieritysasento talteen; liikenäkymä on päällysruutu, jonka
+      // navigate vie historiapinoon ja avaa ylös vieritettynä.
       state.kehitysScrollY = window.scrollY || 0;
-      state.kehitysDetail = el.dataset.openKehitys;
       state.kehitysDetailTab = "1rm";
-      afterRender(function(){ window.scrollTo(0, 0); });
+      await navigate({ view: "kehitys", detail: el.dataset.openKehitys });
       return;
     }
     if((el = e.target.closest("[data-close-kehitys]"))){
-      state.kehitysDetail = null;
-      afterRender(function(){ window.scrollTo(0, state.kehitysScrollY || 0); });
+      // Sulkeminen on history.back(), jottei pinoon jää haamumerkintää.
+      await navigate({ view: "kehitys", detail: null });
       return;
     }
     if((el = e.target.closest("[data-kehitys-tab]"))){
@@ -8828,7 +8983,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       await computeDefaultActiveWeek();
     }
     state.loading = false;
-    render();
+    await restoreHistoryScreen();
   })();
 })();
 </script>
