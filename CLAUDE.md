@@ -405,3 +405,15 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   askel on sama kaikilla liikkeillä, myös käsipainoilla, käyttäjän
   päätöksellä.
 
+## Muutoskooste koekäyttäjille (toteutettu)
+
+Asetukset › Muutokset (`SETTINGS_SECTIONS`-avain `muutokset`,
+`renderSettingsMuutokset()`) näyttää `CHANGELOG`-taulukon (uusin ensin,
+`{ date, items }`). **Päivitä taulukkoa jokaisessa käyttäjälle näkyvässä
+muutoksessa**: kirjoita ensin, miten muutos vaikuttaa käyttöön, ei miten
+se on toteutettu, ja pidä kohdat tiiviinä. Asetusten rivin alaotsikko
+näyttää uusimman päivän ja sanan "uutta", kunnes osio on avattu
+(`state.changelogSeen`, avain `changelog-seen`, verrataan
+`CHANGELOG[0].date`-arvoon). Tyhjennys ei poista avainta, koska kyse ei ole
+käyttäjän tiedoista.
+
