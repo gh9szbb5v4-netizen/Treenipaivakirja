@@ -401,9 +401,21 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   testausväliä.
 - `PROGRESSION_COEFFICIENT = 1.0125`: painoehdotuksen tavoiteltu kehitys
   per treenikerta.
-- Painoehdotuksen vähimmäisaskel 2,5 kg (`buildDraftRows`, `minStep`):
-  askel on sama kaikilla liikkeillä, myös käsipainoilla, käyttäjän
-  päätöksellä.
+- `WEIGHT_STEP = 2.5`, `PROGRESSION_MAX_FACTOR = 1.05` ja
+  `REGRESSION_FACTOR = 0.95`: painoehdotuksen askel (sama kaikilla
+  liikkeillä, myös käsipainoilla, käyttäjän päätöksellä), noston katto ja
+  kevennys. Ehdotus on sarjakohtainen ja ehdollinen (`buildDraftRows`,
+  `autoCalcInfo.perSet`, tilat `hit`/`near`/`missed`/`deload`); `state.lastSet`
+  tallentaa sarjan `done`-tiedon.
+- `HISTORY_DEPTH = 3` ja `DELOAD_FACTOR = 0.90`: `state.lastSet[nimi]` säilyttää
+  päällimmäisen kerran `{ sets, date }` -muodossa ennallaan ja lisäksi
+  `prior`-taulukon (enintään kaksi aiempaa kertaa, uusin ensin) sekä
+  `deload: true` -lipun kevennyskerralle (`pushLastSet`,
+  `rebuildTrackersForName` rakentaa saman merkinnöistä, merkinnässä
+  `deload`). Jumitunnistus `buildDraftRows`-funktiossa: kolme kertaa ilman
+  maksimipainon nousua ja vaje viimeisimmässä → `autoCalcInfo.plateau`,
+  kaikille sarjoille `floorToStep(prevWeight × DELOAD_FACTOR)`; ei laukea,
+  jos jokin kolmesta kerrasta oli kevennys.
 
 ## Muutoskooste koekäyttäjille (toteutettu)
 
