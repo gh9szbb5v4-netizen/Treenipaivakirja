@@ -98,9 +98,9 @@ kentässä, koska CSV-tuonti ja `state.userExercises` käyttävät sitä.
 
 `valine` on käytössä kolmessa paikassa: `exercisePickEntries()` lisää sen
 hakusanoihin (`renderExercisePickList` osuu nimeen, lihasryhmään ja
-välineeseen), `renderVariantInfo()` näyttää rivin "Väline:"
-(`equipmentForLiike()` samalla ensimmäisen rivin säännöllä kuin
-`muscleGroupForLiike()`) ja `renderVariantPicker()` liittää sen
+välineeseen), `catalogPartsFor()` liittää sen Ohjelma-näkymän
+tarkenneriville (`equipmentForLiike()` samalla ensimmäisen rivin säännöllä
+kuin `muscleGroupForLiike()`) ja `renderVariantPicker()` liittää sen
 esikatseluun. Käyttäjän omilla liikkeillä ei ole välinettä (lomake ja
 varmuuskopion `#OMAT LIIKKEET` ennallaan), jolloin sitä ei näytetä.
 
@@ -113,8 +113,9 @@ nimi palauttaa null. Tulos muistetaan `catalogPartsCache`-oliossa avaimella
 `nimi|omien liikkeiden määrä`, joten omien liikkeiden lisäys ei vaadi
 tyhjennystä. `baseExerciseName(name)` palauttaa `liike`-osan tai koko
 nimen. Käyttöpaikat: `renderExercise()` (otsikkona `liike`, alla
-`.exercise-detail`-rivi `details.join(" · ")`; `renderVariantInfo()`
-luettelee enää vain tunnetut variaatiot), `buildAllOneRepMaxSeries()` ja
+`.exercise-detail`-rivi `details.join(" · ")`; aiempi "Tunnetut
+variaatiot" -rivi (`renderVariantInfo`) on poistettu käyttäjän pyynnöstä),
+`buildAllOneRepMaxSeries()` ja
 `buildPainAnalysis()` (sarjan avain on `baseExerciseName`, joten eri tangolla
 tai kahvalla kirjatut merkinnät ovat yksi liike; 1RM-sarja kerää
 `variants`-joukon ja kortti näyttää rivin "Variaatiot: …", kun niitä on
@@ -226,6 +227,19 @@ täsmälleen viedyn kaltainen (testi vertaa merkkijonoja).
 `program.definitions` jätetään tietoisesti pois: `attachDefinitions()` on jo
 kirjoittanut sen sisällön liikkeiden `methodNote`-kenttiin, eikä taulukkoa lueta
 enää tuonnin jälkeen missään.
+
+`unwrapExcelBackupText(text)` ajetaan `readBackupFile()`:ssä ennen
+`splitBackupSections()`-kutsua: suomalainen Excel lukee pilkuilla erotellun
+tiedoston jokaisen rivin yhdeksi soluksi ja tallentaa rivin muodossa
+`"2026-09-04,""Liike, Variaatio"",""1"",…"`. Rivi, joka jäsentyy yhdeksi
+kentäksi ja sisältää `,"`, puretaan (`parseCSVLine` kahdesti) ja kirjoitetaan
+takaisin `csvRows()`-muotoon; jos kenttiä on osion otsikkoa enemmän, koska
+Excel poisti ensimmäisen kentän lainausmerkit ja nimessä oli pilkku,
+ylimääräiset alkukentät liitetään yhteen `", "`-erottimella. Tavallinen
+vientitiedosto ei muutu (rivit jakautuvat useaan kenttään). Osion otsikon
+kenttämäärä nollataan `#`-merkkirivillä. Desimaalipilkun lukee `toNumber()`.
+Testi: `test_backup_excel.js` (fixturet `backup_excel1.csv`, `backup_excel2.csv`
+koekäyttäjän tiedostoista).
 
 `applyBackupRestore()` palauttaa järjestyksessä omat liikkeet → 1RM → ohjelma →
 merkinnät. Järjestys on pakollinen: merkinnät sidotaan ohjelman liike-id:eihin,
@@ -512,7 +526,15 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   jotta RPE:n vaihto samassa treenissä säätää uudelleen mutta käsin
   muokattu rivi jää rauhaan. `lastSet`-kerroilla ja merkinnöillä on
   `warmups: [{ weight, reps, rpe }]`; lämmittelyt eivät sisälly CSV-vientiin
-  eivätkä Kehityksen laskentaan.
+  eivätkä Kehityksen laskentaan. Tuntuma kysytään käyttöliittymässä
+  sanallisella asteikolla `WARMUP_SCALE` (Kevyt 6, Sujuva 7, Työläs 8,
+  Raskas 9, Äärirajoilla 10; kuvaus = toistoja varastossa), mutta `rpe`
+  tallennetaan yhä lukuna ja `data-rpe` on luku, joten käsittelijä, laskenta
+  ja vanhat kirjaukset ovat ennallaan. Painikkeen aria-label sisältää näkyvän
+  sanan ja kuvauksen, ryhmällä on `aria-labelledby` kysymyksestä ja valitun
+  pykälän kuvaus on `aria-live="polite"`-rivillä. Selitteet käyttävät
+  `warmupFeelWord(rpe)`-sanaa (keskiarvo pyöristetään lähimpään pykälään).
+  Testit: `test_feel.js`, `test_warmup.js`.
 - `PAIN_WINDOW_DAYS = 7`, `PAIN_VOLUME_RATIO = 1.2`, `PAIN_MIN_EPISODES = 3`
   ja `PAIN_MIN_SHARE = 0.6`: vaivalokin analyysin ikkuna, poikkeaman raja,
   kirjausten vähimmäismäärä ja löydöksen osuusraja (`buildPainAnalysis`).

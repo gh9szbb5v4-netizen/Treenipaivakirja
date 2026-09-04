@@ -156,6 +156,11 @@
   .ledger-row:last-of-type{border-bottom:none;}
   .ledger-row.has-extra{border-bottom:none; padding-bottom:4px;}
   .set-extra{display:flex; gap:8px; align-items:center; padding:0 0 8px 30px; border-bottom:1px dashed var(--line);}
+  .set-extra.warmup-feel{flex-direction:column; align-items:stretch; gap:6px;}
+  .warmup-feel-head{display:flex; align-items:center; gap:8px;}
+  .warmup-feel-q{font-size:var(--fs-sm); color:var(--chalk); font-weight:600;}
+  .warmup-feel-btns{display:flex; flex-wrap:wrap; gap:6px;}
+  .warmup-feel-desc{font-size:var(--fs-xs); color:var(--mist); line-height:1.4; min-height:1.4em;}
   .set-more{width:30px; height:36px; padding:0; margin:0; background:transparent; border:0; border-radius:8px; color:var(--mist); display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .set-more.on{color:var(--brass);}
   .weight-step-row.hidden{display:none;}
@@ -403,7 +408,9 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-04", items: [
-      "Kehitys yhdistää saman liikkeen variaatiot: liikkeen 1RM, kokonaispaino ja vaivalokin analyysi lasketaan liikkeen nimen mukaan riippumatta siitä, millä tangolla tai kahvalla se on kirjattu, ja kortti kertoo kirjatut variaatiot. Ohjelma-näkymässä liikkeen otsikkona on liikkeen nimi ja sen alla pienellä väline, variaatio ja lihasryhmä.",
+      "Varmuuskopion palautus tunnistaa Excelissä avatun ja tallennetun tiedoston: jos Excel on kirjoittanut jokaisen rivin yhdeksi soluksi, sovellus purkaa rivit itse, ja ohjelma, merkinnät ja 1RM-arvot palautuvat. Aiemmin tällainen tiedosto antoi ilmoituksen, ettei siitä löytynyt tuotavaa sisältöä.",
+      "Lämmittelyn tuntuma kysytään nyt sanallisella asteikolla Kevyt, Sujuva, Työläs, Raskas ja Äärirajoilla RPE-numeroiden sijaan; jokainen pykälä kertoo, montako toistoa olisit vielä jaksanut, ja valinnan kuvaus näkyy rivin alla. Selitteet ja Ohje käyttävät samoja sanoja. Aiemmat kirjaukset ja painoehdotuksen säätö toimivat ennallaan.",
+      "Kehitys yhdistää saman liikkeen variaatiot: liikkeen 1RM, kokonaispaino ja vaivalokin analyysi lasketaan liikkeen nimen mukaan riippumatta siitä, millä tangolla tai kahvalla se on kirjattu, ja kortti kertoo kirjatut variaatiot. Ohjelma-näkymässä liikkeen otsikkona on liikkeen nimi ja sen alla pienellä väline, variaatio ja lihasryhmä; erillinen Tunnetut variaatiot -rivi on poistettu.",
       "Liikepankki päivitetty: 354 liikettä (aiemmin 97) ja jokaisella väline. Taljaliikkeille voi valita yhdeksästä kahvasta ja tankoliikkeille kuudesta tangosta, ja lihasryhmät on jaettu tarkemmin (esim. etureisi, takareisi, pakara, kyynärvarsi). Liikevalitsimen haku löytää myös välineen (esim. \"talja\" tai \"käsipaino\"), ja liikkeen tietopalkki sekä vaihdon esikatselu näyttävät välineen. Ohjelmiin ja Historiaan tallennetut nimet eivät muutu; vanhalla nimellä oleva liike näkyy valitsimessa ryhmässä Ohjelmassa ja historiassa.",
       "Vaivaloki: Ohjelma-välilehden \"Kirjaa vaiva\" -painikkeella kirjaat kehonosan, puolen ja voimakkuuden kirjauspäivälle. Kehitys-välilehden Vaivat-osio listaa kirjaukset ja kertoo vähintään kolmen kirjauksen jälkeen, minkä liikkeiden volyymi ylitti toistuvasti tavanomaisen vaivaa edeltävällä viikolla. Lokin voi viedä CSV:nä Asetusten Varmuuskopio-osiosta; varmuuskopioon se ei vielä sisälly.",
       "Lämmittelysarjat: liikkeelle voi lisätä lämmittelyrivejä, joille kirjataan paino, toistot ja tuntuma (RPE 6–10). Kun sama lämmittely on kirjattu aiemmin, tavallista raskaampi tuntuma keventää saman treenin työsarjojen ehdotusta (−5 tai −10 %) ja kevyempi nostaa (+2,5 %); käsin muokattuja sarjoja ei säädetä. Lämmittelyt eivät vaikuta Historiaan, Kehitykseen eivätkä lepoajastimeen, eivätkä vielä sisälly varmuuskopioon.",
@@ -469,6 +476,27 @@
   var WARMUP_FACTOR_HEAVY = 0.95;    // Tuntui ≥1 RPE raskaammalta kuin tavallisesti
   var WARMUP_FACTOR_VERY_HEAVY = 0.90; // Tuntui ≥2 RPE raskaammalta
   var WARMUP_FACTOR_LIGHT = 1.025;   // Tuntui ≥1 RPE kevyemmältä
+  // Lämmittelyn tuntuma kysytään viisiportaisella sanallisella asteikolla,
+  // koska pelkkä RPE-numero on vieras monelle ja väärin tulkittuna vääristää
+  // säätöä. Arvo tallennetaan silti RPE-lukuna 6–10 (yksi pykälä = yksi
+  // piste), joten laskenta, aiemmat kirjaukset ja vertailudata ovat ennallaan.
+  // Kuvaukset kertovat, montako toistoa olisi vielä jaksanut — asteikko kuvaa
+  // sarjaa itseään, ei vertailua aiempaan, koska vertailun tekee sovellus.
+  var WARMUP_SCALE = [
+    { rpe: 6, label: "Kevyt", desc: "Meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän" },
+    { rpe: 7, label: "Sujuva", desc: "Vaati vähän voimaa, kolme toistoa olisi vielä tullut" },
+    { rpe: 8, label: "Työläs", desc: "Rasitti selvästi, kaksi toistoa olisi vielä tullut" },
+    { rpe: 9, label: "Raskas", desc: "Vain yksi toisto olisi enää tullut" },
+    { rpe: 10, label: "Äärirajoilla", desc: "Viimeinen toisto oli kaikki mitä oli" }
+  ];
+  var WARMUP_FEEL_PROMPT = "Arvioi, montako toistoa olisit vielä jaksanut.";
+  // Lähin asteikon pykälä RPE-luvulle; keskiarvo (esim. 6,5) pyöristetään.
+  function warmupScaleStep(rpe){
+    var v = Math.min(10, Math.max(6, Math.round(toNumber(rpe))));
+    for(var i=0;i<WARMUP_SCALE.length;i++){ if(WARMUP_SCALE[i].rpe === v) return WARMUP_SCALE[i]; }
+    return WARMUP_SCALE[0];
+  }
+  function warmupFeelWord(rpe){ return warmupScaleStep(rpe).label.toLowerCase(); }
   // Kehityksen 1RM on paras arvo liukuvalta jaksolta, jotta submaksimaaliset
   // treenipäivät eivät pudota lukua (Epley olettaa sarjan tehdyksi uupumukseen).
   // TARKISTETTAVA: 28 päivää on alkuarvo, jota on arvioitava uudelleen, kun
@@ -4498,6 +4526,43 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // ensimmäistä merkkiriviä oleva teksti luetaan merkinnöiksi: vanhoissa
   // vientitiedostoissa ei ole merkkirivejä lainkaan, ja ne on silti voitava
   // tuoda ennallaan.
+  // Excel suomalaisilla asetuksilla (luetteloerotin ;) lukee pilkuilla
+  // erotellun varmuuskopion jokaisen rivin yhdeksi soluksi ja kirjoittaa
+  // tallennettaessa koko rivin lainausmerkkeihin kahdentaen sisäiset
+  // lainausmerkit: "2026-09-04,""Liike, Variaatio"",""1"",…". Tällainen
+  // tiedosto puretaan takaisin alkuperäisiksi riveiksi ennen jäsennystä, jotta
+  // Excelissä avattu ja tallennettu varmuuskopio palautuu eikä sovellus
+  // ilmoita, ettei tiedostosta löytynyt sisältöä. Excel poistaa ensimmäisen
+  // kentän lainausmerkit, joten jos kentässä oli pilkku (1RM-osion "Liike,
+  // Variaatio"), rivillä on otsikkoa enemmän kenttiä; ylimääräiset alkukentät
+  // liitetään takaisin yhteen pilkulla. Tavallinen vientitiedosto jää
+  // koskematta, koska sen rivit jakautuvat useaan kenttään. Desimaalipilkun
+  // (97,5) toNumber() lukee jo ennestään.
+  function unwrapExcelBackupText(text){
+    var lines = String(text).replace(/^\uFEFF/, "").split(/\r\n|\n|\r/);
+    var changed = false;
+    var headerCount = 0;
+    var out = lines.map(function(line){
+      var t = line.trim();
+      if(/^"?#[^",;\t]*"?$/.test(t)){ headerCount = 0; return line; }
+      if(!t) return line;
+      var wrapped = t.length >= 2 && t.charAt(0) === '"' && t.charAt(t.length - 1) === '"';
+      var fields = parseCSVLine(t, ",");
+      if(wrapped && fields.length === 1 && fields[0].indexOf(',"') !== -1){
+        changed = true;
+        fields = parseCSVLine(fields[0], ",");
+        if(headerCount && fields.length > headerCount){
+          var lead = fields.length - headerCount + 1;
+          fields = [fields.slice(0, lead).join(", ")].concat(fields.slice(lead));
+        }
+        line = csvRows([fields]);
+      }
+      if(!headerCount) headerCount = fields.length;
+      return line;
+    });
+    return changed ? out.join("\n") : text;
+  }
+
   function splitBackupSections(text){
     var lines = String(text).replace(/^\uFEFF/, "").split(/\r\n|\n|\r/);
     var sections = {};
@@ -4751,6 +4816,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var text;
     try{ text = await readFileAsText(file); }
     catch(e){ showToast("Tiedoston luku epäonnistui"); return; }
+    text = unwrapExcelBackupText(text);
 
     var sections = splitBackupSections(text);
     var byDate = {};
@@ -5511,7 +5577,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma (RPE 6–10); kun sama lämmittely on kirjattu aiemmin, poikkeava tuntuma säätää saman treenin työsarjojen painoehdotusta (raskaampi −5 tai −10 %, kevyempi +2,5 %). Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+    ) + ohjeP(
+      "<b style=\"color:var(--chalk);\">Lämmittelyn tuntuma</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut lämmittelysarjan jälkeen. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva."
+    ) + ohjeList([
+      "<b style=\"color:var(--chalk);\">Kevyt</b> — meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän.",
+      "<b style=\"color:var(--chalk);\">Sujuva</b> — vaati vähän voimaa, kolme toistoa olisi vielä tullut.",
+      "<b style=\"color:var(--chalk);\">Työläs</b> — rasitti selvästi, kaksi toistoa olisi vielä tullut.",
+      "<b style=\"color:var(--chalk);\">Raskas</b> — vain yksi toisto olisi enää tullut.",
+      "<b style=\"color:var(--chalk);\">Äärirajoilla</b> — viimeinen toisto oli kaikki mitä oli."
+    ]) + ohjeP(
+      "Kun sama lämmittely (samat toistot, paino 2,5 kg:n sisällä) on kirjattu aiemmin, sovellus vertaa vastausta siihen, miltä se on tavallisesti tuntunut: yhtä pykälää raskaampi keventää saman treenin työsarjojen painoehdotusta 5 %, kahta pykälää 10 % ja yhtä pykälää kevyempi nostaa 2,5 %. Vain saman treenin painavin lämmittely vaikuttaa, käsin muokattuja sarjoja ei säädetä, ja ensimmäisellä kerralla vertailudataa ei vielä ole. Tuntuman voi jättää myös antamatta, jolloin lämmittely tallentuu ilman vaikutusta."
     ) + ohjeP(
       "Merkinnän voi kirjata myös takautuvasti napauttamalla yläreunan päivämääräsirpaletta. \"Viikko | Kaikki\" -valitsin näyttää joko nykyisen viikon tai koko ohjelman."
     ) + ohjeP(
@@ -5553,7 +5629,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
-      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta.",
+      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta. Tiedoston voi avata Excelissä katsottavaksi; myös Excelin tallentama versio tunnistetaan palautuksessa.",
       "<b style=\"color:var(--chalk);\">Muutokset</b> — kooste koekäytön aikana tehdyistä muutoksista ja niiden vaikutuksesta käyttöön, uusin ensin.",
       "<b style=\"color:var(--chalk);\">Lisää</b> — simulointi (täyttää ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten; toimii vain ilman oikeita merkintöjä), palaute tekijälle sähköpostitse, tietoja sovelluksesta sekä kaikkien tietojen tyhjennys, joka kysyy vahvistuksen."
     ]));
@@ -6063,37 +6139,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(wa){
       var waText;
       var rw = String(wa.refWeight).replace(".", ",");
+      // Selite puhuu asteikon sanoin (kevyt … äärirajoilla), ei RPE-luvuin.
       if(wa.status === "learning"){
-        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " @ RPE " + wa.refRpe +
-          " kirjattu — ei vielä vertailudataa tälle painolle, työsarjoja ei säädetty.";
+        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " kirjattu (" + warmupFeelWord(wa.refRpe) +
+          ") — ei vielä vertailudataa tälle painolle, työsarjoja ei säädetty.";
       } else if(wa.factor === 1){
-        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " tuntui tavanomaiselta (RPE " +
-          wa.refRpe + ", aiemmin ~" + String(Math.round(wa.baseline * 10) / 10).replace(".", ",") + ") — työsarjat ennallaan.";
+        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " tuntui tavanomaiselta (" +
+          warmupFeelWord(wa.refRpe) + ") — työsarjat ennallaan.";
       } else {
         // Yksi desimaali, koska +2,5 % pyöristyisi liukuluvun takia "+2 %":ksi.
         var pct = Math.round((wa.factor - 1) * 1000) / 10;
-        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " tuntui " +
-          (pct < 0 ? "raskaammalta" : "kevyemmältä") + " kuin tavallisesti (RPE " + wa.refRpe +
-          ", aiemmin ~" + String(Math.round(wa.baseline * 10) / 10).replace(".", ",") + ") → työsarjat " +
+        waText = "Lämmittely " + rw + " kg × " + wa.refReps + " oli tällä kertaa " + warmupFeelWord(wa.refRpe) +
+          " (aiemmin tavallisesti " + warmupFeelWord(wa.baseline) + ") → työsarjat " +
           (pct > 0 ? "+" : "") + String(pct).replace(".", ",") + " %.";
       }
       html += '<div style="margin-top:6px; color:var(--chalk);">' + escapeHtml(waText) + '</div>';
     }
     html += '</div>';
     return html;
-  }
-  function renderVariantInfo(ex){
-    // Näkyy aina kun liike tunnistetaan katalogista ja sillä on variaatioita —
-    // myös teholiikkeille, joilla ohjattua valintaa ei ole.
-    // Väline ja lihasryhmä näytetään otsikon tarkenteessa (renderExercise), joten
-    // tässä luetellaan vain katalogin tuntemat variaatiot.
-    var match = catalogPartsFor(ex.name);
-    if(!match) return "";
-    var vOpts = variaatioOptionsFor(match.liike);
-    if(!vOpts.options.length) return "";
-    return '<div style="color:var(--mist); font-size:11.5px; line-height:1.5; margin-bottom:10px;">' +
-      'Tunnetut variaatiot: ' + escapeHtml(vOpts.options.join(", ")) +
-      '</div>';
   }
   // Valmentajan selitys menetelmälle (esim. "Cluster = ...") kulkee ohjelman
   // mukana ja näytetään juuri sen liikkeen kohdalla, jota se koskee — muuten
@@ -6113,7 +6176,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
-    var hint = renderVariantInfo(ex) + renderMethodNote(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
+    // Liikkeen väline, variaatio ja lihasryhmä ovat otsikon tarkenteessa
+    // (renderExercise); erillistä variaatiolistaa ei enää näytetä.
+    var hint = renderMethodNote(ex) + autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     var active = activeSetIndex(ex, sets);
     var extras = state.setExtra[ex.id] || {};
     var warmCount = 0;
@@ -6124,9 +6189,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         // Lämmittelyrivi: L-numero, paino, toistot, valmis; RPE-valitsin ja
         // poisto omalla rivillään aina näkyvissä (ei huomiokenttää).
         warmCount++;
-        var rpeButtons = [6, 7, 8, 9, 10].map(function(v){
-          var on = s.rpe === v;
-          return '<button type="button" class="weight-step-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + v + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ' RPE ' + v + '"' + (on ? ' style="background:var(--brass); color:var(--ink);"' : '') + '>' + v + '</button>';
+        // Tuntuma sanallisena asteikkona (WARMUP_SCALE); data-rpe on yhä luku,
+        // joten käsittelijä ja tallennus ovat ennallaan. Painikkeen nimi
+        // sisältää näkyvän sanan ja kuvauksen; valitun pykälän kuvaus näkyy
+        // rivin alla ja luetaan ruudunlukijalle aria-live-alueena.
+        var feelId = "feel-" + ex.id + "-" + idx;
+        var selectedStep = null;
+        var rpeButtons = WARMUP_SCALE.map(function(step){
+          var on = s.rpe === step.rpe;
+          if(on) selectedStep = step;
+          return '<button type="button" class="weight-step-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ': ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '"' + (on ? ' style="background:var(--brass); color:var(--ink);"' : '') + '>' + escapeHtml(step.label) + '</button>';
         }).join("");
         return '<div class="ledger-row has-extra">' +
           '<div class="set-num' + (s.done ? " done" : "") + '" aria-hidden="true">' + (s.done ? "✓" : "L" + warmCount) + '</div>' +
@@ -6135,9 +6207,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           '<button type="button" class="set-done-btn" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Lämmittely " + warmCount + " merkitty valmiiksi" : "Merkitse lämmittely " + warmCount + " valmiiksi") + '">✓</button>' +
           '<div></div>' +
           '</div>' +
-          '<div class="set-extra" style="flex-wrap:wrap;">' +
-          '<span style="font-size:var(--fs-xs); color:var(--mist); flex-shrink:0;">RPE</span>' + rpeButtons +
+          '<div class="set-extra warmup-feel">' +
+          '<div class="warmup-feel-head">' +
+          '<span id="' + feelId + '-q" class="warmup-feel-q">Miltä lämmittely tuntui?</span>' +
           '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista lämmittely ' + warmCount + '" style="padding:6px 10px; margin-left:auto;">' + icon("poista", 18) + '</button>' +
+          '</div>' +
+          '<div class="warmup-feel-btns" role="group" aria-labelledby="' + feelId + '-q">' + rpeButtons + '</div>' +
+          '<div class="warmup-feel-desc" id="' + feelId + '-d" aria-live="polite">' + (selectedStep ? escapeHtml(selectedStep.label) + ': ' + escapeHtml(selectedStep.desc) + '.' : WARMUP_FEEL_PROMPT) + '</div>' +
           '</div>';
       }
       var extraOpen = !!(extras[idx] || (s.notes && String(s.notes).length));
