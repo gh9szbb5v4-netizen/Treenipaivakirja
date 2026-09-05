@@ -351,9 +351,12 @@ fokuksen otsikkoon `[data-toggle-ex]` `preventScroll`-optiolla. Leveässä
 asettelussa ei vieritetä (paneeli on kiinnitetty).
 
 Sarjarivi: numero, Viime, paino, toistot, ✓ ja ⋮ yhdellä rivillä
-(`grid-template-columns:40px 52px 1fr 0.8fr 44px 40px`; alle 375 px:n
-näytöllä Viime-sarake `.set-last` piilotetaan ja ruudukko on `32px 1fr 0.8fr
-44px 40px`; rivin kosketuskohteet vähintään 44 px korkeita —
+(`grid-template-columns:40px 52px minmax(0,1fr) minmax(0,0.8fr) 44px 40px`;
+`minmax(0, …)`, jotta otsikkorivin "TOISTOT" ei venytä omaa saraketta ja
+otsikot osuvat kenttien kohdalle; alle 375 px:n näytöllä Viime-sarake
+`.set-last` otetaan pois ruudukosta `.sr-only`-tyyliin (pysyy
+ruudunlukijalla) ja ruudukko on `40px minmax(0,1fr) minmax(0,0.8fr) 44px
+40px`; rivin kosketuskohteet vähintään 44 px korkeita —
 `.ledger-input`-kentän 44 px:n korkeus on rajattu `.ledger`-lohkoon ja
 vaivalomakkeeseen, koska muokkaustilan ja kirjaston nimikentät ovat 36 px:n
 kuvakepainikkeiden rinnalla). Viime-solu (`renderLastCell`) näyttää edellisen
@@ -367,10 +370,13 @@ molemmille. Paino- ja toistokentät ovat keskitettyjä arvolaatikoita, joissa
 on `inputmode="none"`: laitteen näppäimistö ei avaudu, vaan kentän fokus tai
 napautus avaa kirjausnäppäimistön (seuraava kappale). Tyhjässä kentässä
 ensimmäinen ± tuo viime kerran suurimman painon (`state.lastSet`), ei 2,5 kg
-nollasta. `state.activeSet` asetetaan yhä `focusin`-kuuntelijassa ja ✓
-nollaa sen, mutta mikään ei enää lue sitä (±-rivit sarjan alla on poistettu).
-Huomiokenttä ja poisto ovat `state.setExtra[id][idx]`-lisärivillä, joka on
-auki myös aina kun huomio ei ole tyhjä.
+nollasta. `state.activeSet` ja `activeSetIndex()` on poistettu (±-rivit
+sarjan alla on poistettu, eikä mikään lukenut tilaa). Huomiokenttä ja poisto
+ovat `state.setExtra[id][idx]`-lisärivillä (`.set-extra`, sisennys 46 px =
+Sarja-sarake + väli), joka on auki myös aina kun huomio ei ole tyhjä.
+"Nostettu yhteensä" päivitetään ilman render()-kutsua (`syncSubtotalDom`,
+kutsutaan input-käsittelijästä ja ±-käsittelijästä; `ledgerTotal` on sama
+laskusääntö kuin renderLedgerissä).
 
 Kirjausnäppäimistö (0.4.3): `state.keypad = { id, idx, field, replace }`
 (null = kiinni). `renderKeypad()` piirtää `#keypad`-levyn (`position:fixed`,
@@ -383,7 +389,12 @@ tarvitaan, koska jo fokusoidun kentän napautus ei laukaise focusin-
 tapahtumaa) ja sulku (`closeKeypad`, nuoli `[data-keypad-close]`, Esc)
 päivittävät DOM:in suoraan (`syncKeypad`) ilman render()-kutsua, jottei
 fokus katoa; `mousedown` näppäimistössä on `preventDefault`, jotta kenttä
-pysyy fokusoituna. Näppäimet `[data-keypad-key]` (1–9, 0, "," vain painoille
+pysyy fokusoituna. Sulku palauttaa fokuksen kenttään ilman uutta avausta
+(`keypadSilentFocus`-lippu ohittaa focusin-kuuntelijan). Huomiokentän
+fokus sulkee näppäimistön (`openKeypad` muulle kuin paino/toistot), ja
+Enter-oikotie koskee vain paino- ja toistokenttiä. Sarjan poisto
+(`[data-remove-set]`) siirtää `state.keypad.idx`-indeksiä tai sulkee
+näppäimistön, jos kohderivi poistettiin. Näppäimet `[data-keypad-key]` (1–9, 0, "," vain painoille
 — toistoilla `disabled` —, "back", "next"); ±2,5 kg ovat samat
 `[data-weight-step]`-painikkeet kuin ennen, ja niiden käsittelijä päivittää
 kentän ja lukeman suoraan DOM:iin, kun kenttä on näkyvissä. Attribuutti on
@@ -396,7 +407,18 @@ päälle kirjoittaminen); askelpalautin, ± ja kirjoitus nollaavat sen.
 Seuraava (`keypadNext`, myös Enter kentässä) siirtyy seuraavan rivin samaan
 kenttään (lämmittelyrivit mukaan lukien) ja viimeisestä rivistä sulkee
 näppäimistön; `revealKeypadTarget` vierittää kohdekentän näppäimistön
-yläpuolelle. Ruudukko on 8 puoliriviä `grid-template-areas`-nimillä, jotta
+yläpuolelle — leveässä asettelussa paneelia (`.ohjelma-pane`, jonka
+`max-height` on `#app.wide.keypad-open`-tilassa `calc(100vh - 460px)`:
+näppäimistö noin 340 px + paneelin yläreuna 86 px otsikkorivin alla, jotta
+paneelin alaosa ja Tallenna eivät jää levyn taakse), muuten ikkunaa. Kerrosjärjestys: näppäimistö z 85 peittää
+alanavigaation (70; piilotetaan `visibility:hidden`, jottei näkymätön
+välilehti ole fokusoitavissa), lepoajastimen modaali on 86 ja ilmoitus 87;
+`body.keypad-open` nostaa ilmoituksen ja pienennetyn lepoajastimen
+(`#rest-timer-mini`, jonka `bottom` on nyt CSS-säännössä, ei inline-
+tyylissä) näppäimistön yläpuolelle. Näkyvä lukema `#keypad-value` on
+`aria-hidden`; erillinen `.sr-only`-live-alue `#keypad-live` päivitetään
+vain näppäimistön omista muutoksista (näppäin, ±), ei kirjoitettaessa,
+jottei ruudunlukija toista kentän kaikua. Ruudukko on 8 puoliriviä `grid-template-areas`-nimillä, jotta
 +2,5 ja −2,5 kattavat 1,5 riviä ja Seuraava on aina oikeassa alakulmassa;
 toistoilla oikean sarakkeen yläosa on tyhjä, koska toistoille ei ole
 säätimiä (ei painikkeita toiminnoille, joita ei ole). **Käyttäjän päätös:**

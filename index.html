@@ -209,18 +209,23 @@
      ja huomiokenttä lisävalikon takana, jolloin kolme sarjaa mahtuu puoleen
      entisestä. Alle 375 px:n näytöllä Viime-sarake piilotetaan, jotta paino-
      ja toistokentät pysyvät luettavina. */
-  .ledger-row{display:grid; grid-template-columns:40px 52px 1fr 0.8fr 44px 40px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line);}
+  .ledger-row{position:relative; display:grid; grid-template-columns:40px 52px minmax(0,1fr) minmax(0,0.8fr) 44px 40px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line);}
   .ledger-row .ledger-input{text-align:center; font-weight:700; padding:8px 4px;}
   .set-last{font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* minmax(0, …): otsikkorivin "TOISTOT" ei saa venyttää omaa saraketta, jotta
+     otsikot osuvat kenttien kohdalle. */
   .ledger-head > div{white-space:nowrap;}
   .ledger-head .head-center{text-align:center;}
   @media (max-width: 374px){
-    .ledger-row{grid-template-columns:32px 1fr 0.8fr 44px 40px;}
-    .set-last{display:none;}
+    .ledger-row{grid-template-columns:40px minmax(0,1fr) minmax(0,0.8fr) 44px 40px;}
+    /* Viime-solu pois ruudukosta mutta ruudunlukijan saataville (kuten .sr-only). */
+    .set-last{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;}
   }
   .ledger-row:last-of-type{border-bottom:none;}
   .ledger-row.has-extra{border-bottom:none; padding-bottom:4px;}
-  .set-extra{display:flex; gap:8px; align-items:center; padding:0 0 8px 30px; border-bottom:1px dashed var(--line);}
+  /* 46px = Sarja-sarake (40px) + rivin väli, jotta huomiorivi alkaa Viime-
+     sarakkeen kohdalta. */
+  .set-extra{display:flex; gap:8px; align-items:center; padding:0 0 8px 46px; border-bottom:1px dashed var(--line);}
   .set-extra.warmup-feel{flex-direction:column; align-items:stretch; gap:6px;}
   .warmup-feel-head{display:flex; align-items:center; gap:8px;}
   .warmup-feel-q{font-size:var(--fs-sm); color:var(--chalk); font-weight:600;}
@@ -235,10 +240,10 @@
   .ledger-head{font-size:var(--fs-xs); text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
   /* Pykäläpainikkeet (tuntuma, vaivan puoli ja voimakkuus) ovat toissijaisia
      säätimiä ilman messinkiä (surface-2-tausta, line-strong-reunus), jotta
-     täytetty messinkipinta jää yksinomaan hyväksyntänapille ja "Tallenna
-     merkintä" -painikkeelle — ne ovat rivin varsinaiset toiminnot. Valittu
-     pykälä saa inline-täytön messinkireunuksin. ±2,5 kg -painikkeet ovat
-     kirjausnäppäimistössä (.key-step). */
+     täytetty messinkipinta jää yksinomaan toiminnoille: hyväksyntänapille,
+     "Tallenna merkintä" -painikkeelle ja näppäimistön Seuraava-näppäimelle.
+     Valittu pykälä saa inline-täytön messinkireunuksin. ±2,5 kg -painikkeet
+     ovat kirjausnäppäimistössä (.key-step). */
   .weight-step-btn{flex:0 0 auto; height:44px; padding:0 14px; font-size:var(--fs-sm); white-space:nowrap; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:999px; font-weight:800; cursor:pointer;}
   /* margin-left:auto työntää Valmis-napin rivin oikeaan reunaan (Poista sarja
      -napin kohdalle) riippumatta -/+ -nappien kutistuneesta leveydestä. */
@@ -273,6 +278,13 @@
      alakulmassa. Toistoilla oikean sarakkeen yläosa jää tyhjäksi, koska
      toistoille ei ole säätimiä. */
   #app.keypad-open{padding-bottom:calc(env(safe-area-inset-bottom) + 372px);}
+  /* Näppäimistö peittää alanavigaation kokonaan: piilotetaan, jottei
+     näkymätön välilehti jää näppäimistöfokuksen tavoitettavaksi. */
+  #app.keypad-open .bottom-nav{visibility:hidden;}
+  /* Leveässä asettelussa paneeli on kiinnitetty ja vierittyy itse: sen
+     korkeus rajataan näppäimistön yläpuolelle, jotta kohdekenttä ja Tallenna
+     pysyvät tavoitettavissa. */
+  #app.wide.keypad-open .ohjelma-pane{max-height:calc(100vh - 460px);}
   .keypad{position:fixed; left:0; right:0; bottom:0; z-index:85; margin:0 auto; max-width:480px; background:var(--surface); border-top:1px solid var(--line-strong); border-radius:var(--radius) var(--radius) 0 0; box-shadow:0 -8px 32px rgba(0,0,0,.5); padding:8px 12px calc(env(safe-area-inset-bottom) + 12px);}
   .keypad-head{display:flex; align-items:center; gap:10px; padding:0 4px 8px; min-height:44px;}
   .keypad-label{font-size:var(--fs-sm); color:var(--mist); white-space:nowrap;}
@@ -465,7 +477,11 @@
 
   /* Ilmoitusruutu nousee alhaalta navigaation yläpuolelle: se ei peitä
      yläpalkkia eikä logoa, ja sijainti on sama, johon peukalo jo katsoo. */
-  .toast{position:fixed; bottom:calc(env(safe-area-inset-bottom) + 84px); left:50%; transform:translateX(-50%) translateY(8px); max-width:calc(100% - 32px); text-align:center; background:var(--brass); color:var(--ink); padding:10px 18px; border-radius:999px; font-weight:800; font-size:var(--fs-sm); box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:80; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
+  .toast{position:fixed; bottom:calc(env(safe-area-inset-bottom) + 84px); left:50%; transform:translateX(-50%) translateY(8px); max-width:calc(100% - 32px); text-align:center; background:var(--brass); color:var(--ink); padding:10px 18px; border-radius:999px; font-weight:800; font-size:var(--fs-sm); box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:87; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;}
+  /* Kirjausnäppäimistön (noin 340 px) ollessa auki ilmoitus ja pienennetty
+     lepoajastin nousevat sen yläpuolelle, jotta ne eivät jää levyn taakse. */
+  #rest-timer-mini{bottom:calc(env(safe-area-inset-bottom) + 82px);}
+  body.keypad-open .toast, body.keypad-open #rest-timer-mini{bottom:calc(env(safe-area-inset-bottom) + 352px);}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
   /* Näkymäsiirtymät (View Transitions). Ylempi liikkeen vähentämistä koskeva
@@ -507,7 +523,7 @@
   var CHANGELOG = [
     { date: "2026-09-05", items: [
       "Kirjausnäppäimistö (versio 0.4.3): painon tai toistojen napautus avaa sovelluksen oman näppäimistön näytön alareunaan laitteen näppäimistön sijaan. Painoille siinä ovat myös ±2,5 kg -painikkeet (aiemmin sarjan alla); toistoille pilkku ei ole käytössä. Seuraava siirtyy seuraavan sarjan samaan kenttään ja viimeisestä sarjasta sulkee näppäimistön; nuoli sulkee sen milloin tahansa. Fyysinen näppäimistö toimii ennallaan (Enter = Seuraava, Esc sulkee).",
-      "Sarjarivillä on uusi Viime-sarake, joka näyttää edellisen kerran painon ja toistot (esim. 60×10), ja paino- ja toistokentät ovat keskitettyjä arvolaatikoita. + Sarja on koko rivin levyinen ja lämmittelysarja lisätään sen alta tekstipainikkeella.",
+      "Sarjarivillä on uusi Viime-sarake, joka näyttää edellisen kerran painon ja toistot (esim. 60×10; kapeimmilla, alle 375 px:n näytöillä sarake ei mahdu näkyviin), ja paino- ja toistokentät ovat keskitettyjä arvolaatikoita. Nostettu yhteensä -rivi päivittyy heti arvoja muutettaessa. + Sarja on koko rivin levyinen ja lämmittelysarja lisätään sen alta tekstipainikkeella.",
     ] },
     { date: "2026-09-04", items: [
       "Ohjelma-näkymä selkeytyi (versio 0.4.2): Aloita ja tallennus vierittävät avatun liikkeen näkyviin, ja seuraava liike nousee esiin tallennuksen jälkeen. Avatun päivän liikkeet on ryhmitelty päivän kortin alle.",
@@ -689,9 +705,6 @@
     openExercise: null,
     swapExercise: null,
     draftSets: {},
-    // Aktiivinen sarja avoimessa liikkeessä: { id, idx }. Säätimet näkyvät
-    // vain sen alla. null = ensimmäinen keskeneräinen sarja.
-    activeSet: null,
     // Kirjausnäppäimistön kohde { id, idx, field, replace }; null = kiinni.
     // replace = seuraava numero korvaa arvon (kuten valittu teksti).
     keypad: null,
@@ -3049,7 +3062,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.openExercise = null;
     state.swapExercise = null;
     state.variantPicker = null;
-    state.activeSet = null;
     state.setExtra = {};
     state.pdfImportError = null;
     state.programDraft = draft;
@@ -3440,7 +3452,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var ex = findExerciseById(id);
     if(!ex) return;
     state.openExercise = id;
-    state.activeSet = null;
     if(!state.draftSets[id] || !state.dirtySets[id]){
       // exerciseLogIndex kattaa merkinnän riippumatta siitä, minä päivänä se on
       // tallennettu — sama liike avataan aina valmiiksi merkittynä, ei vain
@@ -5601,7 +5612,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     el.id = "rest-timer-overlay";
     // Tausta peittää koko näytön (fokusansan ja taustan himmennyksen vuoksi),
     // mutta itse ajastin on neliönmuotoinen, näytön levyinen kortti keskellä.
-    el.style.cssText = "position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; background:rgba(18,22,29,.82); transition:background-color .3s;";
+    // z-index 86: modaalin on peitettävä myös kirjausnäppäimistö (85).
+    el.style.cssText = "position:fixed; inset:0; z-index:86; display:none; align-items:center; justify-content:center; background:rgba(18,22,29,.82); transition:background-color .3s;";
     // Modaali: ruudunlukija tunnistaa dialogiksi eikä lue taustan sisältöä.
     el.setAttribute("role", "dialog");
     el.setAttribute("aria-modal", "true");
@@ -5659,8 +5671,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(el) return el;
     el = document.createElement("div");
     el.id = "rest-timer-mini";
-    // Asettuu kelluvan alanavigaation yläpuolelle (navi: 12px + 58px korkea).
-    el.style.cssText = "position:fixed; bottom:calc(env(safe-area-inset-bottom) + 82px); left:16px; right:16px; margin:0 auto; max-width:448px; z-index:79; display:none; align-items:center; justify-content:center; gap:10px; padding:10px 16px; border-radius:999px; background:var(--brass); color:var(--ink); font-weight:800; font-size:15px; cursor:pointer;";
+    // Asettuu kelluvan alanavigaation yläpuolelle (navi: 12px + 58px korkea);
+    // bottom on CSS-säännössä (#rest-timer-mini), jotta avoin kirjausnäppäimistö
+    // voi nostaa palkin yläpuolelleen (body.keypad-open).
+    el.style.cssText = "position:fixed; left:16px; right:16px; margin:0 auto; max-width:448px; z-index:79; display:none; align-items:center; justify-content:center; gap:10px; padding:10px 16px; border-radius:999px; background:var(--brass); color:var(--ink); font-weight:800; font-size:15px; cursor:pointer;";
     el.setAttribute("role", "button");
     el.setAttribute("tabindex", "0");
     el.innerHTML =
@@ -6904,8 +6918,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return '<div class="keypad" id="keypad" role="region" aria-label="Näppäimistö: ' + escapeHtml(label) + '">' +
       '<div class="keypad-head">' +
       '<span class="keypad-label" id="keypad-label">' + escapeHtml(label) + '</span>' +
-      '<span class="keypad-value' + (shown ? "" : " no-value") + '" id="keypad-value" aria-live="polite">' + (shown ? escapeHtml(shown) : "–") + '</span>' +
-      (isWeight ? '<span class="keypad-unit">kg</span>' : '') +
+      '<span class="keypad-value' + (shown ? "" : " no-value") + '" id="keypad-value" aria-hidden="true">' + (shown ? escapeHtml(shown) : "–") + '</span>' +
+      (isWeight ? '<span class="keypad-unit" aria-hidden="true">kg</span>' : '') +
+      '<span class="sr-only" id="keypad-live" aria-live="polite"></span>' +
       '<button type="button" class="icon-btn keypad-close" data-keypad-close aria-label="Sulje näppäimistö">' + icon("alas", 20) + '</button>' +
       '</div>' +
       '<div class="keypad-grid' + (isWeight ? "" : " reps") + '">' +
@@ -6919,6 +6934,28 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         : "") +
       key("Seuraava", 'data-keypad-key="next"', "nx", "key-next") +
       '</div></div>';
+  }
+  // "Nostettu yhteensä" päivitetään suoraan DOM:iin, kun arvo muuttuu ilman
+  // render()-kutsua (kirjoitus, näppäimistö, ±). Sama laskusääntö kuin
+  // renderLedgerissä: vain työsarjat, paino × toistot.
+  function ledgerTotal(id){
+    return (state.draftSets[id] || []).reduce(function(sum, s){
+      if(isWarmupRow(s)) return sum;
+      var w = parseFloat(String(s.weight).replace(",", ".")), r = parseFloat(String(s.reps).replace(",", "."));
+      return sum + ((isFinite(w) && isFinite(r)) ? w*r : 0);
+    }, 0);
+  }
+  function syncSubtotalDom(ledger, id){
+    if(!ledger) return;
+    var total = ledgerTotal(id);
+    var el = ledger.querySelector(".subtotal");
+    if(total > 0){
+      var html = '<div class="subtotal"><span>Nostettu yhteensä</span><b>' + total.toLocaleString("fi-FI") + ' kg</b></div>';
+      if(el){ el.outerHTML = html; }
+      else { var save = ledger.querySelector(".ledger-save"); if(save) save.insertAdjacentHTML("beforebegin", html); }
+    } else if(el){
+      el.parentNode.removeChild(el);
+    }
   }
   function keypadInput(){
     var k = state.keypad;
@@ -6935,18 +6972,28 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     } else if(html){
       appEl.insertAdjacentHTML("beforeend", html);
     }
-    if(html) appEl.classList.add("keypad-open"); else appEl.classList.remove("keypad-open");
+    if(html){ appEl.classList.add("keypad-open"); document.body.classList.add("keypad-open"); }
+    else { appEl.classList.remove("keypad-open"); document.body.classList.remove("keypad-open"); }
   }
-  function updateKeypadValue(){
+  // announce = true vain näppäimistön omista muutoksista (näppäin, ±):
+  // kirjoitettaessa ruudunlukija lukee kentän jo itse, eikä lukemaa toisteta.
+  function updateKeypadValue(announce){
     var row = keypadTargetRow();
     var el = document.getElementById("keypad-value");
     if(!row || !el) return;
     var shown = keypadShownValue(row);
     el.textContent = shown || "–";
     if(shown) el.classList.remove("no-value"); else el.classList.add("no-value");
+    var live = document.getElementById("keypad-live");
+    if(announce && live) live.textContent = shown ? shown + (state.keypad.field === "weight" ? " kg" : "") : "tyhjä";
   }
+  // Ohjelmallinen fokuksen palautus kenttään ei saa avata näppäimistöä
+  // uudelleen (focusin-kuuntelija).
+  var keypadSilentFocus = false;
   function openKeypad(id, idx, field){
-    if(field !== "weight" && field !== "reps") return;
+    // Huomiokenttä käyttää laitteen näppäimistöä: kirjausnäppäimistö
+    // suljetaan, jottei se jää osoittamaan toiseen kenttään.
+    if(field !== "weight" && field !== "reps"){ closeKeypad(); return; }
     var k = state.keypad;
     if(k && k.id === id && k.idx === idx && k.field === field) return;
     state.keypad = { id: id, idx: idx, field: field, replace: true };
@@ -6955,8 +7002,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function closeKeypad(){
     if(!state.keypad) return;
+    var input = keypadInput();
     state.keypad = null;
     syncKeypad();
+    // Näppäimistöltä (nuoli, Seuraava) suljettaessa fokus palaa kenttään, jotta
+    // näppäimistökäyttäjä ei putoa sivun alkuun.
+    if(input && document.activeElement !== input){
+      keypadSilentFocus = true;
+      try{ input.focus({ preventScroll: true }); }catch(e){ try{ input.focus(); }catch(e2){} }
+      keypadSilentFocus = false;
+    }
   }
   // Kenttä saa arvon samaa polkua kuin kirjoitettaessa (input-tapahtuma
   // päivittää luonnoksen ja valmis-tilan), joten laskenta ei haaraudu.
@@ -6966,7 +7021,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     input.value = value;
     input.dispatchEvent(new Event("input", { bubbles: true }));
     state.keypad.replace = false;
-    updateKeypadValue();
+    updateKeypadValue(true);
   }
   function keypadPress(keyName){
     var k = state.keypad, input = keypadInput();
@@ -6998,7 +7053,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       revealKeypadTarget();
     } else {
       closeKeypad();
-      if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     }
   }
   // Kohdekenttä pidetään näppäimistön yläpuolella näkyvissä.
@@ -7007,11 +7061,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!input || !kp) return;
     var r = input.getBoundingClientRect();
     var limit = window.innerHeight - kp.offsetHeight - 12;
+    var top = 72;
+    // Leveässä asettelussa kenttä on kiinnitetyssä, itse vierittyvässä
+    // paneelissa: vieritetään paneelia, ei ikkunaa.
+    var pane = input.closest(".ohjelma-pane");
+    if(pane){
+      var pr = pane.getBoundingClientRect();
+      if(pr.bottom - 12 < limit) limit = pr.bottom - 12;
+      top = pr.top + 12;
+    }
     var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     var delta = 0;
     if(r.bottom > limit) delta = r.bottom - limit + 8;
-    else if(r.top < 72) delta = r.top - 72;
-    if(delta){ try{ window.scrollBy({ top: delta, behavior: reduce ? "auto" : "smooth" }); }catch(e){ window.scrollBy(0, delta); } }
+    else if(r.top < top) delta = r.top - top;
+    if(!delta) return;
+    var scroller = pane || window;
+    try{ scroller.scrollBy({ top: delta, behavior: reduce ? "auto" : "smooth" }); }catch(e){ scroller.scrollBy(0, delta); }
   }
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
@@ -8350,6 +8415,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var keypadHtml = renderKeypad();
       if(keypadHtml) appClass += " keypad-open";
       app.className = appClass;
+      // body-luokka: ilmoitus ja pienennetty lepoajastin ovat body-tasolla.
+      if(keypadHtml) document.body.classList.add("keypad-open"); else document.body.classList.remove("keypad-open");
       // header/nav/main-maamerkit: ruudunlukijalla pääsee suoraan sisältöön.
       app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>' + renderSheet() + (state.editMode ? renderEditBar() : "") + keypadHtml;
     };
@@ -8767,7 +8834,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         state.draftSets[id2].splice(idx2, 1);
         if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });
         state.dirtySets[id2] = true;
-        if(state.activeSet && state.activeSet.id === id2 && state.activeSet.idx >= idx2) state.activeSet = null;
+        // Näppäimistön kohde seuraa poistoa: poistettu rivi sulkee sen,
+        // aiempi rivi siirtää indeksiä.
+        if(state.keypad && state.keypad.id === id2){
+          if(idx2 === state.keypad.idx) state.keypad = null;
+          else if(idx2 < state.keypad.idx) state.keypad.idx--;
+        }
       }
       render();
       return;
@@ -8795,7 +8867,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         var stepInput = document.querySelector('[data-set-field][data-id="' + id3 + '"][data-idx="' + idx3 + '"][data-field="weight"]');
         if(stepInput){
           stepInput.value = String(next3);
-          if(state.keypad && state.keypad.id === id3 && state.keypad.idx === idx3){ state.keypad.replace = false; updateKeypadValue(); }
+          if(state.keypad && state.keypad.id === id3 && state.keypad.idx === idx3){ state.keypad.replace = false; updateKeypadValue(true); }
+          syncSubtotalDom(stepInput.closest(".ledger"), id3);
           return;
         }
       }
@@ -8809,14 +8882,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(!ex4 || !row4){ return; }
       if(row4.done){
         row4.done = false;
-        // Peruttu sarja on taas aktiivinen (±-säätimet sen alla).
-        state.activeSet = { id: id4, idx: idx4 };
         // Lämmittelyn peruminen lasketaan säätö uudelleen jäljellä olevista.
         if(isWarmupRow(row4)) applyWarmupAdjustment(id4);
       } else if(isRowDoneEligible(ex4, row4)){
         row4.done = true;
-        // ±-säätimet siirtyvät seuraavaan keskeneräiseen sarjaan.
-        state.activeSet = null;
         state.justDone = { id: id4, idx: idx4 };
         if(isWarmupRow(row4)){
           // Lämmittely säätää työsarjat; lepoajastinta ei käynnistetä.
@@ -9156,7 +9225,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         }
         // Fyysisellä näppäimistöllä kirjoitettu arvo näkyy myös kirjaus-
         // näppäimistön lukemassa; kirjoitus ei enää korvaa arvoa.
-        if(state.keypad && state.keypad.id === id && state.keypad.idx === idx && state.keypad.field === key){ state.keypad.replace = false; updateKeypadValue(); }
+        if(state.keypad && state.keypad.id === id && state.keypad.idx === idx && state.keypad.field === key){ state.keypad.replace = false; updateKeypadValue(false); }
+        syncSubtotalDom(field.closest(".ledger"), id);
       }
       return;
     }
@@ -9176,14 +9246,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Kirjoitusasun tarkistus vasta kentästä poistuttaessa, ei joka
   // näppäimenpainalluksella. Vihjerivi päivitetään suoraan DOM:iin, jotta
   // uudelleenpiirto ei vie fokusta tai nappia klikkauksen alta.
-  // Kentän fokus tekee sarjasta aktiivisen ja avaa kirjausnäppäimistön
-  // suoraan DOM:ssa ilman render()-kutsua, jottei fokus katoa.
+  // Kentän fokus avaa kirjausnäppäimistön suoraan DOM:ssa ilman
+  // render()-kutsua, jottei fokus katoa (huomiokenttä sulkee sen).
   app.addEventListener("focusin", function(e){
+    if(keypadSilentFocus) return;
     var f = e.target.closest ? e.target.closest("[data-set-field]") : null;
     if(!f) return;
-    var fid = f.dataset.id, fidx = parseInt(f.dataset.idx, 10);
-    state.activeSet = { id: fid, idx: fidx };
-    openKeypad(fid, fidx, f.dataset.field);
+    openKeypad(f.dataset.id, parseInt(f.dataset.idx, 10), f.dataset.field);
   });
   // Näppäimistön painallus ei vie fokusta kentästä: kenttä pysyy aktiivisena
   // (inputmode="none", joten laitteen näppäimistö ei silti avaudu).
@@ -9204,7 +9273,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // olla bodyssä, jolloin #app:n kuuntelija ei näkisi näppäintä lainkaan.
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape" && state.keypad){ e.preventDefault(); closeKeypad(); return; }
-    if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest("[data-set-field]")){ e.preventDefault(); keypadNext(); return; }
+    if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="weight"], [data-set-field][data-field="reps"]')){ e.preventDefault(); keypadNext(); return; }
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
     if(e.key === "Enter" && e.target && e.target.id === "liike-haku"){
       // Enter valitsee ensimmäisen katalogiosuman, tai kirjoitetun nimen
