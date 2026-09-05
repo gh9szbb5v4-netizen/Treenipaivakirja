@@ -204,10 +204,20 @@
   .chevron-btn{background:none; border:none; padding:0; margin:0; cursor:pointer; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; flex-shrink:0;}
 
   .ledger{padding:0 16px 16px;}
-  /* Sarjarivi: numero, paino, toistot, valmis ja lisävalikko yhdellä rivillä.
-     Säätimet (±2,5 kg) näkyvät vain aktiivisen sarjan alla ja huomiokenttä
-     lisävalikon takana, jolloin kolme sarjaa mahtuu puoleen entisestä. */
-  .ledger-row{display:grid; grid-template-columns:24px 1fr 0.72fr 44px 40px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line);}
+  /* Sarjarivi: numero, viime kerran arvot, paino, toistot, valmis ja
+     lisävalikko yhdellä rivillä. Säätimet (±2,5 kg) ovat kirjausnäppäimistössä
+     ja huomiokenttä lisävalikon takana, jolloin kolme sarjaa mahtuu puoleen
+     entisestä. Alle 375 px:n näytöllä Viime-sarake piilotetaan, jotta paino-
+     ja toistokentät pysyvät luettavina. */
+  .ledger-row{display:grid; grid-template-columns:40px 52px 1fr 0.8fr 44px 40px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line);}
+  .ledger-row .ledger-input{text-align:center; font-weight:700; padding:8px 4px;}
+  .set-last{font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ledger-head > div{white-space:nowrap;}
+  .ledger-head .head-center{text-align:center;}
+  @media (max-width: 374px){
+    .ledger-row{grid-template-columns:32px 1fr 0.8fr 44px 40px;}
+    .set-last{display:none;}
+  }
   .ledger-row:last-of-type{border-bottom:none;}
   .ledger-row.has-extra{border-bottom:none; padding-bottom:4px;}
   .set-extra{display:flex; gap:8px; align-items:center; padding:0 0 8px 30px; border-bottom:1px dashed var(--line);}
@@ -218,21 +228,17 @@
   .warmup-feel-desc{font-size:var(--fs-xs); color:var(--mist); line-height:1.4; min-height:1.4em;}
   .set-more{width:40px; height:44px; padding:0; margin:0; background:transparent; border:0; border-radius:8px; color:var(--mist); display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .set-more.on{color:var(--brass);}
-  .weight-step-row.hidden{display:none;}
   /* Tallennuslohko ei ole kiinnitetty: kiinnitettynä se peitti sarjarivit
      heti kortin avautuessa, koska kortti on näyttöä korkeampi. Viimeisen
      sarjan merkinnyt käyttäjä on joka tapauksessa jo kortin alareunassa. */
   .ledger-save{margin-top:10px;}
   .ledger-head{font-size:var(--fs-xs); text-transform:uppercase; color:var(--mist); letter-spacing:.06em; padding-bottom:6px;}
-  .weight-step-row{display:flex; gap:8px; margin:-2px 0 8px; padding-left:30px;}
-  /* 22px täyte + rivin 8px väli = 30px = sarjan numero -sarake (24px) + ledger-rivin
-     oma 6px väli, jotta painikerivi alkaa täsmälleen painokentän vasemmasta reunasta. */
-  .weight-step-spacer{flex:0 0 22px;}
-  /* Pikasäätönapit ovat toissijaisia säätimiä ilman messinkiä (surface-2-tausta,
-     line-strong-reunus), jotta täytetty messinkipinta jää yksinomaan
-     hyväksyntänapille ja "Tallenna merkintä" -painikkeelle — ne ovat rivin
-     varsinaiset toiminnot. Valittu tuntuma- tai vaivapykälä saa inline-täytön
-     messinkireunuksin. */
+  /* Pykäläpainikkeet (tuntuma, vaivan puoli ja voimakkuus) ovat toissijaisia
+     säätimiä ilman messinkiä (surface-2-tausta, line-strong-reunus), jotta
+     täytetty messinkipinta jää yksinomaan hyväksyntänapille ja "Tallenna
+     merkintä" -painikkeelle — ne ovat rivin varsinaiset toiminnot. Valittu
+     pykälä saa inline-täytön messinkireunuksin. ±2,5 kg -painikkeet ovat
+     kirjausnäppäimistössä (.key-step). */
   .weight-step-btn{flex:0 0 auto; height:44px; padding:0 14px; font-size:var(--fs-sm); white-space:nowrap; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:999px; font-weight:800; cursor:pointer;}
   /* margin-left:auto työntää Valmis-napin rivin oikeaan reunaan (Poista sarja
      -napin kohdalle) riippumatta -/+ -nappien kutistuneesta leveydestä. */
@@ -258,6 +264,29 @@
   .add-set-btn{width:100%; min-height:44px; margin-top:10px; padding:10px; background:var(--surface-2); border:1px dashed var(--line-strong); border-radius:999px; color:var(--mist); font-size:13px; font-weight:700; cursor:pointer;}
   .ledger-tools{display:flex; gap:8px;}
   .ledger-tools .add-set-btn{flex:1; min-width:0;}
+  .ledger-links{display:flex; justify-content:center; margin-top:2px;}
+  /* Kirjausnäppäimistö: kiinteä alareunan levy, joka korvaa laitteen
+     näppäimistön sarjakentissä (inputmode="none"). Kenttä pysyy tavallisena
+     input-elementtinä, joten fyysinen näppäimistö ja testit toimivat.
+     Ruudukko on 8 puolirivillä, jotta +2,5 ja −2,5 voivat kattaa 1,5 riviä
+     kuten numeronäppäimistöissä yleensä; Seuraava on aina oikeassa
+     alakulmassa. Toistoilla oikean sarakkeen yläosa jää tyhjäksi, koska
+     toistoille ei ole säätimiä. */
+  #app.keypad-open{padding-bottom:calc(env(safe-area-inset-bottom) + 372px);}
+  .keypad{position:fixed; left:0; right:0; bottom:0; z-index:85; margin:0 auto; max-width:480px; background:var(--surface); border-top:1px solid var(--line-strong); border-radius:var(--radius) var(--radius) 0 0; box-shadow:0 -8px 32px rgba(0,0,0,.5); padding:8px 12px calc(env(safe-area-inset-bottom) + 12px);}
+  .keypad-head{display:flex; align-items:center; gap:10px; padding:0 4px 8px; min-height:44px;}
+  .keypad-label{font-size:var(--fs-sm); color:var(--mist); white-space:nowrap;}
+  .keypad-value{font-size:28px; font-weight:800; color:var(--chalk); font-variant-numeric:tabular-nums; line-height:1;}
+  .keypad-value.no-value{color:var(--mist);}
+  .keypad-unit{font-size:var(--fs-sm); color:var(--mist); font-weight:700; align-self:flex-end; padding-bottom:3px;}
+  .keypad-close{margin-left:auto;}
+  .keypad-grid{display:grid; grid-template-columns:repeat(3, 1fr) 1.1fr; grid-template-rows:repeat(8, 26px); gap:8px;
+    grid-template-areas:"k1 k2 k3 up" "k1 k2 k3 up" "k4 k5 k6 up" "k4 k5 k6 dn" "k7 k8 k9 dn" "k7 k8 k9 dn" "kc k0 kb nx" "kc k0 kb nx";}
+  .keypad-grid.reps{grid-template-areas:"k1 k2 k3 ." "k1 k2 k3 ." "k4 k5 k6 ." "k4 k5 k6 ." "k7 k8 k9 ." "k7 k8 k9 ." "kc k0 kb nx" "kc k0 kb nx";}
+  .key{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); font-size:22px; font-weight:700; font-family:inherit; display:flex; align-items:center; justify-content:center; cursor:pointer; font-variant-numeric:tabular-nums; padding:0; min-height:44px; -webkit-tap-highlight-color:transparent;}
+  .key:disabled{opacity:.35; cursor:default;}
+  .key-step{font-size:var(--fs-lg); font-weight:800;}
+  .key-next{background:var(--brass); border-color:var(--brass); color:var(--ink); font-size:var(--fs-sm); font-weight:800; letter-spacing:.06em; text-transform:uppercase;}
   .calc-hint{font-size:var(--fs-sm); color:var(--mist); line-height:1.45; margin-bottom:10px;}
   .subtotal{display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px; color:var(--mist);}
   .subtotal b{color:var(--brass); font-variant-numeric:tabular-nums;}
@@ -470,12 +499,16 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.2";
+  var APP_VERSION = "0.4.3";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-05", items: [
+      "Kirjausnäppäimistö (versio 0.4.3): painon tai toistojen napautus avaa sovelluksen oman näppäimistön näytön alareunaan laitteen näppäimistön sijaan. Painoille siinä ovat myös ±2,5 kg -painikkeet (aiemmin sarjan alla); toistoille pilkku ei ole käytössä. Seuraava siirtyy seuraavan sarjan samaan kenttään ja viimeisestä sarjasta sulkee näppäimistön; nuoli sulkee sen milloin tahansa. Fyysinen näppäimistö toimii ennallaan (Enter = Seuraava, Esc sulkee).",
+      "Sarjarivillä on uusi Viime-sarake, joka näyttää edellisen kerran painon ja toistot (esim. 60×10), ja paino- ja toistokentät ovat keskitettyjä arvolaatikoita. + Sarja on koko rivin levyinen ja lämmittelysarja lisätään sen alta tekstipainikkeella.",
+    ] },
     { date: "2026-09-04", items: [
       "Ohjelma-näkymä selkeytyi (versio 0.4.2): Aloita ja tallennus vierittävät avatun liikkeen näkyviin, ja seuraava liike nousee esiin tallennuksen jälkeen. Avatun päivän liikkeet on ryhmitelty päivän kortin alle.",
       "Viikon nimi on Ohjelma-näkymän otsikko, jonka vieressä ovat nuolet edelliseen ja seuraavaan viikkoon. Koko ohjelma -tilassa jokaisen viikon päivät ovat oman väliotsikon alla.",
@@ -659,6 +692,9 @@
     // Aktiivinen sarja avoimessa liikkeessä: { id, idx }. Säätimet näkyvät
     // vain sen alla. null = ensimmäinen keskeneräinen sarja.
     activeSet: null,
+    // Kirjausnäppäimistön kohde { id, idx, field, replace }; null = kiinni.
+    // replace = seuraava numero korvaa arvon (kuten valittu teksti).
+    keypad: null,
     // Sarjan lisärivi (huomio + poisto) auki: { [id]: { [idx]: true } }.
     setExtra: {},
     draftDate: todayISO(),
@@ -5909,7 +5945,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     haku:      '<circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M20 20l-4.6-4.6"></path>',
     kopioi:    '<path d="M9 9h11v11H9zM5 15V4h11"></path>',
     ylos:      '<path d="M6 15l6-6 6 6"></path>',
-    alas:      '<path d="M6 9l6 6 6-6"></path>'
+    alas:      '<path d="M6 9l6 6 6-6"></path>',
+    poistomerkki: '<path d="M20 5H9l-6 7 6 7h11a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 20 5z"></path><path d="M17.5 9.5l-5 5M12.5 9.5l5 5"></path>'
   };
   function icon(name, size){
     var body = ICONS[name] || "";
@@ -6177,7 +6214,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Aktiivisen sarjan alla on ±2,5 kg -säätimet, jotka tuovat tyhjään kenttään ensin viime kerran painon; sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"+ Lämmittely\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot. Sarjan huomion ja poiston löydät rivin lopun ⋮-painikkeesta. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Lämmittelyn tuntuma</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut lämmittelysarjan jälkeen. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva."
     ) + ohjeList([
@@ -6813,12 +6850,168 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       (ex.method ? '<b style="color:var(--brass);">' + escapeHtml(ex.method) + ':</b> ' : '') +
       escapeHtml(ex.methodNote) + '</div>';
   }
-  // Aktiivinen sarja: se, jonka kenttä on viimeksi saanut fokuksen, tai
-  // ensimmäinen keskeneräinen. Vain sen alla näkyvät ±2,5 kg -säätimet.
-  function activeSetIndex(ex, sets){
-    if(state.activeSet && state.activeSet.id === ex.id && sets[state.activeSet.idx]) return state.activeSet.idx;
-    for(var i=0;i<sets.length;i++){ if(!sets[i].done) return i; }
-    return sets.length - 1;
+  // Viime-sarakkeen solu: edellisen kerran paino×toistot tai viiva. Sisältö
+  // on myös ruudunlukijalle (aria-label), vaikka sarake piilotetaan kapealla.
+  function renderLastCell(last, rowName){
+    var w = last ? String(last.weight || "").replace(".", ",") : "";
+    var r = last ? String(last.reps || "") : "";
+    var text = (w || r) ? (w || "–") + "×" + (r || "–") : "–";
+    var label = (w || r) ? rowName + " viime kerralla " + (w || "–") + " kg × " + (r || "–") : rowName + ": ei aiempaa kertaa";
+    return '<div class="set-last" role="img" aria-label="' + escapeHtml(label) + '">' + escapeHtml(text) + '</div>';
+  }
+
+  // ---------- kirjausnäppäimistö ----------
+  // state.keypad = { id, idx, field, replace }. Näppäimistö piirretään
+  // render()-kutsussa (#app:n loppuun) ja päivitetään näppäinpainalluksissa
+  // suoraan DOM:iin, jottei koko näkymä piirry joka merkillä; kenttä saa arvon
+  // samaa input-tapahtumapolkua kuin kirjoitettaessa. Kohde on aina avoimen
+  // liikkeen sarja; muuten näppäimistö sulkeutuu itsestään.
+  function keypadTargetRow(){
+    var k = state.keypad;
+    if(!k || state.openExercise !== k.id || state.editMode || state.view !== "ohjelma") return null;
+    var rows = state.draftSets[k.id];
+    return rows && rows[k.idx] ? rows[k.idx] : null;
+  }
+  function keypadLabel(){
+    var k = state.keypad, rows = state.draftSets[k.id] || [];
+    var name;
+    if(isWarmupRow(rows[k.idx])){
+      var n = 0;
+      for(var i=0;i<=k.idx;i++){ if(isWarmupRow(rows[i])) n++; }
+      name = "Lämmittely " + n;
+    } else {
+      name = "Sarja " + (k.idx + 1);
+    }
+    return name + " · " + (k.field === "weight" ? "Paino" : "Toistot");
+  }
+  function keypadShownValue(row){
+    var val = String(row[state.keypad.field] || "");
+    return val ? val.replace(".", ",") : "";
+  }
+  function renderKeypad(){
+    var k = state.keypad;
+    if(!k) return "";
+    var row = keypadTargetRow();
+    if(!row){ state.keypad = null; return ""; }
+    var isWeight = k.field === "weight";
+    var shown = keypadShownValue(row);
+    var label = keypadLabel();
+    function key(content, attrs, area, cls){
+      return '<button type="button" class="key' + (cls ? " " + cls : "") + '" style="grid-area:' + area + ';" ' + attrs + '>' + content + '</button>';
+    }
+    var digits = "";
+    for(var d=1; d<=9; d++) digits += key(String(d), 'data-keypad-key="' + d + '"', "k" + d);
+    return '<div class="keypad" id="keypad" role="region" aria-label="Näppäimistö: ' + escapeHtml(label) + '">' +
+      '<div class="keypad-head">' +
+      '<span class="keypad-label" id="keypad-label">' + escapeHtml(label) + '</span>' +
+      '<span class="keypad-value' + (shown ? "" : " no-value") + '" id="keypad-value" aria-live="polite">' + (shown ? escapeHtml(shown) : "–") + '</span>' +
+      (isWeight ? '<span class="keypad-unit">kg</span>' : '') +
+      '<button type="button" class="icon-btn keypad-close" data-keypad-close aria-label="Sulje näppäimistö">' + icon("alas", 20) + '</button>' +
+      '</div>' +
+      '<div class="keypad-grid' + (isWeight ? "" : " reps") + '">' +
+      digits +
+      key(",", 'data-keypad-key=","' + (isWeight ? "" : " disabled"), "kc") +
+      key("0", 'data-keypad-key="0"', "k0") +
+      key(icon("poistomerkki", 24), 'data-keypad-key="back" aria-label="Poista viimeinen merkki"', "kb") +
+      (isWeight
+        ? key("+2,5", 'data-weight-step data-id="' + k.id + '" data-idx="' + k.idx + '" data-step="2.5" aria-label="Lisää painoa 2,5 kg"', "up", "key-step") +
+          key("−2,5", 'data-weight-step data-id="' + k.id + '" data-idx="' + k.idx + '" data-step="-2.5" aria-label="Vähennä painoa 2,5 kg"', "dn", "key-step")
+        : "") +
+      key("Seuraava", 'data-keypad-key="next"', "nx", "key-next") +
+      '</div></div>';
+  }
+  function keypadInput(){
+    var k = state.keypad;
+    if(!k) return null;
+    return document.querySelector('[data-set-field][data-id="' + k.id + '"][data-idx="' + k.idx + '"][data-field="' + k.field + '"]');
+  }
+  // Piirtää tai poistaa näppäimistön suoraan DOM:iin ilman render()-kutsua.
+  function syncKeypad(){
+    var appEl = document.getElementById("app");
+    var old = document.getElementById("keypad");
+    var html = renderKeypad();
+    if(old){
+      if(html) old.outerHTML = html; else old.parentNode.removeChild(old);
+    } else if(html){
+      appEl.insertAdjacentHTML("beforeend", html);
+    }
+    if(html) appEl.classList.add("keypad-open"); else appEl.classList.remove("keypad-open");
+  }
+  function updateKeypadValue(){
+    var row = keypadTargetRow();
+    var el = document.getElementById("keypad-value");
+    if(!row || !el) return;
+    var shown = keypadShownValue(row);
+    el.textContent = shown || "–";
+    if(shown) el.classList.remove("no-value"); else el.classList.add("no-value");
+  }
+  function openKeypad(id, idx, field){
+    if(field !== "weight" && field !== "reps") return;
+    var k = state.keypad;
+    if(k && k.id === id && k.idx === idx && k.field === field) return;
+    state.keypad = { id: id, idx: idx, field: field, replace: true };
+    syncKeypad();
+    revealKeypadTarget();
+  }
+  function closeKeypad(){
+    if(!state.keypad) return;
+    state.keypad = null;
+    syncKeypad();
+  }
+  // Kenttä saa arvon samaa polkua kuin kirjoitettaessa (input-tapahtuma
+  // päivittää luonnoksen ja valmis-tilan), joten laskenta ei haaraudu.
+  function keypadSetValue(value){
+    var input = keypadInput();
+    if(!input || !state.keypad) return;
+    input.value = value;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    state.keypad.replace = false;
+    updateKeypadValue();
+  }
+  function keypadPress(keyName){
+    var k = state.keypad, input = keypadInput();
+    if(!k || !input) return;
+    var current = String(input.value || "");
+    if(keyName === "back"){ keypadSetValue(current.slice(0, -1)); return; }
+    // Ensimmäinen numero korvaa valmiin arvon kuten valitun tekstin päälle
+    // kirjoittaminen; askelpalautin ja ± muokkaavat sitä.
+    var base = k.replace ? "" : current;
+    if(keyName === ","){
+      if(k.field !== "weight") return;
+      if(base.indexOf(",") !== -1 || base.indexOf(".") !== -1) return;
+      keypadSetValue((base === "" ? "0" : base) + ",");
+      return;
+    }
+    if(base.replace(/[^0-9]/g, "").length >= 6) return;
+    keypadSetValue(base + keyName);
+  }
+  // Seuraava: seuraavan sarjan sama kenttä; viimeisestä sarjasta sulkee.
+  function keypadNext(){
+    var k = state.keypad;
+    if(!k) return;
+    var rows = state.draftSets[k.id] || [];
+    if(rows[k.idx + 1]){
+      state.keypad = { id: k.id, idx: k.idx + 1, field: k.field, replace: true };
+      syncKeypad();
+      var input = keypadInput();
+      if(input){ try{ input.focus({ preventScroll: true }); }catch(e){ input.focus(); } }
+      revealKeypadTarget();
+    } else {
+      closeKeypad();
+      if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    }
+  }
+  // Kohdekenttä pidetään näppäimistön yläpuolella näkyvissä.
+  function revealKeypadTarget(){
+    var input = keypadInput(), kp = document.getElementById("keypad");
+    if(!input || !kp) return;
+    var r = input.getBoundingClientRect();
+    var limit = window.innerHeight - kp.offsetHeight - 12;
+    var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    var delta = 0;
+    if(r.bottom > limit) delta = r.bottom - limit + 8;
+    else if(r.top < 72) delta = r.top - 72;
+    if(delta){ try{ window.scrollBy({ top: delta, behavior: reduce ? "auto" : "smooth" }); }catch(e){ window.scrollBy(0, delta); } }
   }
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
@@ -6828,9 +7021,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Teholiike ilman 1RM:ää ei ole mykkä: selite kertoo, mitä kirjataan.
     if(ex.intensity && !state.autoCalcInfo[ex.id] && !isExerciseLogged(ex)) hint += renderNoMaxHint(ex);
     hint += autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
-    var active = activeSetIndex(ex, sets);
     var extras = state.setExtra[ex.id] || {};
     var warmCount = 0;
+    // Viime-sarake: edellisen kerran sarjat samasta liikkeestä. Jo tallennettua
+    // merkintää korjattaessa lastSet on tämä sama kerta, joten näytetään sitä
+    // edeltävä (prior[0]).
+    var lastNorm = ex.name.trim().toLowerCase();
+    var lastSession = state.lastSet[lastNorm] || null;
+    var loggedForLast = state.exerciseLogIndex[ex.id];
+    if(lastSession && loggedForLast && loggedForLast.date === lastSession.date) lastSession = (lastSession.prior && lastSession.prior[0]) || null;
+    var workIndex = 0;
     var rowParts = sets.map(function(s, idx){
       // Sarjan numero on pelkkä visuaalinen merkki — hyväksyntä tehdään aina
       // erillisestä, selvästi nimetystä painikkeesta.
@@ -6850,10 +7050,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           return '<button type="button" class="weight-step-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ': ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '"' + (on ? ' style="background:var(--brass); color:var(--ink); border-color:var(--brass);"' : '') + '>' + escapeHtml(step.label) + '</button>';
         }).join("");
         var warmPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
+        var lastWarm = lastSession && lastSession.warmups ? lastSession.warmups[warmCount - 1] : null;
         return '<div class="ledger-row has-extra">' +
           '<div class="set-num' + (s.done ? " done" : "") + (warmPop ? " pop" : "") + '" aria-hidden="true">L' + warmCount + '</div>' +
-          '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
-          '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" aria-label="Lämmittely ' + warmCount + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
+          renderLastCell(lastWarm, "Lämmittely " + warmCount) +
+          '<input class="ledger-input" type="text" inputmode="none" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+          '<input class="ledger-input" type="text" inputmode="none" placeholder="–" aria-label="Lämmittely ' + warmCount + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
           '<button type="button" class="set-done-btn' + (warmPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Lämmittely " + warmCount + " merkitty valmiiksi" : "Merkitse lämmittely " + warmCount + " valmiiksi") + '">✓</button>' +
           '<div></div>' +
           '</div>' +
@@ -6870,10 +7072,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Sarjanumero on aina näkyvissä (selitteen "S2" viittaa siihen); tehty-
       // tila näkyy ✓-painikkeen täytöstä ja numeron väristä.
       var workPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
+      var lastWork = lastSession && lastSession.sets ? lastSession.sets[workIndex] : null;
+      workIndex++;
+      // inputmode="none": laitteen näppäimistö ei avaudu, vaan kentän napautus
+      // avaa kirjausnäppäimistön (focusin/click). Kenttä on silti muokattava.
       return '<div class="ledger-row' + (extraOpen ? " has-extra" : "") + '">' +
         '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(idx+1) + '</div>' +
-        '<input class="ledger-input" type="text" inputmode="decimal" placeholder="kg" aria-label="Sarja ' + (idx+1) + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
-        '<input class="ledger-input" type="text" inputmode="numeric" placeholder="toistot" aria-label="Sarja ' + (idx+1) + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
+        renderLastCell(lastWork, "Sarja " + (idx+1)) +
+        '<input class="ledger-input" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + (idx+1) + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+        '<input class="ledger-input" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + (idx+1) + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">✓</button>' +
         '<button type="button" class="set-more' + (extraOpen ? " on" : "") + '" data-set-more data-id="' + ex.id + '" data-idx="' + idx + '" aria-expanded="' + (extraOpen ? "true" : "false") + '" aria-label="Sarjan ' + (idx+1) + ' huomio ja poisto">' + icon("valikko", 18) + '</button>' +
         '</div>' +
@@ -6882,11 +7089,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             '<input class="ledger-input" type="text" placeholder="Huomio (valinnainen)" aria-label="Sarja ' + (idx+1) + ' huomiot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
             '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja ' + (idx+1) + '" style="padding:6px 10px;">' + icon("poista", 18) + '</button>' +
             '</div>'
-          : '') +
-        '<div class="weight-step-row' + (active === idx ? "" : " hidden") + '" data-step-row data-id="' + ex.id + '" data-idx="' + idx + '">' +
-        '<button class="weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="-2.5" type="button" aria-label="Vähennä sarjan ' + (idx+1) + ' painoa 2,5 kg">−2,5 kg</button>' +
-        '<button class="weight-step-btn" data-weight-step data-id="' + ex.id + '" data-idx="' + idx + '" data-step="2.5" type="button" aria-label="Lisää sarjan ' + (idx+1) + ' painoa 2,5 kg">+2,5 kg</button>' +
-        '</div>';
+          : '');
     });
     // Rivit on tuotettu yhdellä silmukalla todellisilla indekseillä; tässä
     // ne vain jaetaan lämmittely- ja työsarjalohkoihin näyttöä varten.
@@ -6899,19 +7102,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }, 0);
     var allDone = isExerciseFullyDone(ex, ex.id);
     var warmupCount = warmupRows(ex.id).length;
-    // Järjestys: selitteet → lämmittelyt (jos on) → sarjat → lisäyspainikkeet
-    // rinnakkain → yhteensä (vain kun lukua on) → Tallenna → liikkeen vaihto.
+    // Järjestys: selitteet → lämmittelyt (jos on) → sarjat → + Sarja koko
+    // rivin levyisenä ja lämmittelyn lisäys tekstipainikkeena sen alla →
+    // yhteensä (vain kun lukua on) → Tallenna → liikkeen vaihto.
     // Ohjeteksti on vain ruudunlukijalle (aria-describedby); näkyvä vihje on
     // haamutyylinen Tallenna, joka syttyy messingiksi viimeisestä ✓:stä.
     var saveHintId = "save-hint-" + ex.id;
     return '<div class="ledger">' +
       hint +
       (warmupCount ? '<div class="ledger-head" style="margin-top:4px;">Lämmittely</div>' + warmHtml : '') +
-      '<div class="ledger-row ledger-head"' + (warmupCount ? ' style="margin-top:8px;"' : '') + '><div></div><div>Paino</div><div>Toistot</div><div></div><div></div></div>' +
+      '<div class="ledger-row ledger-head"' + (warmupCount ? ' style="margin-top:8px;"' : '') + '><div>Sarja</div><div class="set-last head-center">Viime</div><div class="head-center">Kg</div><div class="head-center">Toistot</div><div class="head-center" aria-hidden="true">✓</div><div></div></div>' +
       workHtml +
       '<div class="ledger-tools">' +
       '<button class="add-set-btn" data-add-set data-id="' + ex.id + '" type="button">+ Sarja</button>' +
-      '<button class="add-set-btn" data-add-warmup data-id="' + ex.id + '" type="button">+ Lämmittely</button>' +
+      '</div>' +
+      '<div class="ledger-links">' +
+      '<button class="btn-tertiary btn-sm" data-add-warmup data-id="' + ex.id + '" type="button">' + icon("plus", 16) + '<span>Lisää lämmittelysarja</span></button>' +
       '</div>' +
       (total > 0 ? '<div class="subtotal"><span>Nostettu yhteensä</span><b>' + total.toLocaleString("fi-FI") + ' kg</b></div>' : '') +
       '<div class="ledger-save">' +
@@ -8140,9 +8346,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Alanavigaatio on kelluva ja peittäisi sisällön lopun ilman lisätilaa.
       var appClass = ((state.program && !state.loading) || state.editMode) ? "has-bottom-nav" : "";
       if(state.program && !state.loading && !state.editMode && state.view === "ohjelma" && isWideLayout()) appClass += " wide";
+      // Näppäimistö ensin: renderKeypad sulkee sen, jos kohdesarjaa ei enää ole.
+      var keypadHtml = renderKeypad();
+      if(keypadHtml) appClass += " keypad-open";
       app.className = appClass;
       // header/nav/main-maamerkit: ruudunlukijalla pääsee suoraan sisältöön.
-      app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>' + renderSheet() + (state.editMode ? renderEditBar() : "");
+      app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>' + renderSheet() + (state.editMode ? renderEditBar() : "") + keypadHtml;
     };
     // Palautetaan siirtymäolio, jotta harvat kutsujat jotka lukevat juuri
     // piirretyn DOM:in (ks. data-swap-open) voivat odottaa päivitystä.
@@ -8173,6 +8382,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(e.target.closest("[data-toggle-homescreen-hint]")){
       state.homescreenHintExpanded = !state.homescreenHintExpanded;
       render();
+      return;
+    }
+    // Sarjakentän napautus avaa kirjausnäppäimistön myös silloin, kun kenttä
+    // on jo fokusoitu (focusin ei silloin laukea uudelleen).
+    if((el = e.target.closest("[data-set-field]"))){
+      openKeypad(el.dataset.id, parseInt(el.dataset.idx, 10), el.dataset.field);
+      return;
+    }
+    if(e.target.closest("[data-keypad-close]")){ closeKeypad(); return; }
+    if((el = e.target.closest("[data-keypad-key]"))){
+      if(el.dataset.keypadKey === "next") keypadNext(); else keypadPress(el.dataset.keypadKey);
       return;
     }
     if(e.target.closest("[data-dismiss-first-log-hint]")){
@@ -8570,6 +8790,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         }
         state.draftSets[id3][idx3].weight = String(next3);
         state.dirtySets[id3] = true;
+        // Näppäimistön ±: kenttä ja näppäimistön lukema päivitetään suoraan
+        // DOM:iin ilman koko näkymän piirtoa (fokus ja näppäimistö säilyvät).
+        var stepInput = document.querySelector('[data-set-field][data-id="' + id3 + '"][data-idx="' + idx3 + '"][data-field="weight"]');
+        if(stepInput){
+          stepInput.value = String(next3);
+          if(state.keypad && state.keypad.id === id3 && state.keypad.idx === idx3){ state.keypad.replace = false; updateKeypadValue(); }
+          return;
+        }
       }
       render();
       return;
@@ -8926,6 +9154,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var fieldEx = findExerciseById(id);
           if(fieldEx && !isRowDoneEligible(fieldEx, row)) row.done = false;
         }
+        // Fyysisellä näppäimistöllä kirjoitettu arvo näkyy myös kirjaus-
+        // näppäimistön lukemassa; kirjoitus ei enää korvaa arvoa.
+        if(state.keypad && state.keypad.id === id && state.keypad.idx === idx && state.keypad.field === key){ state.keypad.replace = false; updateKeypadValue(); }
       }
       return;
     }
@@ -8945,20 +9176,19 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Kirjoitusasun tarkistus vasta kentästä poistuttaessa, ei joka
   // näppäimenpainalluksella. Vihjerivi päivitetään suoraan DOM:iin, jotta
   // uudelleenpiirto ei vie fokusta tai nappia klikkauksen alta.
-  // Kentän fokus tekee sarjasta aktiivisen: säätimet siirtyvät sen alle
+  // Kentän fokus tekee sarjasta aktiivisen ja avaa kirjausnäppäimistön
   // suoraan DOM:ssa ilman render()-kutsua, jottei fokus katoa.
   app.addEventListener("focusin", function(e){
     var f = e.target.closest ? e.target.closest("[data-set-field]") : null;
     if(!f) return;
     var fid = f.dataset.id, fidx = parseInt(f.dataset.idx, 10);
     state.activeSet = { id: fid, idx: fidx };
-    var ledger = f.closest(".ledger");
-    if(!ledger) return;
-    var rowsEl = ledger.querySelectorAll("[data-step-row]");
-    for(var i=0;i<rowsEl.length;i++){
-      var r = rowsEl[i];
-      if(parseInt(r.dataset.idx, 10) === fidx) r.classList.remove("hidden"); else r.classList.add("hidden");
-    }
+    openKeypad(fid, fidx, f.dataset.field);
+  });
+  // Näppäimistön painallus ei vie fokusta kentästä: kenttä pysyy aktiivisena
+  // (inputmode="none", joten laitteen näppäimistö ei silti avaudu).
+  app.addEventListener("mousedown", function(e){
+    if(e.target.closest && e.target.closest("#keypad")) e.preventDefault();
   });
   app.addEventListener("focusout", function(e){
     if(!state.variantPicker || !state.variantPicker.addNew) return;
@@ -8973,6 +9203,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Escape kuunnellaan dokumenttitasolla: uudelleenpiirron jälkeen fokus voi
   // olla bodyssä, jolloin #app:n kuuntelija ei näkisi näppäintä lainkaan.
   document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && state.keypad){ e.preventDefault(); closeKeypad(); return; }
+    if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest("[data-set-field]")){ e.preventDefault(); keypadNext(); return; }
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
     if(e.key === "Enter" && e.target && e.target.id === "liike-haku"){
       // Enter valitsee ensimmäisen katalogiosuman, tai kirjoitetun nimen

@@ -350,24 +350,61 @@ jos kortti on näytön ulkopuolella tai alimmassa 40 %:ssa, ja siirtää
 fokuksen otsikkoon `[data-toggle-ex]` `preventScroll`-optiolla. Leveässä
 asettelussa ei vieritetä (paneeli on kiinnitetty).
 
-Sarjarivi: numero, paino, toistot, ✓ ja ⋮ yhdellä rivillä
-(`grid-template-columns:24px 1fr 0.72fr 44px 40px`; rivin kosketuskohteet
-vähintään 44 px korkeita — `.ledger-input`-kentän 44 px:n korkeus on rajattu
-`.ledger`-lohkoon ja vaivalomakkeeseen, koska muokkaustilan ja kirjaston
-nimikentät ovat 36 px:n kuvakepainikkeiden rinnalla). Sarjanumero pysyy
-numerona myös tehdyssä sarjassa
+Sarjarivi: numero, Viime, paino, toistot, ✓ ja ⋮ yhdellä rivillä
+(`grid-template-columns:40px 52px 1fr 0.8fr 44px 40px`; alle 375 px:n
+näytöllä Viime-sarake `.set-last` piilotetaan ja ruudukko on `32px 1fr 0.8fr
+44px 40px`; rivin kosketuskohteet vähintään 44 px korkeita —
+`.ledger-input`-kentän 44 px:n korkeus on rajattu `.ledger`-lohkoon ja
+vaivalomakkeeseen, koska muokkaustilan ja kirjaston nimikentät ovat 36 px:n
+kuvakepainikkeiden rinnalla). Viime-solu (`renderLastCell`) näyttää edellisen
+kerran saman järjestysluvun sarjan `state.lastSet[nimi].sets[i]` muodossa
+"60×10" (lämmittelyillä `warmups[i]`), tai viivan; jo tallennettua
+merkintää korjattaessa `lastSet` on tämä sama kerta, joten näytetään
+`prior[0]`. Sarjanumero pysyy numerona myös tehdyssä sarjassa
 (`.set-num.done` vaihtaa vain värin) ja tehty-tila näkyy ✓-painikkeen
 täytöstä (`aria-pressed="true"`); `state.justDone` antaa `.pop`-luokan
-molemmille. ±2,5 kg -säätimet näkyvät vain aktiivisen sarjan alla:
-`state.activeSet` asetetaan `focusin`-kuuntelijassa, joka vaihtaa
-`.hidden`-luokkaa suoraan DOM:ssa ilman render()-kutsua (fokus säilyy);
-render() lukee saman tilan `activeSetIndex()`:llä, ja ilman tilaa aktiivinen
-on ensimmäinen keskeneräinen sarja. ✓ nollaa `state.activeSet`-tilan, jotta
-säätimet siirtyvät seuraavaan keskeneräiseen sarjaan, ja peruttu ✓ tekee
-sarjasta taas aktiivisen. Tyhjässä kentässä ensimmäinen ± tuo viime kerran
-suurimman painon (`state.lastSet`), ei 2,5 kg nollasta. Huomiokenttä ja
-poisto ovat `state.setExtra[id][idx]`-lisärivillä, joka on auki myös aina kun
-huomio ei ole tyhjä.
+molemmille. Paino- ja toistokentät ovat keskitettyjä arvolaatikoita, joissa
+on `inputmode="none"`: laitteen näppäimistö ei avaudu, vaan kentän fokus tai
+napautus avaa kirjausnäppäimistön (seuraava kappale). Tyhjässä kentässä
+ensimmäinen ± tuo viime kerran suurimman painon (`state.lastSet`), ei 2,5 kg
+nollasta. `state.activeSet` asetetaan yhä `focusin`-kuuntelijassa ja ✓
+nollaa sen, mutta mikään ei enää lue sitä (±-rivit sarjan alla on poistettu).
+Huomiokenttä ja poisto ovat `state.setExtra[id][idx]`-lisärivillä, joka on
+auki myös aina kun huomio ei ole tyhjä.
+
+Kirjausnäppäimistö (0.4.3): `state.keypad = { id, idx, field, replace }`
+(null = kiinni). `renderKeypad()` piirtää `#keypad`-levyn (`position:fixed`,
+`role="region"`, `#app`-elementin loppuun render()-kutsussa, `#app` saa
+luokan `keypad-open`, joka lisää alatäytettä) vain, kun kohde on avoimen
+liikkeen sarja Ohjelma-näkymässä (`keypadTargetRow`); muuten se nollaa
+tilan, joten liikkeen sulkeminen tai vaihtuminen sulkee näppäimistön
+itsestään. Avaus (`openKeypad`, `focusin`- ja click-käsittelijöistä; click
+tarvitaan, koska jo fokusoidun kentän napautus ei laukaise focusin-
+tapahtumaa) ja sulku (`closeKeypad`, nuoli `[data-keypad-close]`, Esc)
+päivittävät DOM:in suoraan (`syncKeypad`) ilman render()-kutsua, jottei
+fokus katoa; `mousedown` näppäimistössä on `preventDefault`, jotta kenttä
+pysyy fokusoituna. Näppäimet `[data-keypad-key]` (1–9, 0, "," vain painoille
+— toistoilla `disabled` —, "back", "next"); ±2,5 kg ovat samat
+`[data-weight-step]`-painikkeet kuin ennen, ja niiden käsittelijä päivittää
+kentän ja lukeman suoraan DOM:iin, kun kenttä on näkyvissä. Attribuutti on
+`data-keypad-key`, koska `data-key` on jo päiväkorttien avain. Arvo
+kirjoitetaan kenttään `keypadSetValue`-funktiolla, joka lähettää
+input-tapahtuman, joten luonnos, valmis-tila ja lukema päivittyvät samaa
+polkua kuin kirjoitettaessa (input-käsittelijä kutsuu `updateKeypadValue`).
+`replace` = seuraava numero korvaa valmiin arvon (kuten valitun tekstin
+päälle kirjoittaminen); askelpalautin, ± ja kirjoitus nollaavat sen.
+Seuraava (`keypadNext`, myös Enter kentässä) siirtyy seuraavan rivin samaan
+kenttään (lämmittelyrivit mukaan lukien) ja viimeisestä rivistä sulkee
+näppäimistön; `revealKeypadTarget` vierittää kohdekentän näppäimistön
+yläpuolelle. Ruudukko on 8 puoliriviä `grid-template-areas`-nimillä, jotta
++2,5 ja −2,5 kattavat 1,5 riviä ja Seuraava on aina oikeassa alakulmassa;
+toistoilla oikean sarakkeen yläosa on tyhjä, koska toistoille ei ole
+säätimiä (ei painikkeita toiminnoille, joita ei ole). **Käyttäjän päätös:**
+toistomäärä on aina yksi kokonaisluku, ei tavoitealue kuten "6–8"; siksi
+toistonäppäimistössä ei ole viivanäppäintä eikä pilkkua, ja ohjelman
+toistotavoite on yksi luku. Ledgerin lopussa
+"+ Sarja" on koko rivin levyinen ja "Lisää lämmittelysarja" tekstipainike
+`.ledger-links`-rivillä. Testi: `test_keypad.js`.
 
 Kirjauslohkon (`renderLedger`) järjestys: selitteet `.calc-hint`-lohkoina
 (`renderMethodNote`; teholiikkeellä ilman ehdotusta `renderNoMaxHint`, joka
@@ -376,8 +413,9 @@ lukee 1RM:n sarjasta 1 — ja prosenttiliikkeellä selittää puuttuvan 1RM:n
 vain, kun `state.manualMax` ei sisällä liikettä, ei `autoCalc === false`
 -menetelmäliikkeelle; sitten `autoCalcHint`, jonka maksimitestin uusinta
 kertoo, että tulos korvaa nykyisen 1RM:n), lämmittelyt, sarakeotsikot, työsarjat, `.ledger-tools`
-(+ Sarja `[data-add-set]` ja + Lämmittely `[data-add-warmup]` rinnakkain;
-lämmittelyn lisäys fokusoi uuden rivin painokentän), `.subtotal` vain kun
+(+ Sarja `[data-add-set]`; sen alla `.ledger-links` ja Lisää lämmittelysarja
+`[data-add-warmup]`; lämmittelyn lisäys fokusoi uuden rivin painokentän,
+mikä avaa myös näppäimistön), `.subtotal` vain kun
 kiloja on kertynyt, ja `.ledger-save`. Tallenna on `disabled` kunnes kaikki
 sarjat on merkitty; sen selite on `.sr-only`-elementti, johon painike
 viittaa `aria-describedby`-attribuutilla, ja `.btn-primary:disabled` on
