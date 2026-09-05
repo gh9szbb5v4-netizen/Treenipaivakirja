@@ -316,8 +316,11 @@ Päiväkortti `renderDayCard(day, expanded, isNext)`: otsikkona päivän nimi,
 alarivillä tila. `dayCardTitle(day)` palauttaa **HTML:ää**, ei pelkkää
 tekstiä: viikkonäkymässä `escapeHtml(day.label)`, koko ohjelman näkymässä
 viikon nimi `.sr-only`-elementissä ja näkyvänä vain päivän nimi, koska
-viikko on jo `.day-heading`-otsikossa (Kaikki-tilassa jokaisen viikon
-päivät ovat oman otsikon alla, kun viikkoja on useampi). Nimiosa on avaava
+viikko on jo väliotsikossa (Kaikki-tilassa jokaisen viikon päivät ovat oman
+`h3.day-heading`-otsikon alla, kun viikkoja on useampi; Koko ohjelma on
+h2). Viikoton päivä (`day.week` null, esim. vanhan ohjelman migraatio tai
+CSV-rivi ilman viikkoa) saa otsikon "Ilman viikkoa" ja kortin nimen ilman
+viikko-osaa — `weekDisplayName(null)` antaisi "Viikko null". Nimiosa on avaava
 painike ja seuraavaksi vuorossa olevan päivän "Aloita/Jatka"-painike
 (`[data-start-day]`) on sen sisar, ei sisällä — sisäkkäiset painikkeet
 olisivat saavutettavuusrike. Avattuna kortti saa luokan `day-open` ja
@@ -327,7 +330,9 @@ värit ovat luokissa, ei inline-tyyleissä.
 
 Viikon otsikko on `renderWeekStepper()` (`.week-head`): nuolet
 `[data-week-nav]` ovat `.icon-btn`-painikkeita aria-labelein, viikon nimi on
-`h2.view-title` ja laskuri `.week-head-count` ("1 / 4"). Kaikki-tilassa
+`h2.view-title` (rivittyy, ei katkea) ja laskuri `.week-head-count`
+("1 / 4"; omalla viikon nimellä "viikko 1 / 4", jottei se lukisi kuin
+päiväkortin tehtyjen liikkeiden osuus). Kaikki-tilassa
 otsikko on "Koko ohjelma" ja laskurin tilalla viikkojen ja treenipäivien
 määrä ilman nuolia. Viikko/kaikki-valinta on `renderWeekModeSwitch()`
 (`[data-week-mode]`), samalla rivillä päivämääräsirpaleen kanssa (vanha
@@ -336,17 +341,21 @@ päivälle" -teksti on ruudunlukijalle `.sr-only`-elementtinä. "Kirjaa vaiva"
 on `.pain-row`-tekstipainike (`[data-pain-open]`) treenipäivien jälkeen
 ennen ohjelman muistiinpanoja, ei otsikkorivin alla.
 
-Avattu liike vieritetään näkyviin: `toggleExercise()` ja
-`completeAndAdvance()` kutsuvat `afterRender(revealOpenExercise)`, joka
-kapealla näytöllä vierittää `.exercise.open`-otsikon näytön yläreunaan
-(`scroll-margin-top`, `scrollIntoView`, sujuvasti ellei
-`prefers-reduced-motion`) vain jos otsikko on näytön ulkopuolella tai
-alimmassa 40 %:ssa, ja siirtää fokuksen otsikkoon `preventScroll`-optiolla.
-Leveässä asettelussa ei vieritetä (paneeli on kiinnitetty).
+Avattu liike vieritetään näkyviin: `toggleExercise()`,
+`completeAndAdvance()` ja `[data-start-day]` (kun liike on jo auki) kutsuvat
+`afterRender(revealOpenExercise)`, joka kapealla näytöllä vierittää
+`.exercise.open`-kortin näytön yläreunaan (`scroll-margin-top` on kortilla,
+`scrollIntoView` kortille, sujuvasti ellei `prefers-reduced-motion`) vain
+jos kortti on näytön ulkopuolella tai alimmassa 40 %:ssa, ja siirtää
+fokuksen otsikkoon `[data-toggle-ex]` `preventScroll`-optiolla. Leveässä
+asettelussa ei vieritetä (paneeli on kiinnitetty).
 
 Sarjarivi: numero, paino, toistot, ✓ ja ⋮ yhdellä rivillä
-(`grid-template-columns:24px 1fr 0.72fr 44px 40px`; kaikki kosketuskohteet
-vähintään 44 px korkeita). Sarjanumero pysyy numerona myös tehdyssä sarjassa
+(`grid-template-columns:24px 1fr 0.72fr 44px 40px`; rivin kosketuskohteet
+vähintään 44 px korkeita — `.ledger-input`-kentän 44 px:n korkeus on rajattu
+`.ledger`-lohkoon ja vaivalomakkeeseen, koska muokkaustilan ja kirjaston
+nimikentät ovat 36 px:n kuvakepainikkeiden rinnalla). Sarjanumero pysyy
+numerona myös tehdyssä sarjassa
 (`.set-num.done` vaihtaa vain värin) ja tehty-tila näkyy ✓-painikkeen
 täytöstä (`aria-pressed="true"`); `state.justDone` antaa `.pop`-luokan
 molemmille. ±2,5 kg -säätimet näkyvät vain aktiivisen sarjan alla:
@@ -361,14 +370,19 @@ poisto ovat `state.setExtra[id][idx]`-lisärivillä, joka on auki myös aina kun
 huomio ei ole tyhjä.
 
 Kirjauslohkon (`renderLedger`) järjestys: selitteet `.calc-hint`-lohkoina
-(`renderMethodNote`, teholiikkeellä ilman 1RM:ää `renderNoMaxHint`, sitten
-`autoCalcHint`), lämmittelyt, sarakeotsikot, työsarjat, `.ledger-tools`
+(`renderMethodNote`; teholiikkeellä ilman ehdotusta `renderNoMaxHint`, joka
+maksimitestillä kertoo sarjan 1 tallentuvan 1RM:ksi — `saveExerciseLog`
+lukee 1RM:n sarjasta 1 — ja prosenttiliikkeellä selittää puuttuvan 1RM:n
+vain, kun `state.manualMax` ei sisällä liikettä, ei `autoCalc === false`
+-menetelmäliikkeelle; sitten `autoCalcHint`, jonka maksimitestin uusinta
+kertoo, että tulos korvaa nykyisen 1RM:n), lämmittelyt, sarakeotsikot, työsarjat, `.ledger-tools`
 (+ Sarja `[data-add-set]` ja + Lämmittely `[data-add-warmup]` rinnakkain;
 lämmittelyn lisäys fokusoi uuden rivin painokentän), `.subtotal` vain kun
 kiloja on kertynyt, ja `.ledger-save`. Tallenna on `disabled` kunnes kaikki
 sarjat on merkitty; sen selite on `.sr-only`-elementti, johon painike
 viittaa `aria-describedby`-attribuutilla, ja `.btn-primary:disabled` on
-haamutyylinen (läpinäkyvä, katkoviiva). Tallennuksen ilmoitus kertoo uuden
+haamutyylinen (läpinäkyvä, yhtenäinen line-strong-reunus — katkoviiva on
+varattu `.add-set-btn`-lisäyspainikkeille). Tallennuksen ilmoitus kertoo uuden
 1RM:n, kun tallennus nosti sitä eikä kyse ole korjauksesta. Tavoiterivi
 (`.exercise-target`) taivuttaa yksiköt (`plural`: "1 sarja · 1 toisto") ja
 ohittaa `notes`-tekstin, joka on sama kuin tehon teksti.
@@ -379,7 +393,8 @@ korkeampi).
 
 Testit: `test_ux.js` (0.4.2:n hyväksymiskriteerit: banneri, viikon otsikko,
 Kaikki-tilan otsikot, vieritys ja fokus avattaessa, kosketuskohteet,
-selitteet, 360 px:n leveys, leveä asettelu). Testissä on odotettava yli
+selitteet, 360 px:n leveys, leveä asettelu, viikoton päivä `prog_nullweek.csv`,
+oma viikon nimi, Jatka jo avatulla liikkeellä). Testissä on odotettava yli
 250 ms edellisen piirron jälkeen ennen klikkausta: piirron view transition
 on kesken, ja Playwright siirtyy sen aikana uusintayrityksiin, jotka
 vierittävät sivua itse.
