@@ -523,6 +523,7 @@
   var CHANGELOG = [
     { date: "2026-09-05", items: [
       "Kirjausnäppäimistö (versio 0.4.3): painon tai toistojen napautus avaa sovelluksen oman näppäimistön näytön alareunaan laitteen näppäimistön sijaan. Painoille siinä ovat myös ±2,5 kg -painikkeet (aiemmin sarjan alla); toistoille pilkku ei ole käytössä. Seuraava siirtyy seuraavan sarjan samaan kenttään ja viimeisestä sarjasta sulkee näppäimistön; nuoli sulkee sen milloin tahansa. Fyysinen näppäimistö toimii ennallaan (Enter = Seuraava, Esc sulkee).",
+      "Työsarjat numeroidaan aina ykkösestä, vaikka liikkeessä olisi lämmittelysarjoja (L1, L2, 1, 2, 3); sama numero on kentän nimessä, näppäimistön otsikossa ja Viime-sarakkeessa.",
       "Sarjarivillä on uusi Viime-sarake, joka näyttää edellisen kerran painon ja toistot (esim. 60×10; kapeimmilla, alle 375 px:n näytöillä sarake ei mahdu näkyviin), ja paino- ja toistokentät ovat keskitettyjä arvolaatikoita. Nostettu yhteensä -rivi päivittyy heti arvoja muutettaessa. + Sarja on koko rivin levyinen ja lämmittelysarja lisätään sen alta tekstipainikkeella.",
     ] },
     { date: "2026-09-04", items: [
@@ -6894,7 +6895,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       for(var i=0;i<=k.idx;i++){ if(isWarmupRow(rows[i])) n++; }
       name = "Lämmittely " + n;
     } else {
-      name = "Sarja " + (k.idx + 1);
+      // Työsarjan järjestysluku lämmittelyistä riippumatta (sama kuin rivillä).
+      var w = 0;
+      for(var j=0;j<=k.idx;j++){ if(!isWarmupRow(rows[j])) w++; }
+      name = "Sarja " + w;
     }
     return name + " · " + (k.field === "weight" ? "Paino" : "Toistot");
   }
@@ -7139,20 +7143,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var workPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
       var lastWork = lastSession && lastSession.sets ? lastSession.sets[workIndex] : null;
       workIndex++;
+      // Työsarjat numeroidaan ykkösestä lämmittelyistä riippumatta (käyttäjän
+      // päätös); idx on rivin paikka koko taulukossa lämmittelyt mukaan lukien.
+      var setNo = workIndex;
       // inputmode="none": laitteen näppäimistö ei avaudu, vaan kentän napautus
       // avaa kirjausnäppäimistön (focusin/click). Kenttä on silti muokattava.
       return '<div class="ledger-row' + (extraOpen ? " has-extra" : "") + '">' +
-        '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(idx+1) + '</div>' +
-        renderLastCell(lastWork, "Sarja " + (idx+1)) +
-        '<input class="ledger-input" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + (idx+1) + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
-        '<input class="ledger-input" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + (idx+1) + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
-        '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + (idx+1) + " merkitty valmiiksi" : "Merkitse sarja " + (idx+1) + " valmiiksi") + '">✓</button>' +
-        '<button type="button" class="set-more' + (extraOpen ? " on" : "") + '" data-set-more data-id="' + ex.id + '" data-idx="' + idx + '" aria-expanded="' + (extraOpen ? "true" : "false") + '" aria-label="Sarjan ' + (idx+1) + ' huomio ja poisto">' + icon("valikko", 18) + '</button>' +
+        '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(setNo) + '</div>' +
+        renderLastCell(lastWork, "Sarja " + setNo) +
+        '<input class="ledger-input" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+        '<input class="ledger-input" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + setNo + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
+        '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + setNo + " merkitty valmiiksi" : "Merkitse sarja " + setNo + " valmiiksi") + '">✓</button>' +
+        '<button type="button" class="set-more' + (extraOpen ? " on" : "") + '" data-set-more data-id="' + ex.id + '" data-idx="' + idx + '" aria-expanded="' + (extraOpen ? "true" : "false") + '" aria-label="Sarjan ' + setNo + ' huomio ja poisto">' + icon("valikko", 18) + '</button>' +
         '</div>' +
         (extraOpen
           ? '<div class="set-extra">' +
-            '<input class="ledger-input" type="text" placeholder="Huomio (valinnainen)" aria-label="Sarja ' + (idx+1) + ' huomiot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
-            '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja ' + (idx+1) + '" style="padding:6px 10px;">' + icon("poista", 18) + '</button>' +
+            '<input class="ledger-input" type="text" placeholder="Huomio (valinnainen)" aria-label="Sarja ' + setNo + ' huomiot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
+            '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja ' + setNo + '" style="padding:6px 10px;">' + icon("poista", 18) + '</button>' +
             '</div>'
           : '');
     });

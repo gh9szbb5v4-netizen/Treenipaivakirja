@@ -363,7 +363,12 @@ kuvakepainikkeiden rinnalla). Viime-solu (`renderLastCell`) näyttää edellisen
 kerran saman järjestysluvun sarjan `state.lastSet[nimi].sets[i]` muodossa
 "60×10" (lämmittelyillä `warmups[i]`), tai viivan; jo tallennettua
 merkintää korjattaessa `lastSet` on tämä sama kerta, joten näytetään
-`prior[0]`. Sarjanumero pysyy numerona myös tehdyssä sarjassa
+`prior[0]`. Työsarjat numeroidaan ykkösestä lämmittelyistä riippumatta
+(`setNo` = järjestysluku työsarjojen joukossa; `idx` on paikka koko
+`draftSets`-taulukossa, jossa lämmittelyt ovat alussa) — sama numero on
+`.set-num`-merkissä, kenttien aria-labeleissa, Viime-solussa ja
+näppäimistön otsikossa (`keypadLabel`); käyttäjän päätös. Sarjanumero pysyy
+numerona myös tehdyssä sarjassa
 (`.set-num.done` vaihtaa vain värin) ja tehty-tila näkyy ✓-painikkeen
 täytöstä (`aria-pressed="true"`); `state.justDone` antaa `.pop`-luokan
 molemmille. Paino- ja toistokentät ovat keskitettyjä arvolaatikoita, joissa
