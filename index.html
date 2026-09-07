@@ -211,6 +211,9 @@
      ja toistokentät pysyvät luettavina. */
   .ledger-row{position:relative; display:grid; grid-template-columns:40px 52px minmax(0,1fr) minmax(0,0.8fr) 44px 40px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line);}
   .ledger-row .ledger-input{text-align:center; font-weight:700; padding:8px 4px;}
+  /* Näppäimistön kohdekenttä korostetaan luokalla, ei fokuksella: kosketus-
+     laitteella kenttä ei ole fokusoituna näppäimistön aikana (ks. openKeypad). */
+  .ledger-row .ledger-input.keypad-target{border-color:var(--brass); box-shadow:0 0 0 1px var(--brass);}
   .set-last{font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   /* minmax(0, …): otsikkorivin "TOISTOT" ei saa venyttää omaa saraketta, jotta
      otsikot osuvat kenttien kohdalle. */
@@ -523,6 +526,7 @@
   var CHANGELOG = [
     { date: "2026-09-05", items: [
       "Kirjausnäppäimistö (versio 0.4.3): painon tai toistojen napautus avaa sovelluksen oman näppäimistön näytön alareunaan laitteen näppäimistön sijaan. Painoille siinä ovat myös ±2,5 kg -painikkeet (aiemmin sarjan alla); toistoille pilkku ei ole käytössä. Seuraava siirtyy seuraavan sarjan samaan kenttään ja viimeisestä sarjasta sulkee näppäimistön; nuoli sulkee sen milloin tahansa. Fyysinen näppäimistö toimii ennallaan (Enter = Seuraava, Esc sulkee).",
+      "Alavalikko ja lepoajastimen palkki pysyvät näytön alareunassa vieritettäessä myös iPhonella: kosketuslaitteella kirjausnäppäimistö ei enää pidä kenttää fokusoituna (kohdekenttä korostetaan messinkireunuksella), mikä sai iOS Safarin siirtämään kiinteät elementit sisällön mukana.",
       "Työsarjat numeroidaan aina ykkösestä, vaikka liikkeessä olisi lämmittelysarjoja (L1, L2, 1, 2, 3); sama numero on kentän nimessä, näppäimistön otsikossa ja Viime-sarakkeessa.",
       "Sarjarivillä on uusi Viime-sarake, joka näyttää edellisen kerran painon ja toistot (esim. 60×10; kapeimmilla, alle 375 px:n näytöillä sarake ei mahdu näkyviin), ja paino- ja toistokentät ovat keskitettyjä arvolaatikoita. Nostettu yhteensä -rivi päivittyy heti arvoja muutettaessa. + Sarja on koko rivin levyinen ja lämmittelysarja lisätään sen alta tekstipainikkeella.",
     ] },
@@ -5662,7 +5666,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var app = document.getElementById("app");
     if(app) app.inert = false;
     if(restTimerPrevFocus && document.contains(restTimerPrevFocus)){
-      try{ restTimerPrevFocus.focus(); }catch(e){}
+      var prevIsSetField = !!(restTimerPrevFocus.hasAttribute && restTimerPrevFocus.hasAttribute("data-set-field"));
+      // Sarjakenttään palaava fokus ei avaa näppäimistöä uudelleen, eikä
+      // kosketuslaitteella kenttää fokusoida lainkaan (ks. isTouchDevice).
+      if(!(prevIsSetField && isTouchDevice())){
+        keypadSilentFocus = prevIsSetField;
+        try{ restTimerPrevFocus.focus(); }catch(e){}
+        keypadSilentFocus = false;
+      }
     }
     restTimerPrevFocus = null;
   }
@@ -6961,6 +6972,30 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       el.parentNode.removeChild(el);
     }
   }
+  // Kosketuslaitteella (ei hover, karkea osoitin) kenttää ei pidetä
+  // fokusoituna näppäimistön aikana: iOS Safari siirtää kiinteät elementit
+  // (alanavigaatio, lepoajastimen palkki) fokusoidun kentän mukana, jolloin ne
+  // "tarttuvat" sisältöön vieritettäessä. Kohde näytetään .keypad-target-
+  // luokalla. Fyysisen näppäimistön laitteilla fokus säilyy, jotta kirjoitus
+  // ja Enter toimivat.
+  function isTouchDevice(){
+    return !!(window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches);
+  }
+  function keypadTargetClass(id, idx, field){
+    var k = state.keypad;
+    return (k && k.id === id && k.idx === idx && k.field === field) ? " keypad-target" : "";
+  }
+  function markKeypadTarget(){
+    var old = document.querySelectorAll(".keypad-target");
+    for(var i=0;i<old.length;i++) old[i].classList.remove("keypad-target");
+    var input = keypadInput();
+    if(input) input.classList.add("keypad-target");
+  }
+  function blurKeypadInputOnTouch(){
+    if(!isTouchDevice()) return;
+    var a = document.activeElement;
+    if(a && a.hasAttribute && a.hasAttribute("data-set-field") && a.blur) a.blur();
+  }
   function keypadInput(){
     var k = state.keypad;
     if(!k) return null;
@@ -6999,9 +7034,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // suljetaan, jottei se jää osoittamaan toiseen kenttään.
     if(field !== "weight" && field !== "reps"){ closeKeypad(); return; }
     var k = state.keypad;
-    if(k && k.id === id && k.idx === idx && k.field === field) return;
+    if(k && k.id === id && k.idx === idx && k.field === field){ blurKeypadInputOnTouch(); return; }
     state.keypad = { id: id, idx: idx, field: field, replace: true };
     syncKeypad();
+    markKeypadTarget();
+    blurKeypadInputOnTouch();
     revealKeypadTarget();
   }
   function closeKeypad(){
@@ -7009,9 +7046,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var input = keypadInput();
     state.keypad = null;
     syncKeypad();
+    markKeypadTarget();
     // Näppäimistöltä (nuoli, Seuraava) suljettaessa fokus palaa kenttään, jotta
-    // näppäimistökäyttäjä ei putoa sivun alkuun.
-    if(input && document.activeElement !== input){
+    // näppäimistökäyttäjä ei putoa sivun alkuun; kosketuslaitteella ei
+    // fokusoida (ks. isTouchDevice).
+    if(input && !isTouchDevice() && document.activeElement !== input){
       keypadSilentFocus = true;
       try{ input.focus({ preventScroll: true }); }catch(e){ try{ input.focus(); }catch(e2){} }
       keypadSilentFocus = false;
@@ -7052,8 +7091,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(rows[k.idx + 1]){
       state.keypad = { id: k.id, idx: k.idx + 1, field: k.field, replace: true };
       syncKeypad();
+      markKeypadTarget();
       var input = keypadInput();
-      if(input){ try{ input.focus({ preventScroll: true }); }catch(e){ input.focus(); } }
+      if(input && !isTouchDevice()){ try{ input.focus({ preventScroll: true }); }catch(e){ input.focus(); } }
       revealKeypadTarget();
     } else {
       closeKeypad();
@@ -7123,8 +7163,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         return '<div class="ledger-row has-extra">' +
           '<div class="set-num' + (s.done ? " done" : "") + (warmPop ? " pop" : "") + '" aria-hidden="true">L' + warmCount + '</div>' +
           renderLastCell(lastWarm, "Lämmittely " + warmCount) +
-          '<input class="ledger-input" type="text" inputmode="none" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
-          '<input class="ledger-input" type="text" inputmode="none" placeholder="–" aria-label="Lämmittely ' + warmCount + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
+          '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+          '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Lämmittely ' + warmCount + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
           '<button type="button" class="set-done-btn' + (warmPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Lämmittely " + warmCount + " merkitty valmiiksi" : "Merkitse lämmittely " + warmCount + " valmiiksi") + '">✓</button>' +
           '<div></div>' +
           '</div>' +
@@ -7151,8 +7191,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return '<div class="ledger-row' + (extraOpen ? " has-extra" : "") + '">' +
         '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(setNo) + '</div>' +
         renderLastCell(lastWork, "Sarja " + setNo) +
-        '<input class="ledger-input" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
-        '<input class="ledger-input" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + setNo + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
+        '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+        '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + setNo + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + setNo + " merkitty valmiiksi" : "Merkitse sarja " + setNo + " valmiiksi") + '">✓</button>' +
         '<button type="button" class="set-more' + (extraOpen ? " on" : "") + '" data-set-more data-id="' + ex.id + '" data-idx="' + idx + '" aria-expanded="' + (extraOpen ? "true" : "false") + '" aria-label="Sarjan ' + setNo + ' huomio ja poisto">' + icon("valikko", 18) + '</button>' +
         '</div>' +
@@ -9276,6 +9316,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(hintEl) hintEl.innerHTML = similar ? renderVariantNameHint(similar) : "";
   });
 
+  // iOS Safari voi jättää kiinteät elementit (alanavigaatio, ilmoitus,
+  // lepoajastimen palkki) sisällön mukaan vierittyviksi, kun laitteen
+  // näppäimistö sulkeutuu; vieritys samaan kohtaan palauttaa ne näytön
+  // reunaan. Ei ajeta, kun jokin kenttä on yhä fokusoituna (näppäimistö auki).
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize", function(){
+      var a = document.activeElement;
+      if(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
+      window.scrollTo(window.scrollX, window.scrollY);
+    });
+  }
   // Escape kuunnellaan dokumenttitasolla: uudelleenpiirron jälkeen fokus voi
   // olla bodyssä, jolloin #app:n kuuntelija ei näkisi näppäintä lainkaan.
   document.addEventListener("keydown", function(e){
