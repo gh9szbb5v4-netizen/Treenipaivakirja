@@ -325,7 +325,12 @@ painike ja seuraavaksi vuorossa olevan päivän "Aloita/Jatka"-painike
 (`[data-start-day]`) on sen sisar, ei sisällä — sisäkkäiset painikkeet
 olisivat saavutettavuusrike. Avattuna kortti saa luokan `day-open` ja
 liikkeet ovat `.day-exercises`-lohkossa sen alla (vasen viiva ryhmittää ne
-päivän alle); erillistä "Piilota liikkeet" -linkkiä ei ole. Tehty-tilan
+päivän alle); erillistä "Piilota liikkeet" -linkkiä ei ole. Kerrallaan on
+auki vain yksi päivä (käyttäjän päätös): otsikon tai Aloita-painikkeen avaus
+korvaa `state.expandedDaySummaries`-kartan pelkällä avatulla avaimella, ja
+otsikon uusi napautus sulkee päivän. Toisen päivän avaaminen ei sulje
+`state.openExercise`-liikettä, vaan se jää piiloon suljetun päivän alle
+kuten otsikosta suljettaessa (Aloita/Jatka tuo sen taas näkyviin). Tehty-tilan
 värit ovat luokissa, ei inline-tyyleissä.
 
 Viikon otsikko on `renderWeekStepper()` (`.week-head`): nuolet
