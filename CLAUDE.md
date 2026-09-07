@@ -395,7 +395,19 @@ tapahtumaa) ja sulku (`closeKeypad`, nuoli `[data-keypad-close]`, Esc)
 päivittävät DOM:in suoraan (`syncKeypad`) ilman render()-kutsua, jottei
 fokus katoa; `mousedown` näppäimistössä on `preventDefault`, jotta kenttä
 pysyy fokusoituna. Sulku palauttaa fokuksen kenttään ilman uutta avausta
-(`keypadSilentFocus`-lippu ohittaa focusin-kuuntelijan). Huomiokentän
+(`keypadSilentFocus`-lippu ohittaa focusin-kuuntelijan). **Kosketuslaitteella**
+(`isTouchDevice()`: `(hover: none) and (pointer: coarse)`) kenttää ei pidetä
+fokusoituna näppäimistön aikana: `openKeypad` ja `keypadNext` poistavat
+fokuksen (`blurKeypadInputOnTouch`), sulku ja lepoajastimen paluu
+(`releaseRestTimerOverlay`) eivät fokusoi sarjakenttää. Syy: iOS Safari
+siirtää `position:fixed`-elementit (alanavigaatio, ilmoitus, lepoajastimen
+palkki) fokusoidun kentän mukana, jolloin ne tarttuvat sisältöön
+vieritettäessä. Kohdekenttä näytetään luokalla `.keypad-target`
+(`keypadTargetClass` renderLedgerissä, `markKeypadTarget` DOM-päivityksissä),
+ei fokusrenkaalla. Lisäksi `visualViewport`-`resize` vierittää samaan
+kohtaan (`window.scrollTo(scrollX, scrollY)`), kun mikään kenttä ei ole
+fokusoituna, jotta iOS palauttaa kiinteät elementit laitteen näppäimistön
+sulkeuduttua (esim. huomiokentän jälkeen). Huomiokentän
 fokus sulkee näppäimistön (`openKeypad` muulle kuin paino/toistot), ja
 Enter-oikotie koskee vain paino- ja toistokenttiä. Sarjan poisto
 (`[data-remove-set]`) siirtää `state.keypad.idx`-indeksiä tai sulkee
