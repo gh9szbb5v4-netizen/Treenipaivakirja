@@ -790,15 +790,31 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   `deload: true` -lipun kevennyskerralle (`pushLastSet`,
   `rebuildTrackersForName` rakentaa saman merkinnöistä, merkinnässä
   `deload`). Jumitunnistus `buildDraftRows`-funktiossa: kolme kertaa ilman
-  maksimipainon nousua ja vaje viimeisimmässä → `autoCalcInfo.plateau`,
-  kaikille sarjoille `floorToStep(prevWeight × DELOAD_FACTOR)`; ei laukea,
-  jos jokin kolmesta kerrasta oli kevennys. Tuntuman kanssa (perSet-tila
-  `"feel"`) vaje on `prevReps + RIR < targetReps + TARGET_RIR` ja kevennys
-  `floorToStep(feelTargetWeight(prevWeight, prevReps, RIR, targetReps,
-  DELOAD_FACTOR))` (`feelTargetWeight` on `weightFromFeel`-kaavan
-  pyöristämätön ydin); `perSet.prevRpe` säilyy `"deload"`-tilassa, joten
-  selite kertoo sarjan tuntumineen ja jumibanneri lisää "tuntuma
-  huomioiden".
+  maksimipainon nousua (`maxes[0] <= maxes[viimeinen]`) ja vaje
+  viimeisimmässä (`anyShortfall`) → `autoCalcInfo.plateau` ja jokaiselle
+  sarjalle kevennys perSet-tilaan `"deload"`; ei laukea, jos jokin kolmesta
+  kerrasta oli kevennys. Vaje ja kevennys noudattavat samaa tuntumasääntöä
+  kuin ehdotus, sarjakohtaisesti:
+  - ilman tuntumaa (perSet-tila `"near"` tai `"missed"`): vaje =
+    `prevReps < targetReps`, kevennys `floorToStep(prevWeight ×
+    DELOAD_FACTOR)` — täsmälleen entinen;
+  - tuntuman kanssa (perSet-tila `"feel"`): vaje =
+    `prevReps + tuntumaToRir(prevRpe) < targetReps + TARGET_RIR`
+    (tavoitteen täyttänyt Äärirajoilla-sarja on vaje, kaksi vajaaksi
+    jäänyt Kevyt-sarja ei), kevennys
+    `floorToStep(feelTargetWeight(prevWeight, prevReps, RIR, targetReps,
+    DELOAD_FACTOR))`, jossa `feelTargetWeight` on `weightFromFeel`-kaavan
+    pyöristämätön ydin (ehdotus pyöristää lähimpään, kevennys alaspäin).
+    Esimerkit tavoitteella 12: 162,5 × 10 Äärirajoilla → 132,5; 162,5 × 12
+    Työläs → 145 (sama kuin ilman tuntumaa); 162,5 × 12 Äärirajoilla →
+    137,5; 162,5 × 10 Kevyt → ei vajetta, ehdotus 165.
+  `perSet.prevRpe` säilyy `"deload"`-tilassa, joten `autoCalcHint` kertoo
+  sarjan tuntumineen ("S1: 162,5 kg × 10 toistoa, äärirajoilla →
+  kevennys") ja jumibanneri on "(−10 % tuntuma huomioiden)"; ilman
+  tuntumaa rivi on "S1: kevennys" ja banneri "(−10 %)". Sama sääntö on
+  kuvattu Ohjeen kohdassa "Jumitunnistus ja kevennys" ja READMEn
+  Sarjapainojen laskenta -osiossa. Testit: `test_plateau.js` (ilman
+  tuntumaa), `test_rir.js` osio H (tuntuman kanssa).
 - `WARMUP_ADJUST_TOLERANCE = 2.5`, `WARMUP_MIN_MATCHES = 1`,
   `WARMUP_FACTOR_HEAVY = 0.95`, `WARMUP_FACTOR_VERY_HEAVY = 0.90` ja
   `WARMUP_FACTOR_LIGHT = 1.025`: lämmittelysäätö (`applyWarmupAdjustment`).
