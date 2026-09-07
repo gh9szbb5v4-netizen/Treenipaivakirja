@@ -778,11 +778,23 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   sanallisella asteikolla `WARMUP_SCALE` (Kevyt 6, Sujuva 7, Työläs 8,
   Raskas 9, Äärirajoilla 10; kuvaus = toistoja varastossa), mutta `rpe`
   tallennetaan yhä lukuna ja `data-rpe` on luku, joten käsittelijä, laskenta
-  ja vanhat kirjaukset ovat ennallaan. Painikkeen aria-label sisältää näkyvän
-  sanan ja kuvauksen, ryhmällä on `aria-labelledby` kysymyksestä ja valitun
-  pykälän kuvaus on `aria-live="polite"`-rivillä. Selitteet käyttävät
-  `warmupFeelWord(rpe)`-sanaa (keskiarvo pyöristetään lähimpään pykälään).
-  Testit: `test_feel.js`, `test_warmup.js`.
+  ja vanhat kirjaukset ovat ennallaan. Painikkeissa näkyy vain pykälän hymiö
+  (`WARMUP_SCALE[i].emoji`: 😁 🙂 😐 😮‍💨 🥵; käyttäjän päätös, jotta valitsin
+  mahtuu yhdelle riville poistopainikkeen kanssa: `.feel-btn` 42 px,
+  reunus ja täyttö läpinäkyvät, jotta hymiö itse näyttää painikkeelta —
+  vain valittu saa messinkitäytön — ja `.set-extra.warmup-feel` ilman
+  Viime-sarakkeen sisennystä), ja rivin alla on
+  pieni `aria-hidden`-selite `.warmup-feel-desc` (hymiö + sana; valittu
+  pykälä `.feel-key.on`). Painikkeen aria-label sisältää sanan ja kuvauksen,
+  ryhmällä on `aria-labelledby` `.sr-only`-kysymyksestä ("Miltä lämmittely N
+  tuntui?") ja valitun pykälän kuvaus (tai `WARMUP_FEEL_PROMPT`) on
+  `.sr-only`-elementissä `aria-live="polite"`. Selitteet ja Ohje käyttävät
+  yhä sanoja (`warmupFeelWord(rpe)`; keskiarvo pyöristetään lähimpään
+  pykälään), Ohjeen luettelossa hymiö sanan edellä. Uusi lämmittelyrivi
+  lisätään aiempien lämmittelyjen perään (`splice(warmupRows(id).length, 0,
+  …)`, ei `unshift`), jotta se on L2 eikä siirrä aiempaa L1:tä; avoimen
+  näppäimistön `idx` siirtyy vastaavasti. Testit: `test_feel.js`,
+  `test_warmup.js`.
 - `PAIN_WINDOW_DAYS = 7`, `PAIN_VOLUME_RATIO = 1.2`, `PAIN_MIN_EPISODES = 3`
   ja `PAIN_MIN_SHARE = 0.6`: vaivalokin analyysin ikkuna, poikkeaman raja,
   kirjausten vähimmäismäärä ja löydöksen osuusraja (`buildPainAnalysis`).
