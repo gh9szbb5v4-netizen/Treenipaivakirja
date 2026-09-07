@@ -374,9 +374,11 @@ merkintää korjattaessa `lastSet` on tämä sama kerta, joten näytetään
 `.set-num`-merkissä, kenttien aria-labeleissa, Viime-solussa ja
 näppäimistön otsikossa (`keypadLabel`); käyttäjän päätös. Sarjanumero pysyy
 numerona myös tehdyssä sarjassa
-(`.set-num.done` vaihtaa vain värin) ja tehty-tila näkyy ✓-painikkeen
-täytöstä (`aria-pressed="true"`); `state.justDone` antaa `.pop`-luokan
-molemmille. Paino- ja toistokentät ovat keskitettyjä arvolaatikoita, joissa
+(`.set-num.done` vaihtaa vain värin) ja tehty-tila näkyy ✓-merkin
+väristä (`aria-pressed="true"`: messinki → `--success`; painike
+`.set-done-btn` on reunaton ja täytötön käyttäjän päätöksellä, kuten
+hymiöpainikkeet, joten merkki itse on painike); `state.justDone` antaa
+`.pop`-luokan molemmille. Paino- ja toistokentät ovat keskitettyjä arvolaatikoita, joissa
 on `inputmode="none"`: laitteen näppäimistö ei avaudu, vaan kentän fokus tai
 napautus avaa kirjausnäppäimistön (seuraava kappale). Tyhjässä kentässä
 ensimmäinen ± tuo viime kerran suurimman painon (`state.lastSet`), ei 2,5 kg
@@ -750,6 +752,32 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   testausväliä.
 - `PROGRESSION_COEFFICIENT = 1.0125`: painoehdotuksen tavoiteltu kehitys
   per treenikerta.
+- `TUNTUMA_RIR = { kevyt: 4, sujuva: 3, tyolas: 2, raskas: 1, aarirajoilla: 0 }`
+  ja `TARGET_RIR = 2`: tuntuma RIR-arvona (varastoon jääneet toistot) ja
+  työsarjan tavoitetuntuma. `tuntumaToRir(rpe)` kääntää tallennetun RPE-
+  luvun 6–10 (`WARMUP_SCALE[i].key`) RIR:ksi; puuttuva tuntuma = `TARGET_RIR`,
+  jolloin laskenta supistuu entiseen. `weightFromFeel(weight, reps, rir,
+  targetReps, progression)` = `MROUND(weight × (1 + (reps + rir)/30) ×
+  progression / (1 + (targetReps + TARGET_RIR)/30), 2,5)` on yhteinen
+  kaava: `buildDraftRows` käyttää sitä (status `"feel"`, ilman hit/near/
+  missed-rajoja) kun viitesarjalla `last.sets[k].rpe` on luku, `inferPlan`
+  aina, ja `applyWarmupAdjustment` progressiolla 1, kun valmis lämmittely on
+  työsarjan tasoinen (paino ≥ ensimmäisen työsarjan `base`, toistot ≥
+  tavoite): jokainen keskeneräinen ja käsin muokkaamaton työsarja saa
+  painon, `warmupAdjust.status === "worklevel"` (`from`, `to`, `sets`,
+  `changed`) ja selite `setRangeText(sets)`-luettelolla. Funktio palauttaa
+  ensin aiemman säädön (`weight === adjusted` → `base`), joten tuntuman
+  vaihto lähtee aina alkuperäisestä ehdotuksesta. Työsarjan tuntuma on
+  kentässä `rpe` kuten lämmittelyillä (ei erillistä `tuntuma`-kenttää):
+  valitsin `renderFeelPicker()` on työsarjan ⋮-lisärivillä
+  (`.set-extra.set-feel`, sama `[data-warmup-rpe]`-käsittelijä, jossa
+  valitun pykälän uusi napautus nollaa `rpe`-kentän), valittu
+  hymiö näkyy `.set-feel-mark`-merkkinä ⋮-painikkeessa, `saveExerciseLog`
+  vie sen merkinnän sarjaan ja `lastSet`-sarjaan, ja varmuuskopion
+  `#MERKINNÄT`-osiossa on viimeisenä sarake `Tuntuma` (asteikon sana;
+  `feelFromText()` lukee sanan tai luvun 6–10, puuttuva sarake = ei
+  tuntumaa). Kehityksen `buildAllOneRepMaxSeries` ei käytä RIR:ää
+  (historia pysyy vertailukelpoisena). Testi: `test_rir.js`.
 - `WEIGHT_STEP = 2.5`, `PROGRESSION_MAX_FACTOR = 1.05` ja
   `REGRESSION_FACTOR = 0.95`: painoehdotuksen askel (sama kaikilla
   liikkeillä, myös käsipainoilla, käyttäjän päätöksellä), noston katto ja
@@ -762,9 +790,31 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   `deload: true` -lipun kevennyskerralle (`pushLastSet`,
   `rebuildTrackersForName` rakentaa saman merkinnöistä, merkinnässä
   `deload`). Jumitunnistus `buildDraftRows`-funktiossa: kolme kertaa ilman
-  maksimipainon nousua ja vaje viimeisimmässä → `autoCalcInfo.plateau`,
-  kaikille sarjoille `floorToStep(prevWeight × DELOAD_FACTOR)`; ei laukea,
-  jos jokin kolmesta kerrasta oli kevennys.
+  maksimipainon nousua (`maxes[0] <= maxes[viimeinen]`) ja vaje
+  viimeisimmässä (`anyShortfall`) → `autoCalcInfo.plateau` ja jokaiselle
+  sarjalle kevennys perSet-tilaan `"deload"`; ei laukea, jos jokin kolmesta
+  kerrasta oli kevennys. Vaje ja kevennys noudattavat samaa tuntumasääntöä
+  kuin ehdotus, sarjakohtaisesti:
+  - ilman tuntumaa (perSet-tila `"near"` tai `"missed"`): vaje =
+    `prevReps < targetReps`, kevennys `floorToStep(prevWeight ×
+    DELOAD_FACTOR)` — täsmälleen entinen;
+  - tuntuman kanssa (perSet-tila `"feel"`): vaje =
+    `prevReps + tuntumaToRir(prevRpe) < targetReps + TARGET_RIR`
+    (tavoitteen täyttänyt Äärirajoilla-sarja on vaje, kaksi vajaaksi
+    jäänyt Kevyt-sarja ei), kevennys
+    `floorToStep(feelTargetWeight(prevWeight, prevReps, RIR, targetReps,
+    DELOAD_FACTOR))`, jossa `feelTargetWeight` on `weightFromFeel`-kaavan
+    pyöristämätön ydin (ehdotus pyöristää lähimpään, kevennys alaspäin).
+    Esimerkit tavoitteella 12: 162,5 × 10 Äärirajoilla → 132,5; 162,5 × 12
+    Työläs → 145 (sama kuin ilman tuntumaa); 162,5 × 12 Äärirajoilla →
+    137,5; 162,5 × 10 Kevyt → ei vajetta, ehdotus 165.
+  `perSet.prevRpe` säilyy `"deload"`-tilassa, joten `autoCalcHint` kertoo
+  sarjan tuntumineen ("S1: 162,5 kg × 10 toistoa, äärirajoilla →
+  kevennys") ja jumibanneri on "(−10 % tuntuma huomioiden)"; ilman
+  tuntumaa rivi on "S1: kevennys" ja banneri "(−10 %)". Sama sääntö on
+  kuvattu Ohjeen kohdassa "Jumitunnistus ja kevennys" ja READMEn
+  Sarjapainojen laskenta -osiossa. Testit: `test_plateau.js` (ilman
+  tuntumaa), `test_rir.js` osio H (tuntuman kanssa).
 - `WARMUP_ADJUST_TOLERANCE = 2.5`, `WARMUP_MIN_MATCHES = 1`,
   `WARMUP_FACTOR_HEAVY = 0.95`, `WARMUP_FACTOR_VERY_HEAVY = 0.90` ja
   `WARMUP_FACTOR_LIGHT = 1.025`: lämmittelysäätö (`applyWarmupAdjustment`).
