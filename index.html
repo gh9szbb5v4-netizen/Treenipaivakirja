@@ -260,9 +260,12 @@
   .weight-step-btn{flex:0 0 auto; height:44px; padding:0 14px; font-size:var(--fs-sm); white-space:nowrap; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:999px; font-weight:800; cursor:pointer;}
   /* margin-left:auto työntää Valmis-napin rivin oikeaan reunaan (Poista sarja
      -napin kohdalle) riippumatta -/+ -nappien kutistuneesta leveydestä. */
-  .set-done-btn{flex:0 0 auto; width:44px; height:44px; padding:0; font-size:19px; display:flex; align-items:center; justify-content:center; background:transparent; color:var(--brass); border:1px solid var(--brass); border-radius:999px; font-weight:500; cursor:pointer;}
-  /* Painettu tila on painikkeessa itsessään: täytetty vihreä. */
-  .set-done-btn[aria-pressed="true"]{background:var(--success); border-color:var(--success); color:var(--ink);}
+  /* Reunus ja täyttö ovat läpinäkyviä käyttäjän päätöksellä: ✓-merkki itse on
+     painike (sama sääntö kuin hymiöpainikkeilla). Kosketusalue on yhä 44 px,
+     ja näppäimistöfokus näkyy yleisellä :focus-visible-renkaalla. */
+  .set-done-btn{flex:0 0 auto; width:44px; height:44px; padding:0; font-size:24px; display:flex; align-items:center; justify-content:center; background:transparent; color:var(--brass); border:1px solid transparent; border-radius:999px; font-weight:700; cursor:pointer;}
+  /* Painettu tila on merkin värissä: messinkinen ✓ muuttuu vihreäksi. */
+  .set-done-btn[aria-pressed="true"]{color:var(--success);}
   .set-num{background:none; border:none; padding:0; margin:0; font-family:inherit; color:var(--mist); font-weight:700; font-variant-numeric:tabular-nums; font-size:var(--fs-sm); width:24px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center;}
   .set-num.done{color:var(--success);}
   .ledger-input{background:var(--surface-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--chalk); padding:8px 7px; font-size:16px; width:100%; font-variant-numeric:tabular-nums;}
@@ -535,6 +538,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-07", items: [
+      "Sarjan ✓-painike on reunaton ja täytötön: merkki on messinkinen ja muuttuu vihreäksi, kun sarja on merkitty tehdyksi.",
       "Lämmittelyn tuntuma valitaan viidestä hymiöstä yhdellä rivillä (😁 kevyt, 🙂 sujuva, 😐 työläs, 😮‍💨 raskas, 🥵 äärirajoilla); hymiöt ovat reunattomia painikkeita, valittu saa messinkitäytön, ja pieni selite kertoo hymiöiden merkityksen sekä korostaa valitun pykälän. Aiemmat kirjaukset ja painoehdotuksen säätö toimivat ennallaan.",
       "Uusi lämmittelysarja lisätään aiempien lämmittelyjen perään (L1, L2, …), ei niiden edelle.",
       "Ohjelma-näkymässä on kerrallaan auki vain yksi treenipäivä: päivän tai Aloita-painikkeen avaaminen sulkee aiemmin avatun päivän liikelistan.",

@@ -374,9 +374,11 @@ merkintää korjattaessa `lastSet` on tämä sama kerta, joten näytetään
 `.set-num`-merkissä, kenttien aria-labeleissa, Viime-solussa ja
 näppäimistön otsikossa (`keypadLabel`); käyttäjän päätös. Sarjanumero pysyy
 numerona myös tehdyssä sarjassa
-(`.set-num.done` vaihtaa vain värin) ja tehty-tila näkyy ✓-painikkeen
-täytöstä (`aria-pressed="true"`); `state.justDone` antaa `.pop`-luokan
-molemmille. Paino- ja toistokentät ovat keskitettyjä arvolaatikoita, joissa
+(`.set-num.done` vaihtaa vain värin) ja tehty-tila näkyy ✓-merkin
+väristä (`aria-pressed="true"`: messinki → `--success`; painike
+`.set-done-btn` on reunaton ja täytötön käyttäjän päätöksellä, kuten
+hymiöpainikkeet, joten merkki itse on painike); `state.justDone` antaa
+`.pop`-luokan molemmille. Paino- ja toistokentät ovat keskitettyjä arvolaatikoita, joissa
 on `inputmode="none"`: laitteen näppäimistö ei avaudu, vaan kentän fokus tai
 napautus avaa kirjausnäppäimistön (seuraava kappale). Tyhjässä kentässä
 ensimmäinen ± tuo viime kerran suurimman painon (`state.lastSet`), ei 2,5 kg
