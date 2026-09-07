@@ -792,7 +792,13 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   `deload`). Jumitunnistus `buildDraftRows`-funktiossa: kolme kertaa ilman
   maksimipainon nousua ja vaje viimeisimmässä → `autoCalcInfo.plateau`,
   kaikille sarjoille `floorToStep(prevWeight × DELOAD_FACTOR)`; ei laukea,
-  jos jokin kolmesta kerrasta oli kevennys.
+  jos jokin kolmesta kerrasta oli kevennys. Tuntuman kanssa (perSet-tila
+  `"feel"`) vaje on `prevReps + RIR < targetReps + TARGET_RIR` ja kevennys
+  `floorToStep(feelTargetWeight(prevWeight, prevReps, RIR, targetReps,
+  DELOAD_FACTOR))` (`feelTargetWeight` on `weightFromFeel`-kaavan
+  pyöristämätön ydin); `perSet.prevRpe` säilyy `"deload"`-tilassa, joten
+  selite kertoo sarjan tuntumineen ja jumibanneri lisää "tuntuma
+  huomioiden".
 - `WARMUP_ADJUST_TOLERANCE = 2.5`, `WARMUP_MIN_MATCHES = 1`,
   `WARMUP_FACTOR_HEAVY = 0.95`, `WARMUP_FACTOR_VERY_HEAVY = 0.90` ja
   `WARMUP_FACTOR_LIGHT = 1.025`: lämmittelysäätö (`applyWarmupAdjustment`).

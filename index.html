@@ -542,7 +542,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-07", items: [
-      "Tuntuma vaikuttaa nyt painoehdotukseen: viime kerran sarjan tuntuma tulkitaan varastoon jääneiksi toistoiksi (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0) ja lisätään Epley-laskentaan, joten kevyeltä tuntunut sarja nostaa seuraavan kerran ehdotusta enemmän ja äärirajoilla tehty vähemmän. Ilman tuntumaa ehdotus on entinen. Kehitys-näkymän 1RM ei muutu.",
+      "Tuntuma vaikuttaa nyt painoehdotukseen: viime kerran sarjan tuntuma tulkitaan varastoon jääneiksi toistoiksi (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0) ja lisätään Epley-laskentaan, joten kevyeltä tuntunut sarja nostaa seuraavan kerran ehdotusta enemmän ja äärirajoilla tehty vähemmän. Sama sääntö koskee jumitunnistusta: vaje lasketaan toistoista ja varastosta yhteensä, ja kevennysehdotus on 90 % tuntuman mukaisesta arviosta. Ilman tuntumaa ehdotus on entinen. Kehitys-näkymän 1RM ei muutu.",
       "Työsarjalle voi antaa tuntuman rivin ⋮-painikkeesta samalla hymiöasteikolla kuin lämmittelylle; valinta on vapaaehtoinen, näkyy pienenä merkkinä ⋮-painikkeessa ja poistuu napauttamalla valittua hymiötä uudelleen (sama koskee lämmittelyä). Tuntuma tallentuu merkintään ja varmuuskopion uuteen Tuntuma-sarakkeeseen; vanhat varmuuskopiot tuodaan ennallaan.",
       "Lämmittely, joka on työsarjan tasoinen (paino vähintään ensimmäisen työsarjan ehdotus ja toistot vähintään tavoite), säätää jäljellä olevat työsarjat heti tuntuman mukaan ilman vertailudataa: Työläs pitää painon, kevyempi nostaa, raskaampi keventää. Valmiit ja käsin muokatut sarjat säilyvät, ja selite kertoo säädetyt sarjat.",
       "Sarjan ✓-painike on reunaton ja täytötön: merkki on messinkinen ja muuttuu vihreäksi, kun sarja on merkitty tehdyksi.",
@@ -682,10 +682,13 @@
   // (1 = ei progressiota, PROGRESSION_COEFFICIENT = seuraavan kerran ehdotus).
   // Sama funktio palvelee saman treenin sisäistä säätöä (lämmittely työsarjan
   // tasolla) ja seuraavan kerran ehdotusta (buildDraftRows, inferPlan).
-  function weightFromFeel(weight, reps, rir, targetReps, progression){
+  // Pyöristämätön ydin: kevennys pyöristää alaspäin, ehdotus lähimpään.
+  function feelTargetWeight(weight, reps, rir, targetReps, progression){
     var oneRm = weight * (1 + (reps + rir) / 30);
-    var target = oneRm * progression / (1 + (targetReps + TARGET_RIR) / 30);
-    return roundToStep(target, WEIGHT_STEP);
+    return oneRm * progression / (1 + (targetReps + TARGET_RIR) / 30);
+  }
+  function weightFromFeel(weight, reps, rir, targetReps, progression){
+    return roundToStep(feelTargetWeight(weight, reps, rir, targetReps, progression), WEIGHT_STEP);
   }
   // Kehityksen 1RM on paras arvo liukuvalta jaksolta, jotta submaksimaaliset
   // treenipäivät eivät pudota lukua (Epley olettaa sarjan tehdyksi uupumukseen).
@@ -3845,6 +3848,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         // maksimipaino on noussut, ja viimeisimmässä vähintään yksi sarja jäi
         // vajaaksi. Ei laukea, jos jokin kolmesta kerrasta oli jo kevennys —
         // näin kevennyksen jälkeen on kolme puhdasta kertaa aikaa rakentaa.
+        // Tuntuman kanssa vaje mitataan kapasiteettina: toistot + RIR alle
+        // tavoite + TARGET_RIR (esim. tavoite täyttyi mutta äärirajoilla = vaje;
+        // kaksi vajaaksi mutta kevyt = ei vajetta). Ilman tuntumaa RIR on
+        // molemmin puolin sama, joten sääntö supistuu entiseen toistovertailuun.
         var plateau = false;
         if(anyComputed && last.prior && last.prior.length >= HISTORY_DEPTH - 1){
           var sessions = [last].concat(last.prior);
@@ -3859,13 +3866,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             });
             maxes.push(mw);
           }
-          var anyShortfall = perSet.some(function(p){ return p.status === "near" || p.status === "missed" || (p.status === "feel" && p.prevReps < targetReps); });
+          var anyShortfall = perSet.some(function(p){
+            if(p.status === "feel") return p.prevReps + tuntumaToRir(p.prevRpe) < targetReps + TARGET_RIR;
+            return p.status === "near" || p.status === "missed";
+          });
           if(!flagged && anyShortfall && maxes[0] > 0 && maxes[0] <= maxes[maxes.length - 1]){
             plateau = true;
             for(var d=0;d<formulaRows.length;d++){
               var pw = perSet[d].prevWeight;
               if(isFinite(pw) && pw > 0){
-                var dl = floorToStep(pw * DELOAD_FACTOR, WEIGHT_STEP);
+                // Kevennys: ilman tuntumaa 90 % edellisestä painosta; tuntuman
+                // kanssa 90 % RIR-korjatusta 1RM-arviosta tavoitetoistoille
+                // (sama kaava kuin ehdotuksessa, progressiona DELOAD_FACTOR).
+                // Molemmat pyöristetään alaspäin 2,5 kg:n askeleeseen.
+                var dl = perSet[d].status === "feel"
+                  ? floorToStep(feelTargetWeight(pw, perSet[d].prevReps, tuntumaToRir(perSet[d].prevRpe), targetReps, DELOAD_FACTOR), WEIGHT_STEP)
+                  : floorToStep(pw * DELOAD_FACTOR, WEIGHT_STEP);
                 if(dl <= 0) dl = WEIGHT_STEP;
                 formulaRows[d].weight = String(dl);
                 formulaRows[d].base = formulaRows[d].weight;
@@ -6394,7 +6410,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("3. Painoehdotukset", ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus lasketaan jokaiselle sarjalle erikseen viime kerran samasta sarjasta. Jos tavoitetoistot täyttyivät, paino nousee vähintään 2,5 kg ja enintään 5 %; jos toistoja jäi yksi vajaaksi, paino pysyy samana; jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 % alaspäin pyöristäen. Sarjarivin yläpuolella kerrotaan jokaisen sarjan peruste. Jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmässä jäi toistoja vajaaksi, sovellus ehdottaa 10 %:n kevennystä; kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Tuntuma ehdotuksessa:</b> jos viime kerran sarjalle on kirjattu tuntuma (rivin ⋮-painikkeesta), se tulkitaan varastoon jääneiksi toistoiksi — Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0 — ja lisätään toistoihin Epley-kaavassa. Ehdotus on paino, jolla tavoitetoistot tuntuisivat Työläältä, 1,25 % kehityksellä, ilman edellä mainittuja nostorajoja: sama paino ja toistot antavat Kevyellä suuremman ehdotuksen kuin Äärirajoilla. Ilman tuntumaa laskenta on täsmälleen entinen (Työläs). Kehitys-näkymän 1RM lasketaan aina ilman tuntumaa, jotta historia pysyy vertailukelpoisena."
+      "<b style=\"color:var(--chalk);\">Tuntuma ehdotuksessa:</b> jos viime kerran sarjalle on kirjattu tuntuma (rivin ⋮-painikkeesta), se tulkitaan varastoon jääneiksi toistoiksi — Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0 — ja lisätään toistoihin Epley-kaavassa. Ehdotus on paino, jolla tavoitetoistot tuntuisivat Työläältä, 1,25 % kehityksellä, ilman edellä mainittuja nostorajoja: sama paino ja toistot antavat Kevyellä suuremman ehdotuksen kuin Äärirajoilla. Sama sääntö koskee jumitunnistusta: vaje tarkoittaa, että toistot ja varastoon jääneet toistot yhteensä jäivät alle tavoitetoistot + 2 (tavoitteen täyttänyt mutta Äärirajoilla tehty sarja on vaje, kaksi vajaaksi jäänyt mutta Kevyt ei ole), ja kevennysehdotus on 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen. Ilman tuntumaa laskenta on täsmälleen entinen (Työläs). Kehitys-näkymän 1RM lasketaan aina ilman tuntumaa, jotta historia pysyy vertailukelpoisena."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
     ) + ohjeP(
@@ -6969,9 +6985,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     } else if(info.type === "formula"){
       var parts = (info.perSet || []).map(function(p, i){
         var label = "S" + (i+1) + ": ";
-        if(p.status === "feel"){
+        if(p.status === "feel" || (p.status === "deload" && p.prevRpe !== undefined && p.prevRpe !== null)){
           // Tuntuma kirjattu: peruste on edellinen sarja tuntumineen.
-          var outcome = p.next > p.prevWeight ? "nosto" : (p.next < p.prevWeight ? "kevennys" : "sama paino");
+          var outcome = p.status === "deload" ? "kevennys" : (p.next > p.prevWeight ? "nosto" : (p.next < p.prevWeight ? "kevennys" : "sama paino"));
           return label + String(p.prevWeight).replace(".", ",") + " kg × " + p.prevReps + " toistoa, " + warmupFeelWord(p.prevRpe) + " → " + outcome;
         }
         if(p.status === "hit") return label + "tavoite täyttyi → nosto";
@@ -6984,8 +7000,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // sitten sarjakohtaiset perusteet; jumitunnistus omana rivinään edellä.
       // Tuntuman kanssa kerrotaan, että paino on laskettu Epley-kaavalla
       // tuntuma huomioiden ja on muokattavissa.
-      var anyFeel = (info.perSet || []).some(function(p){ return p.status === "feel"; });
-      text = (info.plateau ? '<b style="color:var(--chalk);">Ei kehitystä kolmeen kertaan — ehdotetaan kevennystä (−10 %).</b><br>' : "") +
+      var anyFeel = (info.perSet || []).some(function(p){ return p.status === "feel" || (p.status === "deload" && p.prevRpe !== undefined && p.prevRpe !== null); });
+      text = (info.plateau ? '<b style="color:var(--chalk);">Ei kehitystä kolmeen kertaan — ehdotetaan kevennystä (−10 %' + (anyFeel ? " tuntuma huomioiden" : "") + ').</b><br>' : "") +
         (anyFeel ? "Paino laskettu Epley-kaavalla edellisestä merkinnästä (" + escapeHtml(formatDateShortFI(info.date)) + ") tuntuma huomioiden, tavoite " +
           info.targetReps + " toistoa ja 1,25 % kehitys — muokattavissa.<br>"
           : "Ehdotus edelliseltä kerralta " + escapeHtml(formatDateShortFI(info.date)) + ", tavoite " +
