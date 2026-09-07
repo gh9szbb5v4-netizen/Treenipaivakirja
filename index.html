@@ -229,11 +229,21 @@
   /* 46px = Sarja-sarake (40px) + rivin väli, jotta huomiorivi alkaa Viime-
      sarakkeen kohdalta. */
   .set-extra{display:flex; gap:8px; align-items:center; padding:0 0 8px 46px; border-bottom:1px dashed var(--line);}
-  .set-extra.warmup-feel{flex-direction:column; align-items:stretch; gap:6px;}
+  /* Tuntumarivi käyttää koko leveyden (ei Viime-sarakkeen sisennystä), jotta
+     viisi hymiötä ja poisto mahtuvat yhdelle riville 360 px:n näytöllä:
+     5 × 42 px + 4 × 5 px + 8 px + 36 px = 274 px ≤ 284 px. */
+  .set-extra.warmup-feel{flex-direction:column; align-items:stretch; gap:6px; padding-left:0;}
   .warmup-feel-head{display:flex; align-items:center; gap:8px;}
-  .warmup-feel-q{font-size:var(--fs-sm); color:var(--chalk); font-weight:600;}
-  .warmup-feel-btns{display:flex; flex-wrap:wrap; gap:8px;}
-  .warmup-feel-desc{font-size:var(--fs-xs); color:var(--mist); line-height:1.4; min-height:1.4em;}
+  /* Viisi hymiöpainiketta mahtuvat yhdelle riville poistopainikkeen kanssa
+     myös 360 px:n näytöllä (ks. .set-extra.warmup-feel). */
+  .warmup-feel-btns{display:flex; flex-wrap:wrap; gap:5px;}
+  /* Hymiö on itse painike: reunus ja täyttö ovat taustan värisiä (läpinäkyvät)
+     ja vain valittu pykälä saa messinkitäytön (inline-tyyli). */
+  .weight-step-btn.feel-btn{width:42px; padding:0; font-size:26px; line-height:1; background:transparent; border-color:transparent;}
+  .warmup-feel-btns{flex:1; min-width:0;}
+  .warmup-feel-desc{display:flex; flex-wrap:wrap; gap:2px 6px; font-size:var(--fs-xs); color:var(--mist); line-height:1.4; min-height:1.4em;}
+  .feel-key{white-space:nowrap;}
+  .feel-key.on{color:var(--chalk); font-weight:700;}
   .set-more{width:40px; height:44px; padding:0; margin:0; background:transparent; border:0; border-radius:8px; color:var(--mist); display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .set-more.on{color:var(--brass);}
   /* Tallennuslohko ei ole kiinnitetty: kiinnitettynä se peitti sarjarivit
@@ -525,6 +535,8 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-07", items: [
+      "Lämmittelyn tuntuma valitaan viidestä hymiöstä yhdellä rivillä (😁 kevyt, 🙂 sujuva, 😐 työläs, 😮‍💨 raskas, 🥵 äärirajoilla); hymiöt ovat reunattomia painikkeita, valittu saa messinkitäytön, ja pieni selite kertoo hymiöiden merkityksen sekä korostaa valitun pykälän. Aiemmat kirjaukset ja painoehdotuksen säätö toimivat ennallaan.",
+      "Uusi lämmittelysarja lisätään aiempien lämmittelyjen perään (L1, L2, …), ei niiden edelle.",
       "Ohjelma-näkymässä on kerrallaan auki vain yksi treenipäivä: päivän tai Aloita-painikkeen avaaminen sulkee aiemmin avatun päivän liikelistan.",
     ] },
     { date: "2026-09-05", items: [
@@ -621,12 +633,14 @@
   // piste), joten laskenta, aiemmat kirjaukset ja vertailudata ovat ennallaan.
   // Kuvaukset kertovat, montako toistoa olisi vielä jaksanut — asteikko kuvaa
   // sarjaa itseään, ei vertailua aiempaan, koska vertailun tekee sovellus.
+  // Painikkeissa näkyy vain hymiö (käyttäjän päätös: yksi rivi); sana ja
+  // kuvaus ovat painikkeen nimessä ruudunlukijalle ja selitteissä.
   var WARMUP_SCALE = [
-    { rpe: 6, label: "Kevyt", desc: "Meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän" },
-    { rpe: 7, label: "Sujuva", desc: "Vaati vähän voimaa, kolme toistoa olisi vielä tullut" },
-    { rpe: 8, label: "Työläs", desc: "Rasitti selvästi, kaksi toistoa olisi vielä tullut" },
-    { rpe: 9, label: "Raskas", desc: "Vain yksi toisto olisi enää tullut" },
-    { rpe: 10, label: "Äärirajoilla", desc: "Viimeinen toisto oli kaikki mitä oli" }
+    { rpe: 6, emoji: "😁", label: "Kevyt", desc: "Meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän" },
+    { rpe: 7, emoji: "🙂", label: "Sujuva", desc: "Vaati vähän voimaa, kolme toistoa olisi vielä tullut" },
+    { rpe: 8, emoji: "😐", label: "Työläs", desc: "Rasitti selvästi, kaksi toistoa olisi vielä tullut" },
+    { rpe: 9, emoji: "😮‍💨", label: "Raskas", desc: "Vain yksi toisto olisi enää tullut" },
+    { rpe: 10, emoji: "🥵", label: "Äärirajoilla", desc: "Viimeinen toisto oli kaikki mitä oli" }
   ];
   var WARMUP_FEEL_PROMPT = "Arvioi, montako toistoa olisit vielä jaksanut.";
   // Lähin asteikon pykälä RPE-luvulle; keskiarvo (esim. 6,5) pyöristetään.
@@ -6247,11 +6261,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Lämmittelyn tuntuma</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut lämmittelysarjan jälkeen. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva."
     ) + ohjeList([
-      "<b style=\"color:var(--chalk);\">Kevyt</b> — meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän.",
-      "<b style=\"color:var(--chalk);\">Sujuva</b> — vaati vähän voimaa, kolme toistoa olisi vielä tullut.",
-      "<b style=\"color:var(--chalk);\">Työläs</b> — rasitti selvästi, kaksi toistoa olisi vielä tullut.",
-      "<b style=\"color:var(--chalk);\">Raskas</b> — vain yksi toisto olisi enää tullut.",
-      "<b style=\"color:var(--chalk);\">Äärirajoilla</b> — viimeinen toisto oli kaikki mitä oli."
+      "😁 <b style=\"color:var(--chalk);\">Kevyt</b> — meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän.",
+      "🙂 <b style=\"color:var(--chalk);\">Sujuva</b> — vaati vähän voimaa, kolme toistoa olisi vielä tullut.",
+      "😐 <b style=\"color:var(--chalk);\">Työläs</b> — rasitti selvästi, kaksi toistoa olisi vielä tullut.",
+      "😮‍💨 <b style=\"color:var(--chalk);\">Raskas</b> — vain yksi toisto olisi enää tullut.",
+      "🥵 <b style=\"color:var(--chalk);\">Äärirajoilla</b> — viimeinen toisto oli kaikki mitä oli."
     ]) + ohjeP(
       "Kun sama lämmittely (samat toistot, paino 2,5 kg:n sisällä) on kirjattu aiemmin, sovellus vertaa vastausta siihen, miltä se on tavallisesti tuntunut: yhtä pykälää raskaampi keventää saman treenin työsarjojen painoehdotusta 5 %, kahta pykälää 10 % ja yhtä pykälää kevyempi nostaa 2,5 %. Vain saman treenin painavin lämmittely vaikuttaa, käsin muokattuja sarjoja ei säädetä, ja ensimmäisellä kerralla vertailudataa ei vielä ole. Tuntuman voi jättää myös antamatta, jolloin lämmittely tallentuu ilman vaikutusta."
     ) + ohjeP(
@@ -7159,7 +7173,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         var rpeButtons = WARMUP_SCALE.map(function(step){
           var on = s.rpe === step.rpe;
           if(on) selectedStep = step;
-          return '<button type="button" class="weight-step-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ': ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '"' + (on ? ' style="background:var(--brass); color:var(--ink); border-color:var(--brass);"' : '') + '>' + escapeHtml(step.label) + '</button>';
+          return '<button type="button" class="weight-step-btn feel-btn" data-warmup-rpe data-id="' + ex.id + '" data-idx="' + idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Lämmittely ' + warmCount + ': ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '"' + (on ? ' style="background:var(--brass); color:var(--ink); border-color:var(--brass);"' : '') + '><span aria-hidden="true">' + step.emoji + '</span></button>';
+        }).join("");
+        // Selite kertoo hymiöiden merkityksen yhdellä pienellä rivillä; valittu
+        // pykälä korostetaan. Ruudunlukijalle sama tieto on painikkeiden
+        // nimissä, ja valinta luetaan erillisestä aria-live-alueesta.
+        var feelLegend = WARMUP_SCALE.map(function(step){
+          return '<span class="feel-key' + (s.rpe === step.rpe ? " on" : "") + '">' + step.emoji + '\u00A0' + escapeHtml(step.label) + '</span>';
         }).join("");
         var warmPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
         var lastWarm = lastSession && lastSession.warmups ? lastSession.warmups[warmCount - 1] : null;
@@ -7173,11 +7193,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           '</div>' +
           '<div class="set-extra warmup-feel">' +
           '<div class="warmup-feel-head">' +
-          '<span id="' + feelId + '-q" class="warmup-feel-q">Miltä lämmittely tuntui?</span>' +
+          '<span id="' + feelId + '-q" class="sr-only">Miltä lämmittely ' + warmCount + ' tuntui?</span>' +
+          '<div class="warmup-feel-btns" role="group" aria-labelledby="' + feelId + '-q">' + rpeButtons + '</div>' +
           '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista lämmittely ' + warmCount + '" style="padding:6px 10px; margin-left:auto;">' + icon("poista", 18) + '</button>' +
           '</div>' +
-          '<div class="warmup-feel-btns" role="group" aria-labelledby="' + feelId + '-q">' + rpeButtons + '</div>' +
-          '<div class="warmup-feel-desc" id="' + feelId + '-d" aria-live="polite">' + (selectedStep ? escapeHtml(selectedStep.label) + ': ' + escapeHtml(selectedStep.desc) + '.' : WARMUP_FEEL_PROMPT) + '</div>' +
+          '<div class="warmup-feel-desc" id="' + feelId + '-d" aria-hidden="true">' + feelLegend + '</div>' +
+          '<span class="sr-only" id="' + feelId + '-live" aria-live="polite">' + (selectedStep ? escapeHtml(selectedStep.label) + ': ' + escapeHtml(selectedStep.desc) + '.' : WARMUP_FEEL_PROMPT) + '</span>' +
           '</div>';
       }
       var extraOpen = !!(extras[idx] || (s.notes && String(s.notes).length));
@@ -8864,11 +8885,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-add-warmup]"))){
       var idw = el.dataset.id;
       if(!state.draftSets[idw]) state.draftSets[idw] = [];
-      // Lämmittelyt ovat taulukon alussa; lepoajastinta ei käynnistetä.
-      state.draftSets[idw].unshift({ weight:"", reps:"", rpe:null, notes:"", done:false, kind:"warmup" });
+      // Lämmittelyt ovat taulukon alussa ja uusi lämmittely tulee aiempien
+      // lämmittelyjen perään (L1, L2, …), ei niiden edelle; lepoajastinta ei
+      // käynnistetä.
+      var wIdx = warmupRows(idw).length;
+      state.draftSets[idw].splice(wIdx, 0, { weight:"", reps:"", rpe:null, notes:"", done:false, kind:"warmup" });
       state.dirtySets[idw] = true;
-      // Uusi rivi ilmestyy listan alkuun; fokus painokenttään vierittää sen näkyviin.
-      afterRender(function(){ var f = document.querySelector('.exercise.open [data-set-field][data-idx="0"][data-field="weight"]'); if(f) f.focus(); });
+      // Näppäimistön kohde siirtyy lisätyn rivin verran, jos se oli sen jäljessä.
+      if(state.keypad && state.keypad.id === idw && state.keypad.idx >= wIdx) state.keypad.idx++;
+      // Fokus uuden rivin painokenttään vierittää sen näkyviin ja avaa näppäimistön.
+      afterRender(function(){ var f = document.querySelector('.exercise.open [data-set-field][data-idx="' + wIdx + '"][data-field="weight"]'); if(f) f.focus(); });
       return;
     }
     if((el = e.target.closest("[data-warmup-rpe]"))){
