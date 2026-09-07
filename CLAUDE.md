@@ -752,6 +752,32 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   testausväliä.
 - `PROGRESSION_COEFFICIENT = 1.0125`: painoehdotuksen tavoiteltu kehitys
   per treenikerta.
+- `TUNTUMA_RIR = { kevyt: 4, sujuva: 3, tyolas: 2, raskas: 1, aarirajoilla: 0 }`
+  ja `TARGET_RIR = 2`: tuntuma RIR-arvona (varastoon jääneet toistot) ja
+  työsarjan tavoitetuntuma. `tuntumaToRir(rpe)` kääntää tallennetun RPE-
+  luvun 6–10 (`WARMUP_SCALE[i].key`) RIR:ksi; puuttuva tuntuma = `TARGET_RIR`,
+  jolloin laskenta supistuu entiseen. `weightFromFeel(weight, reps, rir,
+  targetReps, progression)` = `MROUND(weight × (1 + (reps + rir)/30) ×
+  progression / (1 + (targetReps + TARGET_RIR)/30), 2,5)` on yhteinen
+  kaava: `buildDraftRows` käyttää sitä (status `"feel"`, ilman hit/near/
+  missed-rajoja) kun viitesarjalla `last.sets[k].rpe` on luku, `inferPlan`
+  aina, ja `applyWarmupAdjustment` progressiolla 1, kun valmis lämmittely on
+  työsarjan tasoinen (paino ≥ ensimmäisen työsarjan `base`, toistot ≥
+  tavoite): jokainen keskeneräinen ja käsin muokkaamaton työsarja saa
+  painon, `warmupAdjust.status === "worklevel"` (`from`, `to`, `sets`,
+  `changed`) ja selite `setRangeText(sets)`-luettelolla. Funktio palauttaa
+  ensin aiemman säädön (`weight === adjusted` → `base`), joten tuntuman
+  vaihto lähtee aina alkuperäisestä ehdotuksesta. Työsarjan tuntuma on
+  kentässä `rpe` kuten lämmittelyillä (ei erillistä `tuntuma`-kenttää):
+  valitsin `renderFeelPicker()` on työsarjan ⋮-lisärivillä
+  (`.set-extra.set-feel`, sama `[data-warmup-rpe]`-käsittelijä, jossa
+  valitun pykälän uusi napautus nollaa `rpe`-kentän), valittu
+  hymiö näkyy `.set-feel-mark`-merkkinä ⋮-painikkeessa, `saveExerciseLog`
+  vie sen merkinnän sarjaan ja `lastSet`-sarjaan, ja varmuuskopion
+  `#MERKINNÄT`-osiossa on viimeisenä sarake `Tuntuma` (asteikon sana;
+  `feelFromText()` lukee sanan tai luvun 6–10, puuttuva sarake = ei
+  tuntumaa). Kehityksen `buildAllOneRepMaxSeries` ei käytä RIR:ää
+  (historia pysyy vertailukelpoisena). Testi: `test_rir.js`.
 - `WEIGHT_STEP = 2.5`, `PROGRESSION_MAX_FACTOR = 1.05` ja
   `REGRESSION_FACTOR = 0.95`: painoehdotuksen askel (sama kaikilla
   liikkeillä, myös käsipainoilla, käyttäjän päätöksellä), noston katto ja
