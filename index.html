@@ -524,6 +524,9 @@
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-07", items: [
+      "Ohjelma-näkymässä on kerrallaan auki vain yksi treenipäivä: päivän tai Aloita-painikkeen avaaminen sulkee aiemmin avatun päivän liikelistan.",
+    ] },
     { date: "2026-09-05", items: [
       "Kirjausnäppäimistö (versio 0.4.3): painon tai toistojen napautus avaa sovelluksen oman näppäimistön näytön alareunaan laitteen näppäimistön sijaan. Painoille siinä ovat myös ±2,5 kg -painikkeet (aiemmin sarjan alla); toistoille pilkku ei ole käytössä. Seuraava siirtyy seuraavan sarjan samaan kenttään ja viimeisestä sarjasta sulkee näppäimistön; nuoli sulkee sen milloin tahansa. Fyysinen näppäimistö toimii ennallaan (Enter = Seuraava, Esc sulkee).",
       "Alavalikko ja lepoajastimen palkki pysyvät näytön alareunassa vieritettäessä myös iPhonella: kosketuslaitteella kirjausnäppäimistö ei enää pidä kenttää fokusoituna (kohdekenttä korostetaan messinkireunuksella), mikä sai iOS Safarin siirtämään kiinteät elementit sisällön mukana.",
@@ -8817,7 +8820,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-toggle-ex]"))){ await toggleExercise(el.dataset.id); return; }
     if((el = e.target.closest("[data-toggle-day-summary]"))){
       var summaryKey = el.dataset.key;
-      state.expandedDaySummaries[summaryKey] = !state.expandedDaySummaries[summaryKey];
+      // Vain yksi päivä kerrallaan auki (käyttäjän päätös): avaus sulkee muut.
+      if(state.expandedDaySummaries[summaryKey]){ delete state.expandedDaySummaries[summaryKey]; }
+      else { state.expandedDaySummaries = {}; state.expandedDaySummaries[summaryKey] = true; }
       render();
       return;
     }
@@ -8825,6 +8830,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Avaa päivän ja sen ensimmäisen kirjaamattoman liikkeen yhdellä
       // napautuksella — treenin aloitus ei vaadi kahta askelta.
       var startKey = el.dataset.key;
+      // Vain yksi päivä kerrallaan auki: Aloita sulkee muut avatut päivät.
+      state.expandedDaySummaries = {};
       state.expandedDaySummaries[startKey] = true;
       var startDay = null;
       state.program.days.forEach(function(d){ if(dayKey(d) === startKey) startDay = d; });
