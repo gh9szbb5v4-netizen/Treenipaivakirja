@@ -374,11 +374,13 @@ ennen ohjelman muistiinpanoja, ei otsikkorivin alla.
 Avattu liike vieritetään näkyviin: `toggleExercise()`,
 `completeAndAdvance()` ja `[data-start-day]` (kun liike on jo auki) kutsuvat
 `afterRender(revealOpenExercise)`, joka kapealla näytöllä vierittää
-`.exercise.open`-kortin näytön yläreunaan (`scroll-margin-top` on kortilla,
-`scrollIntoView` kortille, sujuvasti ellei `prefers-reduced-motion`) vain
-jos kortti on näytön ulkopuolella tai alimmassa 40 %:ssa, ja siirtää
-fokuksen otsikkoon `[data-toggle-ex]` `preventScroll`-optiolla. Leveässä
-asettelussa ei vieritetä (paneeli on kiinnitetty).
+`.exercise.open`-kortin **aina** näytön yläreunaan (`scroll-margin-top` on
+kortilla ja `html`-elementin `scroll-padding-top` 16 px; `scrollIntoView`
+kortille, sujuvasti ellei `prefers-reduced-motion`) ja siirtää fokuksen
+otsikkoon `[data-toggle-ex]` `preventScroll`-optiolla. Aiempi ehto "vain
+näytön ulkopuolelta tai alimmasta 40 %:sta" poistettiin, koska edellisen
+liikkeen sulkeutuminen siirtää kortin ennalta arvaamattomaan kohtaan.
+Leveässä asettelussa ei vieritetä (paneeli on kiinnitetty).
 
 Sarjarivi: numero, Viime, paino, toistot, ✓ ja ⋮ yhdellä rivillä
 (`grid-template-columns:40px 52px minmax(0,1fr) minmax(0,0.8fr) 44px 40px`;
@@ -518,6 +520,73 @@ oma viikon nimi, Jatka jo avatulla liikkeellä). Testissä on odotettava yli
 250 ms edellisen piirron jälkeen ennen klikkausta: piirron view transition
 on kesken, ja Playwright siirtyy sen aikana uusintayrityksiin, jotka
 vierittävät sivua itse.
+
+## Näppäimistö ja fokus mobiilissa (toteutettu)
+
+Kehote "näppäimistön ja fokuksen käytettävyys mobiilissa + kiinnitetty
+lisärivi" oli kirjoitettu ennen kirjausnäppäimistöä (0.4.3): sen osa C
+(kiinnitetty ±/✓-lisärivi laitteen näppäimistön päällä, `.weight-step-row`-
+rivien poisto, ✓ riville) oli jo toteutettu kirjausnäppäimistönä ja
+sarjarivillä, joten lisäriviä ei tehty erikseen. Toteutetut osat:
+
+- **Viewport** `interactive-widget=resizes-content`: Android Chrome kutistaa
+  asettelunäkymän laitteen näppäimistön korkeudella (koskee vain laitteen
+  näppäimistöä käyttäviä kenttiä: huomio, 1RM, lepoaika, muokkaustilan
+  yksikkö ja teho, hakukentät); iOS ohittaa määreen.
+- **scroll-padding** on `html`-elementillä (näkymän scroll-padding luetaan
+  juurielementistä, ei bodystä): ylä 16 px, ala 130 px (alanavigaatio),
+  `html.keypad-open` 372 px (kirjausnäppäimistö) ja
+  `html.set-field-focused:not(.keypad-open)` 24 px. `setRootClass(name, on)`
+  asettaa luokat sekä `html`- että `body`-elementille; `body.keypad-open`
+  on yhä ilmoituksen ja lepoajastimen palkin käytössä.
+- **Sarjakentän fokustila** `set-field-focused` (`updateSetFieldFocusState`,
+  `#app`:n `focusin` ja `focusout` + `setTimeout 0`): päällä täsmälleen
+  kun `document.activeElement` on `[data-set-field]` — semanttinen tila,
+  ei korkeusheuristiikka, koska `innerHeight` itse kutistuu Androidilla.
+  Kosketuslaitteella paino- ja toistokentät eivät ole fokusoituina
+  (`blurKeypadInputOnTouch`), joten tila koskee siellä huomiokenttää.
+  CSS: `.bottom-nav` `display:none` ja `#rest-timer-mini` piiloon vain, kun
+  kirjausnäppäimistö ei ole auki (sen kanssa palkki nostetaan näppäimistön
+  yläpuolelle, käyttäjän aiempi päätös).
+- **Kentän tuonti näkyviin** (`revealFocusedField(el, force)`,
+  `isSystemKeyboardField`): `.ledger-input`-kentät ilman
+  `inputmode="none"` ja pohjalevyn ulkopuolella keskitetään visuaaliseen
+  näkymään (`visualViewport`-mitat, `window.scrollBy`; `.ohjelma-pane`-
+  paneelissa `scrollIntoView center`). `focusin` keskittää
+  kosketuslaitteella aina, muuten vain kun kenttä on alapalkkien takana tai
+  näytön ulkopuolella; `visualViewport`-`resize` (debounce 80 ms) keskittää
+  uudelleen, kun kenttä on yhä fokusoituna (näppäimistön animaatio, kääntö).
+  Paino- ja toistokentät hoitaa edelleen `revealKeypadTarget`.
+- **Fokuksen säilyminen `render()`-kutsun yli** (`captureFocus`,
+  `restoreFocus`, `focusDescriptor`) on toteutettu `render()`-funktion
+  sisällä `apply`-sulkeumassa, ei navigointifunktioissa: `applyScreen`-
+  vieritykset tapahtuvat `afterRender`-kutsulla piirron jälkeen ja
+  voittavat palautuksen. Talteen otetaan kentän tunniste (`[data-set-field]`-
+  kolmikko, `[data-editor-field]` tai `#id`; vain input/textarea/select
+  `#app`:n sisällä), valinta, `scrollY` ja `.ohjelma-pane`-paneelin
+  `scrollTop`. Palautus ohitetaan, kun `#app` on `inert` (lepoajastimen
+  modaali) tai kosketuslaitteella kentällä on `inputmode="none"`; palautus
+  asettaa `keypadSilentFocus`- ja `focusRestoring`-liput, jottei `focusin`
+  avaa suljettua näppäimistöä uudelleen eikä vieritä. Lopuksi
+  `updateSetFieldFocusState()`.
+- **`toggleSetDone(id, idx)`** on rivin ✓:n ja kirjausnäppäimistön ✓:n
+  (`[data-keypad-key="done"]`, alue `ok` ±-näppäinten alla; ei
+  muokkaustilan näppäimistössä) yhteinen funktio; sisältää `render()`-
+  kutsun. Näppäimistö pysyy samassa sarjassa (ei siirry seuraavaan).
+  Ruudukko on nyt 4 riviä × 60 px (`grid-template-areas` "up dn ok nx").
+- Rivin ✓ ja "+ Sarja" estävät `pointerdown`-oletuksen, kun fokus on
+  sarjakentässä, jottei fokus siirry painikkeeseen (iOS: `mousedown` ei
+  riitä). `restTimerPrevFocusKey` (`focusDescriptor`) palauttaa fokuksen
+  piirron jälkeen syntyneeseen kenttään, koska ✓ piirtää näkymän ajastimen
+  käynnistyksen jälkeen ja talletettu DOM-solmu ei enää ole dokumentissa.
+- Huomiokentällä on `enterkeyhint="done"` ja Enter sulkee laitteen
+  näppäimistön (`blur`); paino- ja toistokentissä Enter on edelleen
+  `keypadNext`. Toistoille ei lisätty ±1-painikkeita (käyttäjän päätös:
+  toistoille ei säätimiä), eikä Chromium-kohtaista VirtualKeyboard-
+  rajapintaa käytetä.
+
+Testi: `test_focus.js` (Pixel 5 -emulaatio kosketuksella ja 1280 px:n
+työpöytä; kehotteen kohdat 1–8, 10 ja 13).
 
 ## Asetukset, Historia ja Kehitys (toteutettu, UX-vaihe 4)
 
