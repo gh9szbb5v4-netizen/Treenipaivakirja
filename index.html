@@ -213,7 +213,7 @@
   .ledger-row .ledger-input{text-align:center; font-weight:700; padding:8px 4px;}
   /* Näppäimistön kohdekenttä korostetaan luokalla, ei fokuksella: kosketus-
      laitteella kenttä ei ole fokusoituna näppäimistön aikana (ks. openKeypad). */
-  .ledger-row .ledger-input.keypad-target{border-color:var(--brass); box-shadow:0 0 0 1px var(--brass);}
+  .ledger-input.keypad-target{border-color:var(--brass); box-shadow:0 0 0 1px var(--brass);}
   .set-last{font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   /* minmax(0, …): otsikkorivin "TOISTOT" ei saa venyttää omaa saraketta, jotta
      otsikot osuvat kenttien kohdalle. */
@@ -301,6 +301,9 @@
   /* Näppäimistö peittää alanavigaation kokonaan: piilotetaan, jottei
      näkymätön välilehti jää näppäimistöfokuksen tavoitettavaksi. */
   #app.keypad-open .bottom-nav{visibility:hidden;}
+  /* Muokkaustilan Peruuta/Valmis-palkki on samassa paikassa: piilotetaan
+     näppäimistön ajaksi samasta syystä (nuoli sulkee näppäimistön). */
+  #app.keypad-open .edit-bar{visibility:hidden;}
   /* Leveässä asettelussa paneeli on kiinnitetty ja vierittyy itse: sen
      korkeus rajataan näppäimistön yläpuolelle, jotta kohdekenttä ja Tallenna
      pysyvät tavoitettavissa. */
@@ -433,6 +436,13 @@
   .sheet-title{display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:var(--fs-lg); font-weight:800; margin-bottom:10px;}
   .sheet p{color:var(--mist); font-size:var(--fs-sm); line-height:1.55; margin:0 0 10px;}
   .sheet .csv-example{margin-bottom:12px;}
+  /* Lomakkeen nimikenttä on painike, joka avaa liikevalitsimen. */
+  .pick-field{display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px; text-align:left; font-family:inherit; cursor:pointer;}
+  .pick-field-text{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .pick-field.empty .pick-field-text{color:var(--mist);}
+  .pick-current{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; font-size:var(--fs-sm); color:var(--mist);}
+  .pick-current b{color:var(--chalk); font-weight:700;}
+  .pick-current .btn-tertiary{white-space:nowrap; flex-shrink:0;}
   .pick-list{display:flex; flex-direction:column; gap:4px;}
   .pick-group{font-size:var(--fs-xs); font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--mist); margin:10px 0 2px;}
   .pick-item{display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:11px 12px; min-height:44px; color:var(--chalk); font:inherit; font-size:var(--fs-md); cursor:pointer; -webkit-tap-highlight-color:transparent;}
@@ -541,6 +551,10 @@
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-08", items: [
+      "Ohjelman rakentamisessa ja muokkauksessa liikkeen sarjat ja toistot kirjataan samalla sovelluksen omalla näppäimistöllä kuin Ohjelma-näkymässä: kentän napautus avaa sen, Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, ja Peruuta/Valmis-palkki on piilossa näppäimistön ajan. Laitteen näppäimistö ei enää avaudu näihin kenttiin; yksikkö ja teho kirjoitetaan edelleen sillä.",
+      "Ohjelman muokkauksessa ja rakentamisessa liikkeen nimi valitaan aina liikelistasta: lomakkeen nimikentän napautus avaa koko listan, jonka ensimmäinen ryhmä \"Ohjelmassa ja historiassa\" sisältää nimet, joilla on jo merkintöjä tai jotka ovat ohjelmassa — myös liikepankin nimet, jos niillä on historiaa — joten oikean nimen valinta yhdistää liikkeen vanhoihin historiatietoihin. Sen jälkeen tulee koko liikepankki lihasryhmittäin, ja haku suodattaa nimen, lihasryhmän ja välineen mukaan. Valitsin näyttää nykyisen nimen, ja \"Muokkaa nimeä\" tuo sen hakukenttään; listalta puuttuvan nimen voi yhä ottaa käyttöön sellaisenaan.",
+    ] },
     { date: "2026-09-07", items: [
       "Tuntuma vaikuttaa nyt painoehdotukseen: viime kerran sarjan tuntuma tulkitaan varastoon jääneiksi toistoiksi (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0) ja lisätään Epley-laskentaan, joten kevyeltä tuntunut sarja nostaa seuraavan kerran ehdotusta enemmän ja äärirajoilla tehty vähemmän (esim. tavoite 12, viimeksi 162,5 kg × 12: Kevyt 172,5 kg, Työläs 165 kg, Äärirajoilla 157,5 kg). Ilman tuntumaa ehdotus on entinen. Kehitys-näkymän 1RM ei muutu.",
       "Jumitunnistuksen kevennys noudattaa samaa tuntumasääntöä. Kun viime kerran sarjalle on kirjattu tuntuma, sarja lasketaan vajaaksi, jos toistot ja varastoon jääneet toistot yhteensä jäivät alle tavoitetoistot + 2: tavoitteen täyttänyt mutta Äärirajoilla tehty sarja on vaje, kaksi vajaaksi jäänyt mutta Kevyt ei ole. Kevennys on silloin 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen (esim. tavoite 12: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Äärirajoilla → 137,5 kg), ja selite lisää \"tuntuma huomioiden\". Ilman tuntumaa vaje ja 10 %:n kevennys ovat entiset.",
@@ -3440,6 +3454,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // --- liikkeen lomake ---
   function editorOpenForm(dayId, exId){
     var ed = state.editor;
+    // Toisen lomakkeen avaus sulkee edellisen kentän näppäimistön.
+    state.keypad = null;
     var ex = exId ? findExerciseIn(state.programDraft, exId) : null;
     ed.addingExerciseTo = ex ? null : dayId;
     ed.editingExercise = ex ? ex.id : null;
@@ -6382,7 +6398,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "Jos ohjelmaa ei ole tiedostona, voit koota sen itse. Aloita etusivun kortista \"Rakenna itse\" tai Asetusten Ohjelma-osion painikkeesta \"Rakenna sovelluksessa\". Rakentaja on sama muokkaustila kuin kohdassa 5, mutta se alkaa tyhjästä ohjelmasta."
     ) + ohjeList([
       "Rakenne etenee ylhäältä alas: <b style=\"color:var(--chalk);\">viikko</b> → <b style=\"color:var(--chalk);\">treenipäivä</b> → <b style=\"color:var(--chalk);\">liike</b>. Jokaiselle liikkeelle annetaan sarjat, toistot, yksikkö ja teho — samat tiedot kuin CSV:n sarakkeissa.",
-      "\"Lisää liike\" avaa hakukentän, joka etsii koko liikelistasta nimen tai lihasryhmän perusteella — sama lista variaatioineen kuin liikkeen vaihdossa. Jos liikettä ei löydy, kirjoita nimi hakukenttään ja valitse \"Käytä nimeä\".",
+      "\"Lisää liike\" ja lomakkeen nimikentän napautus avaavat liikelistan: ensimmäinen ryhmä \"Ohjelmassa ja historiassa\" sisältää nimet, joilla on jo merkintöjä tai jotka ovat ohjelmassa, joten niistä valitsemalla liike yhdistyy vanhoihin historiatietoihin; sen jälkeen tulee koko liikelista lihasryhmittäin, ja haku etsii nimen, lihasryhmän tai välineen perusteella — sama lista variaatioineen kuin liikkeen vaihdossa. Nimeä vaihdettaessa \"Muokkaa nimeä\" tuo nykyisen nimen hakukenttään. Jos liikettä ei löydy, kirjoita nimi hakukenttään ja valitse \"Käytä nimeä\".",
       "<b style=\"color:var(--chalk);\">Kopioi viimeinen viikko uudeksi</b> (tai viikon ⋮-valikon Kopioi) monistaa viikon päivineen ja liikkeineen, joten toistuvan ohjelman voi rakentaa kerran ja monistaa lopun.",
       "Liikkeetön treenipäivä jätetään tallennuksessa pois, joten keskeneräinen päivä ei päädy ohjelmaan.",
       "Ohjelma tallentuu vasta \"Valmis\"-painikkeesta. Jos jokin ohjelma on jo käytössä, sovellus kysyy, otetaanko uusi käyttöön heti vai jääkö se kirjastoon; kaikki jo kirjattu historia säilyy."
@@ -6440,7 +6456,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Aloita uudelleen</b> merkitsee kohteen liikkeet tekemättömiksi — koko ohjelman, viikon, päivän tai yhden liikkeen. Historia ja painoehdotukset säilyvät, koska ne on sidottu liikkeen nimeen.",
       "Liikkeen <b style=\"color:var(--chalk);\">nimen muuttaminen</b> toimii kuten \"Vaihda liike toiseksi\": aiemmat merkinnät jäävät Historiaan vanhalla nimellä. Valinnan mukaan muutos koskee kaikkia saman liikkeen esiintymiä, myös kopioituja viikkoja.",
-      "Sarjojen, toistojen, yksikön tai tehon muuttaminen nimeä muuttamatta säilyttää liikkeen ennallaan — myös jo tehty merkintä pysyy tehtynä."
+      "Sarjojen, toistojen, yksikön tai tehon muuttaminen nimeä muuttamatta säilyttää liikkeen ennallaan — myös jo tehty merkintä pysyy tehtynä.",
+      "<b style=\"color:var(--chalk);\">Sarjat ja toistot</b> kirjataan lomakkeessa samalla näppäimistöllä kuin Ohjelma-näkymässä: Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, nuoli sulkee milloin tahansa. Yksikkö ja teho kirjoitetaan laitteen näppäimistöllä."
     ]));
 
     html += ohjeSection("6. Asetukset (alavalikon viimeinen kohta)", ohjeP(
@@ -6559,6 +6576,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   // Liikevalitsimen rivit: koko katalogi variaatioineen lihasryhmittäin sekä
   // ohjelmassa ja historiassa jo olevat nimet, joita katalogissa ei ole.
+  var PICK_GROUP_KNOWN = "Ohjelmassa ja historiassa";
   function exercisePickEntries(){
     var seen = {}, entries = [];
     function add(name, group, valine){
@@ -6567,10 +6585,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       seen[norm] = true;
       entries.push({ name: name, group: group, valine: valine || "" });
     }
+    // Ohjelmassa ja historiassa olevat nimet lisätään ensin, jotta myös
+    // katalogin nimi, jolla on jo merkintöjä, näkyy tässä ryhmässä — näin
+    // käyttäjä näkee, mikä nimi yhdistyy vanhoihin historiatietoihin.
+    // Katalogin väline säilyy hakusanana myös näillä nimillä.
+    var valineByNorm = {};
+    allExerciseVariants().forEach(function(row){
+      valineByNorm[normalizeName(composeVariantName(row.liike, row.variaatio, row.lisavariaatio))] = row.valine || "";
+    });
+    knownExerciseNames().forEach(function(name){ add(name, PICK_GROUP_KNOWN, valineByNorm[normalizeName(name)]); });
     allExerciseVariants().forEach(function(row){
       add(composeVariantName(row.liike, row.variaatio, row.lisavariaatio), row.lihasryhma || "Muut", row.valine);
     });
-    knownExerciseNames().forEach(function(name){ add(name, "Ohjelmassa ja historiassa"); });
     return entries;
   }
   // Hakusanat kohdistuvat nimeen, lihasryhmään ja välineeseen (esim. "talja",
@@ -6596,7 +6622,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(!groups[e.group]){ groups[e.group] = []; order.push(e.group); }
       groups[e.group].push(e.name);
     });
-    order.sort(function(a, b){ return a.localeCompare(b, "fi"); });
+    // Ohjelman ja historian nimet ensimmäisenä ryhmänä, muut lihasryhmät
+    // aakkosissa.
+    order.sort(function(a, b){
+      if(a === PICK_GROUP_KNOWN) return -1;
+      if(b === PICK_GROUP_KNOWN) return 1;
+      return a.localeCompare(b, "fi");
+    });
     order.forEach(function(g){
       html += '<div class="pick-group">' + escapeHtml(g) + '</div>';
       groups[g].sort(function(a, b){ return a.localeCompare(b, "fi"); }).forEach(function(name){
@@ -6630,7 +6662,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if(state.sheet === "liike"){
       title = "Valitse liike";
-      body = '<input type="search" id="liike-haku" class="ledger-input" autocomplete="off" placeholder="Hae liikettä tai lihasryhmää" aria-label="Hae liikettä" value="' + escapeHtml(state.editor.pickerQuery || "") + '" style="margin-bottom:10px;">' +
+      // Olemassa olevan liikkeen nimi näytetään rivillä, jotta käyttäjä
+      // tietää, mitä on vaihtamassa; "Muokkaa nimeä" tuo sen hakukenttään
+      // (kirjoitusvirheen korjaus tai vapaa nimi ilman uudelleen kirjoitusta).
+      var currentName = (state.editMode && state.editor.form && state.editor.form.name) ? String(state.editor.form.name) : "";
+      body = (currentName
+        ? '<div class="pick-current"><span>Nykyinen: <b>' + escapeHtml(currentName) + '</b></span>' +
+          '<button type="button" class="btn-tertiary btn-sm" data-pick-edit-current>Muokkaa nimeä</button></div>'
+        : '') +
+        '<input type="search" id="liike-haku" class="ledger-input" autocomplete="off" placeholder="Hae liikettä tai lihasryhmää" aria-label="Hae liikettä" value="' + escapeHtml(state.editor.pickerQuery || "") + '" style="margin-bottom:10px;">' +
         '<div id="liike-lista" class="pick-list">' + renderExercisePickList(state.editor.pickerQuery || "") + '</div>';
     }
     return '<div class="sheet-backdrop" data-close-sheet>' +
@@ -7071,19 +7111,29 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
 
   // ---------- kirjausnäppäimistö ----------
-  // state.keypad = { id, idx, field, replace }. Näppäimistö piirretään
-  // render()-kutsussa (#app:n loppuun) ja päivitetään näppäinpainalluksissa
-  // suoraan DOM:iin, jottei koko näkymä piirry joka merkillä; kenttä saa arvon
-  // samaa input-tapahtumapolkua kuin kirjoitettaessa. Kohde on aina avoimen
-  // liikkeen sarja; muuten näppäimistö sulkeutuu itsestään.
+  // state.keypad = { id, idx, field, replace } (sarja) tai { kind: "editor",
+  // field: "sets" | "reps", replace } (muokkaustilan liikelomake). Näppäimistö
+  // piirretään render()-kutsussa (#app:n loppuun) ja päivitetään
+  // näppäinpainalluksissa suoraan DOM:iin, jottei koko näkymä piirry joka
+  // merkillä; kenttä saa arvon samaa input-tapahtumapolkua kuin
+  // kirjoitettaessa. Kohde on avoimen liikkeen sarja tai avoimen lomakkeen
+  // kenttä; muuten näppäimistö sulkeutuu itsestään.
+  function isEditorKeypad(){ return !!(state.keypad && state.keypad.kind === "editor"); }
   function keypadTargetRow(){
     var k = state.keypad;
-    if(!k || state.openExercise !== k.id || state.editMode || state.view !== "ohjelma") return null;
+    if(!k) return null;
+    if(k.kind === "editor"){
+      // Lomakkeen kenttäolio toimii "rivinä": arvo luetaan form[field].
+      return (state.editMode && state.editor && state.editor.form && (k.field === "sets" || k.field === "reps")) ? state.editor.form : null;
+    }
+    if(state.openExercise !== k.id || state.editMode || state.view !== "ohjelma") return null;
     var rows = state.draftSets[k.id];
     return rows && rows[k.idx] ? rows[k.idx] : null;
   }
   function keypadLabel(){
-    var k = state.keypad, rows = state.draftSets[k.id] || [];
+    var k = state.keypad;
+    if(k.kind === "editor") return "Liike · " + (k.field === "sets" ? "Sarjat" : "Toistot");
+    var rows = state.draftSets[k.id] || [];
     var name;
     if(isWarmupRow(rows[k.idx])){
       var n = 0;
@@ -7167,7 +7217,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function keypadTargetClass(id, idx, field){
     var k = state.keypad;
-    return (k && k.id === id && k.idx === idx && k.field === field) ? " keypad-target" : "";
+    return (k && !k.kind && k.id === id && k.idx === idx && k.field === field) ? " keypad-target" : "";
+  }
+  function editorKeypadClass(field){
+    var k = state.keypad;
+    return (k && k.kind === "editor" && k.field === field) ? " keypad-target" : "";
   }
   function markKeypadTarget(){
     var old = document.querySelectorAll(".keypad-target");
@@ -7178,11 +7232,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function blurKeypadInputOnTouch(){
     if(!isTouchDevice()) return;
     var a = document.activeElement;
-    if(a && a.hasAttribute && a.hasAttribute("data-set-field") && a.blur) a.blur();
+    if(a && a.hasAttribute && (a.hasAttribute("data-set-field") || a.hasAttribute("data-editor-field")) && a.blur) a.blur();
   }
   function keypadInput(){
     var k = state.keypad;
     if(!k) return null;
+    if(k.kind === "editor") return document.querySelector('[data-editor-field="' + k.field + '"]');
     return document.querySelector('[data-set-field][data-id="' + k.id + '"][data-idx="' + k.idx + '"][data-field="' + k.field + '"]');
   }
   // Piirtää tai poistaa näppäimistön suoraan DOM:iin ilman render()-kutsua.
@@ -7220,6 +7275,19 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var k = state.keypad;
     if(k && k.id === id && k.idx === idx && k.field === field){ blurKeypadInputOnTouch(); return; }
     state.keypad = { id: id, idx: idx, field: field, replace: true };
+    syncKeypad();
+    markKeypadTarget();
+    blurKeypadInputOnTouch();
+    revealKeypadTarget();
+  }
+  // Muokkaustilan lomakkeen Sarjat- ja Toistot-kentät: sama näppäimistö
+  // toistoasettelulla (ei pilkkua eikä ±). Muu lomakkeen kenttä (yksikkö,
+  // teho) käyttää laitteen näppäimistöä ja sulkee kirjausnäppäimistön.
+  function openEditorKeypad(field){
+    if(field !== "sets" && field !== "reps"){ closeKeypad(); return; }
+    var k = state.keypad;
+    if(k && k.kind === "editor" && k.field === field){ blurKeypadInputOnTouch(); return; }
+    state.keypad = { kind: "editor", field: field, replace: true };
     syncKeypad();
     markKeypadTarget();
     blurKeypadInputOnTouch();
@@ -7268,12 +7336,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     keypadSetValue(base + keyName);
   }
   // Seuraava: seuraavan sarjan sama kenttä; viimeisestä sarjasta sulkee.
+  // Lomakkeessa Sarjat → Toistot, ja Toistoista sulkee.
   function keypadNext(){
     var k = state.keypad;
     if(!k) return;
-    var rows = state.draftSets[k.id] || [];
-    if(rows[k.idx + 1]){
-      state.keypad = { id: k.id, idx: k.idx + 1, field: k.field, replace: true };
+    var rows = k.kind === "editor" ? null : (state.draftSets[k.id] || []);
+    if(k.kind === "editor" ? k.field === "sets" : !!rows[k.idx + 1]){
+      state.keypad = k.kind === "editor" ? { kind: "editor", field: "reps", replace: true } : { id: k.id, idx: k.idx + 1, field: k.field, replace: true };
       syncKeypad();
       markKeypadTarget();
       var input = keypadInput();
@@ -7687,15 +7756,19 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderExerciseForm(ex){
     var f = state.editor.form || { name:"", sets:"", reps:"", unit:"", teho:"" };
     var occ = ex ? exerciseOccurrencesIn(state.programDraft, ex.name).length : 0;
+    // Nimi valitaan aina liikevalitsimesta (pohjalevy), ei kirjoiteta
+    // lomakkeeseen: kenttänä on painike, joka avaa listan. Näin katalogin ja
+    // historian nimet ovat tarjolla myös laitteilla, joilla datalist ei
+    // näytä ehdotuksia (iOS Safari), ja vapaa nimi annetaan listan hausta.
+    var hasName = !!(f.name && String(f.name).trim());
     return '<div class="exercise" style="padding:12px 14px; border-color:var(--brass); margin-bottom:10px;">' +
-      '<div style="display:flex; gap:8px;">' +
-      '<input class="ledger-input" type="text" data-editor-field="name" list="exercise-name-options" autocomplete="off" placeholder="Liike" aria-label="Liikkeen nimi" value="' + escapeHtml(f.name) + '" style="flex:1; min-width:0;">' +
-      '<button type="button" class="icon-btn" data-open-sheet="liike" aria-label="Hae liikelistasta" style="width:44px; height:44px; flex-shrink:0;">' + icon("haku", 20) + '</button>' +
-      '</div>' +
-      renderExerciseNameDatalist() +
+      '<button type="button" class="ledger-input pick-field' + (hasName ? "" : " empty") + '" data-open-sheet="liike" data-editor-name aria-label="' + (hasName ? "Liikkeen nimi: " + escapeHtml(f.name) + ". Valitse liikelistasta" : "Valitse liike liikelistasta") + '">' +
+      '<span class="pick-field-text">' + (hasName ? escapeHtml(f.name) : "Valitse liike") + '</span>' + icon("haku", 20) + '</button>' +
       '<div style="display:flex; gap:8px; margin-top:8px;">' +
-      '<input class="ledger-input" type="text" inputmode="numeric" data-editor-field="sets" placeholder="Sarjat" aria-label="Sarjat" value="' + escapeHtml(f.sets) + '" style="flex:0.7;">' +
-      '<input class="ledger-input" type="text" data-editor-field="reps" placeholder="Toistot" aria-label="Toistot" value="' + escapeHtml(f.reps) + '" style="flex:1;">' +
+      // Sarjat ja toistot kirjataan samalla kirjausnäppäimistöllä kuin
+      // Ohjelma-näkymässä (inputmode="none": laitteen näppäimistö ei avaudu).
+      '<input class="ledger-input' + editorKeypadClass("sets") + '" type="text" inputmode="none" data-editor-field="sets" placeholder="Sarjat" aria-label="Sarjat" value="' + escapeHtml(f.sets) + '" style="flex:0.7;">' +
+      '<input class="ledger-input' + editorKeypadClass("reps") + '" type="text" inputmode="none" data-editor-field="reps" placeholder="Toistot" aria-label="Toistot" value="' + escapeHtml(f.reps) + '" style="flex:1;">' +
       '<input class="ledger-input" type="text" data-editor-field="unit" placeholder="Yksikkö" aria-label="Yksikkö" value="' + escapeHtml(f.unit) + '" style="flex:1;">' +
       '</div>' +
       '<div style="margin-top:8px;"><input class="ledger-input" type="text" data-editor-field="teho" placeholder="Teho (MAX tai %)" aria-label="Teho" value="' + escapeHtml(f.teho) + '"></div>' +
@@ -8720,6 +8793,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       openKeypad(el.dataset.id, parseInt(el.dataset.idx, 10), el.dataset.field);
       return;
     }
+    if((el = e.target.closest('[data-editor-field="sets"], [data-editor-field="reps"]'))){
+      openEditorKeypad(el.dataset.editorField);
+      return;
+    }
     if(e.target.closest("[data-keypad-close]")){ closeKeypad(); return; }
     if((el = e.target.closest("[data-keypad-key]"))){
       if(el.dataset.keypadKey === "next") keypadNext(); else keypadPress(el.dataset.keypadKey);
@@ -8734,9 +8811,34 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if((el = e.target.closest("[data-open-sheet]"))){
       state.sheet = el.dataset.openSheet;
+      // Pohjalevy nousee näppäimistön päälle: näppäimistö suljetaan.
+      state.keypad = null;
+      if(state.sheet === "liike" && state.editor){
+        // Liikevalitsin avataan aina koko listalla (tyhjä haku) ja fokus
+        // hakukenttään, jotta kirjoitus suodattaa heti — myös olemassa olevan
+        // liikkeen nimeä vaihdettaessa.
+        state.editor.pickerQuery = "";
+        afterRender(function(){ var q = document.getElementById("liike-haku"); if(q) q.focus(); });
+        return;
+      }
       // Fokus siirtyy paneelin sulkupainikkeeseen: ruudunlukija ilmoittaa
       // dialogin, ja Escape toimii heti ilman erillistä napautusta.
       afterRender(function(){ var c = document.querySelector(".sheet [data-close-sheet]"); if(c) c.focus(); });
+      return;
+    }
+    if(e.target.closest("[data-pick-edit-current]")){
+      // Nykyinen nimi hakukenttään muokattavaksi; lista päivitetään suoraan
+      // DOM:iin ilman render()-kutsua, jotta fokus pysyy kentässä.
+      var curName = (state.editor && state.editor.form && state.editor.form.name) ? String(state.editor.form.name) : "";
+      var hakuEl = document.getElementById("liike-haku");
+      if(hakuEl){
+        hakuEl.value = curName;
+        state.editor.pickerQuery = curName;
+        var listEl = document.getElementById("liike-lista");
+        if(listEl) listEl.innerHTML = renderExercisePickList(curName);
+        hakuEl.focus();
+        try{ hakuEl.setSelectionRange(curName.length, curName.length); }catch(err){ /* search-kenttä ei tue kaikissa selaimissa */ }
+      }
       return;
     }
     if((el = e.target.closest("[data-pick-exercise]"))){
@@ -9482,7 +9584,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         return;
       }
       var ff = e.target.closest("[data-editor-field]");
-      if(ff && state.editor.form){ state.editor.form[ff.dataset.editorField] = ff.value; return; }
+      if(ff && state.editor.form){
+        state.editor.form[ff.dataset.editorField] = ff.value;
+        // Näppäimistön lukema seuraa myös fyysisellä näppäimistöllä kirjoitettua arvoa.
+        if(state.keypad && state.keypad.kind === "editor" && state.keypad.field === ff.dataset.editorField){ state.keypad.replace = false; updateKeypadValue(false); }
+        return;
+      }
     }
     var field = e.target.closest("[data-set-field]");
     if(field){
@@ -9526,8 +9633,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   app.addEventListener("focusin", function(e){
     if(keypadSilentFocus) return;
     var f = e.target.closest ? e.target.closest("[data-set-field]") : null;
-    if(!f) return;
-    openKeypad(f.dataset.id, parseInt(f.dataset.idx, 10), f.dataset.field);
+    if(f){ openKeypad(f.dataset.id, parseInt(f.dataset.idx, 10), f.dataset.field); return; }
+    // Muokkaustilan lomake: Sarjat ja Toistot avaavat näppäimistön, muut
+    // kentät sulkevat sen (laitteen näppäimistö).
+    var ef = e.target.closest ? e.target.closest("[data-editor-field]") : null;
+    if(ef) openEditorKeypad(ef.dataset.editorField);
   });
   // Näppäimistön painallus ei vie fokusta kentästä: kenttä pysyy aktiivisena
   // (inputmode="none", joten laitteen näppäimistö ei silti avaudu).
@@ -9559,7 +9669,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // olla bodyssä, jolloin #app:n kuuntelija ei näkisi näppäintä lainkaan.
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape" && state.keypad){ e.preventDefault(); closeKeypad(); return; }
-    if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="weight"], [data-set-field][data-field="reps"]')){ e.preventDefault(); keypadNext(); return; }
+    if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="weight"], [data-set-field][data-field="reps"], [data-editor-field="sets"], [data-editor-field="reps"]')){ e.preventDefault(); keypadNext(); return; }
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
     if(e.key === "Enter" && e.target && e.target.id === "liike-haku"){
       // Enter valitsee ensimmäisen katalogiosuman, tai kirjoitetun nimen

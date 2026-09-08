@@ -61,9 +61,12 @@ saman viikon kaksi samannimistä päivää; liikkeetön päivä ja päivätön v
 jätetään pois ja `weekLabels` siivotaan poistuneista viikoista.
 
 Liike valitaan pohjalevystä `state.sheet === "liike"`
-(`renderExercisePickList(query)`, `exercisePickEntries()`): koko
-`allExerciseVariants()`-katalogi koostettuina niminä lihasryhmittäin sekä
-`knownExerciseNames()`-nimet ryhmässä "Ohjelmassa ja historiassa". Haku
+(`renderExercisePickList(query)`, `exercisePickEntries()`):
+`knownExerciseNames()`-nimet ryhmässä `PICK_GROUP_KNOWN` ("Ohjelmassa ja
+historiassa") lisätään **ensin**, jotta myös katalogin nimi, jolla on
+merkintöjä, näkyy tässä ryhmässä (välineen hakusana haetaan katalogista),
+ja ryhmä on listan ensimmäinen; sen jälkeen koko `allExerciseVariants()`-
+katalogi koostettuina niminä lihasryhmittäin aakkosissa. Haku
 suodattaa nimen ja lihasryhmän mukaan, ja jokaisen sanan on osuttava;
 hakulista päivitetään `#liike-lista`-elementtiin suoraan DOM:iin ilman
 `render()`-kutsua, jottei fokus katoa. Kirjoitetun nimen voi aina ottaa
@@ -71,9 +74,17 @@ käyttöön (`[data-pick-free]`; rivi on listan lopussa, kun osumia on, ja ainoa
 rivi, kun osumia ei ole), jolloin `findSimilarName()` huomauttaa katalogin
 samankaltaisesta nimestä. Enter valitsee ensimmäisen katalogiosuman tai
 kirjoitetun nimen, jos osumia ei ole.
-"Lisää liike" avaa lomakkeen ja pohjalevyn yhtä aikaa; lomakkeen hakupainike
-`[data-open-sheet="liike"]` avaa sen uudelleen, ja `closeSheet()` palauttaa
-fokuksen siihen. Liikelistaa ei koodattu erillisenä `EXERCISE_LIBRARY`-
+"Lisää liike" avaa lomakkeen ja pohjalevyn yhtä aikaa. Lomakkeen nimikenttä
+on painike `.pick-field[data-editor-name][data-open-sheet="liike"]`
+(näyttää nimen tai "Valitse liike"; ei `<input>`-kenttää eikä datalist-
+ehdotuksia, koska iOS Safari ei näytä niitä ja käyttäjä ei löytänyt
+listaa), joka avaa pohjalevyn aina tyhjällä haulla (`pickerQuery = ""`)
+ja fokusoi hakukentän; `closeSheet()` palauttaa fokuksen painikkeeseen.
+Olemassa olevaa liikettä muokattaessa pohjalevyn yläreunassa on rivi
+`.pick-current` ("Nykyinen: nimi") ja `[data-pick-edit-current]`, joka
+kirjoittaa nimen hakukenttään suoraan DOM:iin (kirjoitusvirheen korjaus
+tai vapaa nimi). Nimi kirjoitetaan `state.editor.form.name`-kenttään vain
+`[data-pick-exercise]`-valinnasta. Testit: `test_picker.js`. Liikelistaa ei koodattu erillisenä `EXERCISE_LIBRARY`-
 vakiona: `EXERCISE_VARIANTS` sisältää jo `lihasryhma`-kentän, joten toinen
 lista olisi ollut sama tieto kahdesti. `exerciseOptionsByGroup()` on yhä
 liikkeen vaihdon käytössä.
@@ -391,7 +402,18 @@ kutsutaan input-käsittelijästä ja ±-käsittelijästä; `ledgerTotal` on sama
 laskusääntö kuin renderLedgerissä).
 
 Kirjausnäppäimistö (0.4.3): `state.keypad = { id, idx, field, replace }`
-(null = kiinni). `renderKeypad()` piirtää `#keypad`-levyn (`position:fixed`,
+(null = kiinni) tai muokkaustilan lomakkeelle `{ kind: "editor", field:
+"sets" | "reps", replace }` (`isEditorKeypad()`): `keypadTargetRow()`
+palauttaa silloin `state.editor.form`-olion (arvo `form[field]`),
+`keypadInput()` kentän `[data-editor-field]`, `keypadLabel()` "Liike ·
+Sarjat/Toistot", asettelu on aina toistoasettelu (ei pilkkua, ei ±),
+`openEditorKeypad(field)` avautuu Sarjat/Toistot-kentän fokuksesta tai
+napautuksesta (`inputmode="none"`, korostus `editorKeypadClass`) ja muu
+lomakkeen kenttä sulkee sen, `keypadNext` siirtyy Sarjat → Toistot ja
+sulkee Toistoista, `[data-editor-field]`-input-käsittelijä päivittää
+lukeman, pohjalevyn avaus ja `editorOpenForm` nollaavat `state.keypad`-
+tilan ja `#app.keypad-open .edit-bar` on piilossa kuten alanavigaatio.
+Testi: `test_keypad_editor.js`. `renderKeypad()` piirtää `#keypad`-levyn (`position:fixed`,
 `role="region"`, `#app`-elementin loppuun render()-kutsussa, `#app` saa
 luokan `keypad-open`, joka lisää alatäytettä) vain, kun kohde on avoimen
 liikkeen sarja Ohjelma-näkymässä (`keypadTargetRow`); muuten se nollaa
