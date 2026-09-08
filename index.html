@@ -2,7 +2,11 @@
 <html lang="fi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- interactive-widget=resizes-content: Android Chrome (108+) kutistaa tällä
+     asettelunäkymän laitteen näppäimistön korkeudella, jolloin kiinteät
+     elementit nousevat näppäimistön yläpuolelle ja selaimen oma fokusrullaus
+     toimii näkyvän alueen sisällä. iOS Safari ei tunne määrettä ja ohittaa sen. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Treenipäiväkirja">
@@ -50,6 +54,23 @@
   #app{max-width:480px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 48px);}
   /* Kelluvan alanavigaation alle jäävä tila, jotta sisällön loppu ei jää palkin taakse. */
   #app.has-bottom-nav{padding-bottom:calc(env(safe-area-inset-bottom) + 108px);}
+  /* scroll-padding kertoo selaimelle alapalkkien peittämän alueen, jolloin sekä
+     selaimen automaattinen fokusrullaus että scrollIntoView jättävät kohteen
+     kelluvan alanavigaation (130px) tai kirjausnäppäimistön (372px) yläpuolelle.
+     Luokat ovat html-elementillä, koska näkymän scroll-padding luetaan
+     juurielementistä. Kun sarjakenttä on fokusoitu (laitteen näppäimistö,
+     esim. huomiokenttä), alanavigaatio on piilossa eikä varausta tarvita. */
+  html{scroll-padding-top:calc(env(safe-area-inset-top) + 16px); scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 130px);}
+  html.keypad-open{scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 372px);}
+  html.set-field-focused:not(.keypad-open){scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 24px);}
+  /* Sarjakentän fokuksen aikana (laitteen näppäimistö auki) navigointia ei
+     tarvita ja vapautuva tila menee täytettäville kentille. Androidilla tämä on
+     välttämätön: resizes-content nostaisi alanavigaation täsmälleen laitteen
+     näppäimistön päälle. Lepoajastimen palkki piilotetaan samasta syystä, mutta
+     vain kun sovelluksen oma näppäimistö ei ole auki — sen kanssa palkki
+     nostetaan näppäimistön yläpuolelle (body.keypad-open). */
+  body.set-field-focused .bottom-nav{display:none;}
+  body.set-field-focused:not(.keypad-open) #rest-timer-mini{display:none !important;}
   *:focus-visible{outline:2px solid var(--brass); outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
 
@@ -293,10 +314,11 @@
   /* Kirjausnäppäimistö: kiinteä alareunan levy, joka korvaa laitteen
      näppäimistön sarjakentissä (inputmode="none"). Kenttä pysyy tavallisena
      input-elementtinä, joten fyysinen näppäimistö ja testit toimivat.
-     Ruudukko on 8 puolirivillä, jotta +2,5 ja −2,5 voivat kattaa 1,5 riviä
-     kuten numeronäppäimistöissä yleensä; Seuraava on aina oikeassa
-     alakulmassa. Toistoilla oikean sarakkeen yläosa jää tyhjäksi, koska
-     toistoille ei ole säätimiä. */
+     Oikea sarake on painoilla +2,5, −2,5, ✓ ja Seuraava; toistoilla ✓ ja
+     Seuraava, ja sarakkeen yläosa jää tyhjäksi, koska toistoille ei ole
+     säätimiä. ✓ merkitsee kohdesarjan valmiiksi poistumatta näppäimistöltä
+     (sama toiminto kuin rivin ✓), joten sarjan kirjaus ei vaadi rullaamista
+     rivin painikkeeseen. Seuraava on aina oikeassa alakulmassa. */
   #app.keypad-open{padding-bottom:calc(env(safe-area-inset-bottom) + 372px);}
   /* Näppäimistö peittää alanavigaation kokonaan: piilotetaan, jottei
      näkymätön välilehti jää näppäimistöfokuksen tavoitettavaksi. */
@@ -315,12 +337,15 @@
   .keypad-value.no-value{color:var(--mist);}
   .keypad-unit{font-size:var(--fs-sm); color:var(--mist); font-weight:700; align-self:flex-end; padding-bottom:3px;}
   .keypad-close{margin-left:auto;}
-  .keypad-grid{display:grid; grid-template-columns:repeat(3, 1fr) 1.1fr; grid-template-rows:repeat(8, 26px); gap:8px;
-    grid-template-areas:"k1 k2 k3 up" "k1 k2 k3 up" "k4 k5 k6 up" "k4 k5 k6 dn" "k7 k8 k9 dn" "k7 k8 k9 dn" "kc k0 kb nx" "kc k0 kb nx";}
-  .keypad-grid.reps{grid-template-areas:"k1 k2 k3 ." "k1 k2 k3 ." "k4 k5 k6 ." "k4 k5 k6 ." "k7 k8 k9 ." "k7 k8 k9 ." "kc k0 kb nx" "kc k0 kb nx";}
+  .keypad-grid{display:grid; grid-template-columns:repeat(3, 1fr) 1.1fr; grid-template-rows:repeat(4, 60px); gap:8px;
+    grid-template-areas:"k1 k2 k3 up" "k4 k5 k6 dn" "k7 k8 k9 ok" "kc k0 kb nx";}
+  .keypad-grid.reps{grid-template-areas:"k1 k2 k3 ." "k4 k5 k6 ." "k7 k8 k9 ok" "kc k0 kb nx";}
   .key{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--chalk); font-size:22px; font-weight:700; font-family:inherit; display:flex; align-items:center; justify-content:center; cursor:pointer; font-variant-numeric:tabular-nums; padding:0; min-height:44px; -webkit-tap-highlight-color:transparent;}
   .key:disabled{opacity:.35; cursor:default;}
   .key-step{font-size:var(--fs-lg); font-weight:800;}
+  /* ✓ samalla värisäännöllä kuin rivin .set-done-btn: messinki, tehtynä vihreä. */
+  .key-done{font-size:26px; font-weight:700; color:var(--brass);}
+  .key-done[aria-pressed="true"]{color:var(--success); border-color:var(--success);}
   .key-next{background:var(--brass); border-color:var(--brass); color:var(--ink); font-size:var(--fs-sm); font-weight:800; letter-spacing:.06em; text-transform:uppercase;}
   .calc-hint{font-size:var(--fs-sm); color:var(--mist); line-height:1.45; margin-bottom:10px;}
   .subtotal{display:flex; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px; color:var(--mist);}
@@ -559,6 +584,10 @@
   var CHANGELOG = [
     { date: "2026-09-08", items: [
       "Äärirajoilla-tuntuma keventää seuraavan kerran ehdotusta vain, jos toistot jäivät alle tavoitteen. Tavoitteen täyttänyt, äärirajoilla tehty sarja pitää painon: kolmen samapainoisen sarjan jälkeen ehdotus on esimerkiksi 45 / 42,5 / 42,5 kg eikä 45 / 42,5 / 40 kg, jolloin volyymi nousee eikä vain jakaudu uudelleen sarjojen kesken. Sujuva nostaa ja Työläs pitää painon kuten ennen. Sama sääntö koskee jumitunnistusta: tavoitteen täyttänyt äärirajoilla-sarja ei ole vaje eikä laukaise kolmen kerran kevennystä, ja toisen sarjan laukaisemana se kevenee kuten ilman tuntumaa.",
+      "Kirjausnäppäimistössä on nyt ✓-näppäin, joka merkitsee kohdesarjan valmiiksi (tai poistaa merkinnän) poistumatta näppäimistöltä — sama toiminto kuin rivin ✓, joten lepoajastin käynnistyy kuten ennenkin paitsi liikkeen viimeisestä sarjasta. ±2,5 kg ovat sen yläpuolella ja Seuraava alakulmassa kuten ennen.",
+      "Kenttä ei enää menetä fokusta, kursorin paikkaa tai vieritysasemaa, kun näkymä piirretään uudelleen kesken kirjoituksen: esimerkiksi \"+ Sarja\" tai sarjan ✓ huomiokenttää tai fyysisellä näppäimistöllä kirjoitettaessa pitää kentän aktiivisena ja laitteen näppäimistön auki, eikä näkymä hypähdä. Lepoajastimen sulkeminen palauttaa fokuksen samaan sarjakenttään ja tuo sen näkyviin. Tabletin liikepaneelin vieritys säilyy piirron yli.",
+      "Avattu liike vieritetään aina näytön yläreunaan (aiemmin vain, jos kortti oli näytön ulkopuolella tai alaosassa), jotta koko sarjataulukko on näkyvissä samassa paikassa joka avauksella. Huomiokenttä ja muut laitteen näppäimistöä käyttävät kentät (1RM, lepoaika, muokkaustilan yksikkö ja teho) tuodaan näkyvän alueen keskelle, kun ne fokusoidaan ja kun laitteen näppäimistö avautuu tai laite käännetään; selaimen oma fokusvieritys jättää kentän alavalikon ja kirjausnäppäimistön yläpuolelle.",
+      "Kun huomiokenttä on fokusoitu (laitteen näppäimistö auki), alavalikko ja lepoajastimen palkki ovat piilossa, jotta ne eivät asetu näppäimistön päälle; Androidilla sivun asettelu kutistuu näppäimistön korkeudella (viewport interactive-widget=resizes-content), jolloin kiinteät elementit nousevat näppäimistön yläpuolelle. Enter huomiokentässä sulkee laitteen näppäimistön.",
       "Ohjelman rakentamisessa ja muokkauksessa liikkeen nimi näkyy vihreänä, kun liike on sama kuin liikepankissa tai liikehistoriassa, ja messinkisenä huomiotekstillä \"Liikettä ei tunnistettu liikepankista eikä historiasta — se lisätään uutena liikkeenä\", kun nimeä ei voi yhdistää tunnettuun liikkeeseen. Sama tieto näkyy liikelomakkeessa nimen alla heti valinnan jälkeen.",
       "Ohjelman rakentamisessa ja muokkauksessa liikkeen sarjat ja toistot kirjataan samalla sovelluksen omalla näppäimistöllä kuin Ohjelma-näkymässä: kentän napautus avaa sen, Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, ja Peruuta/Valmis-palkki on piilossa näppäimistön ajan. Laitteen näppäimistö ei enää avaudu näihin kenttiin; yksikkö ja teho kirjoitetaan edelleen sillä.",
       "Ohjelman muokkauksessa ja rakentamisessa liikkeen nimi valitaan aina liikelistasta: lomakkeen nimikentän napautus avaa koko listan, jonka ensimmäinen ryhmä \"Ohjelmassa ja historiassa\" sisältää nimet, joilla on jo merkintöjä tai jotka ovat ohjelmassa — myös liikepankin nimet, jos niillä on historiaa — joten oikean nimen valinta yhdistää liikkeen vanhoihin historiatietoihin. Sen jälkeen tulee koko liikepankki lihasryhmittäin, ja haku suodattaa nimen, lihasryhmän ja välineen mukaan. Valitsin näyttää nykyisen nimen, ja \"Muokkaa nimeä\" tuo sen hakukenttään; listalta puuttuvan nimen voi yhä ottaa käyttöön sellaisenaan.",
@@ -3576,24 +3605,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     afterRender(revealOpenExercise);
   }
-  // Avattu liike vieritetään näkyviin ja sen otsikko saa fokuksen, jotta
-  // Aloita, oma avaus ja tallennuksen jälkeinen automaattinen siirtymä eivät
-  // jätä korttia alanavigaation taakse kapealla näytöllä. Kirjaustoimet (✓,
-  // ±2,5 kg, sarjan lisäys) eivät vieritä. Leveässä asettelussa paneeli on
-  // kiinnitetty, joten vieritystä ei tarvita. Fokus otsikkoon kertoo
-  // ruudunlukijalle liikkeen nimen ja tilan; rengas näkyy vain :focus-visible.
+  // Avattu liike vieritetään aina näytön yläreunaan ja sen otsikko saa
+  // fokuksen, jotta Aloita, oma avaus ja tallennuksen jälkeinen automaattinen
+  // siirtymä näyttävät koko sarjataulukon kapealla näytöllä eikä kortti jää
+  // alanavigaation taakse. Aina, ei vain näytön ulkopuolelta: edellisen
+  // liikkeen sulkeutuminen siirtää kortin ennalta arvaamattomaan kohtaan, ja
+  // sama paikka joka avauksella on ennakoitava. Kirjaustoimet (✓, ±2,5 kg,
+  // sarjan lisäys) eivät vieritä. Leveässä asettelussa paneeli on kiinnitetty,
+  // joten vieritystä ei tarvita. Fokus otsikkoon kertoo ruudunlukijalle
+  // liikkeen nimen ja tilan; rengas näkyy vain :focus-visible. Ei automaattista
+  // fokusta painokenttään: se avaisi näppäimistön jokaisella avauksella.
   function revealOpenExercise(){
     if(isWideLayout()) return;
     var card = document.querySelector(".exercise.open");
     var head = card ? card.querySelector("[data-toggle-ex]") : null;
     if(!card || !head) return;
-    // Vieritetään korttia, ei otsikkoa: scroll-margin-top on kortilla, joten
-    // kortin reunus ja täyte jäävät näkyviin yläreunan alle.
-    var r = card.getBoundingClientRect();
-    var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    if(r.top < 0 || r.top > window.innerHeight * 0.6){
-      try{ card.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" }); }catch(e){ card.scrollIntoView(true); }
-    }
+    // Vieritetään korttia, ei otsikkoa: scroll-margin-top on kortilla ja
+    // html-elementin scroll-padding-top (16px) hoitaa yläreunan marginaalin.
+    try{ card.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" }); }catch(e){ card.scrollIntoView(true); }
     try{ head.focus({ preventScroll: true }); }catch(e){}
   }
 
@@ -3615,6 +3644,45 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return exerciseRequiresWeightForDone(ex) ? !!row.weight : !!(row.weight || row.reps || row.notes);
   }
   function isWarmupRow(row){ return !!row && row.kind === "warmup"; }
+  // Sarjan valmis-tilan vaihto. Rivin ✓ ja kirjausnäppäimistön ✓ kulkevat
+  // molemmat tästä, jotta lepoajastimen, lämmittelysäädön ja animaation
+  // säännöt ovat yhdessä paikassa. Piirtää näkymän; render() palauttaa
+  // fokuksen kenttään, ja jos lepoajastimen modaali avautuu (#app inert),
+  // fokus jää tarkoituksella modaaliin.
+  function toggleSetDone(id, idx){
+    var ex = findExerciseById(id);
+    var row = state.draftSets[id] && state.draftSets[id][idx];
+    if(!ex || !row) return false;
+    if(row.done){
+      row.done = false;
+      // Lämmittelyn peruminen lasketaan säätö uudelleen jäljellä olevista.
+      if(isWarmupRow(row)) applyWarmupAdjustment(id);
+    } else if(isRowDoneEligible(ex, row)){
+      row.done = true;
+      state.justDone = { id: id, idx: idx };
+      if(isWarmupRow(row)){
+        // Lämmittely säätää työsarjat; lepoajastinta ei käynnistetä.
+        applyWarmupAdjustment(id);
+      } else
+      // Ajastin käynnistyy sarjan valmiiksi merkitsemisestä heti, paitsi kun
+      // kyseessä on liikkeen VIIMEINEN vielä tekemätön sarja — silloin
+      // seuraavaksi tallennetaan koko merkintä, ei levätä ennen seuraavaa
+      // sarjaa (jota ei enää tule).
+      if(!isExerciseFullyDone(ex, id)){
+        startRestTimer(state.restDurationSeconds);
+      }
+    } else {
+      showToast("Syötä paino ennen kuin merkitset sarjan valmiiksi");
+      return false;
+    }
+    state.dirtySets[id] = true;
+    // Kaikkien sarjojen valmiiksi merkitseminen EI enää sulje/tallenna liikettä
+    // automaattisesti — liike jää auki "Tallenna merkintä" -painike aktiivisena,
+    // ja käyttäjä päättää itse milloin tallentaa (ks. completeAndAdvance vain
+    // data-save-ex-käsittelijässä ja avatun liikkeen otsikon klikkauksessa).
+    render();
+    return true;
+  }
   function workRows(id){ return (state.draftSets[id] || []).filter(function(r){ return !isWarmupRow(r); }); }
   function warmupRows(id){ return (state.draftSets[id] || []).filter(isWarmupRow); }
   function isExerciseFullyDone(ex, id){
@@ -5854,9 +5922,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return el;
   }
   var restTimerPrevFocus = null;
+  // Fokusoidun kentän tunniste (ks. focusDescriptor): sarjan ✓ piirtää
+  // näkymän ajastimen käynnistyksen jälkeen, jolloin talletettu DOM-solmu
+  // ei enää ole dokumentissa ja fokus palautetaan sen tilalle piirrettyyn
+  // kenttään.
+  var restTimerPrevFocusKey = null;
   function activateRestTimerOverlay(el){
     // Fokus siirretään modaaliin ja tausta poistetaan kohdistusjärjestyksestä.
-    if(!restTimerPrevFocus) restTimerPrevFocus = document.activeElement;
+    if(!restTimerPrevFocus){ restTimerPrevFocus = document.activeElement; restTimerPrevFocusKey = focusDescriptor(restTimerPrevFocus); }
     var app = document.getElementById("app");
     if(app) app.inert = true;
     try{ el.focus(); }catch(e){}
@@ -5864,17 +5937,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function releaseRestTimerOverlay(){
     var app = document.getElementById("app");
     if(app) app.inert = false;
-    if(restTimerPrevFocus && document.contains(restTimerPrevFocus)){
-      var prevIsSetField = !!(restTimerPrevFocus.hasAttribute && restTimerPrevFocus.hasAttribute("data-set-field"));
+    var prev = restTimerPrevFocus;
+    if(prev && !document.contains(prev) && restTimerPrevFocusKey){
+      try{ prev = document.querySelector(restTimerPrevFocusKey.selector); }catch(e){ prev = null; }
+    }
+    if(prev && document.contains(prev)){
+      var prevIsSetField = !!(prev.hasAttribute && prev.hasAttribute("data-set-field"));
       // Sarjakenttään palaava fokus ei avaa näppäimistöä uudelleen, eikä
       // kosketuslaitteella kenttää fokusoida lainkaan (ks. isTouchDevice).
       if(!(prevIsSetField && isTouchDevice())){
         keypadSilentFocus = prevIsSetField;
-        try{ restTimerPrevFocus.focus(); }catch(e){}
+        try{ prev.focus({ preventScroll: true }); }catch(e){ try{ prev.focus(); }catch(e2){} }
         keypadSilentFocus = false;
+        // Kenttä takaisin näkyviin, jos modaalin aikana vieritettiin.
+        if(prevIsSetField) revealKeypadTarget();
       }
     }
     restTimerPrevFocus = null;
+    restTimerPrevFocusKey = null;
   }
 
   function ensureRestTimerMiniBar(){
@@ -7216,6 +7296,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         ? key("+2,5", 'data-weight-step data-id="' + k.id + '" data-idx="' + k.idx + '" data-step="2.5" aria-label="Lisää painoa 2,5 kg"', "up", "key-step") +
           key("−2,5", 'data-weight-step data-id="' + k.id + '" data-idx="' + k.idx + '" data-step="-2.5" aria-label="Vähennä painoa 2,5 kg"', "dn", "key-step")
         : "") +
+      // ✓ vain sarjakentille (ei muokkaustilan lomakkeelle): sama toiminto
+      // kuin rivin ✓, jotta sarjan voi merkitä valmiiksi näppäimistöltä.
+      (k.kind ? "" : key("✓", 'data-keypad-key="done" aria-pressed="' + (row.done ? "true" : "false") + '" aria-label="' + (row.done ? "Sarja merkitty valmiiksi, poista merkintä" : "Merkitse sarja valmiiksi") + '"', "ok", "key-done")) +
       key("Seuraava", 'data-keypad-key="next"', "nx", "key-next") +
       '</div></div>';
   }
@@ -7285,8 +7368,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     } else if(html){
       appEl.insertAdjacentHTML("beforeend", html);
     }
-    if(html){ appEl.classList.add("keypad-open"); document.body.classList.add("keypad-open"); }
-    else { appEl.classList.remove("keypad-open"); document.body.classList.remove("keypad-open"); }
+    if(html){ appEl.classList.add("keypad-open"); setRootClass("keypad-open", true); }
+    else { appEl.classList.remove("keypad-open"); setRootClass("keypad-open", false); }
+  }
+  // body- ja html-luokat yhdessä: body-luokkaa käyttävät ilmoitus ja lepo-
+  // ajastimen palkki, html-luokkaa näkymän scroll-padding (luetaan
+  // juurielementistä, ei bodystä).
+  function setRootClass(name, on){
+    document.documentElement.classList.toggle(name, !!on);
+    document.body.classList.toggle(name, !!on);
   }
   // announce = true vain näppäimistön omista muutoksista (näppäin, ±):
   // kirjoitettaessa ruudunlukija lukee kentän jo itse, eikä lukemaa toisteta.
@@ -7518,7 +7608,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             '<span class="sr-only" id="' + workFeelId + '-live" aria-live="polite">' + (workFeel.selected ? escapeHtml(workFeel.selected.label) + ': ' + escapeHtml(workFeel.selected.desc) + '.' : WARMUP_FEEL_PROMPT) + '</span>' +
             '</div>' +
             '<div class="set-extra">' +
-            '<input class="ledger-input" type="text" placeholder="Huomio (valinnainen)" aria-label="Sarja ' + setNo + ' huomiot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
+            '<input class="ledger-input" type="text" enterkeyhint="done" placeholder="Huomio (valinnainen)" aria-label="Sarja ' + setNo + ' huomiot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
             '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja ' + setNo + '" style="padding:6px 10px;">' + icon("poista", 18) + '</button>' +
             '</div>'
           : '');
@@ -8796,6 +8886,116 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(wideQuery.addEventListener) wideQuery.addEventListener("change", onWideChange);
     else if(wideQuery.addListener) wideQuery.addListener(onWideChange);
   }
+  // ---------- fokuksen ja vierityksen säilyminen render()-kutsun yli ----------
+  // render() korvaa koko #app:n innerHTML:n, jolloin fokusoitu kenttä katoaa:
+  // ilman palautusta esim. "+ Sarja" kesken kirjoituksen sulkisi laitteen
+  // näppäimistön (huomiokenttä) tai veisi fokuksen pois kentästä, johon
+  // kirjausnäppäimistö tai fyysinen näppäimistö kirjoittaa, ja näkymä
+  // hypähtäisi. Sama mekanismi hyödyttää työpöytäkäyttöä (Tab-järjestys).
+  // Kenttä tunnistetaan data-attribuuteista tai id:stä, koska DOM-solmu itse
+  // ei säily piirron yli.
+  function focusDescriptor(el){
+    if(!el || !el.tagName || !el.closest) return null;
+    if(el.tagName !== "INPUT" && el.tagName !== "TEXTAREA" && el.tagName !== "SELECT") return null;
+    var appEl = document.getElementById("app");
+    if(!appEl || !appEl.contains(el)) return null;
+    var selector = null;
+    if(el.hasAttribute("data-set-field")) selector = '[data-set-field][data-id="' + el.dataset.id + '"][data-idx="' + el.dataset.idx + '"][data-field="' + el.dataset.field + '"]';
+    else if(el.hasAttribute("data-editor-field")) selector = '[data-editor-field="' + el.dataset.editorField + '"]';
+    else if(el.id && /^[A-Za-z][\w-]*$/.test(el.id)) selector = "#" + el.id;
+    if(!selector) return null;
+    var d = { selector: selector, selStart: null, selEnd: null };
+    // Valinta vain tekstikentistä: number/select heittävät selectionStart-luvusta.
+    try{ if(typeof el.selectionStart === "number"){ d.selStart = el.selectionStart; d.selEnd = el.selectionEnd; } }catch(e){}
+    return d;
+  }
+  function captureFocus(appEl){
+    var snap = focusDescriptor(document.activeElement) || {};
+    snap.scrollY = window.scrollY || window.pageYOffset || 0;
+    // Leveän asettelun paneeli on oma vierittyvä elementtinsä, joka syntyy
+    // piirrossa uudelleen; ilman palautusta sen vieritys palaisi alkuun.
+    var pane = appEl.querySelector(".ohjelma-pane");
+    snap.paneTop = pane ? pane.scrollTop : 0;
+    return snap;
+  }
+  var focusRestoring = false;
+  function restoreFocus(appEl, snap){
+    if(!snap) return;
+    // Vieritys ensin: innerHTML-korvaus voi hetkellisesti lyhentää sivua,
+    // jolloin selain siirtää vieritysaseman itse.
+    try{ window.scrollTo(window.scrollX || 0, snap.scrollY); }catch(e){}
+    if(snap.paneTop){ var pane = appEl.querySelector(".ohjelma-pane"); if(pane) pane.scrollTop = snap.paneTop; }
+    // Lepoajastimen modaalin aikana #app on inert: fokus jää tarkoituksella
+    // modaaliin, ja releaseRestTimerOverlay palauttaa sen kenttään.
+    if(snap.selector && !appEl.inert){
+      var el = null;
+      try{ el = appEl.querySelector(snap.selector); }catch(e){}
+      // Kosketuslaitteella kirjausnäppäimistön kenttää ei pidetä fokusoituna
+      // (ks. isTouchDevice), joten sitä ei myöskään palauteta fokusoiduksi.
+      if(el && !(isTouchDevice() && el.getAttribute("inputmode") === "none")){
+        // Palautus ei saa avata näppäimistöä uudelleen (focusin) eikä
+        // vierittää: kenttä on jo siinä, missä se oli.
+        keypadSilentFocus = true; focusRestoring = true;
+        try{ el.focus({ preventScroll: true }); }catch(e){ try{ el.focus(); }catch(e2){} }
+        keypadSilentFocus = false; focusRestoring = false;
+        if(snap.selStart !== null){ try{ el.setSelectionRange(snap.selStart, snap.selEnd); }catch(e){} }
+      }
+    }
+    // body-luokka ja alapalkit vastaavat todellista fokusta piirron jälkeen.
+    updateSetFieldFocusState();
+  }
+  // "Laitteen näppäimistö auki" -tila määritellään semanttisesti, ei
+  // korkeusheuristiikalla: tila on päällä täsmälleen silloin, kun fokus on
+  // sarjakentässä ([data-set-field]). Korkeusvertailu ei toimisi, koska
+  // resizes-content kutistaa itse window.innerHeight-arvoa Androidilla.
+  // Kosketuslaitteella paino- ja toistokentät eivät ole fokusoituina
+  // näppäimistön aikana, joten tila koskee siellä käytännössä huomiokenttää,
+  // joka käyttää laitteen näppäimistöä.
+  function updateSetFieldFocusState(){
+    var active = document.activeElement;
+    var on = !!(active && active.closest && active.closest("[data-set-field]"));
+    setRootClass("set-field-focused", on);
+  }
+  function prefersReducedMotion(){
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+  // Laitteen näppäimistöä käyttävä kenttä: .ledger-input ilman
+  // inputmode="none" (ne avaavat sovelluksen oman näppäimistön, jonka
+  // revealKeypadTarget hoitaa) ja pohjalevyn ulkopuolella (levy on kiinteä
+  // ja vierittyy itse, joten ikkunan vieritys ei auttaisi).
+  function isSystemKeyboardField(el){
+    if(!el || !el.matches) return false;
+    if(!el.matches("input.ledger-input, textarea.ledger-input")) return false;
+    if(el.getAttribute("inputmode") === "none") return false;
+    return !el.closest(".sheet");
+  }
+  // Fokusoitu kenttä näkyvän alueen keskelle. Vieritys lasketaan visuaalisen
+  // näkymän mitoista (visualViewport), koska iOS:llä asettelunäkymä ei
+  // kutistu laitteen näppäimistön avautuessa ja pelkkä scrollIntoView
+  // keskittäisi kentän näppäimistön alle. Leveän asettelun paneeli vierittyy
+  // itse, joten siinä käytetään scrollIntoView-kutsua. Kenttä, joka on jo
+  // näkyvissä alapalkkien yläpuolella, jätetään paikalleen (force ohittaa).
+  function revealFocusedField(el, force){
+    if(!el || !document.contains(el)) return;
+    var reduce = prefersReducedMotion();
+    var pane = el.closest(".ohjelma-pane");
+    if(pane){
+      try{ el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" }); }catch(e){ el.scrollIntoView(); }
+      return;
+    }
+    var vv = window.visualViewport;
+    var top = vv ? vv.offsetTop : 0;
+    var height = vv ? vv.height : window.innerHeight;
+    var r = el.getBoundingClientRect();
+    // Alapalkkien varaus: sarjakentän fokuksessa palkit ovat piilossa.
+    var bottomPad = document.body.classList.contains("set-field-focused") ? 24 : 130;
+    var visible = r.top >= top + 16 && r.bottom <= top + height - bottomPad;
+    if(visible && !force) return;
+    var delta = (r.top + r.height / 2) - (top + height / 2);
+    if(Math.abs(delta) < 2) return;
+    try{ window.scrollBy({ top: delta, behavior: reduce ? "auto" : "smooth" }); }catch(e){ window.scrollBy(0, delta); }
+  }
+
   function render(){
     var app = document.getElementById("app");
     var apply = function(){
@@ -8812,9 +9012,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(keypadHtml) appClass += " keypad-open";
       app.className = appClass;
       // body-luokka: ilmoitus ja pienennetty lepoajastin ovat body-tasolla.
-      if(keypadHtml) document.body.classList.add("keypad-open"); else document.body.classList.remove("keypad-open");
+      setRootClass("keypad-open", !!keypadHtml);
+      // Fokus, kursorin paikka ja vieritysasema talteen ennen DOM:n korvausta
+      // ja takaisin sen jälkeen (ks. captureFocus/restoreFocus). Tämä on
+      // render()-funktiossa, ei navigointifunktioissa, jotta se ei törmää
+      // History API -siirtymiin: ne vierittävät afterRender-kutsulla piirron
+      // jälkeen ja voittavat palautuksen.
+      var snap = captureFocus(app);
       // header/nav/main-maamerkit: ruudunlukijalla pääsee suoraan sisältöön.
       app.innerHTML = '<header>' + renderHeader() + '</header><main>' + renderBody() + '</main>' + renderSheet() + (state.editMode ? renderEditBar() : "") + keypadHtml;
+      restoreFocus(app, snap);
     };
     // Palautetaan siirtymäolio, jotta harvat kutsujat jotka lukevat juuri
     // piirretyn DOM:in (ks. data-swap-open) voivat odottaa päivitystä.
@@ -8859,7 +9066,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if(e.target.closest("[data-keypad-close]")){ closeKeypad(); return; }
     if((el = e.target.closest("[data-keypad-key]"))){
-      if(el.dataset.keypadKey === "next") keypadNext(); else keypadPress(el.dataset.keypadKey);
+      var kk = state.keypad;
+      if(el.dataset.keypadKey === "next") keypadNext();
+      // Näppäimistön ✓: sama toiminto kuin rivin ✓ kohdesarjalle. Näppäimistö
+      // pysyy samassa sarjassa (render piirtää sen valmis-tilan mukaan).
+      else if(el.dataset.keypadKey === "done"){ if(kk && !kk.kind) toggleSetDone(kk.id, kk.idx); }
+      else keypadPress(el.dataset.keypadKey);
       return;
     }
     if(e.target.closest("[data-dismiss-first-log-hint]")){
@@ -9313,38 +9525,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("[data-toggle-done]"))){
-      var id4 = el.dataset.id, idx4 = parseInt(el.dataset.idx, 10);
-      var ex4 = findExerciseById(id4);
-      var row4 = state.draftSets[id4] && state.draftSets[id4][idx4];
-      if(!ex4 || !row4){ return; }
-      if(row4.done){
-        row4.done = false;
-        // Lämmittelyn peruminen lasketaan säätö uudelleen jäljellä olevista.
-        if(isWarmupRow(row4)) applyWarmupAdjustment(id4);
-      } else if(isRowDoneEligible(ex4, row4)){
-        row4.done = true;
-        state.justDone = { id: id4, idx: idx4 };
-        if(isWarmupRow(row4)){
-          // Lämmittely säätää työsarjat; lepoajastinta ei käynnistetä.
-          applyWarmupAdjustment(id4);
-        } else
-        // Ajastin käynnistyy sarjan valmiiksi merkitsemisestä heti, paitsi kun
-        // kyseessä on liikkeen VIIMEINEN vielä tekemätön sarja — silloin
-        // seuraavaksi tallennetaan koko merkintä, ei levätä ennen seuraavaa
-        // sarjaa (jota ei enää tule).
-        if(!isExerciseFullyDone(ex4, id4)){
-          startRestTimer(state.restDurationSeconds);
-        }
-      } else {
-        showToast("Syötä paino ennen kuin merkitset sarjan valmiiksi");
-        return;
-      }
-      state.dirtySets[id4] = true;
-      // Kaikkien sarjojen valmiiksi merkitseminen EI enää sulje/tallenna liikettä
-      // automaattisesti — liike jää auki "Tallenna merkintä" -painike aktiivisena,
-      // ja käyttäjä päättää itse milloin tallentaa (ks. completeAndAdvance vain
-      // data-save-ex-käsittelijässä ja avatun liikkeen otsikon klikkauksessa).
-      render();
+      toggleSetDone(el.dataset.id, parseInt(el.dataset.idx, 10));
       return;
     }
     if((el = e.target.closest("[data-save-ex]"))){
@@ -9691,19 +9872,43 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Kentän fokus avaa kirjausnäppäimistön suoraan DOM:ssa ilman
   // render()-kutsua, jottei fokus katoa (huomiokenttä sulkee sen).
   app.addEventListener("focusin", function(e){
+    // Sarjakentän fokustila (body.set-field-focused) seuraa aina todellista
+    // fokusta, myös hiljaisessa palautuksessa.
+    updateSetFieldFocusState();
     if(keypadSilentFocus) return;
     var f = e.target.closest ? e.target.closest("[data-set-field]") : null;
-    if(f){ openKeypad(f.dataset.id, parseInt(f.dataset.idx, 10), f.dataset.field); return; }
+    if(f){
+      openKeypad(f.dataset.id, parseInt(f.dataset.idx, 10), f.dataset.field);
+      // Huomiokenttä (laitteen näppäimistö) keskelle näkyvää aluetta; paino-
+      // ja toistokentät hoitaa revealKeypadTarget.
+      if(!focusRestoring && isSystemKeyboardField(f)) revealFocusedField(f, isTouchDevice());
+      return;
+    }
     // Muokkaustilan lomake: Sarjat ja Toistot avaavat näppäimistön, muut
     // kentät sulkevat sen (laitteen näppäimistö).
     var ef = e.target.closest ? e.target.closest("[data-editor-field]") : null;
     if(ef) openEditorKeypad(ef.dataset.editorField);
+    // Muut laitteen näppäimistöä käyttävät kentät (1RM, lepoaika, huomio,
+    // muokkaustilan yksikkö ja teho): kosketuslaitteella aina keskelle, koska
+    // avautuva näppäimistö peittää alaosan; muuten vain jos kenttä on
+    // alapalkkien takana tai näytön ulkopuolella.
+    if(!focusRestoring && isSystemKeyboardField(e.target)) revealFocusedField(e.target, isTouchDevice());
   });
   // Näppäimistön painallus ei vie fokusta kentästä: kenttä pysyy aktiivisena
   // (inputmode="none", joten laitteen näppäimistö ei silti avaudu).
   app.addEventListener("mousedown", function(e){
     if(e.target.closest && e.target.closest("#keypad")) e.preventDefault();
   });
+  // Rivin ✓ ja "+ Sarja" eivät saa viedä fokusta kentästä: fokus säilyy,
+  // laitteen näppäimistö pysyy auki ja render() palauttaa kursorin samaan
+  // kenttään. pointerdown, koska mousedown ei riitä iOS Safarissa.
+  app.addEventListener(window.PointerEvent ? "pointerdown" : "mousedown", function(e){
+    if(!e.target.closest) return;
+    if(e.target.closest("[data-toggle-done], [data-add-set]") && document.activeElement && document.activeElement.hasAttribute && document.activeElement.hasAttribute("data-set-field")) e.preventDefault();
+  });
+  // Viive on välttämätön: focusout laukeaa ennen uuden elementin focusin-
+  // tapahtumaa, ja ilman sitä tila vilkkuisi pois kenttien välillä.
+  app.addEventListener("focusout", function(){ setTimeout(updateSetFieldFocusState, 0); });
   app.addEventListener("focusout", function(e){
     if(!state.variantPicker || !state.variantPicker.addNew) return;
     if(!e.target.hasAttribute || !e.target.hasAttribute("data-variant-new-liike")) return;
@@ -9718,10 +9923,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // lepoajastimen palkki) sisällön mukaan vierittyviksi, kun laitteen
   // näppäimistö sulkeutuu; vieritys samaan kohtaan palauttaa ne näytön
   // reunaan. Ei ajeta, kun jokin kenttä on yhä fokusoituna (näppäimistö auki).
+  // Kun kenttä on fokusoituna ja visuaalinen näkymä muuttuu (laitteen
+  // näppäimistön avautumisanimaatio päättyy, laite käännetään), kenttä
+  // keskitetään uudelleen näkyvään alueeseen. Tämä kattaa sekä iOS:n että
+  // Androidin ilman setTimeout-arvausta; lyhyt debounce, koska resize
+  // laukeaa animaation aikana monta kertaa.
   if(window.visualViewport){
+    var vvResizeTimer = null;
     window.visualViewport.addEventListener("resize", function(){
       var a = document.activeElement;
-      if(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")) return;
+      if(a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.tagName === "SELECT")){
+        if(!isSystemKeyboardField(a)) return;
+        clearTimeout(vvResizeTimer);
+        vvResizeTimer = setTimeout(function(){
+          var b = document.activeElement;
+          if(b === a && isSystemKeyboardField(b)) revealFocusedField(b, false);
+        }, 80);
+        return;
+      }
       window.scrollTo(window.scrollX, window.scrollY);
     });
   }
@@ -9730,6 +9949,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape" && state.keypad){ e.preventDefault(); closeKeypad(); return; }
     if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="weight"], [data-set-field][data-field="reps"], [data-editor-field="sets"], [data-editor-field="reps"]')){ e.preventDefault(); keypadNext(); return; }
+    // Huomiokenttä ei kuulu Seuraava-ketjuun (täytetään harvoin): Enter
+    // (enterkeyhint="done") sulkee laitteen näppäimistön.
+    if(e.key === "Enter" && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="notes"]')){ e.preventDefault(); try{ e.target.blur(); }catch(err){} return; }
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
     if(e.key === "Enter" && e.target && e.target.id === "liike-haku"){
       // Enter valitsee ensimmäisen katalogiosuman, tai kirjoitetun nimen
