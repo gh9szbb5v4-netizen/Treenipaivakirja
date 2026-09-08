@@ -267,6 +267,19 @@
   .feel-key.on{color:var(--chalk); font-weight:700;}
   /* Työsarjan tuntumarivi on huomiorivin yläpuolella ilman omaa katkoviivaa. */
   .set-extra.set-feel{border-bottom:none; padding-bottom:0;}
+  /* Cluster-rivin osasarjalaskuri: miinus, lukumäärä isolla ja plus, joka on
+     rivin suurin kosketuskohde (flex:1, 56 px korkea), koska sitä napautetaan
+     kesken suorituksen hengästyneenä. Aina näkyvissä sarjarivin alla; huomio
+     ja poisto ovat ⋮-lisärivillä kuten muillakin sarjoilla. */
+  .set-extra.cluster-row{gap:10px; padding:2px 0 8px 46px; border-bottom:1px dashed var(--line);}
+  .ledger-row.has-extra + .set-extra.cluster-row.cluster-more-open{border-bottom:none; padding-bottom:4px;}
+  .cluster-step{flex:0 0 auto; width:56px; height:56px; padding:0; font-size:28px; font-weight:800; line-height:1; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:14px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .cluster-step.cluster-plus{flex:1 1 auto; min-width:96px; background:var(--brass); color:var(--ink); border-color:var(--brass);}
+  .cluster-step:active{transform:scale(.94);}
+  .cluster-count{display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:72px; line-height:1;}
+  .cluster-num{font-size:28px; font-weight:800; color:var(--chalk); font-variant-numeric:tabular-nums;}
+  .cluster-num.done{color:var(--success);}
+  .cluster-unit{font-size:var(--fs-xs); color:var(--mist); margin-top:3px;}
   .set-more{position:relative; width:40px; height:44px; padding:0; margin:0; background:transparent; border:0; border-radius:8px; color:var(--mist); display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .set-more.on{color:var(--brass);}
   /* Valittu tuntuma pienenä merkkinä ⋮-painikkeen kulmassa, kun lisärivi on kiinni. */
@@ -582,6 +595,11 @@
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-09", items: [
+      "Cluster-sarjat: ohjelman cluster-liike (PDF:n \"2xCluster\", CSV:n Tyyppi-sarake \"cluster\" tai sana cluster huomautuksessa) kirjataan yhtenä rivinä clusteria kohti. Paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittama \"N toiston maksimi\"), toistot ovat osasarjan toistot ja rivin alla on osasarjalaskuri: + lisää osasarjan ja käynnistää 15 sekunnin osasarjatauon ajastimen alusta, − poistaa, ja cluster merkitään valmiiksi vasta vähintään yhdellä osasarjalla. Selite kertoo kuorman lähteen ja viime kerran osasarjat tavoitteeksi (\"Viimeksi 5 + 4 osasarjaa — tavoitteena ylittää\").",
+      "Historia näyttää cluster-rivin muodossa 60 kg × 6 × 5 (viimeinen luku on osasarjat) ja tunnisteen \"cluster\"; Ohjelma-näkymässä tallennettu cluster näyttää kuorman ja osasarjat (60 kg · 5 + 4 osasarjaa). Volyymi lasketaan kaikkialla paino × toistot × osasarjat, mutta cluster-merkinnät eivät vaikuta Kehityksen 1RM-arvioon eivätkä ennätyksiin, eivätkä ne päivitä 1RM-arvoa. Kehityksen Toteutuminen-välilehti listaa cluster-kerrat kuormineen ja osasarjoineen.",
+      "Varmuuskopion merkinnöissä on uusi viimeinen sarake Osasarjat (cluster-rivillä osasarjat, muilla tyhjä) ja merkintään tallentuu liikkeen tyyppi; vanhat tiedostot ilman saraketta tuodaan ennallaan. Ohjelmarivillä on sarake Viitetoistot cluster-liikkeen viitetoistoille. Simulointi tuottaa cluster-liikkeille vakiokuorman ja kasvavat osasarjat.",
+    ] },
     { date: "2026-09-08", items: [
       "Äärirajoilla-tuntuma keventää seuraavan kerran ehdotusta vain, jos toistot jäivät alle tavoitteen. Tavoitteen täyttänyt, äärirajoilla tehty sarja pitää painon: kolmen samapainoisen sarjan jälkeen ehdotus on esimerkiksi 45 / 42,5 / 42,5 kg eikä 45 / 42,5 / 40 kg, jolloin volyymi nousee eikä vain jakaudu uudelleen sarjojen kesken. Sujuva nostaa ja Työläs pitää painon kuten ennen. Sama sääntö koskee jumitunnistusta: tavoitteen täyttänyt äärirajoilla-sarja ei ole vaje eikä laukaise kolmen kerran kevennystä, ja toisen sarjan laukaisemana se kevenee kuten ilman tuntumaa.",
       "Kirjausnäppäimistössä on nyt ✓-näppäin, joka merkitsee kohdesarjan valmiiksi (tai poistaa merkinnän) poistumatta näppäimistöltä — sama toiminto kuin rivin ✓, joten lepoajastin käynnistyy kuten ennenkin paitsi liikkeen viimeisestä sarjasta. ±2,5 kg ovat sen yläpuolella ja Seuraava alakulmassa kuten ennen.",
@@ -675,6 +693,12 @@
   var STORAGE_LAST_EXPORT_KEY = "last-export-date";
   var EXPORT_REMINDER_DAYS = 14;
   var REST_DURATION_SECONDS = 90;
+  // Cluster-sarjan osasarjatauko sekunteina. Ohjelmien ohje sanoo 10–15 s;
+  // käytetään ylärajaa. Ei vielä asetuksissa (käyttäjän päätös).
+  var CLUSTER_REST_SECONDS = 15;
+  // Clusterin kuorma on oletuksena viimeisimmän 10 toiston merkinnän paino,
+  // ellei liikkeellä ole omaa clusterRefReps-arvoa.
+  var CLUSTER_DEFAULT_REF_REPS = 10;
   var STORAGE_REST_DURATION_KEY = "rest-duration-seconds";
   var STORAGE_REST_ENABLED_KEY = "rest-timer-enabled";
   var STORAGE_REST_TIMER_KEY = "rest-timer-state";
@@ -778,7 +802,8 @@
     unit: ["yksikot","yksiköt","yksikkö","unit","units"],
     weight: ["weight","paino","kg"],
     notes: ["notes","huomiot","lisätiedot","huomio","kommentti"],
-    intensity: ["teho","intensity","rpe"]
+    intensity: ["teho","intensity","rpe"],
+    kind: ["tyyppi","kind","menetelmä"]
   };
 
   var state = {
@@ -861,6 +886,10 @@
     confirmingDeleteDate: null,
     lastSet: {},
     manualMax: {},
+    // Cluster-liikkeen viitekuorma nimittäin (findClusterRefWeight): { weight,
+    // reps, date }, weight null kun merkintää ei löytynyt. Tyhjennetään aina,
+    // kun state.kehitys asetetaan undefined-arvoon (merkinnät muuttuivat).
+    clusterRef: {},
     autoCalcInfo: {},
     dirtySets: {},
     confirmingDeleteMax: null,
@@ -928,6 +957,46 @@
   function roundToStep(value, step){
     var r = Math.round(value / step) * step;
     return Math.round(r * 100) / 100;
+  }
+  // ---------- cluster-sarjat ----------
+  // Cluster on vakiokuormalla tehty ketju lyhyitä osasarjoja; yksi cluster on
+  // yksi sarjarivi, jolla on painon ja osasarjan toistomäärän lisäksi
+  // osasarjojen lukumäärä (subsets). Puuttuva subsets tulkitaan kaikkialla
+  // arvoksi 1, joten vanhat merkinnät ja tavalliset sarjat toimivat ennallaan.
+  function isClusterExercise(ex){ return !!ex && ex.kind === "cluster"; }
+  function clusterRefRepsFor(ex){
+    var n = ex ? parseInt(ex.clusterRefReps, 10) : NaN;
+    return (isFinite(n) && n > 0) ? n : CLUSTER_DEFAULT_REF_REPS;
+  }
+  // "10 toiston maksimi" tai "10RM" → 10; muuten null.
+  function clusterRefRepsFromText(text){
+    var m = String(text || "").match(/(\d+)\s*toiston\s+maksimi/i) || String(text || "").match(/(\d+)\s*RM\b/i);
+    if(!m) return null;
+    var n = parseInt(m[1], 10);
+    return (isFinite(n) && n > 0) ? n : null;
+  }
+  function setSubsets(set){
+    var n = set ? toNumber(set.subsets) : NaN;
+    return (isFinite(n) && n > 0) ? n : 1;
+  }
+  // Sarjan volyymi paino × toistot × osasarjat. Ainoa paikka, jossa kaava on
+  // kirjoitettu: kaikki volyymilaskennat kutsuvat tätä. NaN, jos paino tai
+  // toistot puuttuvat — kutsuja tarkistaa isFinite.
+  function setVolume(set){
+    return toNumber(set.weight) * toNumber(set.reps) * setSubsets(set);
+  }
+  // Cluster-merkinnän tiivistelmä: "60 kg · 5 + 4 osasarjaa".
+  function clusterSummaryText(sets){
+    var weights = [], subs = [];
+    (sets || []).forEach(function(s){
+      var w = String(s.weight || "").replace(".", ",");
+      if(w && weights.indexOf(w) === -1) weights.push(w);
+      subs.push(String(setSubsets(s)));
+    });
+    var parts = [];
+    if(weights.length) parts.push(weights.join(" / ") + " kg");
+    if(subs.length) parts.push(subs.join(" + ") + " osasarjaa");
+    return parts.join(" · ");
   }
   function floorToStep(value, step){
     var r = Math.floor(value / step) * step;
@@ -1105,21 +1174,33 @@
       var baseName = (row[map.exercise] || "").trim();
       var variantVal = map.variant ? (row[map.variant] || "").trim() : "";
       var subVariantVal = map.subvariant ? (row[map.subvariant] || "").trim() : "";
-      dayMap.get(groupName).exercises.push({
+      var notesVal = map.notes ? row[map.notes] : (map.intensity ? row[map.intensity] : "");
+      // Cluster-liike: Tyyppi-sarakkeen arvo "cluster" tai, kun saraketta ei
+      // ole, sana "cluster" huomautuksessa. Muut rivit ovat tavallisia
+      // sarjat × toistot -liikkeitä, joille painolaskuri saa ehdottaa painoa.
+      var kindVal = map.kind ? String(row[map.kind] || "").trim().toLowerCase() : "";
+      var isCluster = kindVal === "cluster" || (!map.kind && /cluster/i.test(String(notesVal || "")));
+      var csvEx = {
         id: prefix + "-" + idx,
         name: baseName ? composeVariantName(baseName, variantVal, subVariantVal) : "Nimetön liike",
         sets: map.sets ? row[map.sets] : "",
         reps: map.reps ? row[map.reps] : "",
         unit: map.unit ? row[map.unit] : "",
         weight: map.weight ? row[map.weight] : "",
-        notes: map.notes ? row[map.notes] : (map.intensity ? row[map.intensity] : ""),
+        notes: notesVal,
         intensity: parseIntensity(intensityRaw),
-        // CSV-rivi on aina tavallinen sarjat × toistot -liike, joten painolaskuri
-        // saa ehdottaa painoa. Kentät ovat samat kuin PDF-tuonnissa, jotta
-        // ohjelmarakenne on identtinen riippumatta tuontireitistä.
-        kind: "plain",
+        // Kentät ovat samat kuin PDF-tuonnissa, jotta ohjelmarakenne on
+        // identtinen riippumatta tuontireitistä.
+        kind: isCluster ? "cluster" : "plain",
         autoCalc: true
-      });
+      };
+      if(isCluster){
+        // "10 toiston maksimi" tai "10RM" huomautuksessa kertoo, monen toiston
+        // maksimikuormaa clusterissa käytetään (oletus CLUSTER_DEFAULT_REF_REPS).
+        var refRepsVal = clusterRefRepsFromText(notesVal);
+        if(refRepsVal !== null) csvEx.clusterRefReps = refRepsVal;
+      }
+      dayMap.get(groupName).exercises.push(csvEx);
     });
     var days = [];
     dayMap.forEach(function(group, name){ days.push({ id: group.id, label: group.label, name: name, week: group.week, exercises: group.exercises }); });
@@ -1296,7 +1377,15 @@ function attachDefinitions(days, defs){
       }
       var i;
       for(i = 0; i < keys.length; i++){
-        if(index[keys[i]]){ ex.methodNote = index[keys[i]]; return; }
+        if(index[keys[i]]){
+          ex.methodNote = index[keys[i]];
+          // Cluster-selite kertoo usein viitekuorman ("10 toiston maksimi").
+          if(ex.kind === "cluster"){
+            var refReps = clusterRefRepsFromText(ex.methodNote);
+            if(refReps !== null) ex.clusterRefReps = refReps;
+          }
+          return;
+        }
       }
     });
   });
@@ -3600,6 +3689,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         state.draftSets[id] = restoredWarm.concat(restoredWork);
         state.autoCalcInfo[id] = { type:"saved", date: logged.date };
       } else {
+        await prepareClusterRef(ex);
         state.draftSets[id] = buildDraftRows(ex, id);
       }
     }
@@ -3641,6 +3731,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function isRowDoneEligible(ex, row){
     if(isWarmupRow(row)) return !!(row.weight && row.reps);
+    // Cluster: paino ja vähintään yksi osasarja.
+    if(isClusterExercise(ex)) return !!row.weight && toNumber(row.subsets) >= 1;
     return exerciseRequiresWeightForDone(ex) ? !!row.weight : !!(row.weight || row.reps || row.notes);
   }
   function isWarmupRow(row){ return !!row && row.kind === "warmup"; }
@@ -3672,7 +3764,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         startRestTimer(state.restDurationSeconds);
       }
     } else {
-      showToast("Syötä paino ennen kuin merkitset sarjan valmiiksi");
+      if(isClusterExercise(ex) && row.weight) showToast("Tee vähintään yksi osasarja ennen kuin merkitset clusterin valmiiksi");
+      else showToast("Syötä paino ennen kuin merkitset sarjan valmiiksi");
       return false;
     }
     state.dirtySets[id] = true;
@@ -3822,7 +3915,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Vaihdettu liike jää auki, mutta sarjat lasketaan uudelleen uudelle nimelle.
     state.openExercise = newId;
     var swapped = newId ? findExerciseById(newId) : null;
-    if(swapped) state.draftSets[newId] = buildDraftRows(swapped, newId);
+    if(swapped){ await prepareClusterRef(swapped); state.draftSets[newId] = buildDraftRows(swapped, newId); }
     showToast(targets.length > 1 ? "Liike vaihdettu " + targets.length + " kohdassa" : "Liike vaihdettu");
     render();
   }
@@ -3836,6 +3929,62 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     for(var k=0;k<state.manualExercises.length;k++){ if(state.manualExercises[k].id === id) return state.manualExercises; }
     return null;
+  }
+  // lastSet-kerrat ilman cluster-osasarjoja: päällimmäinen kerta ja sen
+  // prior-kerrat samassa muodossa kuin state.lastSet[nimi] (prior sisältää
+  // vain myöhemmät ei-cluster-kerrat), tai null, jos kaikki ovat clustereita.
+  function nonClusterSession(last){
+    if(!last) return null;
+    var sessions = [last].concat(last.prior || []).filter(function(sess){
+      return !(sess.sets || []).some(function(st){ return st.subsets !== undefined && st.subsets !== null; });
+    });
+    if(!sessions.length) return null;
+    var top = {};
+    Object.keys(sessions[0]).forEach(function(k){ top[k] = sessions[0][k]; });
+    top.prior = sessions.slice(1);
+    return top;
+  }
+  // Clusterin viitekuorma: saman liikkeen viimeisin muu kuin cluster-merkintä,
+  // jossa jonkin sarjan toistomäärä on täsmälleen refReps; kuorma on sen
+  // merkinnän niiden sarjojen suurin paino. Skannaa entries:-avaimet kuten
+  // buildAllOneRepMaxSeries ja tallentaa tuloksen state.clusterRef-
+  // välimuistiin (weight null = ei löytynyt), josta buildDraftRows lukee.
+  async function findClusterRefWeight(name, refReps){
+    var norm = name.trim().toLowerCase();
+    var cached = state.clusterRef[norm];
+    if(cached && cached.reps === refReps) return cached;
+    var result = { weight: null, reps: refReps, date: null };
+    try{
+      var entries = await loadAllEntries();
+      var bestAt = "";
+      for(var i=0;i<entries.length;i++){
+        var date = entries[i].date;
+        var exs = (entries[i].entry && entries[i].entry.exercises) || {};
+        var keys = Object.keys(exs);
+        for(var j=0;j<keys.length;j++){
+          var data = exs[keys[j]];
+          if((data.name || "").trim().toLowerCase() !== norm) continue;
+          if(data.kind === "cluster") continue;
+          var best = 0;
+          (data.sets || []).forEach(function(st){
+            if(toNumber(st.reps) !== refReps) return;
+            var w = toNumber(st.weight);
+            if(isFinite(w) && w > best) best = w;
+          });
+          if(best <= 0) continue;
+          var at = data.loggedAt || date;
+          if(at > bestAt){ bestAt = at; result = { weight: best, reps: refReps, date: date }; }
+        }
+      }
+    }catch(e){ /* hiljainen virhe: kuorma jää tyhjäksi */ }
+    state.clusterRef[norm] = result;
+    return result;
+  }
+  // Cluster-liikkeen viitekuorma haetaan ennen buildDraftRows-kutsua, kun
+  // liikkeelle ei ole tallennettua merkintää (avaus, uudelleenlaskenta, vaihto).
+  async function prepareClusterRef(ex){
+    if(!isClusterExercise(ex)) return;
+    await findClusterRefWeight(ex.name, clusterRefRepsFor(ex));
   }
   // Sarjakohtainen toistotavoite ("6, 10, 10") ohittaa yhteisen reps-arvon.
   function draftRepsFor(ex, idx){
@@ -3852,6 +4001,38 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function buildDraftRows(ex, id){
     var explicitCount = parseInt(ex.sets, 10);
+
+    // Cluster-liike ei kuulu Epley-progressioon eikä MAX/prosentti-logiikkaan:
+    // kuorma on viitekuorma (viimeisin tavallinen merkintä, jossa jokin sarja
+    // tehtiin täsmälleen clusterRefReps toistolla; findClusterRefWeight on
+    // täyttänyt state.clusterRef-välimuistin ennen tätä), toistot ohjelman
+    // toistotavoite ja osasarjat alkavat nollasta. Käsitellään ennen autoCalc-
+    // ja teho-haaroja, koska PDF-tuonti antaa clusterille autoCalc false.
+    if(isClusterExercise(ex)){
+      var cNorm = ex.name.trim().toLowerCase();
+      var cRef = state.clusterRef[cNorm] || null;
+      var cRefWeight = (cRef && isFinite(toNumber(cRef.weight)) && toNumber(cRef.weight) > 0) ? toNumber(cRef.weight) : null;
+      var cCount = (explicitCount && explicitCount > 0) ? explicitCount : 2;
+      var cRows = [];
+      for(var ci=0; ci<cCount; ci++){
+        cRows.push({ weight: cRefWeight !== null ? String(cRefWeight) : "", reps: ex.reps || "", notes: "", done: false, kind: "work", subsets: 0 });
+      }
+      // Edellisen cluster-kerran osasarjamäärät vihjettä varten: viimeisin
+      // lastSet-kerta (tai sen prior-kerta), jonka sarjoilla on subsets.
+      var lastSubsets = null;
+      var cLast = state.lastSet[cNorm];
+      if(cLast){
+        var cSessions = [cLast].concat(cLast.prior || []);
+        for(var cs=0; cs<cSessions.length && lastSubsets === null; cs++){
+          var cSets = cSessions[cs].sets || [];
+          if(cSets.length && cSets.some(function(st){ return st.subsets !== undefined && st.subsets !== null; })){
+            lastSubsets = cSets.map(function(st){ return setSubsets(st); });
+          }
+        }
+      }
+      state.autoCalcInfo[id] = { type: "cluster", refWeight: cRefWeight, refReps: clusterRefRepsFor(ex), date: (cRef && cRefWeight !== null) ? cRef.date : null, lastSubsets: lastSubsets };
+      return cRows;
+    }
 
     // autoCalc === false: tavoite on menetelmäkohtainen (rest-pause, cluster,
     // drop) eikä siihen voi laskea painoa kaavalla. Väärä ehdotus on pahempi
@@ -3897,7 +4078,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
     if(!isCombo(ex.name)){
       var normName = ex.name.trim().toLowerCase();
-      var last = state.lastSet[normName];
+      // Saman nimen cluster-kerrat (sarjoilla subsets) eivät kelpaa tavallisen
+      // liikkeen viitekerraksi: 60 kg × 6 osasarjana ei ole vaje 60 kg × 10:stä.
+      var last = nonClusterSession(state.lastSet[normName]);
       var targetReps = toNumber(ex.reps);
       if(last && last.sets && last.sets.length && isFinite(targetReps)){
         // Ehdollinen, sarjakohtainen progressio. Uuden sarjan k paino
@@ -4129,7 +4312,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   async function saveExerciseLog(id){
     var ex = findExerciseById(id);
     if(!ex) return;
-    var sets = workRows(id).filter(function(s){ return s.weight || s.reps || s.notes; });
+    var sets = workRows(id).filter(function(s){ return s.weight || s.reps || s.notes || toNumber(s.subsets) > 0; });
     if(sets.length === 0){ showToast("Lisää vähintään yksi sarja ennen tallennusta"); return; }
     // Vain valmiiksi merkityt lämmittelyt tallennetaan; RPE saa puuttua.
     var warmups = warmupRows(id).filter(function(w){ return w.done && w.weight && w.reps; })
@@ -4161,7 +4344,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // säilytetään, jottei korjaus korvaa sitä null-arvoilla.
     var existingPlan = (logged && logged.data && logged.data.plan) ? logged.data.plan : null;
     var plan = (correction || (calcInfo && calcInfo.type === "saved")) && existingPlan ? existingPlan : buildPlanForExercise(ex, calcInfo);
-    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO, deload: wasDeload, warmups: warmups, plan: plan };
+    // kind tallennetaan merkintään: vienti ja tuonti nojaavat data.kind-arvoon,
+    // jotta cluster-merkinnät säilyvät tyyppinsä varmuuskopion läpi.
+    var record = { name: ex.name, sets: sets, loggedAt: prevLoggedAt || nowISO, deload: wasDeload, warmups: warmups, plan: plan, kind: ex.kind || "plain" };
     // Korjausaika talteen; treenin ajankohta (loggedAt) säilyy alkuperäisenä.
     if(correction) record.editedAt = nowISO;
     entry.exercises[id] = record;
@@ -4169,7 +4354,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Tuntuma (rpe) kulkee viitesarjan mukana seuraavan kerran ehdotukseen.
       pushLastSet(
         ex.name.trim().toLowerCase(),
-        sets.map(function(s){ return { weight: s.weight, reps: s.reps, done: !!s.done, rpe: (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? toNumber(s.rpe) : null }; }),
+        sets.map(function(s){
+          var ls = { weight: s.weight, reps: s.reps, done: !!s.done, rpe: (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? toNumber(s.rpe) : null };
+          // Osasarjat kulkevat lastSet-kertaan seuraavan clusterin vihjettä varten.
+          if(isClusterExercise(ex) && isFinite(toNumber(s.subsets))) ls.subsets = toNumber(s.subsets);
+          return ls;
+        }),
         state.draftDate,
         wasDeload,
         warmups
@@ -4177,7 +4367,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       await saveLastSet();
     }
     var maxUpdated = false;
-    if(ex.intensity && ex.intensity.isMax && !correction){
+    // Cluster-merkintä ei koskaan päivitä 1RM-arvoa.
+    if(ex.intensity && ex.intensity.isMax && !correction && !isClusterExercise(ex)){
       var maxWeight = toNumber(sets[0].weight);
       if(isFinite(maxWeight) && maxWeight > 0){
         // Uusi kirjattu MAX-arvo korvaa aina Asetuksiin tallennetun vanhan 1RM:n.
@@ -4189,7 +4380,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     try{
       await storeSet("entries:" + entryDate, JSON.stringify(entry));
       delete state.dirtySets[id];
-      state.kehitys = undefined;
+      state.kehitys = undefined; state.clusterRef = {};
       // Päivitetään indeksi suoraan tähän tallennukseen — ei tarvitse skannata
       // koko historiaa uudelleen jokaisen tallennuksen jälkeen.
       state.exerciseLogIndex[id] = { date: entryDate, data: record };
@@ -4305,6 +4496,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var data = entry.exercises[ek];
           var fullName = (data.name || "").trim();
           if(!fullName || isCombo(fullName)) continue;
+          // Cluster-merkinnät eivät kuulu 1RM-sarjaan: kuuden toiston osasarja
+          // 10RM-kuormalla antaisi Epleyllä 1,2 × paino, kun viitemerkintä antoi
+          // 1,33 × paino, joten cluster-päivät piirtyisivät keinotekoisina
+          // notkahduksina.
+          if(data.kind === "cluster") continue;
           // Sarja muodostuu katalogin liikenimen mukaan variaatiosta (tanko,
           // kahva) riippumatta; kirjatut variaatiot kerätään kortin riville.
           var name = baseExerciseName(fullName);
@@ -4366,8 +4562,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         for(var j=0;j<exKeys.length;j++){
           var sets = entry.exercises[exKeys[j]].sets || [];
           for(var k=0;k<sets.length;k++){
-            var w = toNumber(sets[k].weight), r = toNumber(sets[k].reps);
-            if(isFinite(w) && isFinite(r)) total += w * r;
+            var sv = setVolume(sets[k]);
+            if(isFinite(sv)) total += sv;
           }
         }
         if(total > 0) points.push({ date: date, value: Math.round(total * 10) / 10 });
@@ -4391,6 +4587,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var data = exs[ek];
           var fullName = String(data.name || "").trim();
           if(!fullName || isCombo(fullName)) return;
+          // Cluster-merkinnät ohitetaan kuten 1RM-sarjassa (osasarja ei ole
+          // vertailukelpoinen sarjaennätys).
+          if(data.kind === "cluster") return;
           var key = kehitysKeyFor(fullName);
           if(!out[key.norm]) out[key.norm] = { name: key.name, heaviest: null, bestSet: null, byRepRange: REP_RANGE_BINS.map(function(){ return null; }) };
           var rec = out[key.norm];
@@ -4441,9 +4640,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var sets = data.sets || [];
           var tonnage = 0, reps = 0;
           sets.forEach(function(s){
-            var w = toNumber(s.weight), r = toNumber(s.reps);
-            if(isFinite(r)) reps += r;
-            if(!combo && isFinite(w) && isFinite(r)) tonnage += w * r;
+            // Cluster-rivi: toistot ja volyymi kertaantuvat osasarjoilla.
+            var r = toNumber(s.reps), sv = setVolume(s);
+            if(isFinite(r)) reps += r * setSubsets(s);
+            if(!combo && isFinite(sv)) tonnage += sv;
           });
           if(store.byDate[date] === undefined){
             store.byDate[date] = store.points.length;
@@ -4486,9 +4686,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var sets = data.sets || [];
           agg.sets += sets.length; wk.sets += sets.length;
           sets.forEach(function(s){
-            var w = toNumber(s.weight), r = toNumber(s.reps);
+            var r = toNumber(s.reps) * setSubsets(s), sv = setVolume(s);
             if(isFinite(r)){ agg.reps += r; wk.reps += r; }
-            if(!combo && isFinite(w) && isFinite(r)){ agg.tonnage += w * r; wk.tonnage += w * r; }
+            if(!combo && isFinite(sv)){ agg.tonnage += sv; wk.tonnage += sv; }
           });
         });
       });
@@ -4565,12 +4765,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           if(!out[key.norm]){
             out[key.norm] = { name: key.name, combo: combo, sessions: 0, setsDone: 0, setsPlanned: 0, setsSessions: 0,
               repsHit: 0, repsSessions: 0, suggestedHit: 0, suggestedSessions: 0, progressionHit: 0, progressionSessions: 0,
-              stalled: false, all: [], recent: [] };
+              stalled: false, all: [], recent: [], clusterSessions: [] };
           }
           var a = out[key.norm];
           var sets = data.sets || [];
           var session = { date: date, setsDone: sets.length, setsPlanned: null, repsHit: null, suggestedHit: null, progressionHit: null };
           a.sessions++;
+          if(data.kind === "cluster"){
+            // Cluster-kerta: osasarjojen kokonaismäärä ja käytetty kuorma.
+            var subTotal = 0, cw = 0;
+            sets.forEach(function(s){ subTotal += setSubsets(s); var w = toNumber(s.weight); if(isFinite(w) && w > cw) cw = w; });
+            session.clusterSubsets = subTotal;
+            session.clusterWeight = cw > 0 ? cw : null;
+            a.clusterSessions.push({ date: date, subsets: subTotal, weight: cw > 0 ? cw : null, sets: sets.map(function(s){ return setSubsets(s); }) });
+          }
           var plannedSets = toNumber(plan.sets);
           if(isFinite(plannedSets) && plannedSets > 0){
             session.setsPlanned = plannedSets;
@@ -4669,8 +4877,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var vol = 0;
           var sets = data.sets || [];
           for(var s=0;s<sets.length;s++){
-            var w = toNumber(sets[s].weight), r = toNumber(sets[s].reps);
-            if(isFinite(w) && isFinite(r) && w > 0) vol += w * r;
+            var sv = setVolume(sets[s]);
+            if(isFinite(sv) && sv > 0) vol += sv;
           }
           if(vol <= 0) continue;
           if(!dayVolumes[date]) dayVolumes[date] = {};
@@ -4861,6 +5069,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var ek = exKeys[j];
           var data = entry.exercises[ek];
           if((data.name || "").trim().toLowerCase() !== norm) continue;
+          if(data.kind === "cluster") continue; // cluster ei päivitä 1RM:ää
           var srcEx = findExerciseById(ek);
           if(!(srcEx && srcEx.intensity && srcEx.intensity.isMax)) continue;
           var best = 0;
@@ -4938,7 +5147,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var repsVal = isFinite(targetReps) ? targetReps : 1;
           var sets = [];
           var simSuggested = null;
-          if(ex.intensity && ex.intensity.isMax){
+          if(isClusterExercise(ex)){
+            // Cluster: kuorma pysyy viitekuormana, osasarjat kasvavat 3 → 6.
+            var cWeight = roundToStep(simulationBaseline(ex.name), 2.5);
+            var cSubs = 3 + Math.round(3 * (total > 1 ? (i / (total - 1)) : 1));
+            for(var kc=0;kc<count;kc++){ sets.push({ weight: String(cWeight), reps: String(repsVal), notes: "", subsets: cSubs }); }
+          } else if(ex.intensity && ex.intensity.isMax){
             var weight = roundToStep(simulationBaseline(ex.name) * growth, 2.5);
             for(var k=0;k<count;k++){ sets.push({ weight: String(weight), reps: String(repsVal), notes: "" }); }
             state.manualMax[normName] = { weight: weight, date: dateISO };
@@ -4958,10 +5172,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           if(sets.length === 0) return;
           // Suunnitelma samalla säännöllä kuin saveExerciseLog: sarjat ja toistot
           // ohjelmasta, ehdotettu paino simuloitu paino ei-teholiikkeille.
-          entry.exercises[ex.id] = { name: ex.name, sets: sets, loggedAt: dateISO + "T12:00:00.000Z",
+          entry.exercises[ex.id] = { name: ex.name, sets: sets, loggedAt: dateISO + "T12:00:00.000Z", kind: ex.kind || "plain",
             plan: { sets: (explicitCount && explicitCount > 0) ? explicitCount : null, reps: isFinite(targetReps) ? targetReps : null, suggestedWeight: ex.intensity ? null : simSuggested } };
           if(!isCombo(ex.name)){
-            pushLastSet(normName, sets.map(function(s){ return { weight: s.weight, reps: s.reps }; }), dateISO, false);
+            pushLastSet(normName, sets.map(function(s){ var ls = { weight: s.weight, reps: s.reps }; if(s.subsets !== undefined) ls.subsets = s.subsets; return ls; }), dateISO, false);
           }
           hasAny = true;
         });
@@ -4976,7 +5190,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       await saveSimulationState();
       state.historyDates = undefined;
       state.historyCache = {};
-      state.kehitys = undefined;
+      state.kehitys = undefined; state.clusterRef = {};
       state.todayEntry = await loadEntry(state.draftDate);
       state.exerciseLogIndex = await buildExerciseLogIndex();
       showToast("Simulointi käynnistetty — " + simDates.length + " päivää täytetty");
@@ -5012,7 +5226,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       await saveSimulationState();
       state.historyDates = undefined;
       state.historyCache = {};
-      state.kehitys = undefined;
+      state.kehitys = undefined; state.clusterRef = {};
       state.todayEntry = await loadEntry(state.draftDate);
       state.exerciseLogIndex = await buildExerciseLogIndex();
       showToast("Simulointi sammutettu ja poistettu");
@@ -5123,7 +5337,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
       var names = Object.keys(namesToRebuild);
       for(var i=0;i<names.length;i++){ await rebuildTrackersForName(names[i]); }
-      state.kehitys = undefined;
+      state.kehitys = undefined; state.clusterRef = {};
       state.exerciseLogIndex = await buildExerciseLogIndex();
 
       showToast("Merkintä poistettu");
@@ -5161,7 +5375,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // ja Käytössä erottavat ne toisistaan. Vanha lukija ilman näitä sarakkeita
   // lukee rivit yhdeksi ohjelmaksi.
   function backupProgramRows(){
-    var rows = [["Viikko","Treenipäivä","Tunniste","Liike","Sarjat","Toistot","Yksiköt","Paino","Huomautus","Teho","Tyyppi","Menetelmä","Sarjakohtaiset","Menetelmäselite","Painoehdotus","Viikon nimi","Päivän tunniste","Päivän nimi","Ohjelman tunniste","Ohjelman nimi","Käytössä"]];
+    var rows = [["Viikko","Treenipäivä","Tunniste","Liike","Sarjat","Toistot","Yksiköt","Paino","Huomautus","Teho","Tyyppi","Menetelmä","Sarjakohtaiset","Menetelmäselite","Painoehdotus","Viikon nimi","Päivän tunniste","Päivän nimi","Ohjelman tunniste","Ohjelman nimi","Käytössä","Viitetoistot"]];
     allPrograms().forEach(function(program){
       var labels = program.weekLabels || {};
       var active = program === state.program;
@@ -5184,7 +5398,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             day.label || "",
             program.id || "",
             program.name || "",
-            active ? "kyllä" : "ei"
+            active ? "kyllä" : "ei",
+            // Cluster-liikkeen viitetoistot (clusterRefReps); muilla tyhjä.
+            (ex.kind === "cluster" && isFinite(parseInt(ex.clusterRefReps, 10))) ? String(parseInt(ex.clusterRefReps, 10)) : ""
           ]);
         });
       });
@@ -5223,7 +5439,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var keys = (res && res.keys) || [];
       // Tuntuma on viimeisenä sarakkeena asteikon sanana (Kevyt … Äärirajoilla);
       // vanhat tiedostot ilman saraketta tuodaan yhä ennallaan.
-      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste","Tuntuma"]];
+      // Osasarjat on viimeisenä: cluster-rivillä subsets, muilla tyhjä.
+      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste","Tuntuma","Osasarjat"]];
       for(var i=0;i<keys.length;i++){
         var date = keys[i].replace("entries:", "");
         var entry = await loadEntry(date);
@@ -5236,7 +5453,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             // täsmälleen samaan ohjelman liikkeeseen kuin viennin hetkellä,
             // ilman nimien varaan jäävää arvausta.
             var feel = (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? warmupScaleStep(s.rpe).label : "";
-            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", s.notes || "", kind, exKey, feel]);
+            var subsets = (kind === "cluster" && isFinite(toNumber(s.subsets)) && toNumber(s.subsets) > 0) ? String(toNumber(s.subsets)) : "";
+            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", s.notes || "", kind, exKey, feel, subsets]);
           });
         });
       }
@@ -5436,6 +5654,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(perSet) ex.perSet = perSet.split("|").map(function(s){ return s.trim(); });
       var methodNote = String(row["menetelmäselite"] || row["menetelmaselite"] || "").trim();
       if(methodNote) ex.methodNote = methodNote;
+      // Viitetoistot vain täytetystä sarakkeesta (vanhoissa tiedostoissa ei ole).
+      var refRepsCol = parseInt(String(row["viitetoistot"] || "").trim(), 10);
+      if(ex.kind === "cluster" && isFinite(refRepsCol) && refRepsCol > 0) ex.clusterRefReps = refRepsCol;
       pg.dayMap.get(key).exercises.push(ex);
     });
     var notesByProgram = parseBackupNotes(notesText);
@@ -5515,6 +5736,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var cKind = findCol(["tyyppi","kind"]);
     var cId   = findCol(["tunniste"]);
     var cFeel = findCol(["tuntuma"]);
+    var cSub  = findCol(["osasarjat","subsets"]);
     if(!cDate || !cName) throw new Error("Tiedostosta puuttuu päivämäärä- tai liikesarake. Käytä tällä sovelluksella tehtyä vientitiedostoa.");
 
     var byDate = {};
@@ -5525,7 +5747,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(!date || !name) return;
       if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
       var kind = cKind ? ((row[cKind] || "").trim().toLowerCase() || "plain") : "plain";
-      if(["max","percent","plain"].indexOf(kind) === -1) kind = "plain";
+      if(["max","percent","plain","cluster"].indexOf(kind) === -1) kind = "plain";
       var setNo = cSet ? parseInt(row[cSet], 10) : NaN;
       var exId = cId ? String(row[cId] || "").trim() : "";
 
@@ -5549,6 +5771,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Tuntuma (sana tai RPE-luku 6–10) vain, jos sarake on ja arvo tunnistetaan.
       var feelRpe = cFeel ? feelFromText(row[cFeel]) : null;
       if(feelRpe !== null) setObj.rpe = feelRpe;
+      // Osasarjat vain cluster-riville ja vain, kun sarake on ja arvo on
+      // positiivinen kokonaisluku; puuttuva tulkitaan arvoksi 1.
+      if(kind === "cluster" && cSub){
+        var subVal = parseInt(String(row[cSub] || "").trim(), 10);
+        if(isFinite(subVal) && subVal > 0) setObj.subsets = subVal;
+      }
       lastBlock.sets.push(setObj);
     });
     return byDate;
@@ -5724,15 +5952,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var signatures = {};
       existingKeys.forEach(function(k){
         var d = entry.exercises[k];
+        // Tunniste sisältää osasarjat (puuttuva = 1), jotta sama cluster-
+        // merkintä tunnistetaan, kun vain osasarjamäärä erottaa rivit.
         var sig = (d.name || "").trim().toLowerCase() + "|" + (d.kind || "plain") + "|" +
-          (d.sets || []).map(function(s){ return (s.weight||"") + "x" + (s.reps||""); }).join(";");
+          (d.sets || []).map(function(s){ return (s.weight||"") + "x" + (s.reps||"") + "x" + setSubsets(s); }).join(";");
         signatures[sig] = true;
       });
 
       var counter = 0;
       byDate[date].forEach(function(block){
         var sig = block.name.trim().toLowerCase() + "|" + block.kind + "|" +
-          block.sets.map(function(s){ return (s.weight||"") + "x" + (s.reps||""); }).join(";");
+          block.sets.map(function(s){ return (s.weight||"") + "x" + (s.reps||"") + "x" + setSubsets(s); }).join(";");
         if(signatures[sig]){ skippedBlocks++; return; }
         var newId = null;
         // Varmuuskopiossa on liikkeen alkuperäinen id. Jos se on tällä päivällä
@@ -5783,7 +6013,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
     state.historyDates = undefined;
     state.historyCache = {};
-    state.kehitys = undefined;
+    state.kehitys = undefined; state.clusterRef = {};
     state.draftSets = {};
     state.dirtySets = {};
     state.autoCalcInfo = {};
@@ -5840,7 +6070,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.simulation = { active: false, dates: [] };
     state.autoCalcInfo = {};
     state.dirtySets = {};
-    state.kehitys = undefined;
+    state.kehitys = undefined; state.clusterRef = {};
     state.activeWeek = null;
     state.showAllWeeks = false;
     state.exerciseLogIndex = {};
@@ -6533,6 +6763,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeP(
       "Muuten, kun sama lämmittely (samat toistot, paino 2,5 kg:n sisällä) on kirjattu aiemmin, sovellus vertaa vastausta siihen, miltä se on tavallisesti tuntunut: yhtä pykälää raskaampi keventää saman treenin työsarjojen painoehdotusta 5 %, kahta pykälää 10 % ja yhtä pykälää kevyempi nostaa 2,5 %. Vain saman treenin painavin lämmittely vaikuttaa, käsin muokattuja sarjoja ei säädetä, ja ensimmäisellä kerralla vertailudataa ei vielä ole. Tuntuman voi jättää myös antamatta, jolloin lämmittely tallentuu ilman vaikutusta."
     ) + ohjeP(
+      "<b style=\"color:var(--chalk);\">Cluster-sarjat</b> kirjataan yhtenä rivinä clusteria kohti: paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittaman toistomäärän), toistot ovat osasarjan toistot, ja rivin alla oleva laskuri kertoo osasarjat. Napauta + jokaisen osasarjan jälkeen — se käynnistää 15 sekunnin osasarjatauon ajastimen alusta — ja merkitse cluster valmiiksi ✓:llä, kun osasarjoja ei enää tule. Kehityksen mittari on osasarjojen määrä samalla kuormalla: selite näyttää edellisen kerran osasarjat tavoitteeksi. Cluster-merkintä ei vaikuta liikkeen 1RM-arvioon, mutta sen volyymi (paino × toistot × osasarjat) lasketaan Kehitykseen."
+    ) + ohjeP(
       "Merkinnän voi kirjata myös takautuvasti napauttamalla yläreunan päivämääräsirpaletta. \"Viikko | Kaikki\" -valitsin näyttää joko nykyisen viikon tai koko ohjelman."
     ) + ohjeP(
       "Jos et pysty tekemään ohjelman liikettä, avaa se ja valitse \"Vaihda liike toiseksi\". Sarjat, toistot ja teho säilyvät, ja voit vaihtaa joko vain tämän kohdan tai kaikki saman liikkeen esiintymät ohjelmassa. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä, joten CSV:tä ei tarvitse tuoda uudelleen."
@@ -6547,7 +6779,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Menetelmäliikkeet:</b> rest-pause-, cluster-, drop- ja kiertoharjoitteluriveille painoa ei ehdoteta, koska tavoite ei ole yksiselitteinen sarjamäärä × toistot. Kirjaa paino ja toistot itse."
+      "<b style=\"color:var(--chalk);\">Menetelmäliikkeet:</b> rest-pause-, drop- ja kiertoharjoitteluriveille painoa ei ehdoteta, koska tavoite ei ole yksiselitteinen sarjamäärä × toistot. Kirjaa paino ja toistot itse. Cluster-liikkeelle ehdotetaan viitekuorma: viimeisimmän tavallisen merkinnän paino, jossa jokin sarja tehtiin täsmälleen viitetoistoilla (oletus 10; ohjelman \"N toiston maksimi\" tai \"NRM\" muuttaa sen). Jos sellaista merkintää ei ole, paino syötetään käsin."
     ));
 
     html += ohjeSection("4. Historia ja Kehitys", ohjeP(
@@ -7029,8 +7261,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       doneCount++;
       if(latestDate === null || logged.date > latestDate) latestDate = logged.date;
       (logged.data.sets || []).forEach(function(s){
-        var w = toNumber(s.weight), r = toNumber(s.reps);
-        if(isFinite(w) && isFinite(r)) totalKg += w * r;
+        var v = setVolume(s);
+        if(isFinite(v)) totalKg += v;
       });
     });
     var total = day.exercises.length;
@@ -7091,6 +7323,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // kerran: jäsennin on osalle riveistä jo kopioinut sen huomautukseen.
     if(ex.method && String(ex.notes || "").indexOf(ex.method) === -1) parts.push(ex.method);
     var target = parts.join(" · ");
+    // Tallennettu cluster näyttää tuloksensa (kuorma ja osasarjat) suljettuna.
+    var clusterLogged = (isSaved && isClusterExercise(ex) && !open && state.exerciseLogIndex[ex.id].data) ? clusterSummaryText(state.exerciseLogIndex[ex.id].data.sets) : "";
     var badge = isSaved
       ? '<div class="saved-badge' + (state.justSavedEx === ex.id ? " pop" : "") + '" title="Tallennettu">✓</div>'
       : '';
@@ -7113,6 +7347,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="exercise-head-main" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' +
       '<div class="exercise-name">' + escapeHtml(title) + tehoBadge(ex) + '</div>' + detailHtml +
       (target ? '<div class="exercise-target">' + escapeHtml(target) + '</div>' : '') +
+      (clusterLogged ? '<div class="exercise-target">Kirjattu: ' + escapeHtml(clusterLogged) + '</div>' : '') +
       '</div><div style="display:flex; align-items:center;">' + badge + chevronHtml + '</div></div>' +
       (open && !noLedger ? renderLedger(ex) : '') +
       '</div>';
@@ -7164,6 +7399,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           info.targetReps + " toistoa ja 1,25 % kehitys — muokattavissa.<br>"
           : "Ehdotus edelliseltä kerralta " + escapeHtml(formatDateShortFI(info.date)) + ", tavoite " +
           info.targetReps + " toistoa.<br>") + escapeHtml(parts.join(" · "));
+    } else if(info.type === "cluster"){
+      // Kuorma on viitekuorma (viimeisin refReps toiston merkintä); edellisen
+      // clusterin osasarjamäärät ovat tavoite, jota yritetään ylittää.
+      if(info.refWeight !== null && info.refWeight !== undefined){
+        text = "Kuorma on viimeisin " + info.refReps + " toiston merkintä (" + escapeHtml(String(info.refWeight).replace(".", ",")) + " kg, " + escapeHtml(formatDateShortFI(info.date)) + ").";
+      } else {
+        text = "Clusterin kuormaksi ei löytynyt aiempaa " + info.refReps + " toiston merkintää — syötä paino käsin.";
+      }
+      if(info.lastSubsets && info.lastSubsets.length){
+        text += " Viimeksi " + info.lastSubsets.join(" + ") + " osasarjaa — tavoitteena ylittää.";
+      }
     } else if(info.type === "saved"){
       text = "Tallennettu " + escapeHtml(formatDateFI(info.date)) + " — arvot ladattu merkinnästä.";
     } else if(info.warmupAdjust){
@@ -7220,8 +7466,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderLastCell(last, rowName){
     var w = last ? String(last.weight || "").replace(".", ",") : "";
     var r = last ? String(last.reps || "") : "";
-    var text = (w || r) ? (w || "–") + "×" + (r || "–") : "–";
-    var label = (w || r) ? rowName + " viime kerralla " + (w || "–") + " kg × " + (r || "–") : rowName + ": ei aiempaa kertaa";
+    // Cluster-kerta näyttää myös osasarjat: "60×6×5" (vain kun niitä on > 1).
+    var sub = (last && setSubsets(last) > 1) ? String(setSubsets(last)) : "";
+    var text = (w || r) ? (w || "–") + "×" + (r || "–") + (sub ? "×" + sub : "") : "–";
+    var label = (w || r) ? rowName + " viime kerralla " + (w || "–") + " kg × " + (r || "–") + (sub ? " × " + sub + " osasarjaa" : "") : rowName + ": ei aiempaa kertaa";
     return '<div class="set-last" role="img" aria-label="' + escapeHtml(label) + '">' + escapeHtml(text) + '</div>';
   }
 
@@ -7308,8 +7556,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function ledgerTotal(id){
     return (state.draftSets[id] || []).reduce(function(sum, s){
       if(isWarmupRow(s)) return sum;
-      var w = parseFloat(String(s.weight).replace(",", ".")), r = parseFloat(String(s.reps).replace(",", "."));
-      return sum + ((isFinite(w) && isFinite(r)) ? w*r : 0);
+      var v = setVolume(s);
+      return sum + (isFinite(v) ? v : 0);
     }, 0);
   }
   function syncSubtotalDom(ledger, id){
@@ -7582,9 +7830,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var setNo = workIndex;
       var workFeelId = "feel-" + ex.id + "-" + idx;
       var workFeel = renderFeelPicker(ex.id, idx, s.rpe, "Sarja " + setNo);
+      // Cluster: osasarjalaskuri aina näkyvissä rivin alla (data-cluster-step
+      // ±1); lukumäärä on live-alue, jotta ruudunlukija kuulee muutoksen.
+      var cluster = isClusterExercise(ex);
+      var subCount = cluster ? (isFinite(toNumber(s.subsets)) && toNumber(s.subsets) > 0 ? toNumber(s.subsets) : 0) : 0;
+      var clusterHtml = cluster
+        ? '<div class="set-extra cluster-row' + (extraOpen ? " cluster-more-open" : "") + '">' +
+          '<button type="button" class="cluster-step" data-cluster-step="-1" data-id="' + ex.id + '" data-idx="' + idx + '" aria-label="Poista osasarja, sarja ' + setNo + '">−</button>' +
+          '<div class="cluster-count" aria-live="polite"><span class="cluster-num' + (s.done ? " done" : "") + '" data-cluster-num>' + subCount + '</span><span class="cluster-unit">osasarjaa</span></div>' +
+          '<button type="button" class="cluster-step cluster-plus" data-cluster-step="1" data-id="' + ex.id + '" data-idx="' + idx + '" aria-label="Lisää osasarja, sarja ' + setNo + '">+</button>' +
+          '</div>'
+        : '';
       // inputmode="none": laitteen näppäimistö ei avaudu, vaan kentän napautus
       // avaa kirjausnäppäimistön (focusin/click). Kenttä on silti muokattava.
-      return '<div class="ledger-row' + (extraOpen ? " has-extra" : "") + '">' +
+      return '<div class="ledger-row' + ((extraOpen || cluster) ? " has-extra" : "") + '">' +
         '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(setNo) + '</div>' +
         renderLastCell(lastWork, "Sarja " + setNo) +
         '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
@@ -7596,6 +7855,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         (workFeel.selected && !extraOpen ? '<span class="set-feel-mark" aria-hidden="true">' + workFeel.selected.emoji + '</span>' : '') +
         '</button>' +
         '</div>' +
+        clusterHtml +
         (extraOpen
           // Tuntuma on vapaaehtoinen: valinta kulkee merkintään ja seuraavan
           // kerran ehdotukseen (RIR), ilman valintaa laskenta on ennallaan.
@@ -7617,11 +7877,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // ne vain jaetaan lämmittely- ja työsarjalohkoihin näyttöä varten.
     var warmHtml = "", workHtml = "";
     rowParts.forEach(function(h, i){ if(isWarmupRow(sets[i])) warmHtml += h; else workHtml += h; });
-    var total = sets.reduce(function(sum, s){
-      if(isWarmupRow(s)) return sum;
-      var w = parseFloat(String(s.weight).replace(",", ".")), r = parseFloat(String(s.reps).replace(",", "."));
-      return sum + ((isFinite(w) && isFinite(r)) ? w*r : 0);
-    }, 0);
+    var total = ledgerTotal(ex.id);
     var allDone = isExerciseFullyDone(ex, ex.id);
     var warmupCount = warmupRows(ex.id).length;
     // Järjestys: selitteet → lämmittelyt (jos on) → sarjat → + Sarja koko
@@ -7849,6 +8105,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // "Valmis"-painikkeesta, joka kutsuu samaa applyImportedProgram-polkua kuin
   // CSV-tuonti — ei omaa tallennuslogiikkaa.
   function noAutoCalcReason(ex){
+    if(ex.kind === "cluster") return "Cluster: kuormaksi ehdotetaan viimeisintä " + clusterRefRepsFor(ex) + " toiston merkintää, kirjataan osasarjoina.";
     if(ex.kind === "duration") return "Kestoperusteinen liike — painoa ei ehdoteta.";
     if(ex.kind === "circuit") return "Kirjataan vapaasti — painoa ei ehdoteta.";
     return "Painoehdotusta ei lasketa: tavoite on menetelmäkohtainen.";
@@ -8500,6 +8757,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return '<td class="num" aria-label="Ei laskettavissa">–</td>';
     }
     var recent = a.recent || [];
+    // Cluster-kerrat: osasarjat päivää kohti (rivien summa) ja kuorma.
+    var clusterRows = (a.clusterSessions || []).slice(-5).reverse();
+    var clusterTable = clusterRows.length
+      ? '<div style="font-size:var(--fs-xs); color:var(--mist); margin:12px 0 4px;">Cluster-kerrat</div>' +
+        '<table class="kehitys-table"><thead><tr><th scope="col">Pvm</th><th scope="col" class="num">Kuorma</th><th scope="col" class="num">Osasarjat</th></tr></thead><tbody>' +
+        clusterRows.map(function(c){
+          return '<tr><td>' + escapeHtml(formatDateShortFI(c.date)) + '</td>' +
+            '<td class="num">' + (c.weight !== null ? escapeHtml(fmtKg(c.weight)) : '–') + '</td>' +
+            '<td class="num">' + c.subsets + (c.sets.length > 1 ? ' <span style="color:var(--mist);">(' + c.sets.join(" + ") + ')</span>' : '') + '</td></tr>';
+        }).join("") + '</tbody></table>'
+      : "";
     var table = recent.length
       ? '<div style="font-size:var(--fs-xs); color:var(--mist); margin:12px 0 4px;">Viimeiset treenikerrat</div>' +
         '<table class="kehitys-table"><thead><tr><th scope="col">Pvm</th><th scope="col" class="num">Sarjat</th><th scope="col" class="num">Toistot</th><th scope="col" class="num">Progressio</th></tr></thead><tbody>' +
@@ -8510,7 +8778,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         }).join("") + '</tbody></table>' +
         '<div style="font-size:var(--fs-xs); color:var(--mist); margin-top:6px;">✓ saavutettu · ✗ ei · – ei laskettavissa</div>'
       : "";
-    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' + rows + table + '</div>';
+    return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' + rows + clusterTable + table + '</div>';
   }
   function renderKehitys(){
     if(state.kehitysLoading) return '<div class="empty">Lasketaan kehitystä…</div>';
@@ -8571,8 +8839,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var totalKg = 0;
     keys.forEach(function(k){
       ((entry.exercises[k] || {}).sets || []).forEach(function(s){
-        var w = toNumber(s.weight), r = toNumber(s.reps);
-        if(isFinite(w) && isFinite(r)) totalKg += w * r;
+        var v = setVolume(s);
+        if(isFinite(v)) totalKg += v;
       });
     });
     var parts = [plural(keys.length, "liike", "liikettä")];
@@ -8591,10 +8859,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         inner = keys.map(function(key){
           var data = entry.exercises[key];
           var name = data.name || key;
+          var clusterEntry = data.kind === "cluster";
+          // Cluster-rivi: "60 kg × 6 × 5", jossa viimeinen luku on osasarjat
+          // (puuttuva tai 1 → tavallinen esitys).
           var setsStr = (data.sets || []).map(function(s, i){
-            return (i+1) + ": " + (s.weight || "–") + " kg × " + (s.reps || "–") + (s.notes ? " (" + escapeHtml(s.notes) + ")" : "");
+            var sub = setSubsets(s) > 1 ? " × " + setSubsets(s) : "";
+            return (i+1) + ": " + (s.weight || "–") + " kg × " + (s.reps || "–") + sub + (s.notes ? " (" + escapeHtml(s.notes) + ")" : "");
           }).join(" · ");
-          return '<div style="margin-top:10px;"><div style="font-weight:600; font-size:var(--fs-md);">' + escapeHtml(name) + '</div>' +
+          return '<div style="margin-top:10px;"><div style="font-weight:600; font-size:var(--fs-md);">' + escapeHtml(name) +
+            (clusterEntry ? ' <span style="color:var(--mist); font-size:var(--fs-xs); font-weight:400;">cluster</span>' : '') + '</div>' +
             '<div style="color:var(--mist); font-size:var(--fs-sm); font-variant-numeric:tabular-nums; margin-top:2px;">' + setsStr + '</div></div>';
         }).join("");
       }
@@ -9443,8 +9716,37 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-add-set]"))){
       var id1 = el.dataset.id;
       if(!state.draftSets[id1]) state.draftSets[id1] = [];
-      state.draftSets[id1].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });
+      var addEx = findExerciseById(id1);
+      if(isClusterExercise(addEx)){
+        // Uusi cluster: sama kuorma kuin edellisellä rivillä, ohjelman toistot, 0 osasarjaa.
+        var prevRows = workRows(id1);
+        var prevRow = prevRows.length ? prevRows[prevRows.length - 1] : null;
+        state.draftSets[id1].push({ weight: prevRow ? prevRow.weight : "", reps: addEx.reps || "", notes:"", done:false, kind:"work", subsets: 0 });
+      } else {
+        state.draftSets[id1].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });
+      }
       state.dirtySets[id1] = true;
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-cluster-step]"))){
+      // Osasarjalaskuri: plus lisää osasarjan ja käynnistää osasarjatauon
+      // ajastimen alusta (sama ääni kuin lepoajastimella, noudattaa asetusta);
+      // miinus ei vie nollan alle eikä käynnistä ajastinta. Laskeminen nollaan
+      // purkaa valmiiksi-merkinnän (sama sääntö kuin painon tyhjennyksellä).
+      var cid = el.dataset.id, cidx = parseInt(el.dataset.idx, 10), cstep = parseInt(el.dataset.clusterStep, 10);
+      var crow = state.draftSets[cid] && state.draftSets[cid][cidx];
+      if(crow){
+        var cur = toNumber(crow.subsets);
+        if(!isFinite(cur) || cur < 0) cur = 0;
+        var nextSub = Math.max(0, cur + cstep);
+        if(nextSub !== cur || cstep > 0){
+          crow.subsets = nextSub;
+          state.dirtySets[cid] = true;
+          if(crow.done && nextSub < 1) crow.done = false;
+          if(cstep > 0 && state.restTimerEnabled){ startRestTimer(CLUSTER_REST_SECONDS); return; }
+        }
+      }
       render();
       return;
     }
@@ -9563,7 +9865,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       delete state.draftSets[rid];
       delete state.dirtySets[rid];
       delete state.autoCalcInfo[rid];
-      if(rex){ state.draftSets[rid] = buildDraftRows(rex, rid); }
+      if(rex){ await prepareClusterRef(rex); state.draftSets[rid] = buildDraftRows(rex, rid); }
       showToast("Merkintä poistettu, ehdotus laskettu uudelleen");
       render();
       return;
@@ -9651,7 +9953,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.painDraft = blankPainDraft();
       // Kehitys lasketaan uudelleen seuraavalla avauksella.
       state.painAnalysis = undefined;
-      state.kehitys = undefined;
+      state.kehitys = undefined; state.clusterRef = {};
       showToast("Vaiva kirjattu");
       render();
       return;
