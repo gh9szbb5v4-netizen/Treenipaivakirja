@@ -33,10 +33,100 @@ lomakkeessa. Erillinen tarkistusnäkymä (`state.pdfImport`, `state.view ===
 "tuonti"`, `renderProgramReview()`) poistettiin UX-vaiheessa 5.
 
 Liikeoliossa on PDF:n takia neljä valinnaista kenttää: `kind` (oletus
-`"plain"`), `method`, `perSet`, `methodNote` ja `autoCalc`. Kaikki ovat
+`"plain"`), `method`, `perSet`, `methodNote` ja `autoCalc`, sekä cluster-
+liikkeellä `clusterRefReps` (ks. Cluster-sarjat). Kaikki ovat
 valinnaisia, jotta vanhat tallennetut ohjelmat toimivat ennallaan:
 `buildDraftRows()` ohittaa painoehdotuksen vain nimenomaisella
 `autoCalc === false`:lla, ei puuttuvalla kentällä.
+
+## Cluster-sarjat (toteutettu)
+
+Liiketyyppi `kind: "cluster"` ja valinnainen `clusterRefReps` (viitetoistot,
+oletus `CLUSTER_DEFAULT_REF_REPS` = 10, `clusterRefRepsFor(ex)`). Syntyy
+PDF-tuonnista (`parseTarget` "2xCluster"; `attachDefinitions` poimii
+selitteestä viitetoistot `clusterRefRepsFromText`-apurilla: "N toiston
+maksimi" tai "NRM"), CSV-tuonnista (`ALIASES.kind` = Tyyppi/Kind/Menetelmä,
+arvo `cluster`; sarakkeen puuttuessa sana cluster huomautuksessa, viitetoistot
+huomautuksesta samalla apurilla) ja varmuuskopiosta (`Tyyppi`-sarake ja uusi
+viimeinen `Viitetoistot`-sarake ohjelmarivillä; luetaan vain täytettynä).
+`ensureProgramShape` ei lisää `kind`-kenttää: puuttuva = tavallinen liike.
+
+Sarjariville tuli valinnainen `subsets` (osasarjojen lukumäärä), jota
+käytetään vain cluster-liikkeellä; `setSubsets(set)` palauttaa 1, kun kenttä
+puuttuu tai on 0, ja `setVolume(set)` = paino × toistot × osasarjat on ainoa
+paikka, jossa volyymikaava on kirjoitettu (`ledgerTotal`, `renderDayCard`,
+`historyDaySummary`, `buildTotalWeightSeries`, `buildVolumeByName`,
+`buildWeeklySummary`, `buildPainAnalysis`; volyymissä ja viikkoyhteenvedossa
+myös toistot kertaantuvat osasarjoilla). Merkintään tallentuu nyt
+`kind: ex.kind || "plain"` (`saveExerciseLog`; vienti ja tuonti nojaavat
+siihen), ja `lastSet`-sarjaan `subsets`, kun liike on cluster.
+
+Esitäyttö on `buildDraftRows`-funktion ensimmäinen haara (ennen
+`autoCalc === false` -tarkistusta, koska PDF antaa clusterille autoCalc
+false): rivejä `ex.sets` (oletus 2), `reps` = `ex.reps`, `subsets` 0, paino
+viitekuorma `state.clusterRef[nimi]`-välimuistista. Välimuistin täyttää async
+`findClusterRefWeight(name, refReps)` (viimeisin muu kuin cluster-merkintä,
+jossa jonkin sarjan toistot === refReps; kuorma näiden sarjojen suurin paino;
+weight null = ei löytynyt), jota `prepareClusterRef(ex)` kutsuu
+`toggleExercise`-, `[data-recalc]`- ja `performExerciseSwap`-poluilla ennen
+`buildDraftRows`-kutsua. Välimuisti tyhjennetään kaikissa kohdissa, joissa
+`state.kehitys = undefined` (haku ja korvaus yhdellä rivillä).
+`state.autoCalcInfo[id] = { type: "cluster", refWeight, refReps, date,
+lastSubsets }`; `lastSubsets` on viimeisimmän `lastSet`-kerran (tai sen
+prior-kerran) osasarjat, jos sarjoilla on `subsets`, muuten null.
+`autoCalcHint` kirjoittaa "Kuorma on viimeisin 10 toiston merkintä (60 kg,
+1.9.). Viimeksi 5 + 4 osasarjaa — tavoitteena ylittää." tai "Clusterin
+kuormaksi ei löytynyt aiempaa 10 toiston merkintää — syötä paino käsin."
+Tavallisen liikkeen progressio käyttää `nonClusterSession(lastSet)`-apuria:
+saman nimen cluster-kerrat (sarjoilla `subsets`) eivät kelpaa viitekerraksi
+eivätkä jumitunnistuksen kertoihin.
+
+Kirjaus: `renderLedger` piirtää cluster-rivin alle aina näkyvän
+`.set-extra.cluster-row`-rivin: `[data-cluster-step="-1"]`, lukumäärä
+`[data-cluster-num]` (`.cluster-num`, `aria-live`, `.done` vihreä) ja
+`[data-cluster-step="1"]` (`.cluster-plus`, messinkitäyttö). Molemmat
+painikkeet ovat 44 × 44 px kuten rivin ✓ ja lukumäärä 22 px: kehotteen
+"plus on rivin suurin kosketuskohde" (56 px, flex:1) toteutettiin ensin,
+mutta käyttäjä pyysi pienentämään ne huomattavasti muiden painikkeiden
+kokoon (käyttäjän päätös). Huomio, tuntuma ja poisto ovat ⋮-lisärivillä kuten muilla
+sarjoilla (kehotteen "huomiokenttä laskurin alle" toteutuu tässä
+asettelussa ⋮-rivinä, koska huomio ei ole enää sarjarivillä). Käsittelijä
+`[data-cluster-step]`: plus kasvattaa `subsets`-arvoa, asettaa `dirtySets` ja
+käynnistää `startRestTimer(CLUSTER_REST_SECONDS)` (15 s; noudattaa
+`restTimerEnabled`-asetusta, käynnissä oleva ajastin alkaa alusta, sama
+äänimerkki `finishRestTimer`-funktiosta); miinus ei vie nollan alle eikä
+käynnistä ajastinta; nollaan laskeminen purkaa valmiiksi-merkinnän.
+`isRowDoneEligible`: paino ja `subsets >= 1`; `toggleSetDone` antaa toastin
+"Tee vähintään yksi osasarja ennen kuin merkitset clusterin valmiiksi".
+`saveExerciseLog`-suodatin hyväksyy rivin myös `subsets > 0`:lla. "+ Sarja"
+cluster-liikkeellä kopioi edellisen rivin painon, ohjelman toistot ja 0
+osasarjaa. `renderLastCell` näyttää "60×6×5", kun viime kerran sarjalla on
+osasarjoja > 1.
+
+Historia: rivi "60 kg × 6 × 5" (subsets > 1) ja tunniste "cluster" nimen
+perässä. Ohjelma-näkymä: tallennettu cluster näyttää suljettuna rivin
+"Kirjattu: 60 kg · 5 + 4 osasarjaa" (`clusterSummaryText`); päiväkortti
+laskee kilot `setVolume`-apurilla. Kehitys: `buildAllOneRepMaxSeries` ja
+`buildRecordsByName` ohittavat `kind === "cluster"` -merkinnät (6 toiston
+osasarja 10RM-kuormalla antaisi Epleyllä 1,2 × paino, viitemerkintä 1,33 ×
+paino → keinotekoinen notkahdus); `rebuildManualMaxForName` ohittaa ne ja
+`saveExerciseLog` ei päivitä 1RM:ää cluster-liikkeelle.
+`buildAdherenceByName` kerää `clusterSessions` (`date`, `subsets`-summa,
+`weight`, rivien osasarjat) ja `renderAdherenceTab` näyttää taulukon
+"Cluster-kerrat" (Pvm, Kuorma, Osasarjat). Cluster-only-liike ei näy
+Kehityksen listassa, koska lista rakentuu 1RM-sarjoista (viikon 1
+maksimitesti tuo sen).
+
+Vienti: `#MERKINNÄT`-osion viimeinen sarake on nyt `Osasarjat` (Tuntuman
+jälkeen); tuonti `findCol(["osasarjat","subsets"])`, tyyppilista
+`["max","percent","plain","cluster"]`, `subsets` vain cluster-riville
+positiivisena kokonaislukuna; duplikaattitunniste on
+`paino x toistot x osasarjat` (puuttuva = 1) molemmin puolin. Simulointi
+antaa cluster-liikkeelle vakiokuorman ja osasarjat 3 → 6 sekä merkintään
+`kind`. Muokkaustilan `noAutoCalcReason` kertoo clusterin kuormasäännön.
+Testi: `test_cluster.js` (fixture `prog_cluster.csv`; kehotteen tapaukset
+1–12, ajastintesti odottaa 16 s äänimerkkiä). `test_rir.js` odottaa
+otsikkorivillä Tuntuman jälkeen Osasarjat-saraketta.
 
 ## Ohjelman rakentaminen sovelluksessa (toteutettu)
 
