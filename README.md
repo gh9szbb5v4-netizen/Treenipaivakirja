@@ -149,15 +149,17 @@ Sovellus muistaa liikkeen kolme viimeisintä kertaa. **Jumitunnistus ja kevennys
 ```
 vaje ilman tuntumaa:   edelliset_toistot < tavoitetoistot
 vaje tuntuman kanssa:  edelliset_toistot + RIR < tavoitetoistot + 2
-  (tavoitteen täyttänyt mutta Äärirajoilla tehty sarja on vaje,
-   kaksi vajaaksi jäänyt mutta Kevyt ei ole)
+  (kaksi vajaaksi jäänyt mutta Kevyt ei ole vaje;
+   poikkeus: RIR = 0 ja edelliset_toistot ≥ tavoitetoistot ei ole vaje,
+   sama sääntö kuin ehdotuksessa)
 
 kevennys ilman tuntumaa:  paino = FLOOR( edellinen_paino × 0,90 , 2,5 )
 kevennys tuntuman kanssa: paino = FLOOR( edellinen_paino × (1 + (edelliset_toistot + RIR) / 30) × 0,90
                                          / (1 + (tavoitetoistot + 2) / 30) , 2,5 )
+  (RIR = 0 ja toistot täyttyivät: kuten ilman tuntumaa)
 ```
 
-Esimerkkejä tavoitteella 12 toistoa: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg (sama kuin ilman tuntumaa), 162,5 kg × 12 Äärirajoilla → 137,5 kg (vaje kapasiteettina, vaikka toistot täyttyivät) ja 162,5 kg × 10 Kevyt → ei vajetta eikä kevennystä. Kevennyksen pohjalta kirjattu kerta merkitään, eikä uutta kevennystä ehdoteta ennen kuin sen jälkeen on kolme tavallista kertaa.
+Esimerkkejä tavoitteella 12 toistoa: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg (sama kuin ilman tuntumaa), 162,5 kg × 12 Äärirajoilla → ei vajetta eikä kevennystä (toisen sarjan vajeen laukaisemana 145 kg) ja 162,5 kg × 10 Kevyt → ei vajetta eikä kevennystä. Kevennyksen pohjalta kirjattu kerta merkitään, eikä uutta kevennystä ehdoteta ennen kuin sen jälkeen on kolme tavallista kertaa.
 
 Kehitys-näkymän laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
 

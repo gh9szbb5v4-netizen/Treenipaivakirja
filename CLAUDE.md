@@ -840,16 +840,18 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   - ilman tuntumaa (perSet-tila `"near"` tai `"missed"`): vaje =
     `prevReps < targetReps`, kevennys `floorToStep(prevWeight ×
     DELOAD_FACTOR)` — täsmälleen entinen;
-  - tuntuman kanssa (perSet-tila `"feel"`): vaje =
-    `prevReps + tuntumaToRir(prevRpe) < targetReps + TARGET_RIR`
-    (tavoitteen täyttänyt Äärirajoilla-sarja on vaje, kaksi vajaaksi
-    jäänyt Kevyt-sarja ei), kevennys
-    `floorToStep(feelTargetWeight(prevWeight, prevReps, RIR, targetReps,
-    DELOAD_FACTOR))`, jossa `feelTargetWeight` on `weightFromFeel`-kaavan
-    pyöristämätön ydin (ehdotus pyöristää lähimpään, kevennys alaspäin).
-    Esimerkit tavoitteella 12: 162,5 × 10 Äärirajoilla → 132,5; 162,5 × 12
-    Työläs → 145 (sama kuin ilman tuntumaa); 162,5 × 12 Äärirajoilla →
-    137,5; 162,5 × 10 Kevyt → ei vajetta, ehdotus 165.
+  - tuntuman kanssa (perSet-tila `"feel"`): vaje = `feelShortfall()` =
+    `prevReps + tuntumaToRir(prevRpe) < targetReps + TARGET_RIR`, paitsi
+    RIR 0 ja `prevReps >= targetReps` ei ole vaje (sama poikkeus kuin
+    `feelSuggestion`; kaksi vajaaksi jäänyt Kevyt-sarja ei ole vaje);
+    kevennys `floorToStep(feelTargetWeight(prevWeight, prevReps, RIR,
+    targetReps, DELOAD_FACTOR))`, jossa `feelTargetWeight` on
+    `weightFromFeel`-kaavan pyöristämätön ydin (ehdotus pyöristää
+    lähimpään, kevennys alaspäin) — RIR 0 ja toistot täyttyivät kevennetään
+    kuten ilman tuntumaa. Esimerkit tavoitteella 12: 162,5 × 10
+    Äärirajoilla → 132,5; 162,5 × 12 Työläs → 145 (sama kuin ilman
+    tuntumaa); 162,5 × 12 Äärirajoilla → ei vajetta (toisen sarjan
+    laukaisemana 145); 162,5 × 10 Kevyt → ei vajetta, ehdotus 165.
   `perSet.prevRpe` säilyy `"deload"`-tilassa, joten `autoCalcHint` kertoo
   sarjan tuntumineen ("S1: 162,5 kg × 10 toistoa, äärirajoilla →
   kevennys") ja jumibanneri on "(−10 % tuntuma huomioiden)"; ilman
