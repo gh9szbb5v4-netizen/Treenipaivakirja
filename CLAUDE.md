@@ -1048,6 +1048,36 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   …)`, ei `unshift`), jotta se on L2 eikä siirrä aiempaa L1:tä; avoimen
   näppäimistön `idx` siirtyy vastaavasti. Testit: `test_feel.js`,
   `test_warmup.js`.
+- `WARMUP_LADDER = [{0.40, 8}, {0.60, 5}, {0.80, 3}, {0.90, 1}]`,
+  `WARMUP_LIGHT_LIMIT = 20`, `WARMUP_LIGHT_PCT = 0.60` ja
+  `WARMUP_MIN_WEIGHT = 5`: lämmittelyehdotus (`suggestWarmup(ex, id, n)`,
+  n = lämmittelyn numero). "Lisää lämmittelysarja" täyttää rivin: lähde 1
+  on viime kerran sama lämmittely (`warmups[n-1]`, sama viitekerta kuin
+  Viime-sarakkeessa: `lastSet` tai `prior[0]`, kun päällimmäinen on tämän
+  liikkeen tallennettu merkintä) skaalattuna suhteella `base /
+  lastSession.sets[0].weight` (`warmupSuggestionContext`), lähde 2
+  portaat `WARMUP_LADDER` (numeroa suuremmat viimeinen porras) tai kevyellä
+  työpainolla (`base < WARMUP_LIGHT_LIMIT`) vain L1 `WARMUP_LIGHT_PCT`:llä
+  ja tavoitetoistoilla. `base` on ensimmäisen työsarjan `base` (ehdotus
+  ennen lämmittelysäätöä, kuten `applyWarmupAdjustment`-funktion
+  `startWeight`) tai sen puuttuessa kirjoitettu paino; ehdotus hylätään,
+  kun paino ≥ base tai < `WARMUP_MIN_WEIGHT`; ei yhdistelmäliikkeille eikä
+  muille kuin `kind` plain (cluster ym.), mutta teholiikkeille kyllä.
+  Kaikki pyöristykset `roundToStep(x, WEIGHT_STEP)`. Rivi saa tilapäisen
+  `auto`-lipun (`"last"` | `"ladder"`), joka poistuu painon tai toistojen
+  muokkauksessa (`[data-set-field]`-input-käsittelijä, jonka kautta myös
+  `keypadSetValue` kulkee, ja `[data-weight-step]`) eikä tallennu
+  (`saveExerciseLog` poimii vain weight/reps/rpe). Selite
+  `.warmup-auto-note` (`warmupAutoNote`) Lämmittely-otsikon alla vain, kun
+  jokin auto-rivi on kesken: "Lämmittelyt viime kerran mukaan[, skaalattu
+  työpainoon 105 kg] — muokattavissa." tai "Lämmittelyt ehdotettu
+  työpainosta 100 kg (40 / 60 / 80 / 90 %) — muokattavissa." (prosentit
+  vakiosta; kevyellä "(60 %)"); `syncWarmupNoteDom` päivittää sen ilman
+  render()-kutsua. Historia, Kehitys, simulointi, varmuuskopio ja
+  `applyWarmupAdjustment` ovat ennallaan. Testi: `test_warmup_suggest.js`
+  (fixture `prog_warm.csv`; kehotteen tapaukset 1–10: base 100 ilman
+  historiaa kirjoittamalla paino, base 100 viime kerran 100×4:stä (near),
+  base 105 viime kerran 100×5 sujuvasta).
 - `PAIN_WINDOW_DAYS = 7`, `PAIN_VOLUME_RATIO = 1.2`, `PAIN_MIN_EPISODES = 3`
   ja `PAIN_MIN_SHARE = 0.6`: vaivalokin analyysin ikkuna, poikkeaman raja,
   kirjausten vähimmäismäärä ja löydöksen osuusraja (`buildPainAnalysis`).
