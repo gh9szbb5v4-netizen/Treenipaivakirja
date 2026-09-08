@@ -267,17 +267,18 @@
   .feel-key.on{color:var(--chalk); font-weight:700;}
   /* Työsarjan tuntumarivi on huomiorivin yläpuolella ilman omaa katkoviivaa. */
   .set-extra.set-feel{border-bottom:none; padding-bottom:0;}
-  /* Cluster-rivin osasarjalaskuri: miinus, lukumäärä isolla ja plus, joka on
-     rivin suurin kosketuskohde (flex:1, 56 px korkea), koska sitä napautetaan
-     kesken suorituksen hengästyneenä. Aina näkyvissä sarjarivin alla; huomio
+  /* Cluster-rivin osasarjalaskuri: miinus, lukumäärä ja plus samassa 44 px:n
+     koossa kuin rivin ✓ ja muut säätimet (käyttäjän päätös: kehotteen "rivin
+     suurin kosketuskohde" hylättiin liian suurena). Plus on messinkitäytteinen
+     päätoiminto, miinus ääriviivainen. Aina näkyvissä sarjarivin alla; huomio
      ja poisto ovat ⋮-lisärivillä kuten muillakin sarjoilla. */
   .set-extra.cluster-row{gap:10px; padding:2px 0 8px 46px; border-bottom:1px dashed var(--line);}
   .ledger-row.has-extra + .set-extra.cluster-row.cluster-more-open{border-bottom:none; padding-bottom:4px;}
-  .cluster-step{flex:0 0 auto; width:56px; height:56px; padding:0; font-size:28px; font-weight:800; line-height:1; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:14px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
-  .cluster-step.cluster-plus{flex:1 1 auto; min-width:96px; background:var(--brass); color:var(--ink); border-color:var(--brass);}
+  .cluster-step{flex:0 0 auto; width:44px; height:44px; padding:0; font-size:22px; font-weight:800; line-height:1; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:999px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .cluster-step.cluster-plus{background:var(--brass); color:var(--ink); border-color:var(--brass);}
   .cluster-step:active{transform:scale(.94);}
-  .cluster-count{display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:72px; line-height:1;}
-  .cluster-num{font-size:28px; font-weight:800; color:var(--chalk); font-variant-numeric:tabular-nums;}
+  .cluster-count{display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:64px; line-height:1;}
+  .cluster-num{font-size:22px; font-weight:800; color:var(--chalk); font-variant-numeric:tabular-nums;}
   .cluster-num.done{color:var(--success);}
   .cluster-unit{font-size:var(--fs-xs); color:var(--mist); margin-top:3px;}
   .set-more{position:relative; width:40px; height:44px; padding:0; margin:0; background:transparent; border:0; border-radius:8px; color:var(--mist); display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent;}
@@ -596,7 +597,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-09", items: [
-      "Cluster-sarjat: ohjelman cluster-liike (PDF:n \"2xCluster\", CSV:n Tyyppi-sarake \"cluster\" tai sana cluster huomautuksessa) kirjataan yhtenä rivinä clusteria kohti. Paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittama \"N toiston maksimi\"), toistot ovat osasarjan toistot ja rivin alla on osasarjalaskuri: + lisää osasarjan ja käynnistää 15 sekunnin osasarjatauon ajastimen alusta, − poistaa, ja cluster merkitään valmiiksi vasta vähintään yhdellä osasarjalla. Selite kertoo kuorman lähteen ja viime kerran osasarjat tavoitteeksi (\"Viimeksi 5 + 4 osasarjaa — tavoitteena ylittää\").",
+      "Cluster-sarjat: ohjelman cluster-liike (PDF:n \"2xCluster\", CSV:n Tyyppi-sarake \"cluster\" tai sana cluster huomautuksessa) kirjataan yhtenä rivinä clusteria kohti. Paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittama \"N toiston maksimi\"), toistot ovat osasarjan toistot ja rivin alla on osasarjalaskuri (−, lukumäärä ja +, painikkeet samaa 44 px:n kokoa kuin rivin ✓): + lisää osasarjan ja käynnistää 15 sekunnin osasarjatauon ajastimen alusta, − poistaa, ja cluster merkitään valmiiksi vasta vähintään yhdellä osasarjalla. Selite kertoo kuorman lähteen ja viime kerran osasarjat tavoitteeksi (\"Viimeksi 5 + 4 osasarjaa — tavoitteena ylittää\").",
       "Historia näyttää cluster-rivin muodossa 60 kg × 6 × 5 (viimeinen luku on osasarjat) ja tunnisteen \"cluster\"; Ohjelma-näkymässä tallennettu cluster näyttää kuorman ja osasarjat (60 kg · 5 + 4 osasarjaa). Volyymi lasketaan kaikkialla paino × toistot × osasarjat, mutta cluster-merkinnät eivät vaikuta Kehityksen 1RM-arvioon eivätkä ennätyksiin, eivätkä ne päivitä 1RM-arvoa. Kehityksen Toteutuminen-välilehti listaa cluster-kerrat kuormineen ja osasarjoineen.",
       "Varmuuskopion merkinnöissä on uusi viimeinen sarake Osasarjat (cluster-rivillä osasarjat, muilla tyhjä) ja merkintään tallentuu liikkeen tyyppi; vanhat tiedostot ilman saraketta tuodaan ennallaan. Ohjelmarivillä on sarake Viitetoistot cluster-liikkeen viitetoistoille. Simulointi tuottaa cluster-liikkeille vakiokuorman ja kasvavat osasarjat.",
     ] },

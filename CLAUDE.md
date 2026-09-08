@@ -84,8 +84,11 @@ eivätkä jumitunnistuksen kertoihin.
 Kirjaus: `renderLedger` piirtää cluster-rivin alle aina näkyvän
 `.set-extra.cluster-row`-rivin: `[data-cluster-step="-1"]`, lukumäärä
 `[data-cluster-num]` (`.cluster-num`, `aria-live`, `.done` vihreä) ja
-`[data-cluster-step="1"]` (`.cluster-plus`, flex:1, 56 px — rivin suurin
-kosketuskohde). Huomio, tuntuma ja poisto ovat ⋮-lisärivillä kuten muilla
+`[data-cluster-step="1"]` (`.cluster-plus`, messinkitäyttö). Molemmat
+painikkeet ovat 44 × 44 px kuten rivin ✓ ja lukumäärä 22 px: kehotteen
+"plus on rivin suurin kosketuskohde" (56 px, flex:1) toteutettiin ensin,
+mutta käyttäjä pyysi pienentämään ne huomattavasti muiden painikkeiden
+kokoon (käyttäjän päätös). Huomio, tuntuma ja poisto ovat ⋮-lisärivillä kuten muilla
 sarjoilla (kehotteen "huomiokenttä laskurin alle" toteutuu tässä
 asettelussa ⋮-rivinä, koska huomio ei ole enää sarjarivillä). Käsittelijä
 `[data-cluster-step]`: plus kasvattaa `subsets`-arvoa, asettaa `dirtySets` ja
