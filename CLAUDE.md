@@ -795,9 +795,15 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   jolloin laskenta supistuu entiseen. `weightFromFeel(weight, reps, rir,
   targetReps, progression)` = `MROUND(weight × (1 + (reps + rir)/30) ×
   progression / (1 + (targetReps + TARGET_RIR)/30), 2,5)` on yhteinen
-  kaava: `buildDraftRows` käyttää sitä (status `"feel"`, ilman hit/near/
-  missed-rajoja) kun viitesarjalla `last.sets[k].rpe` on luku, `inferPlan`
-  aina, ja `applyWarmupAdjustment` progressiolla 1, kun valmis lämmittely on
+  kaava: `buildDraftRows` käyttää sitä `feelSuggestion()`-apurin kautta
+  (status `"feel"`, ilman hit/near/missed-rajoja) kun viitesarjalla
+  `last.sets[k].rpe` on luku — poikkeus: RIR 0 (Äärirajoilla) ja
+  `prevReps >= targetReps` → `prevWeight` sellaisenaan (valmennuksellinen
+  peruste: tavoitteen täyttänyt loppusarja on normaali, kevennys jakaisi
+  volyymin vain uudelleen; kevennys vasta vajeesta; testi
+  `test_feel_rule.js`, tavoite 10 ja 42,5 kg: sujuva/työläs/äärirajoilla
+  → 45 / 42,5 / 42,5) — `inferPlan` samalla apurilla, ja
+  `applyWarmupAdjustment` progressiolla 1, kun valmis lämmittely on
   työsarjan tasoinen (paino ≥ ensimmäisen työsarjan `base`, toistot ≥
   tavoite): jokainen keskeneräinen ja käsin muokkaamaton työsarja saa
   painon, `warmupAdjust.status === "worklevel"` (`from`, `to`, `sets`,
