@@ -58,8 +58,9 @@
      selaimen automaattinen fokusrullaus että scrollIntoView jättävät kohteen
      kelluvan alanavigaation (130px) tai kirjausnäppäimistön (372px) yläpuolelle.
      Luokat ovat html-elementillä, koska näkymän scroll-padding luetaan
-     juurielementistä. Kun sarjakenttä on fokusoitu (laitteen näppäimistö,
-     esim. huomiokenttä), alanavigaatio on piilossa eikä varausta tarvita. */
+     juurielementistä. Kun sarjakenttä on fokusoitu laitteen näppäimistöllä,
+     alanavigaatio on piilossa eikä varausta tarvita (sarjan huomiokenttä on
+     sittemmin poistettu, joten tila on varalla). */
   html{scroll-padding-top:calc(env(safe-area-inset-top) + 16px); scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 130px);}
   html.keypad-open{scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 372px);}
   html.set-field-focused:not(.keypad-open){scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 24px);}
@@ -227,7 +228,7 @@
   .ledger{padding:0 16px 16px;}
   /* Sarjarivi: numero, viime kerran arvot, paino, toistot, valmis ja
      lisävalikko yhdellä rivillä. Säätimet (±2,5 kg) ovat kirjausnäppäimistössä
-     ja huomiokenttä lisävalikon takana, jolloin kolme sarjaa mahtuu puoleen
+     ja tuntuma sekä poisto lisävalikon takana, jolloin kolme sarjaa mahtuu puoleen
      entisestä. Alle 375 px:n näytöllä Viime-sarake piilotetaan, jotta paino-
      ja toistokentät pysyvät luettavina. */
   .ledger-row{position:relative; display:grid; grid-template-columns:40px 52px minmax(0,1fr) minmax(0,0.8fr) 44px 40px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line);}
@@ -265,8 +266,8 @@
   .warmup-feel-desc{display:flex; flex-wrap:wrap; gap:2px 6px; font-size:var(--fs-xs); color:var(--mist); line-height:1.4; min-height:1.4em;}
   .feel-key{white-space:nowrap;}
   .feel-key.on{color:var(--chalk); font-weight:700;}
-  /* Työsarjan tuntumarivi on huomiorivin yläpuolella ilman omaa katkoviivaa. */
-  .set-extra.set-feel{border-bottom:none; padding-bottom:0;}
+  /* Työsarjan tuntumarivi (.set-feel) on lisärivin ainoa rivi (huomiokenttä
+     poistettu), joten se saa saman katkoviivan kuin lämmittelyn tuntumarivi. */
   /* Cluster-rivin osasarjalaskuri: miinus, lukumäärä ja plus samassa 44 px:n
      koossa kuin rivin ✓ ja muut säätimet (käyttäjän päätös: kehotteen "rivin
      suurin kosketuskohde" hylättiin liian suurena). Plus on messinkitäytteinen
@@ -599,6 +600,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-09", items: [
+      "Sarjarivin ⋮-valikosta on poistettu huomiokenttä, koska sille ei ollut käyttöä: valikossa ovat nyt tuntuma ja sarjan poisto samalla rivillä. Aiemmin kirjatut huomiot näkyvät edelleen Historiassa ja säilyvät varmuuskopiossa.",
       "Lisää lämmittelysarja esitäyttää painon ja toistot: viime kerran sama lämmittely skaalattuna tämän kerran työpainoon, tai portaat 40 / 60 / 80 / 90 % työpainosta, jos aiempaa lämmittelyä ei ole. Kevyillä työpainoilla (alle 20 kg) ehdotetaan yksi lämmittely 60 %:lla. Selite kertoo ehdotuksen perusteen, ja arvot ovat muokattavissa.",
       "Cluster-sarjat: ohjelman cluster-liike (PDF:n \"2xCluster\", CSV:n Tyyppi-sarake \"cluster\" tai sana cluster huomautuksessa) kirjataan yhtenä rivinä clusteria kohti. Paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittama \"N toiston maksimi\"), toistot ovat osasarjan toistot ja rivin alla on osasarjalaskuri (−, lukumäärä ja +, painikkeet samaa 44 px:n kokoa kuin rivin ✓): + lisää osasarjan ja käynnistää 15 sekunnin osasarjatauon ajastimen alusta, − poistaa, ja cluster merkitään valmiiksi vasta vähintään yhdellä osasarjalla. Selite kertoo kuorman lähteen ja viime kerran osasarjat tavoitteeksi (\"Viimeksi 5 + 4 osasarjaa — tavoitteena ylittää\").",
       "Historia näyttää cluster-rivin muodossa 60 kg × 6 × 5 (viimeinen luku on osasarjat) ja tunnisteen \"cluster\"; Ohjelma-näkymässä tallennettu cluster näyttää kuorman ja osasarjat (60 kg · 5 + 4 osasarjaa). Volyymi lasketaan kaikkialla paino × toistot × osasarjat, mutta cluster-merkinnät eivät vaikuta Kehityksen 1RM-arvioon eivätkä ennätyksiin, eivätkä ne päivitä 1RM-arvoa. Kehityksen Toteutuminen-välilehti listaa cluster-kerrat kuormineen ja osasarjoineen.",
@@ -7743,8 +7745,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // uudelleen (focusin-kuuntelija).
   var keypadSilentFocus = false;
   function openKeypad(id, idx, field){
-    // Huomiokenttä käyttää laitteen näppäimistöä: kirjausnäppäimistö
-    // suljetaan, jottei se jää osoittamaan toiseen kenttään.
+    // Muu kuin paino- tai toistokenttä käyttää laitteen näppäimistöä:
+    // kirjausnäppäimistö suljetaan, jottei se jää osoittamaan toiseen kenttään.
     if(field !== "weight" && field !== "reps"){ closeKeypad(); return; }
     var k = state.keypad;
     if(k && k.id === id && k.idx === idx && k.field === field){ blurKeypadInputOnTouch(); return; }
@@ -7920,7 +7922,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           '<span class="sr-only" id="' + feelId + '-live" aria-live="polite">' + (selectedStep ? escapeHtml(selectedStep.label) + ': ' + escapeHtml(selectedStep.desc) + '.' : WARMUP_FEEL_PROMPT) + '</span>' +
           '</div>';
       }
-      var extraOpen = !!(extras[idx] || (s.notes && String(s.notes).length));
+      // Lisärivi (tuntuma ja poisto) on auki vain ⋮-painikkeesta. Sarjan
+      // huomiokenttä poistettiin käyttäjän päätöksellä (ei käyttöä); rivin
+      // notes-kenttä säilyy tyhjänä, jotta merkinnän ja varmuuskopion muoto
+      // eivät muutu ja vanhat huomiot näkyvät yhä Historiassa.
+      var extraOpen = !!extras[idx];
       // Sarjanumero on aina näkyvissä (selitteen "S2" viittaa siihen); tehty-
       // tila näkyy ✓-painikkeen täytöstä ja numeron väristä.
       var workPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
@@ -7950,7 +7956,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
         '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + setNo + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + setNo + " merkitty valmiiksi" : "Merkitse sarja " + setNo + " valmiiksi") + '">✓</button>' +
-        '<button type="button" class="set-more' + (extraOpen ? " on" : "") + '" data-set-more data-id="' + ex.id + '" data-idx="' + idx + '" aria-expanded="' + (extraOpen ? "true" : "false") + '" aria-label="Sarjan ' + setNo + ' tuntuma, huomio ja poisto' + (workFeel.selected ? " (tuntuma " + workFeel.selected.label.toLowerCase() + ")" : "") + '">' + icon("valikko", 18) +
+        '<button type="button" class="set-more' + (extraOpen ? " on" : "") + '" data-set-more data-id="' + ex.id + '" data-idx="' + idx + '" aria-expanded="' + (extraOpen ? "true" : "false") + '" aria-label="Sarjan ' + setNo + ' tuntuma ja poisto' + (workFeel.selected ? " (tuntuma " + workFeel.selected.label.toLowerCase() + ")" : "") + '">' + icon("valikko", 18) +
         // Valittu tuntuma näkyy pienenä merkkinä ⋮-painikkeessa, kun lisärivi
         // on kiinni, jottei rivi kasva mutta valinta ei myöskään katoa.
         (workFeel.selected && !extraOpen ? '<span class="set-feel-mark" aria-hidden="true">' + workFeel.selected.emoji + '</span>' : '') +
@@ -7960,17 +7966,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         (extraOpen
           // Tuntuma on vapaaehtoinen: valinta kulkee merkintään ja seuraavan
           // kerran ehdotukseen (RIR), ilman valintaa laskenta on ennallaan.
+          // Poisto on hymiöiden rivin oikeassa reunassa kuten lämmittelyllä.
           ? '<div class="set-extra warmup-feel set-feel">' +
             '<div class="warmup-feel-head">' +
             '<span id="' + workFeelId + '-q" class="sr-only">Miltä sarja ' + setNo + ' tuntui?</span>' +
             '<div class="warmup-feel-btns" role="group" aria-labelledby="' + workFeelId + '-q">' + workFeel.buttons + '</div>' +
+            '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja ' + setNo + '" style="padding:6px 10px; margin-left:auto;">' + icon("poista", 18) + '</button>' +
             '</div>' +
             '<div class="warmup-feel-desc" id="' + workFeelId + '-d" aria-hidden="true">' + workFeel.legend + '</div>' +
             '<span class="sr-only" id="' + workFeelId + '-live" aria-live="polite">' + (workFeel.selected ? escapeHtml(workFeel.selected.label) + ': ' + escapeHtml(workFeel.selected.desc) + '.' : WARMUP_FEEL_PROMPT) + '</span>' +
-            '</div>' +
-            '<div class="set-extra">' +
-            '<input class="ledger-input" type="text" enterkeyhint="done" placeholder="Huomio (valinnainen)" aria-label="Sarja ' + setNo + ' huomiot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="notes" value="' + escapeHtml(s.notes) + '">' +
-            '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja ' + setNo + '" style="padding:6px 10px;">' + icon("poista", 18) + '</button>' +
             '</div>'
           : '');
     });
@@ -10297,8 +10301,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var f = e.target.closest ? e.target.closest("[data-set-field]") : null;
     if(f){
       openKeypad(f.dataset.id, parseInt(f.dataset.idx, 10), f.dataset.field);
-      // Huomiokenttä (laitteen näppäimistö) keskelle näkyvää aluetta; paino-
-      // ja toistokentät hoitaa revealKeypadTarget.
+      // Laitteen näppäimistön kenttä keskelle näkyvää aluetta; paino- ja
+      // toistokentät hoitaa revealKeypadTarget.
       if(!focusRestoring && isSystemKeyboardField(f)) revealFocusedField(f, isTouchDevice());
       return;
     }
@@ -10367,9 +10371,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape" && state.keypad){ e.preventDefault(); closeKeypad(); return; }
     if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="weight"], [data-set-field][data-field="reps"], [data-editor-field="sets"], [data-editor-field="reps"]')){ e.preventDefault(); keypadNext(); return; }
-    // Huomiokenttä ei kuulu Seuraava-ketjuun (täytetään harvoin): Enter
-    // (enterkeyhint="done") sulkee laitteen näppäimistön.
-    if(e.key === "Enter" && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="notes"]')){ e.preventDefault(); try{ e.target.blur(); }catch(err){} return; }
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
     if(e.key === "Enter" && e.target && e.target.id === "liike-haku"){
       // Enter valitsee ensimmäisen katalogiosuman, tai kirjoitetun nimen

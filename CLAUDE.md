@@ -88,9 +88,9 @@ Kirjaus: `renderLedger` piirtää cluster-rivin alle aina näkyvän
 painikkeet ovat 44 × 44 px kuten rivin ✓ ja lukumäärä 22 px: kehotteen
 "plus on rivin suurin kosketuskohde" (56 px, flex:1) toteutettiin ensin,
 mutta käyttäjä pyysi pienentämään ne huomattavasti muiden painikkeiden
-kokoon (käyttäjän päätös). Huomio, tuntuma ja poisto ovat ⋮-lisärivillä kuten muilla
-sarjoilla (kehotteen "huomiokenttä laskurin alle" toteutuu tässä
-asettelussa ⋮-rivinä, koska huomio ei ole enää sarjarivillä). Käsittelijä
+kokoon (käyttäjän päätös). Tuntuma ja poisto ovat ⋮-lisärivillä kuten muilla
+sarjoilla (kehotteen "huomiokenttä laskurin alle" jäi toteuttamatta, koska
+sarjan huomiokenttä poistettiin käyttäjän päätöksellä). Käsittelijä
 `[data-cluster-step]`: plus kasvattaa `subsets`-arvoa, asettaa `dirtySets` ja
 käynnistää `startRestTimer(CLUSTER_REST_SECONDS)` (15 s; noudattaa
 `restTimerEnabled`-asetusta, käynnissä oleva ajastin alkaa alusta, sama
@@ -500,9 +500,12 @@ on `inputmode="none"`: laitteen näppäimistö ei avaudu, vaan kentän fokus tai
 napautus avaa kirjausnäppäimistön (seuraava kappale). Tyhjässä kentässä
 ensimmäinen ± tuo viime kerran suurimman painon (`state.lastSet`), ei 2,5 kg
 nollasta. `state.activeSet` ja `activeSetIndex()` on poistettu (±-rivit
-sarjan alla on poistettu, eikä mikään lukenut tilaa). Huomiokenttä ja poisto
-ovat `state.setExtra[id][idx]`-lisärivillä (`.set-extra`, sisennys 46 px =
-Sarja-sarake + väli), joka on auki myös aina kun huomio ei ole tyhjä.
+sarjan alla on poistettu, eikä mikään lukenut tilaa). Tuntuma ja poisto
+ovat `state.setExtra[id][idx]`-lisärivillä (`.set-extra.warmup-feel.set-feel`:
+hymiöt ja poistopainike samalla rivillä kuten lämmittelyllä), joka on auki
+vain ⋮-painikkeesta. Sarjan huomiokenttä poistettiin käyttäjän päätöksellä
+(ei käyttöä): rivin ja merkinnän `notes`-kenttä säilyy tyhjänä, Historia
+näyttää vanhat huomiot ja varmuuskopion Huomiot-sarake on ennallaan.
 "Nostettu yhteensä" päivitetään ilman render()-kutsua (`syncSubtotalDom`,
 kutsutaan input-käsittelijästä ja ±-käsittelijästä; `ledgerTotal` on sama
 laskusääntö kuin renderLedgerissä).
@@ -542,8 +545,8 @@ vieritettäessä. Kohdekenttä näytetään luokalla `.keypad-target`
 ei fokusrenkaalla. Lisäksi `visualViewport`-`resize` vierittää samaan
 kohtaan (`window.scrollTo(scrollX, scrollY)`), kun mikään kenttä ei ole
 fokusoituna, jotta iOS palauttaa kiinteät elementit laitteen näppäimistön
-sulkeuduttua (esim. huomiokentän jälkeen). Huomiokentän
-fokus sulkee näppäimistön (`openKeypad` muulle kuin paino/toistot), ja
+sulkeuduttua (esim. vaivalomakkeen huomiokentän jälkeen). Muun kuin paino-
+tai toistokentän fokus sulkee näppäimistön (`openKeypad`), ja
 Enter-oikotie koskee vain paino- ja toistokenttiä. Sarjan poisto
 (`[data-remove-set]`) siirtää `state.keypad.idx`-indeksiä tai sulkee
 näppäimistön, jos kohderivi poistettiin. Näppäimet `[data-keypad-key]` (1–9, 0, "," vain painoille
@@ -634,7 +637,8 @@ sarjarivillä, joten lisäriviä ei tehty erikseen. Toteutetut osat:
   kun `document.activeElement` on `[data-set-field]` — semanttinen tila,
   ei korkeusheuristiikka, koska `innerHeight` itse kutistuu Androidilla.
   Kosketuslaitteella paino- ja toistokentät eivät ole fokusoituina
-  (`blurKeypadInputOnTouch`), joten tila koskee siellä huomiokenttää.
+  (`blurKeypadInputOnTouch`), ja sarjan huomiokenttä on sittemmin poistettu,
+  joten sarjariveillä tila ei kosketuslaitteella käytännössä ole päällä.
   CSS: `.bottom-nav` `display:none` ja `#rest-timer-mini` piiloon vain, kun
   kirjausnäppäimistö ei ole auki (sen kanssa palkki nostetaan näppäimistön
   yläpuolelle, käyttäjän aiempi päätös).
@@ -669,9 +673,9 @@ sarjarivillä, joten lisäriviä ei tehty erikseen. Toteutetut osat:
   riitä). `restTimerPrevFocusKey` (`focusDescriptor`) palauttaa fokuksen
   piirron jälkeen syntyneeseen kenttään, koska ✓ piirtää näkymän ajastimen
   käynnistyksen jälkeen ja talletettu DOM-solmu ei enää ole dokumentissa.
-- Huomiokentällä on `enterkeyhint="done"` ja Enter sulkee laitteen
-  näppäimistön (`blur`); paino- ja toistokentissä Enter on edelleen
-  `keypadNext`. Toistoille ei lisätty ±1-painikkeita (käyttäjän päätös:
+- Sarjan huomiokenttä (`enterkeyhint="done"`, Enter sulki laitteen
+  näppäimistön) on sittemmin poistettu käyttäjän päätöksellä; paino- ja
+  toistokentissä Enter on edelleen `keypadNext`. Toistoille ei lisätty ±1-painikkeita (käyttäjän päätös:
   toistoille ei säätimiä), eikä Chromium-kohtaista VirtualKeyboard-
   rajapintaa käytetä.
 
