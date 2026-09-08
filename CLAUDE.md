@@ -864,9 +864,15 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   jolloin laskenta supistuu entiseen. `weightFromFeel(weight, reps, rir,
   targetReps, progression)` = `MROUND(weight × (1 + (reps + rir)/30) ×
   progression / (1 + (targetReps + TARGET_RIR)/30), 2,5)` on yhteinen
-  kaava: `buildDraftRows` käyttää sitä (status `"feel"`, ilman hit/near/
-  missed-rajoja) kun viitesarjalla `last.sets[k].rpe` on luku, `inferPlan`
-  aina, ja `applyWarmupAdjustment` progressiolla 1, kun valmis lämmittely on
+  kaava: `buildDraftRows` käyttää sitä `feelSuggestion()`-apurin kautta
+  (status `"feel"`, ilman hit/near/missed-rajoja) kun viitesarjalla
+  `last.sets[k].rpe` on luku — poikkeus: RIR 0 (Äärirajoilla) ja
+  `prevReps >= targetReps` → `prevWeight` sellaisenaan (valmennuksellinen
+  peruste: tavoitteen täyttänyt loppusarja on normaali, kevennys jakaisi
+  volyymin vain uudelleen; kevennys vasta vajeesta; testi
+  `test_feel_rule.js`, tavoite 10 ja 42,5 kg: sujuva/työläs/äärirajoilla
+  → 45 / 42,5 / 42,5) — `inferPlan` samalla apurilla, ja
+  `applyWarmupAdjustment` progressiolla 1, kun valmis lämmittely on
   työsarjan tasoinen (paino ≥ ensimmäisen työsarjan `base`, toistot ≥
   tavoite): jokainen keskeneräinen ja käsin muokkaamaton työsarja saa
   painon, `warmupAdjust.status === "worklevel"` (`from`, `to`, `sets`,
@@ -903,16 +909,18 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   - ilman tuntumaa (perSet-tila `"near"` tai `"missed"`): vaje =
     `prevReps < targetReps`, kevennys `floorToStep(prevWeight ×
     DELOAD_FACTOR)` — täsmälleen entinen;
-  - tuntuman kanssa (perSet-tila `"feel"`): vaje =
-    `prevReps + tuntumaToRir(prevRpe) < targetReps + TARGET_RIR`
-    (tavoitteen täyttänyt Äärirajoilla-sarja on vaje, kaksi vajaaksi
-    jäänyt Kevyt-sarja ei), kevennys
-    `floorToStep(feelTargetWeight(prevWeight, prevReps, RIR, targetReps,
-    DELOAD_FACTOR))`, jossa `feelTargetWeight` on `weightFromFeel`-kaavan
-    pyöristämätön ydin (ehdotus pyöristää lähimpään, kevennys alaspäin).
-    Esimerkit tavoitteella 12: 162,5 × 10 Äärirajoilla → 132,5; 162,5 × 12
-    Työläs → 145 (sama kuin ilman tuntumaa); 162,5 × 12 Äärirajoilla →
-    137,5; 162,5 × 10 Kevyt → ei vajetta, ehdotus 165.
+  - tuntuman kanssa (perSet-tila `"feel"`): vaje = `feelShortfall()` =
+    `prevReps + tuntumaToRir(prevRpe) < targetReps + TARGET_RIR`, paitsi
+    RIR 0 ja `prevReps >= targetReps` ei ole vaje (sama poikkeus kuin
+    `feelSuggestion`; kaksi vajaaksi jäänyt Kevyt-sarja ei ole vaje);
+    kevennys `floorToStep(feelTargetWeight(prevWeight, prevReps, RIR,
+    targetReps, DELOAD_FACTOR))`, jossa `feelTargetWeight` on
+    `weightFromFeel`-kaavan pyöristämätön ydin (ehdotus pyöristää
+    lähimpään, kevennys alaspäin) — RIR 0 ja toistot täyttyivät kevennetään
+    kuten ilman tuntumaa. Esimerkit tavoitteella 12: 162,5 × 10
+    Äärirajoilla → 132,5; 162,5 × 12 Työläs → 145 (sama kuin ilman
+    tuntumaa); 162,5 × 12 Äärirajoilla → ei vajetta (toisen sarjan
+    laukaisemana 145); 162,5 × 10 Kevyt → ei vajetta, ehdotus 165.
   `perSet.prevRpe` säilyy `"deload"`-tilassa, joten `autoCalcHint` kertoo
   sarjan tuntumineen ("S1: 162,5 kg × 10 toistoa, äärirajoilla →
   kevennys") ja jumibanneri on "(−10 % tuntuma huomioiden)"; ilman

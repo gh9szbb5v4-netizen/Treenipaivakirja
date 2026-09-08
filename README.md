@@ -140,7 +140,7 @@ RIR tuntuman mukaan: Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0.
 Ilman tuntumaa RIR = 2, jolloin kaava vastaa aiempaa laskentaa.
 ```
 
-Esimerkkejä tavoitteella 12 toistoa edellisestä sarjasta 162,5 kg × 12: Kevyt → 172,5 kg, Työläs → 165 kg (sama kuin ilman tuntumaa), Äärirajoilla → 157,5 kg. Selite kertoo sarjakohtaisesti edellisen sarjan, tuntuman ja lopputuloksen. Kehitys-näkymän 1RM lasketaan edelleen ilman RIR-lisäystä, jotta historia pysyy vertailukelpoisena vanhojen, tuntumattomien merkintöjen kanssa.
+Äärirajoilla-tuntuma keventää painoa vain, jos toistot jäivät alle tavoitteen: tavoitteen täyttänyt, äärirajoilla tehty sarja pitää painon (`RIR = 0 ja edelliset_toistot ≥ tavoitetoistot → paino = edellinen_paino`), koska se on apuliikkeen loppusarjalle normaali tila ja kevennys jakaisi volyymin vain uudelleen sarjojen kesken. Esimerkkejä tavoitteella 12 toistoa edellisestä sarjasta 162,5 kg × 12: Kevyt → 172,5 kg, Työläs → 165 kg (sama kuin ilman tuntumaa), Äärirajoilla → 162,5 kg (paino pidetty); 162,5 kg × 10 Äärirajoilla → 155 kg. Tavoitteella 10 toistoa ja edellisellä kerralla 42,5 kg × 10 sujuva / työläs / äärirajoilla ehdotus on 45 / 42,5 / 42,5 kg (1 300 kg), ei 45 / 42,5 / 40 kg. Selite kertoo sarjakohtaisesti edellisen sarjan, tuntuman ja lopputuloksen. Kehitys-näkymän 1RM lasketaan edelleen ilman RIR-lisäystä, jotta historia pysyy vertailukelpoisena vanhojen, tuntumattomien merkintöjen kanssa.
 
 **Lämmittelysäätö.** Liikkeelle voi lisätä lämmittelysarjoja, joille kirjataan paino, toistot ja tuntuma. Tuntuma valitaan viidestä hymiöstä yhdellä rivillä, ja pieni selite kertoo niiden merkityksen; asteikko vastaa kysymykseen, montako toistoa olisi vielä jaksanut: 😁 Kevyt (neljä tai enemmän), 🙂 Sujuva (kolme), 😐 Työläs (kaksi), 😮‍💨 Raskas (yksi) ja 🥵 Äärirajoilla (ei yhtään). Uusi lämmittelysarja tulee aiempien lämmittelyjen perään (L1, L2, …). Sisäisesti pykälät tallennetaan RPE-lukuina 6–10, joten laskenta ja aiemmat kirjaukset ovat ennallaan. Ensin tarkistetaan, onko valmiiksi merkitty lämmittely tosiasiassa työsarjan tasoinen: paino vähintään ensimmäisen työsarjan ehdotettu paino ja toistot vähintään liikkeen tavoitetoistot. Silloin vertailudataa ei tarvita, vaan jokainen vielä merkitsemätön ja käsin muokkaamaton työsarja saa painon samalla tuntumakaavalla ilman progressiota (`paino = MROUND( lämmittelypaino × (1 + (lämmittelytoistot + RIR) / 30) / (1 + (tavoitetoistot + 2) / 30) , 2,5 )`; ilman tuntumaa RIR = 2). Esimerkiksi tavoitteella 12 toistoa ja ehdotuksella 162,5 kg lämmittely 162,5 kg × 12 antaa Kevyellä 170 kg, Sujuvalla 165 kg, Työläällä 162,5 kg (paino pidetty), Raskaalla 160 kg ja Äärirajoilla 155 kg. Selite kertoo säädetyt sarjat ("sarjat 2–3 säädetty 162,5 → 170 kg" tai "paino pidetty"); tuntuman vaihto lasketaan aina alkuperäisestä ehdotuksesta, ja lämmittelyrivi säilyy lämmittelynä datassa ja Historiassa. Muuten saman treenin painavin valmiiksi merkitty lämmittely, jolle on annettu tuntuma, verrataan liikkeen aiempiin lämmittelyihin, joissa paino on 2,5 kg:n sisällä ja toistot samat. Jos vertailudataa ei vielä ole, työsarjoja ei säädetä ja selite kertoo tämän. Muuten aiempien tuntumien keskiarvosta lasketaan ero: vähintään kaksi pykälää raskaampi → työsarjat −10 %, vähintään yksi pykälä raskaampi → −5 %, vähintään yksi pykälä kevyempi → +2,5 %, muuten ennallaan; paino pyöristetään alaspäin 2,5 kg:n askeleeseen. Säätö koskee vain progressioehdotuksen tuottamia rivejä, joita ei ole muokattu käsin, ja vain tehottomia liikkeitä. Lämmittelyt tallentuvat merkinnän mukana ja liikkeen kolmen viimeisimmän kerran historiaan, mutta ne eivät vaikuta Historian ja Kehityksen laskentaan, eivät käynnistä lepoajastinta eivätkä vielä sisälly CSV-vientiin.
 
@@ -149,15 +149,17 @@ Sovellus muistaa liikkeen kolme viimeisintä kertaa. **Jumitunnistus ja kevennys
 ```
 vaje ilman tuntumaa:   edelliset_toistot < tavoitetoistot
 vaje tuntuman kanssa:  edelliset_toistot + RIR < tavoitetoistot + 2
-  (tavoitteen täyttänyt mutta Äärirajoilla tehty sarja on vaje,
-   kaksi vajaaksi jäänyt mutta Kevyt ei ole)
+  (kaksi vajaaksi jäänyt mutta Kevyt ei ole vaje;
+   poikkeus: RIR = 0 ja edelliset_toistot ≥ tavoitetoistot ei ole vaje,
+   sama sääntö kuin ehdotuksessa)
 
 kevennys ilman tuntumaa:  paino = FLOOR( edellinen_paino × 0,90 , 2,5 )
 kevennys tuntuman kanssa: paino = FLOOR( edellinen_paino × (1 + (edelliset_toistot + RIR) / 30) × 0,90
                                          / (1 + (tavoitetoistot + 2) / 30) , 2,5 )
+  (RIR = 0 ja toistot täyttyivät: kuten ilman tuntumaa)
 ```
 
-Esimerkkejä tavoitteella 12 toistoa: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg (sama kuin ilman tuntumaa), 162,5 kg × 12 Äärirajoilla → 137,5 kg (vaje kapasiteettina, vaikka toistot täyttyivät) ja 162,5 kg × 10 Kevyt → ei vajetta eikä kevennystä. Kevennyksen pohjalta kirjattu kerta merkitään, eikä uutta kevennystä ehdoteta ennen kuin sen jälkeen on kolme tavallista kertaa.
+Esimerkkejä tavoitteella 12 toistoa: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg (sama kuin ilman tuntumaa), 162,5 kg × 12 Äärirajoilla → ei vajetta eikä kevennystä (toisen sarjan vajeen laukaisemana 145 kg) ja 162,5 kg × 10 Kevyt → ei vajetta eikä kevennystä. Kevennyksen pohjalta kirjattu kerta merkitään, eikä uutta kevennystä ehdoteta ennen kuin sen jälkeen on kolme tavallista kertaa.
 
 Kehitys-näkymän laskennallinen 1 toiston maksimi on tästä erillinen, eikä siihen vaikuta liikkeen teho tai manuaalinen 1RM. Se lasketaan aina samalla Epley-kaavalla
 

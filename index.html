@@ -583,6 +583,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-08", items: [
+      "Äärirajoilla-tuntuma keventää seuraavan kerran ehdotusta vain, jos toistot jäivät alle tavoitteen. Tavoitteen täyttänyt, äärirajoilla tehty sarja pitää painon: kolmen samapainoisen sarjan jälkeen ehdotus on esimerkiksi 45 / 42,5 / 42,5 kg eikä 45 / 42,5 / 40 kg, jolloin volyymi nousee eikä vain jakaudu uudelleen sarjojen kesken. Sujuva nostaa ja Työläs pitää painon kuten ennen. Sama sääntö koskee jumitunnistusta: tavoitteen täyttänyt äärirajoilla-sarja ei ole vaje eikä laukaise kolmen kerran kevennystä, ja toisen sarjan laukaisemana se kevenee kuten ilman tuntumaa.",
       "Kirjausnäppäimistössä on nyt ✓-näppäin, joka merkitsee kohdesarjan valmiiksi (tai poistaa merkinnän) poistumatta näppäimistöltä — sama toiminto kuin rivin ✓, joten lepoajastin käynnistyy kuten ennenkin paitsi liikkeen viimeisestä sarjasta. ±2,5 kg ovat sen yläpuolella ja Seuraava alakulmassa kuten ennen.",
       "Kenttä ei enää menetä fokusta, kursorin paikkaa tai vieritysasemaa, kun näkymä piirretään uudelleen kesken kirjoituksen: esimerkiksi \"+ Sarja\" tai sarjan ✓ huomiokenttää tai fyysisellä näppäimistöllä kirjoitettaessa pitää kentän aktiivisena ja laitteen näppäimistön auki, eikä näkymä hypähdä. Lepoajastimen sulkeminen palauttaa fokuksen samaan sarjakenttään ja tuo sen näkyviin. Tabletin liikepaneelin vieritys säilyy piirron yli.",
       "Avattu liike vieritetään aina näytön yläreunaan (aiemmin vain, jos kortti oli näytön ulkopuolella tai alaosassa), jotta koko sarjataulukko on näkyvissä samassa paikassa joka avauksella. Huomiokenttä ja muut laitteen näppäimistöä käyttävät kentät (1RM, lepoaika, muokkaustilan yksikkö ja teho) tuodaan näkyvän alueen keskelle, kun ne fokusoidaan ja kun laitteen näppäimistö avautuu tai laite käännetään; selaimen oma fokusvieritys jättää kentän alavalikon ja kirjausnäppäimistön yläpuolelle.",
@@ -592,7 +593,7 @@
       "Ohjelman muokkauksessa ja rakentamisessa liikkeen nimi valitaan aina liikelistasta: lomakkeen nimikentän napautus avaa koko listan, jonka ensimmäinen ryhmä \"Ohjelmassa ja historiassa\" sisältää nimet, joilla on jo merkintöjä tai jotka ovat ohjelmassa — myös liikepankin nimet, jos niillä on historiaa — joten oikean nimen valinta yhdistää liikkeen vanhoihin historiatietoihin. Sen jälkeen tulee koko liikepankki lihasryhmittäin, ja haku suodattaa nimen, lihasryhmän ja välineen mukaan. Valitsin näyttää nykyisen nimen, ja \"Muokkaa nimeä\" tuo sen hakukenttään; listalta puuttuvan nimen voi yhä ottaa käyttöön sellaisenaan.",
     ] },
     { date: "2026-09-07", items: [
-      "Tuntuma vaikuttaa nyt painoehdotukseen: viime kerran sarjan tuntuma tulkitaan varastoon jääneiksi toistoiksi (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0) ja lisätään Epley-laskentaan, joten kevyeltä tuntunut sarja nostaa seuraavan kerran ehdotusta enemmän ja äärirajoilla tehty vähemmän (esim. tavoite 12, viimeksi 162,5 kg × 12: Kevyt 172,5 kg, Työläs 165 kg, Äärirajoilla 157,5 kg). Ilman tuntumaa ehdotus on entinen. Kehitys-näkymän 1RM ei muutu.",
+      "Tuntuma vaikuttaa nyt painoehdotukseen: viime kerran sarjan tuntuma tulkitaan varastoon jääneiksi toistoiksi (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0) ja lisätään Epley-laskentaan, joten kevyeltä tuntunut sarja nostaa seuraavan kerran ehdotusta enemmän ja äärirajoilla tehty vähemmän (esim. tavoite 12, viimeksi 162,5 kg × 12: Kevyt 172,5 kg, Työläs 165 kg, Äärirajoilla 162,5 kg). Ilman tuntumaa ehdotus on entinen. Kehitys-näkymän 1RM ei muutu.",
       "Jumitunnistuksen kevennys noudattaa samaa tuntumasääntöä. Kun viime kerran sarjalle on kirjattu tuntuma, sarja lasketaan vajaaksi, jos toistot ja varastoon jääneet toistot yhteensä jäivät alle tavoitetoistot + 2: tavoitteen täyttänyt mutta Äärirajoilla tehty sarja on vaje, kaksi vajaaksi jäänyt mutta Kevyt ei ole. Kevennys on silloin 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen (esim. tavoite 12: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Äärirajoilla → 137,5 kg), ja selite lisää \"tuntuma huomioiden\". Ilman tuntumaa vaje ja 10 %:n kevennys ovat entiset.",
       "Työsarjalle voi antaa tuntuman rivin ⋮-painikkeesta samalla hymiöasteikolla kuin lämmittelylle; valinta on vapaaehtoinen, näkyy pienenä merkkinä ⋮-painikkeessa ja poistuu napauttamalla valittua hymiötä uudelleen (sama koskee lämmittelyä). Tuntuma tallentuu merkintään ja varmuuskopion uuteen Tuntuma-sarakkeeseen; vanhat varmuuskopiot tuodaan ennallaan.",
       "Lämmittely, joka on työsarjan tasoinen (paino vähintään ensimmäisen työsarjan ehdotus ja toistot vähintään tavoite), säätää jäljellä olevat työsarjat heti tuntuman mukaan ilman vertailudataa: Työläs pitää painon, kevyempi nostaa, raskaampi keventää. Valmiit ja käsin muokatut sarjat säilyvät, ja selite kertoo säädetyt sarjat.",
@@ -740,6 +741,24 @@
   }
   function weightFromFeel(weight, reps, rir, targetReps, progression){
     return roundToStep(feelTargetWeight(weight, reps, rir, targetReps, progression), WEIGHT_STEP);
+  }
+  // Seuraavan kerran sarjakohtainen ehdotus edellisen sarjan tuntumasta.
+  // Valmennuksellinen peruste: äärirajoilla (RIR 0) tehty sarja, jonka
+  // toistot täyttyivät, on apuliikkeen loppusarjalle normaali tila, joten
+  // paino pidetään — näin volyymi nousee eikä vain jakaudu uudelleen
+  // sarjojen kesken (45 / 42,5 / 42,5, ei 45 / 42,5 / 40). Kevennys
+  // (weightFromFeel-kaava) vasta, kun toistot jäivät alle tavoitteen.
+  // Ilman tavoitetoistoja vajetta ei voi todeta, joten paino pidetään.
+  function feelSuggestion(prevWeight, prevReps, rir, targetReps){
+    if(rir === 0 && (!isFinite(targetReps) || prevReps >= targetReps)) return roundToStep(prevWeight, WEIGHT_STEP);
+    return weightFromFeel(prevWeight, prevReps, rir, targetReps, PROGRESSION_COEFFICIENT);
+  }
+  // Jumitunnistuksen vaje tuntuman kanssa samalla säännöllä: kapasiteetti
+  // (toistot + RIR) alle tavoite + TARGET_RIR, paitsi äärirajoilla tehty
+  // sarja, jonka toistot täyttyivät, ei ole vaje.
+  function feelShortfall(prevReps, rir, targetReps){
+    if(rir === 0 && prevReps >= targetReps) return false;
+    return prevReps + rir < targetReps + TARGET_RIR;
   }
   // Kehityksen 1RM on paras arvo liukuvalta jaksolta, jotta submaksimaaliset
   // treenipäivät eivät pudota lukua (Epley olettaa sarjan tehdyksi uupumukseen).
@@ -3907,7 +3926,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
               // missed-haarojen rajoja — tuntuma kertoo todellisen kapasiteetin
               // (toistot + varastoon jääneet), ja katto tai lattia kumoaisi sen.
               status = "feel";
-              next = weightFromFeel(prevWeight, prevReps, tuntumaToRir(prevRpe), targetReps, PROGRESSION_COEFFICIENT);
+              next = feelSuggestion(prevWeight, prevReps, tuntumaToRir(prevRpe), targetReps);
               if(next <= 0) next = WEIGHT_STEP;
             } else if(diff >= 0){
               status = "hit";
@@ -3958,8 +3977,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             });
             maxes.push(mw);
           }
+          // Tuntuman kanssa vaje on kapasiteettivaje (toistot + RIR alle
+          // tavoite + TARGET_RIR) — paitsi äärirajoilla tehty sarja, jonka
+          // toistot täyttyivät: sama valmennuksellinen peruste kuin
+          // feelSuggestion-apurissa (loppusarjalle normaali tila, ei vaje).
           var anyShortfall = perSet.some(function(p){
-            if(p.status === "feel") return p.prevReps + tuntumaToRir(p.prevRpe) < targetReps + TARGET_RIR;
+            if(p.status === "feel") return feelShortfall(p.prevReps, tuntumaToRir(p.prevRpe), targetReps);
             return p.status === "near" || p.status === "missed";
           });
           if(!flagged && anyShortfall && maxes[0] > 0 && maxes[0] <= maxes[maxes.length - 1]){
@@ -3970,9 +3993,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
                 // Kevennys: ilman tuntumaa 90 % edellisestä painosta; tuntuman
                 // kanssa 90 % RIR-korjatusta 1RM-arviosta tavoitetoistoille
                 // (sama kaava kuin ehdotuksessa, progressiona DELOAD_FACTOR).
-                // Molemmat pyöristetään alaspäin 2,5 kg:n askeleeseen.
-                var dl = perSet[d].status === "feel"
-                  ? floorToStep(feelTargetWeight(pw, perSet[d].prevReps, tuntumaToRir(perSet[d].prevRpe), targetReps, DELOAD_FACTOR), WEIGHT_STEP)
+                // Tavoitteen täyttänyt äärirajoilla-sarja kevennetään kuten
+                // ilman tuntumaa (RIR 0 -arvio ei rankaise normaalia
+                // loppusarjaa). Molemmat pyöristetään alaspäin 2,5 kg:n
+                // askeleeseen.
+                var dRir = perSet[d].status === "feel" ? tuntumaToRir(perSet[d].prevRpe) : null;
+                var dl = (perSet[d].status === "feel" && !(dRir === 0 && perSet[d].prevReps >= targetReps))
+                  ? floorToStep(feelTargetWeight(pw, perSet[d].prevReps, dRir, targetReps, DELOAD_FACTOR), WEIGHT_STEP)
                   : floorToStep(pw * DELOAD_FACTOR, WEIGHT_STEP);
                 if(dl <= 0) dl = WEIGHT_STEP;
                 formulaRows[d].weight = String(dl);
@@ -4497,8 +4524,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var refWeight = toNumber(ref.weight), refReps = toNumber(ref.reps);
       var targetReps = plan.reps !== null ? plan.reps : refReps;
       if(isFinite(refWeight) && isFinite(refReps) && refWeight > 0 && isFinite(targetReps)){
-        // Sama kaava kuin buildDraftRows: tuntuma RIR-arvona, puuttuva = TARGET_RIR.
-        plan.suggestedWeight = weightFromFeel(refWeight, refReps, tuntumaToRir(ref.rpe), targetReps, PROGRESSION_COEFFICIENT);
+        // Sama sääntö kuin buildDraftRows: tuntuma RIR-arvona, puuttuva = TARGET_RIR.
+        plan.suggestedWeight = feelSuggestion(refWeight, refReps, tuntumaToRir(ref.rpe), targetReps);
       }
     }
     return plan;
@@ -6514,9 +6541,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("3. Painoehdotukset", ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus lasketaan jokaiselle sarjalle erikseen viime kerran samasta sarjasta. Jos tavoitetoistot täyttyivät, paino nousee vähintään 2,5 kg ja enintään 5 %; jos toistoja jäi yksi vajaaksi, paino pysyy samana; jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 % alaspäin pyöristäen. Sarjarivin yläpuolella kerrotaan jokaisen sarjan peruste."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Tuntuma ehdotuksessa:</b> jos viime kerran sarjalle on kirjattu tuntuma (rivin ⋮-painikkeesta), se tulkitaan varastoon jääneiksi toistoiksi — Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0 — ja lisätään toistoihin Epley-kaavassa. Ehdotus on paino, jolla tavoitetoistot tuntuisivat Työläältä, 1,25 % kehityksellä, ilman edellä mainittuja nosto- ja kevennyshaaroja ja niiden rajoja: sama paino ja toistot antavat Kevyellä suuremman ehdotuksen kuin Äärirajoilla (esim. tavoite 12, viimeksi 162,5 kg × 12: Kevyt 172,5 kg, Työläs 165 kg, Äärirajoilla 157,5 kg). Ilman tuntumaa laskenta on täsmälleen entinen (Työläs). Kehitys-näkymän 1RM lasketaan aina ilman tuntumaa, jotta historia pysyy vertailukelpoisena."
+      "<b style=\"color:var(--chalk);\">Tuntuma ehdotuksessa:</b> jos viime kerran sarjalle on kirjattu tuntuma (rivin ⋮-painikkeesta), se tulkitaan varastoon jääneiksi toistoiksi — Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0 — ja lisätään toistoihin Epley-kaavassa. Ehdotus on paino, jolla tavoitetoistot tuntuisivat Työläältä, 1,25 % kehityksellä, ilman edellä mainittuja nosto- ja kevennyshaaroja ja niiden rajoja: sama paino ja toistot antavat Kevyellä suuremman ehdotuksen kuin Äärirajoilla. Äärirajoilla-tuntuma keventää painoa vain, jos toistot jäivät alle tavoitteen; tavoitteen täyttänyt äärirajoilla tehty sarja pitää painon, koska se on loppusarjalle normaali tila (esim. tavoite 12, viimeksi 162,5 kg × 12: Kevyt 172,5 kg, Työläs 165 kg, Äärirajoilla 162,5 kg; 162,5 kg × 10 Äärirajoilla → 155 kg). Ilman tuntumaa laskenta on täsmälleen entinen (Työläs). Kehitys-näkymän 1RM lasketaan aina ilman tuntumaa, jotta historia pysyy vertailukelpoisena."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Jumitunnistus ja kevennys:</b> jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmällä kerralla vähintään yksi sarja jäi vajaaksi, sovellus ehdottaa kevennystä ja selite kertoo syyn. Ilman tuntumaa vaje tarkoittaa tavoitetta vähempiä toistoja ja kevennys on 10 % edellisen kerran sarjan painosta alaspäin pyöristäen. Tuntuman kanssa vaje mitataan toistoista ja varastosta yhteensä: sarja on vajaa, kun toistot + varastoon jääneet toistot jäävät alle tavoitetoistot + 2 — tavoitteen täyttänyt mutta Äärirajoilla tehty sarja on vaje, ja kaksi vajaaksi jäänyt mutta Kevyt ei ole — ja kevennys on 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen, jolloin selite lisää \"tuntuma huomioiden\" (esim. tavoite 12: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg eli sama kuin ilman tuntumaa, 162,5 kg × 12 Äärirajoilla → 137,5 kg). Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta."
+      "<b style=\"color:var(--chalk);\">Jumitunnistus ja kevennys:</b> jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmällä kerralla vähintään yksi sarja jäi vajaaksi, sovellus ehdottaa kevennystä ja selite kertoo syyn. Ilman tuntumaa vaje tarkoittaa tavoitetta vähempiä toistoja ja kevennys on 10 % edellisen kerran sarjan painosta alaspäin pyöristäen. Tuntuman kanssa vaje mitataan toistoista ja varastosta yhteensä: sarja on vajaa, kun toistot + varastoon jääneet toistot jäävät alle tavoitetoistot + 2 — kaksi vajaaksi jäänyt mutta Kevyt ei ole vaje. Tavoitteen täyttänyt äärirajoilla tehty sarja ei ole vaje, ja se kevennetään kuten ilman tuntumaa — sama sääntö kuin ehdotuksessa. Muuten kevennys on 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen, jolloin selite lisää \"tuntuma huomioiden\" (esim. tavoite 12: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg eli sama kuin ilman tuntumaa; 162,5 kg × 12 Äärirajoilla ei laukaise kevennystä, ja toisen sarjan vajeen laukaisemana se kevenee 145 kg:aan). Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
     ) + ohjeP(
