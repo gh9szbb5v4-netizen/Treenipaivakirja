@@ -450,6 +450,12 @@
   .pick-item.pick-free{border-style:dashed; color:var(--brass);}
   .editor-note{padding:0 12px 10px; font-size:var(--fs-xs); line-height:1.45;}
   .editor-row.needs-review{border-color:var(--brass); background:rgba(201,162,39,0.08);}
+  /* Liikkeen nimen tunnistus muokkaustilassa: vihreä = liikepankissa tai
+     historiassa, messinki = tunnistamaton (lisätään uutena liikkeenä). */
+  .name-known{color:var(--success);}
+  .name-unknown{color:var(--brass);}
+  .recognition-note{color:var(--brass); font-weight:700;}
+  .recognition-ok{color:var(--success); font-size:var(--fs-xs); margin-top:6px;}
   .upload-box p{color:var(--mist); font-size:var(--fs-md); line-height:1.55; margin:0 0 12px;}
   .csv-example{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; background:var(--surface-2); padding:10px; border-radius:8px; overflow-x:auto; white-space:nowrap; color:var(--mist); margin-bottom:16px;}
 
@@ -552,6 +558,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-08", items: [
+      "Ohjelman rakentamisessa ja muokkauksessa liikkeen nimi näkyy vihreänä, kun liike on sama kuin liikepankissa tai liikehistoriassa, ja messinkisenä huomiotekstillä \"Liikettä ei tunnistettu liikepankista eikä historiasta — se lisätään uutena liikkeenä\", kun nimeä ei voi yhdistää tunnettuun liikkeeseen. Sama tieto näkyy liikelomakkeessa nimen alla heti valinnan jälkeen.",
       "Ohjelman rakentamisessa ja muokkauksessa liikkeen sarjat ja toistot kirjataan samalla sovelluksen omalla näppäimistöllä kuin Ohjelma-näkymässä: kentän napautus avaa sen, Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, ja Peruuta/Valmis-palkki on piilossa näppäimistön ajan. Laitteen näppäimistö ei enää avaudu näihin kenttiin; yksikkö ja teho kirjoitetaan edelleen sillä.",
       "Ohjelman muokkauksessa ja rakentamisessa liikkeen nimi valitaan aina liikelistasta: lomakkeen nimikentän napautus avaa koko listan, jonka ensimmäinen ryhmä \"Ohjelmassa ja historiassa\" sisältää nimet, joilla on jo merkintöjä tai jotka ovat ohjelmassa — myös liikepankin nimet, jos niillä on historiaa — joten oikean nimen valinta yhdistää liikkeen vanhoihin historiatietoihin. Sen jälkeen tulee koko liikepankki lihasryhmittäin, ja haku suodattaa nimen, lihasryhmän ja välineen mukaan. Valitsin näyttää nykyisen nimen, ja \"Muokkaa nimeä\" tuo sen hakukenttään; listalta puuttuvan nimen voi yhä ottaa käyttöön sellaisenaan.",
     ] },
@@ -6457,7 +6464,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Aloita uudelleen</b> merkitsee kohteen liikkeet tekemättömiksi — koko ohjelman, viikon, päivän tai yhden liikkeen. Historia ja painoehdotukset säilyvät, koska ne on sidottu liikkeen nimeen.",
       "Liikkeen <b style=\"color:var(--chalk);\">nimen muuttaminen</b> toimii kuten \"Vaihda liike toiseksi\": aiemmat merkinnät jäävät Historiaan vanhalla nimellä. Valinnan mukaan muutos koskee kaikkia saman liikkeen esiintymiä, myös kopioituja viikkoja.",
       "Sarjojen, toistojen, yksikön tai tehon muuttaminen nimeä muuttamatta säilyttää liikkeen ennallaan — myös jo tehty merkintä pysyy tehtynä.",
-      "<b style=\"color:var(--chalk);\">Sarjat ja toistot</b> kirjataan lomakkeessa samalla näppäimistöllä kuin Ohjelma-näkymässä: Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, nuoli sulkee milloin tahansa. Yksikkö ja teho kirjoitetaan laitteen näppäimistöllä."
+      "<b style=\"color:var(--chalk);\">Sarjat ja toistot</b> kirjataan lomakkeessa samalla näppäimistöllä kuin Ohjelma-näkymässä: Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, nuoli sulkee milloin tahansa. Yksikkö ja teho kirjoitetaan laitteen näppäimistöllä.",
+      "<b style=\"color:var(--chalk);\">Liikkeen tunnistus:</b> liikkeen nimi näkyy vihreänä, kun se on sama kuin liikepankissa tai liikehistoriassa, jolloin painoehdotukset ja Kehitys jatkuvat vanhoista tiedoista. Messinkinen nimi ja huomioteksti kertovat, ettei nimeä tunnistettu — liike lisätään uutena. Valitse silloin nimi liikelistasta, jos tarkoitat jo tunnettua liikettä."
     ]));
 
     html += ohjeSection("6. Asetukset (alavalikon viimeinen kohta)", ohjeP(
@@ -7761,9 +7769,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // historian nimet ovat tarjolla myös laitteilla, joilla datalist ei
     // näytä ehdotuksia (iOS Safari), ja vapaa nimi annetaan listan hausta.
     var hasName = !!(f.name && String(f.name).trim());
+    var formRecog = hasName ? exerciseRecognition(f.name) : null;
     return '<div class="exercise" style="padding:12px 14px; border-color:var(--brass); margin-bottom:10px;">' +
       '<button type="button" class="ledger-input pick-field' + (hasName ? "" : " empty") + '" data-open-sheet="liike" data-editor-name aria-label="' + (hasName ? "Liikkeen nimi: " + escapeHtml(f.name) + ". Valitse liikelistasta" : "Valitse liike liikelistasta") + '">' +
-      '<span class="pick-field-text">' + (hasName ? escapeHtml(f.name) : "Valitse liike") + '</span>' + icon("haku", 20) + '</button>' +
+      '<span class="pick-field-text' + (formRecog ? (formRecog.status !== "unknown" ? " name-known" : " name-unknown") : "") + '">' + (hasName ? escapeHtml(f.name) : "Valitse liike") + '</span>' + icon("haku", 20) + '</button>' +
+      // Tunnistuksen tila heti nimen alla, jotta valinnan vaikutus näkyy ennen tallennusta.
+      (formRecog ? (formRecog.status !== "unknown"
+        ? '<div class="recognition-ok" data-form-recognition="' + formRecog.status + '">Tunnistettu: ' + escapeHtml(formRecog.label) + '</div>'
+        : '<div class="recognition-note" data-form-recognition="unknown" style="margin-top:6px; font-size:var(--fs-xs);">' + RECOGNITION_NOTE + '</div>') : '') +
       '<div style="display:flex; gap:8px; margin-top:8px;">' +
       // Sarjat ja toistot kirjataan samalla kirjausnäppäimistöllä kuin
       // Ohjelma-näkymässä (inputmode="none": laitteen näppäimistö ei avaudu).
@@ -7783,8 +7796,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<button type="button" class="btn-primary" data-edit-form-save>Tallenna</button>' +
       '</div></div>';
   }
+  // Liikkeen nimen tunnistus muokkaustilassa: onko nimi sama kuin
+  // liikepankissa (catalogPartsFor: koostettu nimi tai liikenimi, myös omat
+  // liikkeet) tai liikehistoriassa (lastSet/manualMax samalla
+  // trim+toLowerCase-avaimella kuin painoehdotus). Tunnistamaton nimi
+  // käsitellään uutena liikkeenä, ja siitä kerrotaan rivillä ja lomakkeessa.
+  function exerciseRecognition(name){
+    var trimmed = String(name || "").trim();
+    if(!trimmed) return { status: "unknown", label: "" };
+    var norm = trimmed.toLowerCase();
+    if(state.lastSet[norm] || state.manualMax[norm]) return { status: "history", label: "historiassa" };
+    if(catalogPartsFor(trimmed)) return { status: "catalog", label: "liikepankissa" };
+    return { status: "unknown", label: "" };
+  }
+  var RECOGNITION_NOTE = "Liikettä ei tunnistettu liikepankista eikä historiasta — se lisätään uutena liikkeenä.";
   function renderEditorExercise(ex, idx, count){
     var ed = state.editor;
+    var recog = exerciseRecognition(ex.name);
+    var recogKnown = recog.status !== "unknown";
     var menuKey = "ex:" + ex.id, menuOpen = ed.menuFor === menuKey;
     var target = [];
     if(ex.sets) target.push(ex.sets + " ×");
@@ -7792,10 +7821,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var html = '<div class="exercise editor-row' + (ex.needsReview ? " needs-review" : "") + '">' +
       '<div class="editor-head">' +
       '<button type="button" class="editor-title" data-edit-exercise="' + escapeHtml(ex.id) + '" aria-label="Muokkaa liikettä ' + escapeHtml(ex.name) + '">' +
-      '<span style="min-width:0;"><span class="exercise-name" style="display:block;">' + escapeHtml(ex.name) + tehoBadge(ex) + '</span>' +
+      // Nimi on vihreä, kun liike on liikepankissa tai historiassa, ja messinkinen,
+      // kun sitä ei tunnisteta; ruudunlukijalle sama tieto tekstinä.
+      '<span style="min-width:0;"><span class="exercise-name ' + (recogKnown ? "name-known" : "name-unknown") + '" style="display:block;" data-recognition="' + recog.status + '">' + escapeHtml(ex.name) +
+      (recogKnown ? '<span class="sr-only"> (tunnistettu ' + escapeHtml(recog.label) + ')</span>' : '') + tehoBadge(ex) + '</span>' +
       (target.length ? '<span class="exercise-target" style="display:block;">' + escapeHtml(target.join(" ")) + '</span>' : '') + '</span></button>' +
       editorMoveButtons("ex", ex.id, idx, count) + editorMenuButton(menuKey, menuOpen) +
       '</div>' +
+      (!recogKnown ? '<div class="editor-note recognition-note">' + RECOGNITION_NOTE + '</div>' : '') +
       (ex.needsReview ? '<div class="editor-note" style="color:var(--brass); font-weight:800;">Tarkista: ' + escapeHtml(ex.needsReview) + (ex.rawTarget ? ' (”' + escapeHtml(ex.rawTarget) + '”)' : '') + '</div>' : '') +
       (ex.methodNote ? '<div class="editor-note">' + renderMethodNote(ex) + '</div>' : '') +
       (menuOpen ? '<div class="editor-strip">' +

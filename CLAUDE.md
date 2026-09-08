@@ -200,6 +200,20 @@ nimeä ei kopioida. Uusi liike luodaan täsmälleen `parseProgramCSV()`:n muodos
 `applyExerciseSwap` on puhdas (ei tallenna, ei piirrä); kirjausnäkymän vaihto
 käyttää sitä `performExerciseSwap()`:n kautta.
 
+Liikkeen tunnistus: `exerciseRecognition(name)` palauttaa `history`
+(`state.lastSet`/`state.manualMax` samalla trim+toLowerCase-avaimella kuin
+painoehdotus), `catalog` (`catalogPartsFor`, myös omat liikkeet) tai
+`unknown`. `renderEditorExercise` antaa nimelle luokan `.name-known`
+(vihreä, `--success`) tai `.name-unknown` (messinki) ja `data-recognition`-
+attribuutin, ruudunlukijalle `.sr-only`-tekstin "(tunnistettu
+liikepankissa/historiassa)" ja tunnistamattomalle rivin
+`.editor-note.recognition-note` (`RECOGNITION_NOTE`). Lomakkeessa sama tila
+on nimipainikkeen alla (`[data-form-recognition]`: `.recognition-ok`
+"Tunnistettu: …" tai huomioteksti). Ohjelman omat nimet eivät sellaisenaan
+tee liikettä tunnistetuksi — vain liikepankki ja historia — jotta
+tuonnin roskanimi ei näytä vihreältä. Testi: `test_recognition.js`
+(fixture `prog_recog.csv`).
+
 Sisääntulot: kynäkuvake `[data-edit-program]` Ohjelma-näkymän otsikossa ja
 "Muokkaa nykyistä ohjelmaa" Asetusten Ohjelma-osiossa. Välilehden vaihto
 muokkaustilassa estetään toastilla, vaikka navigaatio ei muokkaustilassa näy.
