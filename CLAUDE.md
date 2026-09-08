@@ -402,7 +402,18 @@ kutsutaan input-käsittelijästä ja ±-käsittelijästä; `ledgerTotal` on sama
 laskusääntö kuin renderLedgerissä).
 
 Kirjausnäppäimistö (0.4.3): `state.keypad = { id, idx, field, replace }`
-(null = kiinni). `renderKeypad()` piirtää `#keypad`-levyn (`position:fixed`,
+(null = kiinni) tai muokkaustilan lomakkeelle `{ kind: "editor", field:
+"sets" | "reps", replace }` (`isEditorKeypad()`): `keypadTargetRow()`
+palauttaa silloin `state.editor.form`-olion (arvo `form[field]`),
+`keypadInput()` kentän `[data-editor-field]`, `keypadLabel()` "Liike ·
+Sarjat/Toistot", asettelu on aina toistoasettelu (ei pilkkua, ei ±),
+`openEditorKeypad(field)` avautuu Sarjat/Toistot-kentän fokuksesta tai
+napautuksesta (`inputmode="none"`, korostus `editorKeypadClass`) ja muu
+lomakkeen kenttä sulkee sen, `keypadNext` siirtyy Sarjat → Toistot ja
+sulkee Toistoista, `[data-editor-field]`-input-käsittelijä päivittää
+lukeman, pohjalevyn avaus ja `editorOpenForm` nollaavat `state.keypad`-
+tilan ja `#app.keypad-open .edit-bar` on piilossa kuten alanavigaatio.
+Testi: `test_keypad_editor.js`. `renderKeypad()` piirtää `#keypad`-levyn (`position:fixed`,
 `role="region"`, `#app`-elementin loppuun render()-kutsussa, `#app` saa
 luokan `keypad-open`, joka lisää alatäytettä) vain, kun kohde on avoimen
 liikkeen sarja Ohjelma-näkymässä (`keypadTargetRow`); muuten se nollaa
