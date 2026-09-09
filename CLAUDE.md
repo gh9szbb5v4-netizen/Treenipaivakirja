@@ -88,7 +88,7 @@ Kirjaus: `renderLedger` piirtää cluster-rivin alle aina näkyvän
 painikkeet ovat 44 × 44 px kuten rivin ✓ ja lukumäärä 22 px: kehotteen
 "plus on rivin suurin kosketuskohde" (56 px, flex:1) toteutettiin ensin,
 mutta käyttäjä pyysi pienentämään ne huomattavasti muiden painikkeiden
-kokoon (käyttäjän päätös). Tuntuma ja poisto ovat ⋮-lisärivillä kuten muilla
+kokoon (käyttäjän päätös). Tuntuma ja poisto ovat RPE-lisärivillä kuten muilla
 sarjoilla (kehotteen "huomiokenttä laskurin alle" jäi toteuttamatta, koska
 sarjan huomiokenttä poistettiin käyttäjän päätöksellä). Käsittelijä
 `[data-cluster-step]`: plus kasvattaa `subsets`-arvoa, asettaa `dirtySets` ja
@@ -472,7 +472,7 @@ näytön ulkopuolelta tai alimmasta 40 %:sta" poistettiin, koska edellisen
 liikkeen sulkeutuminen siirtää kortin ennalta arvaamattomaan kohtaan.
 Leveässä asettelussa ei vieritetä (paneeli on kiinnitetty).
 
-Sarjarivi: numero, Viime, paino, toistot, ✓ ja ⋮ yhdellä rivillä
+Sarjarivi: numero, Viime, paino, toistot, ✓ ja RPE-painike yhdellä rivillä
 (`grid-template-columns:40px 52px minmax(0,1fr) minmax(0,0.8fr) 44px 40px`;
 `minmax(0, …)`, jotta otsikkorivin "TOISTOT" ei venytä omaa saraketta ja
 otsikot osuvat kenttien kohdalle; alle 375 px:n näytöllä Viime-sarake
@@ -502,8 +502,11 @@ ensimmäinen ± tuo viime kerran suurimman painon (`state.lastSet`), ei 2,5 kg
 nollasta. `state.activeSet` ja `activeSetIndex()` on poistettu (±-rivit
 sarjan alla on poistettu, eikä mikään lukenut tilaa). Tuntuma ja poisto
 ovat `state.setExtra[id][idx]`-lisärivillä (`.set-extra.warmup-feel.set-feel`:
-hymiöt ja poistopainike samalla rivillä kuten lämmittelyllä), joka on auki
-vain ⋮-painikkeesta. Sarjan huomiokenttä poistettiin käyttäjän päätöksellä
+RPE-tunniste, luvut 6–10, ?-ohjepainike ja poistopainike samalla rivillä
+kuten lämmittelyllä), joka avataan rivin RPE-painikkeesta (`.set-more`,
+entinen ⋮; `.rpe-btn-label` "RPE" ja valittu luku `.rpe-btn-val`) ja joka
+sulkeutuu itsestään valinnan jälkeen (`[data-warmup-rpe]`-käsittelijä
+poistaa `setExtra`-avaimen työsarjalta). Sarjan huomiokenttä poistettiin käyttäjän päätöksellä
 (ei käyttöä): rivin ja merkinnän `notes`-kenttä säilyy tyhjänä, Historia
 näyttää vanhat huomiot ja varmuuskopion Huomiot-sarake on ennallaan.
 "Nostettu yhteensä" päivitetään ilman render()-kutsua (`syncSubtotalDom`,
@@ -974,10 +977,11 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   ensin aiemman säädön (`weight === adjusted` → `base`), joten tuntuman
   vaihto lähtee aina alkuperäisestä ehdotuksesta. Työsarjan tuntuma on
   kentässä `rpe` kuten lämmittelyillä (ei erillistä `tuntuma`-kenttää):
-  valitsin `renderFeelPicker()` on työsarjan ⋮-lisärivillä
-  (`.set-extra.set-feel`, sama `[data-warmup-rpe]`-käsittelijä, jossa
-  valitun pykälän uusi napautus nollaa `rpe`-kentän), valittu
-  hymiö näkyy `.set-feel-mark`-merkkinä ⋮-painikkeessa, `saveExerciseLog`
+  valitsin `renderFeelPicker()` on työsarjan RPE-lisärivillä
+  (`.set-extra.set-feel`, avataan rivin RPE-painikkeesta `[data-set-more]`;
+  sama `[data-warmup-rpe]`-käsittelijä, jossa valitun luvun uusi napautus
+  nollaa `rpe`-kentän ja työsarjan rivi sulkeutuu valinnan jälkeen), valittu
+  luku näkyy `.rpe-btn-val`-merkkinä RPE-painikkeessa, `saveExerciseLog`
   vie sen merkinnän sarjaan ja `lastSet`-sarjaan, ja varmuuskopion
   `#MERKINNÄT`-osiossa on viimeisenä sarake `Tuntuma` (asteikon sana;
   `feelFromText()` lukee sanan tai luvun 6–10, puuttuva sarake = ei
@@ -1035,19 +1039,21 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   sanallisella asteikolla `WARMUP_SCALE` (Kevyt 6, Sujuva 7, Työläs 8,
   Raskas 9, Äärirajoilla 10; kuvaus = toistoja varastossa), mutta `rpe`
   tallennetaan yhä lukuna ja `data-rpe` on luku, joten käsittelijä, laskenta
-  ja vanhat kirjaukset ovat ennallaan. Painikkeissa näkyy vain pykälän hymiö
-  (`WARMUP_SCALE[i].emoji`: 😁 🙂 😐 😮‍💨 🥵; käyttäjän päätös, jotta valitsin
-  mahtuu yhdelle riville poistopainikkeen kanssa: `.feel-btn` 42 px,
-  reunus ja täyttö läpinäkyvät, jotta hymiö itse näyttää painikkeelta —
-  vain valittu saa messinkitäytön — ja `.set-extra.warmup-feel` ilman
-  Viime-sarakkeen sisennystä), ja rivin alla on
-  pieni `aria-hidden`-selite `.warmup-feel-desc` (hymiö + sana; valittu
-  pykälä `.feel-key.on`). Painikkeen aria-label sisältää sanan ja kuvauksen,
-  ryhmällä on `aria-labelledby` `.sr-only`-kysymyksestä ("Miltä lämmittely N
-  tuntui?") ja valitun pykälän kuvaus (tai `WARMUP_FEEL_PROMPT`) on
-  `.sr-only`-elementissä `aria-live="polite"`. Selitteet ja Ohje käyttävät
-  yhä sanoja (`warmupFeelWord(rpe)`; keskiarvo pyöristetään lähimpään
-  pykälään), Ohjeen luettelossa hymiö sanan edellä. Uusi lämmittelyrivi
+  ja vanhat kirjaukset ovat ennallaan. Painikkeissa näkyvät luvut 6–10
+  (käyttäjän päätös 9.9.2026: hymiöt ja rivin alla ollut selite
+  `.warmup-feel-desc` poistettiin, samoin `WARMUP_SCALE[i].emoji`):
+  rivillä on ensin `.rpe-row-label` "RPE", sitten viisi `.feel-btn`-
+  painiketta (34 × 40 px, vain valittu saa messinkitäytön) ja niiden
+  perässä `.rpe-help-btn` (`[data-open-sheet="rpe"]`), joka avaa
+  pohjalevyn "RPE-asteikko" (`renderSheet`, `.rpe-guide`: luku, sana ja
+  kuvaus `WARMUP_SCALE`-taulukosta sekä käyttövihje); `.warmup-feel-head`
+  rivittyy tarvittaessa (`flex-wrap`). Painikkeen aria-label sisältää
+  luvun, sanan ja kuvauksen, ryhmällä on `aria-labelledby` `.sr-only`-
+  kysymyksestä ("Miltä lämmittely N tuntui?") ja valitun pykälän kuvaus
+  (tai `WARMUP_FEEL_PROMPT`) on `.sr-only`-elementissä `aria-live="polite"`.
+  Selitteet ja Ohje käyttävät yhä sanoja (`warmupFeelWord(rpe)`; keskiarvo
+  pyöristetään lähimpään pykälään), Ohjeen luettelossa luku sanan edellä.
+  Uusi lämmittelyrivi
   lisätään aiempien lämmittelyjen perään (`splice(warmupRows(id).length, 0,
   …)`, ei `unshift`), jotta se on L2 eikä siirrä aiempaa L1:tä; avoimen
   näppäimistön `idx` siirtyy vastaavasti. Testit: `test_feel.js`,
