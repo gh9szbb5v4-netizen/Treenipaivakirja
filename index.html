@@ -260,11 +260,13 @@
      myös 360 px:n näytöllä (ks. .set-extra.warmup-feel). */
   .warmup-feel-btns{display:flex; flex-wrap:wrap; gap:5px;}
   /* RPE-painikkeet ovat lukuja 6–10 (käyttäjän päätös: ei hymiöitä eikä
-     selitettä rivin alla; kuvaukset ovat ?-painikkeen ohjeikkunassa). Vain
-     valittu luku saa messinkitäytön (inline-tyyli). Mitoitus: RPE-tunniste,
-     viisi 34 px:n painiketta, ?-painike ja poisto mahtuvat 390 px:n
-     näytölle yhdelle riville; kapeammalla poisto rivittyy (flex-wrap). */
-  .weight-step-btn.feel-btn{width:34px; height:40px; padding:0; font-size:15px; font-weight:800; line-height:1; border-radius:10px; font-variant-numeric:tabular-nums;}
+     selitettä rivin alla; kuvaukset ovat ?-painikkeen ohjeikkunassa).
+     Reunus ja täyttö ovat läpinäkyvät (käyttäjän päätös), jotta luku itse
+     näyttää painikkeelta; vain valittu luku saa messinkitäytön (inline-
+     tyyli). Mitoitus: RPE-tunniste, viisi 34 px:n painiketta, ?-painike ja
+     poisto mahtuvat 390 px:n näytölle yhdelle riville; kapeammalla poisto
+     rivittyy (flex-wrap). */
+  .weight-step-btn.feel-btn{width:34px; height:40px; padding:0; font-size:15px; font-weight:800; line-height:1; border-radius:10px; font-variant-numeric:tabular-nums; background:transparent; border-color:transparent;}
   .warmup-feel-btns{flex:0 1 auto; min-width:0; gap:3px;}
   .warmup-feel-head{flex-wrap:wrap;}
   /* Tekstikoot vähintään 12 px (Ohjelma-näkymän hyväksymiskriteeri). */
@@ -610,7 +612,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-09", items: [
-      "Tuntuma valitaan nyt RPE-lukuina 6–10 hymiöiden sijaan: rivin alussa lukee RPE, lukujen perässä on ?-painike, joka avaa asteikon ohjeen, ja lukujen alla ollut selite on poistettu. Sarjarivin ⋮-painike on korvattu pienellä RPE-painikkeella, joka avaa valitsimen ja näyttää valitun luvun; valinnan jälkeen rivi sulkeutuu itsestään. Lämmittelyrivillä valitsin näkyy aina kuten ennen.",
+      "Tuntuma valitaan nyt RPE-lukuina 6–10 hymiöiden sijaan: rivin alussa lukee RPE, luvut ovat ilman kehystä ja täyttöä (vain valittu luku on messinkinen), lukujen perässä on ?-painike, joka avaa asteikon ohjeen, ja lukujen alla ollut selite on poistettu. Sarjarivin ⋮-painike on korvattu pienellä RPE-painikkeella, joka avaa valitsimen ja näyttää valitun luvun; valinnan jälkeen rivi sulkeutuu itsestään. Lämmittelyrivillä valitsin näkyy aina kuten ennen.",
       "Sarjarivin ⋮-valikosta on poistettu huomiokenttä, koska sille ei ollut käyttöä: valikossa ovat nyt tuntuma ja sarjan poisto samalla rivillä. Aiemmin kirjatut huomiot näkyvät edelleen Historiassa ja säilyvät varmuuskopiossa.",
       "Lisää lämmittelysarja esitäyttää painon ja toistot: viime kerran sama lämmittely skaalattuna tämän kerran työpainoon, tai portaat 40 / 60 / 80 / 90 % työpainosta, jos aiempaa lämmittelyä ei ole. Kevyillä työpainoilla (alle 20 kg) ehdotetaan yksi lämmittely 60 %:lla. Selite kertoo ehdotuksen perusteen, ja arvot ovat muokattavissa.",
       "Cluster-sarjat: ohjelman cluster-liike (PDF:n \"2xCluster\", CSV:n Tyyppi-sarake \"cluster\" tai sana cluster huomautuksessa) kirjataan yhtenä rivinä clusteria kohti. Paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittama \"N toiston maksimi\"), toistot ovat osasarjan toistot ja rivin alla on osasarjalaskuri (−, lukumäärä ja +, painikkeet samaa 44 px:n kokoa kuin rivin ✓): + lisää osasarjan ja käynnistää 15 sekunnin osasarjatauon ajastimen alusta, − poistaa, ja cluster merkitään valmiiksi vasta vähintään yhdellä osasarjalla. Selite kertoo kuorman lähteen ja viime kerran osasarjat tavoitteeksi (\"Viimeksi 5 + 4 osasarjaa — tavoitteena ylittää\").",

@@ -1043,7 +1043,8 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   (käyttäjän päätös 9.9.2026: hymiöt ja rivin alla ollut selite
   `.warmup-feel-desc` poistettiin, samoin `WARMUP_SCALE[i].emoji`):
   rivillä on ensin `.rpe-row-label` "RPE", sitten viisi `.feel-btn`-
-  painiketta (34 × 40 px, vain valittu saa messinkitäytön) ja niiden
+  painiketta (34 × 40 px, reunus ja täyttö läpinäkyvät käyttäjän
+  päätöksellä, vain valittu saa messinkitäytön) ja niiden
   perässä `.rpe-help-btn` (`[data-open-sheet="rpe"]`), joka avaa
   pohjalevyn "RPE-asteikko" (`renderSheet`, `.rpe-guide`: luku, sana ja
   kuvaus `WARMUP_SCALE`-taulukosta sekä käyttövihje); `.warmup-feel-head`
