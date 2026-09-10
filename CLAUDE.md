@@ -703,7 +703,13 @@ mutta testien on avattava oikea osio ennen niihin koskemista (testien
 
 Historia esilataa kaikki merkinnät `historyCache`-välimuistiin
 `loadHistory()`:ssa, jotta suljettu päiväkortti voi näyttää yhteenvetorivin
-(`historyDaySummary()`). Poisto on kortin alareunan tekstipainike, joka
+(`historyDaySummary()`). Avatun päivän sarjat (`renderHistoryDate`) ovat
+`.hist-sets`-lohkossa inline-lohkoina `.hist-set` (" · "-erottimet
+tekstisolmuina välissä, jotta teksti "1: 60 kg × 10 · 2: …" säilyy
+testeille ja ruudunlukijalle), ja sarjan alla on `.hist-set-rpe` "RPE 8"
+vain, kun merkinnän sarjalla on `rpe`-luku (käyttäjän päätös 10.9.2026;
+sama esitys kuin Viime-solussa; ruudunlukijalle `.sr-only`-pilkku ennen
+sitä). Lämmittelyjä Historia ei näytä. Testi: `test_viime_rpe.js` osio 6. Poisto on kortin alareunan tekstipainike, joka
 vahvistettaessa muuttuu tuhoavaksi painikkeeksi; `data-delete-history` ja
 `confirmingDeleteDate` ennallaan.
 

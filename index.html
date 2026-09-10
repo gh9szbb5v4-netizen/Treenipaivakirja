@@ -520,6 +520,14 @@
   .csv-example{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; background:var(--surface-2); padding:10px; border-radius:8px; overflow-x:auto; white-space:nowrap; color:var(--mist); margin-bottom:16px;}
 
   .history-date{background:var(--surface); border-radius:var(--radius); margin-bottom:10px; padding:14px 16px;}
+  /* Historian sarjat: jokainen sarja on inline-lohko, jonka alla toisella
+     rivillä on "RPE 8", kun sarjalle oli merkitty tuntuma (käyttäjän päätös
+     10.9.2026; sama esitys kuin Viime-solussa). Erottimet " · " ovat
+     tekstisolmuja lohkojen välissä ja pysyvät ylärivillä (vertical-align:top),
+     joten ilman tuntumaa rivi näyttää entiseltä. */
+  .hist-sets{color:var(--mist); font-size:var(--fs-sm); font-variant-numeric:tabular-nums; margin-top:2px; line-height:1.35;}
+  .hist-set{display:inline-block; vertical-align:top;}
+  .hist-set-rpe{display:block; font-size:var(--fs-xs); letter-spacing:.02em;}
   .history-date-head{display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px; font-variant-numeric:tabular-nums; cursor:pointer; min-height:32px;}
 
   .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:var(--fs-md); line-height:1.6;}
@@ -619,6 +627,7 @@
   var CHANGELOG = [
     { date: "2026-09-10", items: [
       "Viime-sarake näyttää nyt kahdella rivillä edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n (esim. 60×10 ja RPE 8), jos tuntuma oli merkitty; ilman tuntumaa rivi näyttää vain painon ja toistot kuten ennen. Sama koskee lämmittelyrivejä.",
+      "Historia näyttää sarjan RPE:n sarjan alla (esim. \"1: 60 kg × 10\" ja sen alla \"RPE 8\"), kun tuntuma oli merkitty; ilman tuntumaa sarjat näkyvät kuten ennen.",
     ] },
     { date: "2026-09-09", items: [
       "Tuntuma valitaan nyt RPE-lukuina 6–10 hymiöiden sijaan: rivin alussa lukee RPE, luvut ovat ilman kehystä ja täyttöä (vain valittu luku on messinkinen), lukujen perässä on ?-painike, joka avaa asteikon ohjeen, ja lukujen alla ollut selite on poistettu. Sarjarivin ⋮-painike on korvattu pienellä RPE-painikkeella, joka avaa valitsimen ja näyttää valitun luvun; valinnan jälkeen rivi sulkeutuu itsestään. Lämmittelyrivillä valitsin näkyy aina kuten ennen.",
@@ -9007,14 +9016,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var name = data.name || key;
           var clusterEntry = data.kind === "cluster";
           // Cluster-rivi: "60 kg × 6 × 5", jossa viimeinen luku on osasarjat
-          // (puuttuva tai 1 → tavallinen esitys).
+          // (puuttuva tai 1 → tavallinen esitys). Sarjan alla on "RPE 8", kun
+          // tuntuma oli merkitty; ruudunlukijalle pilkku erottaa sen arvoista.
           var setsStr = (data.sets || []).map(function(s, i){
             var sub = setSubsets(s) > 1 ? " × " + setSubsets(s) : "";
-            return (i+1) + ": " + (s.weight || "–") + " kg × " + (s.reps || "–") + sub + (s.notes ? " (" + escapeHtml(s.notes) + ")" : "");
+            var rpeVal = (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? toNumber(s.rpe) : null;
+            return '<span class="hist-set">' + (i+1) + ": " + (s.weight || "–") + " kg × " + (s.reps || "–") + sub + (s.notes ? " (" + escapeHtml(s.notes) + ")" : "") +
+              (rpeVal !== null ? '<span class="hist-set-rpe"><span class="sr-only">, </span>RPE ' + String(rpeVal).replace(".", ",") + '</span>' : '') +
+              '</span>';
           }).join(" · ");
           return '<div style="margin-top:10px;"><div style="font-weight:600; font-size:var(--fs-md);">' + escapeHtml(name) +
             (clusterEntry ? ' <span style="color:var(--mist); font-size:var(--fs-xs); font-weight:400;">cluster</span>' : '') + '</div>' +
-            '<div style="color:var(--mist); font-size:var(--fs-sm); font-variant-numeric:tabular-nums; margin-top:2px;">' + setsStr + '</div></div>';
+            '<div class="hist-sets">' + setsStr + '</div></div>';
         }).join("");
       }
       // Poisto on toissijainen toiminto: pieni tekstipainike kortin alareunassa,
