@@ -600,13 +600,39 @@ toistotavoite on yksi luku. Ledgerin lopussa
 "+ Sarja" on koko rivin levyinen ja "Lisää lämmittelysarja" tekstipainike
 `.ledger-links`-rivillä. Testi: `test_keypad.js`.
 
-Kirjauslohkon (`renderLedger`) järjestys: selitteet `.calc-hint`-lohkoina
-(`renderMethodNote`; teholiikkeellä ilman ehdotusta `renderNoMaxHint`, joka
+Painojen laskennan selitteet eivät ole kirjauslohkossa vaan pohjalevyssä
+`state.sheet === "laskenta"` (käyttäjän päätös 10.9.2026: kirjausnäkymä
+lyhyemmäksi). Avoimen liikkeen nimen perässä on tietopainike `.info-btn`
+(`[data-open-sheet="laskenta"][data-id]`, kuvake `tieto`, ei kehystä eikä
+täyttöä, 36 px negatiivisella pystymarginaalilla, jotta nimirivi ei kasva);
+se piirretään vain, kun liike on auki ja sarjat kirjataan siinä
+(`open && !noLedger`, leveässä asettelussa siis vain paneelissa). Yleinen
+`[data-open-sheet]`-käsittelijä asettaa `state.infoExercise = data-id`.
+`renderSheet` piirtää otsikon "Painojen laskenta", liikkeen nimen
+tarkenteineen (`catalogPartsFor`) ja `renderCalcInfo(ex)`-lohkon:
+`renderMethodNote`, teholiikkeellä ilman ehdotusta `renderNoMaxHint` (joka
 maksimitestillä kertoo sarjan 1 tallentuvan 1RM:ksi — `saveExerciseLog`
 lukee 1RM:n sarjasta 1 — ja prosenttiliikkeellä selittää puuttuvan 1RM:n
 vain, kun `state.manualMax` ei sisällä liikettä, ei `autoCalc === false`
--menetelmäliikkeelle; sitten `autoCalcHint`, jonka maksimitestin uusinta
-kertoo, että tulos korvaa nykyisen 1RM:n), lämmittelyt, sarakeotsikot, työsarjat, `.ledger-tools`
+-menetelmäliikkeelle) ja `autoCalcHint` (maksimitestin uusinta kertoo, että
+tulos korvaa nykyisen 1RM:n; lämmittelysäädön tila ja "Poista merkintä ja
+laske uudelleen" `[data-recalc]` ovat siinä, joten `[data-recalc]` on
+sulkutarkistuksen poikkeuslistassa `[data-close-sheet]`-käsittelijässä ja
+ikkuna päivittyy poiston jälkeen uuteen ehdotukseen). Kun mitään selitettä
+ei ole, `renderCalcInfo` kertoo syyn (yhdistelmäliike, `noAutoCalcReason`,
+teholiike tai ei aiempaa merkintää). Jos kohdeliike ei ole enää auki,
+`renderSheet` nollaa `state.sheet`- ja `state.infoExercise`-tilan.
+Otsikkorivin rakenne muuttui samalla: ruudunlukijan ja näppäimistön painike
+on nimiosa `.exercise-name-btn` (`role="button"`, `tabindex`,
+`aria-expanded`), ei koko `.exercise-head-main`-lohko, jotta tietopainike ei
+ole painikkeen sisällä (nested-interactive); lohkolla on yhä
+`data-toggle-ex`, joten koko otsikko toimii napautuskohteena.
+`revealOpenExercise` fokusoi `[data-toggle-ex][tabindex]`-elementin, ja
+`#app`-keydown-käsittelijä ohittaa Enterin, kun kohde on aito painike
+`data-toggle-ex`-lohkon sisällä (muuten Enter tietopainikkeessa avaisi ja
+sulkisi liikkeen).
+
+Kirjauslohkon (`renderLedger`) järjestys: lämmittelyt, sarakeotsikot, työsarjat, `.ledger-tools`
 (+ Sarja `[data-add-set]`; sen alla `.ledger-links` ja Lisää lämmittelysarja
 `[data-add-warmup]`; lämmittelyn lisäys fokusoi uuden rivin painokentän,
 mikä avaa myös näppäimistön), `.subtotal` vain kun
