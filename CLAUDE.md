@@ -485,7 +485,12 @@ kuvakepainikkeiden rinnalla). Viime-solu (`renderLastCell`) näyttää edellisen
 kerran saman järjestysluvun sarjan `state.lastSet[nimi].sets[i]` muodossa
 "60×10" (lämmittelyillä `warmups[i]`), tai viivan; jo tallennettua
 merkintää korjattaessa `lastSet` on tämä sama kerta, joten näytetään
-`prior[0]`. Työsarjat numeroidaan ykkösestä lämmittelyistä riippumatta
+`prior[0]`. Solu on kaksirivinen (`.set-last-main`, `.set-last-rpe`):
+alarivi "RPE 8" näytetään vain, kun viitesarjalla on `rpe`-luku
+(käyttäjän päätös 10.9.2026), ja aria-label saa lisän ", RPE 8 (työläs)";
+kaksi 12 px:n riviä mahtuu 44 px:n kenttien rinnalle, joten rivin korkeus
+ei muutu. Simuloinnin `pushLastSet` ei kirjoita `rpe`-kenttää, joten
+simuloidut kerrat näkyvät ilman RPE-riviä. Testi: `test_viime_rpe.js`. Työsarjat numeroidaan ykkösestä lämmittelyistä riippumatta
 (`setNo` = järjestysluku työsarjojen joukossa; `idx` on paikka koko
 `draftSets`-taulukossa, jossa lämmittelyt ovat alussa) — sama numero on
 `.set-num`-merkissä, kenttien aria-labeleissa, Viime-solussa ja

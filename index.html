@@ -236,7 +236,13 @@
   /* Näppäimistön kohdekenttä korostetaan luokalla, ei fokuksella: kosketus-
      laitteella kenttä ei ole fokusoituna näppäimistön aikana (ks. openKeypad). */
   .ledger-input.keypad-target{border-color:var(--brass); box-shadow:0 0 0 1px var(--brass);}
-  .set-last{font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* Viime-solu on kaksirivinen samassa 52 px:n tilassa: ylhäällä paino×toistot,
+     alla "RPE 8", kun viime kerran sarjalle oli merkitty tuntuma (käyttäjän
+     päätös). Kaksi 12 px:n riviä (line-height 1.25 → 30 px) mahtuu 44 px:n
+     kenttien rinnalle, joten rivin korkeus ei muutu. */
+  .set-last{font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.25;}
+  .set-last-main, .set-last-rpe{display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .set-last-rpe{letter-spacing:.02em;}
   /* minmax(0, …): otsikkorivin "TOISTOT" ei saa venyttää omaa saraketta, jotta
      otsikot osuvat kenttien kohdalle. */
   .ledger-head > div{white-space:nowrap;}
@@ -611,6 +617,9 @@
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-10", items: [
+      "Viime-sarake näyttää nyt kahdella rivillä edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n (esim. 60×10 ja RPE 8), jos tuntuma oli merkitty; ilman tuntumaa rivi näyttää vain painon ja toistot kuten ennen. Sama koskee lämmittelyrivejä.",
+    ] },
     { date: "2026-09-09", items: [
       "Tuntuma valitaan nyt RPE-lukuina 6–10 hymiöiden sijaan: rivin alussa lukee RPE, luvut ovat ilman kehystä ja täyttöä (vain valittu luku on messinkinen), lukujen perässä on ?-painike, joka avaa asteikon ohjeen, ja lukujen alla ollut selite on poistettu. Sarjarivin ⋮-painike on korvattu pienellä RPE-painikkeella, joka avaa valitsimen ja näyttää valitun luvun; valinnan jälkeen rivi sulkeutuu itsestään. Lämmittelyrivillä valitsin näkyy aina kuten ennen.",
       "Sarjarivin ⋮-valikosta on poistettu huomiokenttä, koska sille ei ollut käyttöä: valikossa ovat nyt tuntuma ja sarjan poisto samalla rivillä. Aiemmin kirjatut huomiot näkyvät edelleen Historiassa ja säilyvät varmuuskopiossa.",
@@ -6865,7 +6874,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot. Rivin lopun ⋮-painikkeesta löydät sarjan tuntuman (valinnainen; vaikuttaa seuraavan kerran ehdotukseen), huomion ja poiston. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n, jos se oli merkitty. Rivin lopun RPE-painikkeesta löydät sarjan tuntuman (RPE 6–10, valinnainen; vaikuttaa seuraavan kerran ehdotukseen) ja sarjan poiston. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Tuntuma (RPE 6–10)</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut sarjan jälkeen. Lämmittelyrivillä valitsin on aina näkyvissä; työsarjalla sen avaa rivin RPE-painike, ja rivi sulkeutuu valinnan jälkeen. Rivin ?-painike avaa asteikon ohjeen. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva; työsarjalle tavoite on Työläs, eli kaksi toistoa varastossa."
     ) + ohjeList([
@@ -7587,16 +7596,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       (ex.method ? '<b style="color:var(--brass);">' + escapeHtml(ex.method) + ':</b> ' : '') +
       escapeHtml(ex.methodNote) + '</div>';
   }
-  // Viime-sarakkeen solu: edellisen kerran paino×toistot tai viiva. Sisältö
-  // on myös ruudunlukijalle (aria-label), vaikka sarake piilotetaan kapealla.
+  // Viime-sarakkeen solu: edellisen kerran paino×toistot tai viiva, ja sen
+  // alla toisella rivillä "RPE 8", jos viime kerran sarjalle oli merkitty
+  // tuntuma (työsarjalla ja lämmittelyllä sama kenttä `rpe`). Sisältö on
+  // myös ruudunlukijalle (aria-label), vaikka sarake piilotetaan kapealla.
   function renderLastCell(last, rowName){
     var w = last ? String(last.weight || "").replace(".", ",") : "";
     var r = last ? String(last.reps || "") : "";
     // Cluster-kerta näyttää myös osasarjat: "60×6×5" (vain kun niitä on > 1).
     var sub = (last && setSubsets(last) > 1) ? String(setSubsets(last)) : "";
+    var rpe = (last && last.rpe !== null && last.rpe !== undefined && isFinite(toNumber(last.rpe))) ? toNumber(last.rpe) : null;
+    var rpeText = rpe !== null ? "RPE " + String(rpe).replace(".", ",") : "";
     var text = (w || r) ? (w || "–") + "×" + (r || "–") + (sub ? "×" + sub : "") : "–";
-    var label = (w || r) ? rowName + " viime kerralla " + (w || "–") + " kg × " + (r || "–") + (sub ? " × " + sub + " osasarjaa" : "") : rowName + ": ei aiempaa kertaa";
-    return '<div class="set-last" role="img" aria-label="' + escapeHtml(label) + '">' + escapeHtml(text) + '</div>';
+    var label = (w || r) ? rowName + " viime kerralla " + (w || "–") + " kg × " + (r || "–") + (sub ? " × " + sub + " osasarjaa" : "") + (rpeText ? ", " + rpeText + " (" + warmupFeelWord(rpe) + ")" : "") : rowName + ": ei aiempaa kertaa";
+    return '<div class="set-last" role="img" aria-label="' + escapeHtml(label) + '">' +
+      '<span class="set-last-main">' + escapeHtml(text) + '</span>' +
+      (rpeText ? '<span class="set-last-rpe">' + escapeHtml(rpeText) + '</span>' : '') +
+      '</div>';
   }
 
   // ---------- kirjausnäppäimistö ----------
