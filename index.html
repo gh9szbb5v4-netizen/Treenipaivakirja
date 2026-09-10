@@ -224,6 +224,14 @@
   .chevron{color:var(--mist); font-size:20px; transition:transform .2s, color .2s; flex-shrink:0; margin-left:10px;}
   .exercise.open .chevron{transform:rotate(90deg); color:var(--brass);}
   .chevron-btn{background:none; border:none; padding:0; margin:0; cursor:pointer; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; flex-shrink:0;}
+  /* Avoimen liikkeen nimen perässä oleva tietopainike avaa painojen
+     laskennan pohjalevyn. Ei kehystä eikä täyttöä (käyttäjän päätös):
+     pelkkä messinkinen kuvake. Negatiivinen pystymarginaali pitää nimirivin
+     korkeuden ennallaan, vaikka kosketuskohde on 36 px. */
+  .info-btn{display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; margin:-9px 0 -9px 2px; padding:0; background:none; border:none; border-radius:999px; color:var(--brass); cursor:pointer; vertical-align:middle; flex-shrink:0;}
+  .exercise-name-btn{display:inline; border-radius:4px;}
+  .sheet .calc-hint{font-size:var(--fs-sm); color:var(--mist); margin-bottom:12px;}
+  .sheet .calc-hint:last-child{margin-bottom:0;}
 
   .ledger{padding:0 16px 16px;}
   /* Sarjarivi: numero, viime kerran arvot, paino, toistot, valmis ja
@@ -616,6 +624,7 @@
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-10", items: [
+      "Avoimen liikkeen nimen perässä on nyt tietopainike (ⓘ, ilman kehystä ja täyttöä), joka avaa ikkunan painojen laskennasta: mihin kertaan ehdotus perustuu, jokaisen sarjan peruste, lämmittelysäätö, maksimitestin ja clusterin ohje sekä valmentajan menetelmäselite. Samat tiedot eivät enää näy sarjarivien yläpuolella, joten kirjausnäkymä on lyhyempi; \"Poista merkintä ja laske uudelleen\" on samassa ikkunassa.",
       "Sarjan ✓ avaa nyt RPE-ikkunan: valitse tuntuma painikkeista 6–10 (sana luvun alla, asteikon ohje samassa ikkunassa) tai sulje ikkuna ilman valintaa. Valinta sulkee ikkunan, ja lepoajastin käynnistyy vasta sen jälkeen suoraan pienenä palkkina näytön alareunassa — ajastinta ei tarvitse enää pienentää erikseen. Rivin RPE-painike avaa saman ikkunan uudelleen; siellä ovat myös tuntuman poisto ja sarjan poisto. Sama ikkuna hoitaa lämmittelyn tuntuman, joten rivien alla ei enää ole erillistä RPE-riviä.",
       "Varmuuskopio sisältää nyt myös lämmittelysarjat (rivit L1, L2, … painoineen, toistoineen ja tuntumineen), joten kaikki RPE-tiedot palautuvat; työsarjojen tuntuma oli mukana jo aiemmin Tuntuma-sarakkeessa.",
       "Viime-sarake näyttää nyt kahdella rivillä edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n (esim. 60×10 ja RPE 8), jos tuntuma oli merkitty; ilman tuntumaa rivi näyttää vain painon ja toistot kuten ennen. Sama koskee lämmittelyrivejä.",
@@ -871,6 +880,7 @@
     sheet: null,
     // RPE-ikkunan kohderivi { id, idx, pendingRest }, kun sheet === "rpe".
     rpeSheet: null,
+    infoExercise: null,
     program: null,
     // Ohjelmakirjasto: muut kuin käytössä oleva ohjelma (ks. allPrograms).
     programs: [],
@@ -3753,7 +3763,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function revealOpenExercise(){
     if(isWideLayout()) return;
     var card = document.querySelector(".exercise.open");
-    var head = card ? card.querySelector("[data-toggle-ex]") : null;
+    var head = card ? card.querySelector("[data-toggle-ex][tabindex]") : null;
     if(!card || !head) return;
     // Vieritetään korttia, ei otsikkoa: scroll-margin-top on kortilla ja
     // html-elementin scroll-padding-top (16px) hoitaa yläreunan marginaalin.
@@ -6950,7 +6960,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeP(
       "Muuten, kun sama lämmittely (samat toistot, paino 2,5 kg:n sisällä) on kirjattu aiemmin, sovellus vertaa vastausta siihen, miltä se on tavallisesti tuntunut: yhtä pykälää raskaampi keventää saman treenin työsarjojen painoehdotusta 5 %, kahta pykälää 10 % ja yhtä pykälää kevyempi nostaa 2,5 %. Vain saman treenin painavin lämmittely vaikuttaa, käsin muokattuja sarjoja ei säädetä, ja ensimmäisellä kerralla vertailudataa ei vielä ole. Tuntuman voi jättää myös antamatta, jolloin lämmittely tallentuu ilman vaikutusta. Lisää lämmittelysarja täyttää rivin valmiiksi: ensisijaisesti viime kerran samalla lämmittelyllä skaalattuna tämän kerran työpainoon, muuten portaittain työpainosta (40, 60, 80 ja 90 %; alle 20 kg:n työpainolla yksi lämmittely 60 %:lla). Arvot ovat ehdotuksia ja muokattavissa; lämmittely vaikuttaa työsarjoihin vasta valmiiksi merkittynä."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Cluster-sarjat</b> kirjataan yhtenä rivinä clusteria kohti: paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittaman toistomäärän), toistot ovat osasarjan toistot, ja rivin alla oleva laskuri kertoo osasarjat. Napauta + jokaisen osasarjan jälkeen — se käynnistää 15 sekunnin osasarjatauon ajastimen alusta — ja merkitse cluster valmiiksi ✓:llä, kun osasarjoja ei enää tule. Kehityksen mittari on osasarjojen määrä samalla kuormalla: selite näyttää edellisen kerran osasarjat tavoitteeksi. Cluster-merkintä ei vaikuta liikkeen 1RM-arvioon, mutta sen volyymi (paino × toistot × osasarjat) lasketaan Kehitykseen."
+      "<b style=\"color:var(--chalk);\">Cluster-sarjat</b> kirjataan yhtenä rivinä clusteria kohti: paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittaman toistomäärän), toistot ovat osasarjan toistot, ja rivin alla oleva laskuri kertoo osasarjat. Napauta + jokaisen osasarjan jälkeen — se käynnistää 15 sekunnin osasarjatauon ajastimen alusta — ja merkitse cluster valmiiksi ✓:llä, kun osasarjoja ei enää tule. Kehityksen mittari on osasarjojen määrä samalla kuormalla: tietopainikkeen ikkuna näyttää edellisen kerran osasarjat tavoitteeksi. Cluster-merkintä ei vaikuta liikkeen 1RM-arvioon, mutta sen volyymi (paino × toistot × osasarjat) lasketaan Kehitykseen."
     ) + ohjeP(
       "Merkinnän voi kirjata myös takautuvasti napauttamalla yläreunan päivämääräsirpaletta. \"Viikko | Kaikki\" -valitsin näyttää joko nykyisen viikon tai koko ohjelman."
     ) + ohjeP(
@@ -6958,11 +6968,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("3. Painoehdotukset", ohjeP(
-      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus lasketaan jokaiselle sarjalle erikseen viime kerran samasta sarjasta. Jos tavoitetoistot täyttyivät, paino nousee vähintään 2,5 kg ja enintään 5 %; jos toistoja jäi yksi vajaaksi, paino pysyy samana; jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 % alaspäin pyöristäen. Sarjarivin yläpuolella kerrotaan jokaisen sarjan peruste."
+      "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus lasketaan jokaiselle sarjalle erikseen viime kerran samasta sarjasta. Jos tavoitetoistot täyttyivät, paino nousee vähintään 2,5 kg ja enintään 5 %; jos toistoja jäi yksi vajaaksi, paino pysyy samana; jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 % alaspäin pyöristäen. Liikkeen nimen perässä oleva tietopainike (ⓘ) avaa ikkunan, joka kertoo, mihin kertaan ehdotus perustuu ja mikä on jokaisen sarjan peruste."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Tuntuma ehdotuksessa:</b> jos viime kerran sarjalle on kirjattu tuntuma (RPE-ikkunasta), se tulkitaan varastoon jääneiksi toistoiksi — Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0 — ja lisätään toistoihin Epley-kaavassa. Ehdotus on paino, jolla tavoitetoistot tuntuisivat Työläältä, 1,25 % kehityksellä, ilman edellä mainittuja nosto- ja kevennyshaaroja ja niiden rajoja: sama paino ja toistot antavat Kevyellä suuremman ehdotuksen kuin Äärirajoilla. Äärirajoilla-tuntuma keventää painoa vain, jos toistot jäivät alle tavoitteen; tavoitteen täyttänyt äärirajoilla tehty sarja pitää painon, koska se on loppusarjalle normaali tila (esim. tavoite 12, viimeksi 162,5 kg × 12: Kevyt 172,5 kg, Työläs 165 kg, Äärirajoilla 162,5 kg; 162,5 kg × 10 Äärirajoilla → 155 kg). Ilman tuntumaa laskenta on täsmälleen entinen (Työläs). Kehitys-näkymän 1RM lasketaan aina ilman tuntumaa, jotta historia pysyy vertailukelpoisena."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Jumitunnistus ja kevennys:</b> jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmällä kerralla vähintään yksi sarja jäi vajaaksi, sovellus ehdottaa kevennystä ja selite kertoo syyn. Ilman tuntumaa vaje tarkoittaa tavoitetta vähempiä toistoja ja kevennys on 10 % edellisen kerran sarjan painosta alaspäin pyöristäen. Tuntuman kanssa vaje mitataan toistoista ja varastosta yhteensä: sarja on vajaa, kun toistot + varastoon jääneet toistot jäävät alle tavoitetoistot + 2 — kaksi vajaaksi jäänyt mutta Kevyt ei ole vaje. Tavoitteen täyttänyt äärirajoilla tehty sarja ei ole vaje, ja se kevennetään kuten ilman tuntumaa — sama sääntö kuin ehdotuksessa. Muuten kevennys on 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen, jolloin selite lisää \"tuntuma huomioiden\" (esim. tavoite 12: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg eli sama kuin ilman tuntumaa; 162,5 kg × 12 Äärirajoilla ei laukaise kevennystä, ja toisen sarjan vajeen laukaisemana se kevenee 145 kg:aan). Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta."
+      "<b style=\"color:var(--chalk);\">Jumitunnistus ja kevennys:</b> jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmällä kerralla vähintään yksi sarja jäi vajaaksi, sovellus ehdottaa kevennystä ja tietopainikkeen ikkuna kertoo syyn. Ilman tuntumaa vaje tarkoittaa tavoitetta vähempiä toistoja ja kevennys on 10 % edellisen kerran sarjan painosta alaspäin pyöristäen. Tuntuman kanssa vaje mitataan toistoista ja varastosta yhteensä: sarja on vajaa, kun toistot + varastoon jääneet toistot jäävät alle tavoitetoistot + 2 — kaksi vajaaksi jäänyt mutta Kevyt ei ole vaje. Tavoitteen täyttänyt äärirajoilla tehty sarja ei ole vaje, ja se kevennetään kuten ilman tuntumaa — sama sääntö kuin ehdotuksessa. Muuten kevennys on 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen, jolloin selite lisää \"tuntuma huomioiden\" (esim. tavoite 12: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg eli sama kuin ilman tuntumaa; 162,5 kg × 12 Äärirajoilla ei laukaise kevennystä, ja toisen sarjan vajeen laukaisemana se kevenee 145 kg:aan). Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
     ) + ohjeP(
@@ -7241,6 +7251,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             '<button type="button" class="btn-tertiary btn-sm" data-remove-set data-id="' + rt.id + '" data-idx="' + rt.idx + '" style="color:var(--danger-text);">' + icon("poista", 16) + '<span>' + (rtWarm ? "Poista lämmittely" : "Poista sarja") + '</span></button>' +
             '</div>'
           : '');
+    }
+    if(state.sheet === "laskenta"){
+      // Painojen laskenta: avoimen liikkeen selitteet (renderCalcInfo).
+      // Kohde on state.infoExercise; jos liike ei ole enää auki (esim.
+      // merkinnän poisto sulki sen), ikkuna suljetaan piirrossa itsestään.
+      var infoEx = state.infoExercise ? findExerciseById(state.infoExercise) : null;
+      if(!infoEx || state.openExercise !== infoEx.id){ state.sheet = null; state.infoExercise = null; return ""; }
+      var infoParts = catalogPartsFor(infoEx.name);
+      title = "Painojen laskenta";
+      body = '<p class="rpe-sheet-q"><b style="color:var(--chalk);">' + escapeHtml(infoParts ? infoParts.liike : infoEx.name) + '</b>' +
+        (infoParts && infoParts.details.length ? ' · ' + escapeHtml(infoParts.details.join(" · ")) : '') + '</p>' +
+        renderCalcInfo(infoEx);
     }
     if(state.sheet === "liike"){
       title = "Valitse liike";
@@ -7577,10 +7599,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       : '';
     // Otsikkorivi on pelkkä säiliö; painikkeena toimii sen sisällä oleva nimiosa.
     // Näin sulkunuoli ei jää interaktiivisen elementin sisään (nested-interactive).
+    // Tietopainike (painojen laskenta) on avoimen liikkeen nimen perässä
+    // siellä, missä sarjat kirjataan (leveässä asettelussa vain paneelissa).
+    // Se avaa pohjalevyn "laskenta"; selitteet eivät enää ole sarjojen
+    // yläpuolella. Ruudunlukijan ja näppäimistön painike on nimiosa
+    // (.exercise-name-btn), ei koko otsikkolohko, jotta tietopainike ei ole
+    // painikkeen sisällä (nested-interactive); koko lohko toimii silti
+    // napautuskohteena klikkikäsittelijän data-toggle-ex-attribuutilla.
+    var infoBtn = (open && !noLedger)
+      ? '<button type="button" class="info-btn" data-open-sheet="laskenta" data-id="' + ex.id + '" aria-label="Painojen laskenta: ' + escapeHtml(title) + '">' + icon("tieto", 20) + '</button>'
+      : '';
     return '<div class="exercise ' + (open ? "open" : "") + '">' +
       '<div class="exercise-head">' +
-      '<div class="exercise-head-main" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' +
-      '<div class="exercise-name">' + escapeHtml(title) + tehoBadge(ex) + '</div>' + detailHtml +
+      '<div class="exercise-head-main" data-toggle-ex data-id="' + ex.id + '">' +
+      '<div class="exercise-name"><span class="exercise-name-btn" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' + escapeHtml(title) + tehoBadge(ex) + '</span>' + infoBtn + '</div>' + detailHtml +
       (target ? '<div class="exercise-target">' + escapeHtml(target) + '</div>' : '') +
       (clusterLogged ? '<div class="exercise-target">Kirjattu: ' + escapeHtml(clusterLogged) + '</div>' : '') +
       '</div><div style="display:flex; align-items:center;">' + badge + chevronHtml + '</div></div>' +
@@ -8012,11 +8044,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
     // Liikkeen väline, variaatio ja lihasryhmä ovat otsikon tarkenteessa
-    // (renderExercise); erillistä variaatiolistaa ei enää näytetä.
-    var hint = renderMethodNote(ex);
-    // Teholiike ilman 1RM:ää ei ole mykkä: selite kertoo, mitä kirjataan.
-    if(ex.intensity && !state.autoCalcInfo[ex.id] && !isExerciseLogged(ex)) hint += renderNoMaxHint(ex);
-    hint += autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
+    // (renderExercise). Painojen laskennan selitteet eivät ole enää sarjojen
+    // yläpuolella vaan pohjalevyssä, jonka nimen perässä oleva tietopainike
+    // avaa (renderCalcInfo).
     var warmCount = 0;
     // Viime-sarake: edellisen kerran sarjat samasta liikkeestä. Jo tallennettua
     // merkintää korjattaessa lastSet on tämä sama kerta, joten näytetään sitä
@@ -8090,14 +8120,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var warmupCount = warmupRows(ex.id).length;
     var warmupNote = warmupCount ? warmupAutoNote(ex, ex.id) : "";
     var warmupNoteHtml = warmupNote ? '<div class="warmup-auto-note">' + escapeHtml(warmupNote) + '</div>' : '';
-    // Järjestys: selitteet → lämmittelyt (jos on) → sarjat → + Sarja koko
-    // rivin levyisenä ja lämmittelyn lisäys tekstipainikkeena sen alla →
+    // Järjestys: lämmittelyt (jos on) → sarjat → + Sarja koko rivin
+    // levyisenä ja lämmittelyn lisäys tekstipainikkeena sen alla →
     // yhteensä (vain kun lukua on) → Tallenna → liikkeen vaihto.
     // Ohjeteksti on vain ruudunlukijalle (aria-describedby); näkyvä vihje on
     // haamutyylinen Tallenna, joka syttyy messingiksi viimeisestä ✓:stä.
     var saveHintId = "save-hint-" + ex.id;
     return '<div class="ledger">' +
-      hint +
       (warmupCount ? '<div class="ledger-head" style="margin-top:4px;">Lämmittely</div>' + warmupNoteHtml + warmHtml : '') +
       '<div class="ledger-row ledger-head"' + (warmupCount ? ' style="margin-top:8px;"' : '') + '><div>Sarja</div><div class="set-last head-center">Viime</div><div class="head-center">Kg</div><div class="head-center">Toistot</div><div class="head-center" aria-hidden="true">✓</div><div></div></div>' +
       workHtml +
@@ -8130,6 +8159,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       text = "Liikkeelle ei ole vielä 1RM-arvoa, joten painoa ei ehdotettu. Kirjaa paino itse tai aseta 1RM Asetuksissa.";
     }
     return '<div class="calc-hint">' + escapeHtml(text) + '</div>';
+  }
+  // Painojen laskennan selitteet yhtenä lohkona pohjalevyä varten: valmentajan
+  // menetelmäselite, teholiikkeen 1RM-ohje ja painoehdotuksen peruste
+  // (autoCalcHint, myös lämmittelysäätö ja "Poista merkintä ja laske
+  // uudelleen"). Ilman ehdotusta kerrotaan syy, ettei ikkuna jää tyhjäksi.
+  function renderCalcInfo(ex){
+    var html = renderMethodNote(ex);
+    // Teholiike ilman 1RM:ää ei ole mykkä: selite kertoo, mitä kirjataan.
+    if(ex.intensity && !state.autoCalcInfo[ex.id] && !isExerciseLogged(ex)) html += renderNoMaxHint(ex);
+    html += autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
+    if(html) return html;
+    var why;
+    if(isCombo(ex.name)) why = "Yhdistelmäliikkeelle ei ehdoteta painoa. Kirjaa paino ja toistot itse.";
+    else if(ex.autoCalc === false) why = noAutoCalcReason(ex) + " Kirjaa paino ja toistot itse.";
+    else if(ex.intensity) why = "Painoehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa.";
+    else why = "Tälle liikkeelle ei ole vielä painoehdotusta, koska aiempaa merkintää ei ole. Kirjaa paino ja toistot itse — seuraavalla kerralla ehdotus lasketaan tästä merkinnästä sarjoittain.";
+    return '<div class="calc-hint">' + escapeHtml(why) + '</div>';
   }
   var VARIANT_ADD_NEW = "__addnew__";
   var VARIANT_PLAIN = "__plain__";
@@ -9571,6 +9617,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-open-sheet]"))){
       state.sheet = el.dataset.openSheet;
       state.rpeSheet = null;
+      // Painojen laskenta kohdistuu painikkeen liikkeeseen.
+      state.infoExercise = state.sheet === "laskenta" ? (el.dataset.id || null) : null;
       // Pohjalevy nousee näppäimistön päälle: näppäimistö suljetaan.
       state.keypad = null;
       if(state.sheet === "liike" && state.editor){
@@ -9619,7 +9667,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // RPE-ikkunan omat painikkeet (tuntuma, tuntuman poisto, sarjan poisto)
     // käsitellään omissa käsittelijöissään jäljempänä, joten ne ohittavat
     // taustan sulkutarkistuksen.
-    if(e.target.closest("[data-close-sheet]") && !e.target.closest("[data-warmup-rpe], [data-rpe-clear], [data-remove-set]")){
+    if(e.target.closest("[data-close-sheet]") && !e.target.closest("[data-warmup-rpe], [data-rpe-clear], [data-remove-set], [data-recalc]")){
       // Vain tausta tai sulkupainike sulkee; paneelin sisällön napautus ei.
       var closeEl = e.target.closest("[data-close-sheet]");
       if(closeEl.classList.contains("sheet-backdrop") && e.target !== closeEl) return;
@@ -10508,6 +10556,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(e.key !== "Enter" && e.key !== " ") return;
     var el = e.target.closest("[data-tab], [data-toggle-ex], [data-history-date], [data-toggle-day-summary], [data-open-kehitys], [data-close-kehitys], [data-kehitys-tab]");
     if(!el) return;
+    // Oikea painike kohteen sisällä (esim. liikeotsikon tietopainike)
+    // hoitaa Enterin itse; muuten näppäin avaisi tai sulkisi liikkeen.
+    if(el !== e.target && e.target.closest("button, a, input, select, textarea")) return;
     e.preventDefault();
     el.click();
   });
