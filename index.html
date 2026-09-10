@@ -236,7 +236,13 @@
   /* Näppäimistön kohdekenttä korostetaan luokalla, ei fokuksella: kosketus-
      laitteella kenttä ei ole fokusoituna näppäimistön aikana (ks. openKeypad). */
   .ledger-input.keypad-target{border-color:var(--brass); box-shadow:0 0 0 1px var(--brass);}
-  .set-last{font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* Viime-solu on kaksirivinen samassa 52 px:n tilassa: ylhäällä paino×toistot,
+     alla "RPE 8", kun viime kerran sarjalle oli merkitty tuntuma (käyttäjän
+     päätös). Kaksi 12 px:n riviä (line-height 1.25 → 30 px) mahtuu 44 px:n
+     kenttien rinnalle, joten rivin korkeus ei muutu. */
+  .set-last{font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.25;}
+  .set-last-main, .set-last-rpe{display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .set-last-rpe{letter-spacing:.02em;}
   /* minmax(0, …): otsikkorivin "TOISTOT" ei saa venyttää omaa saraketta, jotta
      otsikot osuvat kenttien kohdalle. */
   .ledger-head > div{white-space:nowrap;}
@@ -251,40 +257,31 @@
   /* 46px = Sarja-sarake (40px) + rivin väli, jotta huomiorivi alkaa Viime-
      sarakkeen kohdalta. */
   .set-extra{display:flex; gap:8px; align-items:center; padding:0 0 8px 46px; border-bottom:1px dashed var(--line);}
-  /* Tuntumarivi käyttää koko leveyden (ei Viime-sarakkeen sisennystä), jotta
-     viisi hymiötä ja poisto mahtuvat yhdelle riville 360 px:n näytöllä:
-     5 × 42 px + 4 × 5 px + 8 px + 36 px = 274 px ≤ 284 px. */
-  .set-extra.warmup-feel{flex-direction:column; align-items:stretch; gap:6px; padding-left:0;}
-  .warmup-feel-head{display:flex; align-items:center; gap:8px;}
-  /* Viisi hymiöpainiketta mahtuvat yhdelle riville poistopainikkeen kanssa
-     myös 360 px:n näytöllä (ks. .set-extra.warmup-feel). */
-  .warmup-feel-btns{display:flex; flex-wrap:wrap; gap:5px;}
-  /* RPE-painikkeet ovat lukuja 6–10 (käyttäjän päätös: ei hymiöitä eikä
-     selitettä rivin alla; kuvaukset ovat ?-painikkeen ohjeikkunassa).
-     Reunus ja täyttö ovat läpinäkyvät (käyttäjän päätös), jotta luku itse
-     näyttää painikkeelta; vain valittu luku saa messinkitäytön (inline-
-     tyyli). Mitoitus: RPE-tunniste, viisi 34 px:n painiketta, ?-painike ja
-     poisto mahtuvat 390 px:n näytölle yhdelle riville; kapeammalla poisto
-     rivittyy (flex-wrap). */
-  .weight-step-btn.feel-btn{width:34px; height:40px; padding:0; font-size:15px; font-weight:800; line-height:1; border-radius:10px; font-variant-numeric:tabular-nums; background:transparent; border-color:transparent;}
-  .warmup-feel-btns{flex:0 1 auto; min-width:0; gap:3px;}
-  .warmup-feel-head{flex-wrap:wrap;}
-  /* Tekstikoot vähintään 12 px (Ohjelma-näkymän hyväksymiskriteeri). */
-  .rpe-row-label{flex:0 0 auto; font-size:12px; font-weight:800; letter-spacing:.06em; color:var(--mist); margin-right:2px;}
-  .rpe-help-btn{width:30px; height:30px; flex:0 0 auto; color:var(--mist);}
+  /* RPE-ikkuna (pohjalevy "rpe", käyttäjän päätös 10.9.2026): rivin tuntuma
+     valitaan viidestä suuresta painikkeesta (luku ja sana), joiden alla on
+     asteikon ohje ja rivin toiminnot. Ikkuna avautuu sarjan ✓:stä ja rivin
+     RPE-painikkeesta; valinta sulkee sen. Viisi painiketta mahtuvat 360 px:n
+     leveydelle (5 × ~60 px); "Äärirajoilla" rivittyy pehmeästä tavuviivasta.
+     Tekstikoot vähintään 12 px. */
+  .rpe-sheet-q{margin:0 0 10px; color:var(--mist); font-size:var(--fs-sm); line-height:1.45;}
+  .rpe-pick{display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px; margin:0 0 14px;}
+  .rpe-pick-btn{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-height:62px; padding:8px 2px; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:12px; color:var(--chalk); cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent; transition:transform .08s, background-color .15s, color .15s;}
+  .rpe-pick-btn:active{transform:scale(.94);}
+  .rpe-pick-btn[aria-pressed="true"]{background:var(--brass); border-color:var(--brass); color:var(--ink);}
+  .rpe-pick-num{font-size:22px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums;}
+  .rpe-pick-word{font-size:12px; font-weight:600; line-height:1.1; text-align:center; color:var(--mist); hyphens:manual;}
+  .rpe-pick-btn[aria-pressed="true"] .rpe-pick-word{color:var(--ink);}
+  .rpe-sheet-actions{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:14px; padding-top:10px; border-top:1px dashed var(--line);}
   /* Ohjeikkunan asteikkoluettelo. */
   .rpe-guide{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
   .rpe-guide-row{display:flex; gap:12px; align-items:flex-start; font-size:var(--fs-sm); line-height:1.45;}
   .rpe-guide-num{flex:0 0 32px; height:32px; border-radius:8px; background:var(--surface-2); border:1px solid var(--line-strong); display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--chalk); font-variant-numeric:tabular-nums;}
-  /* Työsarjan tuntumarivi (.set-feel) on lisärivin ainoa rivi (huomiokenttä
-     poistettu), joten se saa saman katkoviivan kuin lämmittelyn tuntumarivi. */
   /* Cluster-rivin osasarjalaskuri: miinus, lukumäärä ja plus samassa 44 px:n
      koossa kuin rivin ✓ ja muut säätimet (käyttäjän päätös: kehotteen "rivin
      suurin kosketuskohde" hylättiin liian suurena). Plus on messinkitäytteinen
-     päätoiminto, miinus ääriviivainen. Aina näkyvissä sarjarivin alla; huomio
-     ja poisto ovat ⋮-lisärivillä kuten muillakin sarjoilla. */
+     päätoiminto, miinus ääriviivainen. Aina näkyvissä sarjarivin alla; tuntuma
+     ja poisto ovat RPE-ikkunassa kuten muillakin sarjoilla. */
   .set-extra.cluster-row{gap:10px; padding:2px 0 8px 46px; border-bottom:1px dashed var(--line);}
-  .ledger-row.has-extra + .set-extra.cluster-row.cluster-more-open{border-bottom:none; padding-bottom:4px;}
   .cluster-step{flex:0 0 auto; width:44px; height:44px; padding:0; font-size:22px; font-weight:800; line-height:1; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--chalk); border:1px solid var(--line-strong); border-radius:999px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .cluster-step.cluster-plus{background:var(--brass); color:var(--ink); border-color:var(--brass);}
   .cluster-step:active{transform:scale(.94);}
@@ -293,9 +290,8 @@
   .cluster-num.done{color:var(--success);}
   .cluster-unit{font-size:var(--fs-xs); color:var(--mist); margin-top:3px;}
   /* Rivin viimeinen painike on pieni "RPE"-tunniste (entinen ⋮), joka avaa
-     RPE-rivin; valittu luku näkyy tunnisteen alla messinkisenä. */
+     RPE-ikkunan; valittu luku näkyy tunnisteen alla messinkisenä. */
   .set-more{position:relative; width:40px; height:44px; padding:0; margin:0; background:transparent; border:0; border-radius:8px; color:var(--mist); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:inherit;}
-  .set-more.on{color:var(--brass);}
   .rpe-btn-label{font-size:12px; font-weight:800; letter-spacing:.04em; line-height:1;}
   .rpe-btn-val{font-size:14px; font-weight:800; line-height:1; color:var(--brass); font-variant-numeric:tabular-nums;}
   /* Tallennuslohko ei ole kiinnitetty: kiinnitettynä se peitti sarjarivit
@@ -514,6 +510,14 @@
   .csv-example{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; background:var(--surface-2); padding:10px; border-radius:8px; overflow-x:auto; white-space:nowrap; color:var(--mist); margin-bottom:16px;}
 
   .history-date{background:var(--surface); border-radius:var(--radius); margin-bottom:10px; padding:14px 16px;}
+  /* Historian sarjat: jokainen sarja on inline-lohko, jonka alla toisella
+     rivillä on "RPE 8", kun sarjalle oli merkitty tuntuma (käyttäjän päätös
+     10.9.2026; sama esitys kuin Viime-solussa). Erottimet " · " ovat
+     tekstisolmuja lohkojen välissä ja pysyvät ylärivillä (vertical-align:top),
+     joten ilman tuntumaa rivi näyttää entiseltä. */
+  .hist-sets{color:var(--mist); font-size:var(--fs-sm); font-variant-numeric:tabular-nums; margin-top:2px; line-height:1.35;}
+  .hist-set{display:inline-block; vertical-align:top;}
+  .hist-set-rpe{display:block; font-size:var(--fs-xs); letter-spacing:.02em;}
   .history-date-head{display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px; font-variant-numeric:tabular-nums; cursor:pointer; min-height:32px;}
 
   .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:var(--fs-md); line-height:1.6;}
@@ -611,6 +615,12 @@
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-10", items: [
+      "Sarjan ✓ avaa nyt RPE-ikkunan: valitse tuntuma painikkeista 6–10 (sana luvun alla, asteikon ohje samassa ikkunassa) tai sulje ikkuna ilman valintaa. Valinta sulkee ikkunan, ja lepoajastin käynnistyy vasta sen jälkeen suoraan pienenä palkkina näytön alareunassa — ajastinta ei tarvitse enää pienentää erikseen. Rivin RPE-painike avaa saman ikkunan uudelleen; siellä ovat myös tuntuman poisto ja sarjan poisto. Sama ikkuna hoitaa lämmittelyn tuntuman, joten rivien alla ei enää ole erillistä RPE-riviä.",
+      "Varmuuskopio sisältää nyt myös lämmittelysarjat (rivit L1, L2, … painoineen, toistoineen ja tuntumineen), joten kaikki RPE-tiedot palautuvat; työsarjojen tuntuma oli mukana jo aiemmin Tuntuma-sarakkeessa.",
+      "Viime-sarake näyttää nyt kahdella rivillä edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n (esim. 60×10 ja RPE 8), jos tuntuma oli merkitty; ilman tuntumaa rivi näyttää vain painon ja toistot kuten ennen. Sama koskee lämmittelyrivejä.",
+      "Historia näyttää sarjan RPE:n sarjan alla (esim. \"1: 60 kg × 10\" ja sen alla \"RPE 8\"), kun tuntuma oli merkitty; ilman tuntumaa sarjat näkyvät kuten ennen.",
+    ] },
     { date: "2026-09-09", items: [
       "Tuntuma valitaan nyt RPE-lukuina 6–10 hymiöiden sijaan: rivin alussa lukee RPE, luvut ovat ilman kehystä ja täyttöä (vain valittu luku on messinkinen), lukujen perässä on ?-painike, joka avaa asteikon ohjeen, ja lukujen alla ollut selite on poistettu. Sarjarivin ⋮-painike on korvattu pienellä RPE-painikkeella, joka avaa valitsimen ja näyttää valitun luvun; valinnan jälkeen rivi sulkeutuu itsestään. Lämmittelyrivillä valitsin näkyy aina kuten ennen.",
       "Sarjarivin ⋮-valikosta on poistettu huomiokenttä, koska sille ei ollut käyttöä: valikossa ovat nyt tuntuma ja sarjan poisto samalla rivillä. Aiemmin kirjatut huomiot näkyvät edelleen Historiassa ja säilyvät varmuuskopiossa.",
@@ -859,6 +869,8 @@
     firstLogHintDismissed: false,
     // Avoinna oleva pohjalevy (esim. "csv" = CSV-muodon esimerkki) tai null.
     sheet: null,
+    // RPE-ikkunan kohderivi { id, idx, pendingRest }, kun sheet === "rpe".
+    rpeSheet: null,
     program: null,
     // Ohjelmakirjasto: muut kuin käytössä oleva ohjelma (ks. allPrograms).
     programs: [],
@@ -901,7 +913,6 @@
     // replace = seuraava numero korvaa arvon (kuten valittu teksti).
     keypad: null,
     // Sarjan lisärivi (huomio + poisto) auki: { [id]: { [idx]: true } }.
-    setExtra: {},
     draftDate: todayISO(),
     todayEntry: null,
     // Liikkeen id -> { date, data } sille päivälle, jolle liike on viimeksi
@@ -3318,7 +3329,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.openExercise = null;
     state.swapExercise = null;
     state.variantPicker = null;
-    state.setExtra = {};
     state.pdfImportError = null;
     state.programDraft = draft;
     state.editMode = true;
@@ -3772,14 +3782,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function isWarmupRow(row){ return !!row && row.kind === "warmup"; }
   // Sarjan valmis-tilan vaihto. Rivin ✓ ja kirjausnäppäimistön ✓ kulkevat
-  // molemmat tästä, jotta lepoajastimen, lämmittelysäädön ja animaation
-  // säännöt ovat yhdessä paikassa. Piirtää näkymän; render() palauttaa
-  // fokuksen kenttään, ja jos lepoajastimen modaali avautuu (#app inert),
-  // fokus jää tarkoituksella modaaliin.
+  // molemmat tästä, jotta RPE-ikkunan, lepoajastimen, lämmittelysäädön ja
+  // animaation säännöt ovat yhdessä paikassa. Valmiiksi merkitseminen avaa
+  // RPE-ikkunan (openRpeSheet); lepoajastin käynnistyy vasta ikkunan
+  // sulkeuduttua ja suoraan pienessä näkymässä (closeSheet, käyttäjän päätös
+  // 10.9.2026). Piirtää näkymän ja siirtää fokuksen ikkunaan.
   function toggleSetDone(id, idx){
     var ex = findExerciseById(id);
     var row = state.draftSets[id] && state.draftSets[id][idx];
     if(!ex || !row) return false;
+    var opened = false;
     if(row.done){
       row.done = false;
       // Lämmittelyn peruminen lasketaan säätö uudelleen jäljellä olevista.
@@ -3787,17 +3799,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     } else if(isRowDoneEligible(ex, row)){
       row.done = true;
       state.justDone = { id: id, idx: idx };
+      var pendingRest = false;
       if(isWarmupRow(row)){
         // Lämmittely säätää työsarjat; lepoajastinta ei käynnistetä.
         applyWarmupAdjustment(id);
       } else
-      // Ajastin käynnistyy sarjan valmiiksi merkitsemisestä heti, paitsi kun
-      // kyseessä on liikkeen VIIMEINEN vielä tekemätön sarja — silloin
-      // seuraavaksi tallennetaan koko merkintä, ei levätä ennen seuraavaa
-      // sarjaa (jota ei enää tule).
+      // Ajastin kuuluu sarjan valmiiksi merkitsemiseen, paitsi kun kyseessä
+      // on liikkeen VIIMEINEN vielä tekemätön sarja — silloin seuraavaksi
+      // tallennetaan koko merkintä, ei levätä ennen seuraavaa sarjaa (jota ei
+      // enää tule). Käynnistys tapahtuu RPE-ikkunan sulkeuduttua.
       if(!isExerciseFullyDone(ex, id)){
-        startRestTimer(state.restDurationSeconds);
+        pendingRest = true;
       }
+      openRpeSheet(id, idx, pendingRest);
+      opened = true;
     } else {
       if(isClusterExercise(ex) && row.weight) showToast("Tee vähintään yksi osasarja ennen kuin merkitset clusterin valmiiksi");
       else showToast("Syötä paino ennen kuin merkitset sarjan valmiiksi");
@@ -3808,8 +3823,33 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // automaattisesti — liike jää auki "Tallenna merkintä" -painike aktiivisena,
     // ja käyttäjä päättää itse milloin tallentaa (ks. completeAndAdvance vain
     // data-save-ex-käsittelijässä ja avatun liikkeen otsikon klikkauksessa).
-    render();
+    if(opened) afterRender(focusSheetClose); else render();
     return true;
+  }
+  // RPE-ikkunan avaus riville: pohjalevy "rpe" ja kohderivi. pendingRest =
+  // lepoajastin käynnistetään, kun ikkuna sulkeutuu (valinta, sulkupainike,
+  // tausta tai Escape). Näppäimistö suljetaan, koska ikkuna nousee sen päälle.
+  // Ei piirrä: kutsuja piirtää (toggleSetDone, [data-set-more]).
+  function openRpeSheet(id, idx, pendingRest){
+    state.sheet = "rpe";
+    state.rpeSheet = { id: id, idx: idx, pendingRest: !!pendingRest };
+    state.keypad = null;
+  }
+  // Fokus pohjalevyn sulkupainikkeeseen: ruudunlukija ilmoittaa dialogin ja
+  // Escape toimii heti.
+  function focusSheetClose(){
+    var c = document.querySelector(".sheet [data-close-sheet]");
+    if(c) c.focus();
+  }
+  // Rivin nimi RPE-ikkunaan: "Lämmittely 1" tai "Sarja 2" (työsarjat
+  // numeroidaan ykkösestä lämmittelyistä riippumatta, kuten rivillä).
+  function rpeRowLabel(id, idx){
+    var rows = state.draftSets[id] || [];
+    var row = rows[idx];
+    if(!row) return "";
+    var n = 0;
+    for(var i=0;i<=idx && i<rows.length;i++){ if(isWarmupRow(rows[i]) === isWarmupRow(row)) n++; }
+    return (isWarmupRow(row) ? "Lämmittely " : "Sarja ") + n;
   }
   function workRows(id){ return (state.draftSets[id] || []).filter(function(r){ return !isWarmupRow(r); }); }
   function warmupRows(id){ return (state.draftSets[id] || []).filter(isWarmupRow); }
@@ -5548,8 +5588,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     showToast("Vaivaloki tallennettu");
   }
   async function exportAllCSV(){
-    // Lämmittelysarjat (warmups, RPE) eivät tässä vaiheessa sisälly
-    // CSV-vientiin; vain työsarjat viedään (tuntumineen).
+    // Lämmittelysarjat viedään työsarjojen jälkeen Sarja-arvolla L1, L2, …
+    // (paino, toistot ja tuntuma), jotta RPE-tiedot ovat varmuuskopiossa
+    // kokonaan (käyttäjän pyyntö 10.9.2026); tuonti tunnistaa L-rivit.
     try{
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
@@ -5571,6 +5612,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             var feel = (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? warmupScaleStep(s.rpe).label : "";
             var subsets = (kind === "cluster" && isFinite(toNumber(s.subsets)) && toNumber(s.subsets) > 0) ? String(toNumber(s.subsets)) : "";
             rows.push([date, exName, idx+1, s.weight || "", s.reps || "", s.notes || "", kind, exKey, feel, subsets]);
+          });
+          (data.warmups || []).forEach(function(w, wi){
+            var wFeel = (w.rpe !== null && w.rpe !== undefined && isFinite(toNumber(w.rpe))) ? warmupScaleStep(w.rpe).label : "";
+            rows.push([date, exName, "L" + (wi+1), w.weight || "", w.reps || "", "", kind, exKey, wFeel, ""]);
           });
         });
       }
@@ -5864,7 +5909,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
       var kind = cKind ? ((row[cKind] || "").trim().toLowerCase() || "plain") : "plain";
       if(["max","percent","plain","cluster"].indexOf(kind) === -1) kind = "plain";
-      var setNo = cSet ? parseInt(row[cSet], 10) : NaN;
+      // Sarja "L1", "L2", … on lämmittely (viedään työsarjojen jälkeen);
+      // se liitetään edeltävään lohkoon eikä aloita uutta.
+      var setRaw = cSet ? String(row[cSet] || "").trim() : "";
+      var isWarm = /^L\d+$/i.test(setRaw);
+      var setNo = (cSet && !isWarm) ? parseInt(setRaw, 10) : NaN;
       var exId = cId ? String(row[cId] || "").trim() : "";
 
       if(!byDate[date]) { byDate[date] = []; counters[date] = null; }
@@ -5878,6 +5927,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(startsNew){
         lastBlock = { name: name, kind: kind, id: exId, sets: [] };
         blocks.push(lastBlock);
+      }
+      if(isWarm){
+        if(!lastBlock.warmups) lastBlock.warmups = [];
+        lastBlock.warmups.push({
+          weight: cW ? String(row[cW] || "").trim() : "",
+          reps: cReps ? String(row[cReps] || "").trim() : "",
+          rpe: cFeel ? feelFromText(row[cFeel]) : null
+        });
+        return;
       }
       var setObj = {
         weight: cW ? String(row[cW] || "").trim() : "",
@@ -6115,6 +6173,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           kind: block.kind,
           loggedAt: date + "T12:00:00.000Z"
         };
+        if(block.warmups && block.warmups.length) entry.exercises[newId].warmups = block.warmups;
         signatures[sig] = true;
         touchedNames[block.name.trim().toLowerCase()] = block.name;
         addedBlocks++;
@@ -6481,7 +6540,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     render();
   }
 
-  function startRestTimer(seconds){
+  // minimized = ajastin alkaa suoraan pienessä näkymässä (palkki navigaation
+  // yläpuolella), ilman modaalia ja fokuksen siirtoa: RPE-ikkunan sulkeuduttua
+  // käyttäjä jatkaa kirjausta (käyttäjän päätös 10.9.2026). Ajastimen
+  // päättyminen näyttää modaalin kuten ennen (finishRestTimer).
+  function startRestTimer(seconds, minimized){
     if(!state.restTimerEnabled) return;
     clearInterval(window.__restTimerInterval);
     state.restTimer = { endAt: Date.now() + seconds * 1000, seconds: seconds };
@@ -6498,8 +6561,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var mini = document.getElementById("rest-timer-mini");
     if(mini) mini.style.display = "none";
     var el = ensureRestTimerOverlay();
-    el.style.display = "flex";
-    activateRestTimerOverlay(el);
+    if(minimized){
+      el.style.display = "none";
+      var miniBar = ensureRestTimerMiniBar();
+      miniBar.style.display = "flex";
+      var appEl = document.getElementById("app");
+      if(appEl) appEl.inert = false;
+    } else {
+      el.style.display = "flex";
+      activateRestTimerOverlay(el);
+    }
     var startCard = document.getElementById("rest-timer-card");
     if(startCard) startCard.style.background = "var(--surface)";
     // Palautetaan värit oletukseen, jos edellinen ajastin ehti juuri päättyä
@@ -6865,9 +6936,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot. Rivin lopun ⋮-painikkeesta löydät sarjan tuntuman (valinnainen; vaikuttaa seuraavan kerran ehdotukseen), huomion ja poiston. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino, toistot ja tuntuma. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta: silloin avautuu RPE-ikkuna, jossa valitset sarjan tuntuman (6–10) tai suljet ikkunan ilman valintaa, ja lepoajastin käynnistyy vasta ikkunan sulkeuduttua pienenä palkkina näytön alareunassa. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n, jos se oli merkitty. Rivin lopun RPE-painike näyttää valitun luvun ja avaa saman ikkunan uudelleen; ikkunassa ovat myös tuntuman poisto ja sarjan poisto. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino ja toistot; lämmittelyn ✓ avaa saman RPE-ikkunan tuntumaa varten. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Tuntuma (RPE 6–10)</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut sarjan jälkeen. Lämmittelyrivillä valitsin on aina näkyvissä; työsarjalla sen avaa rivin RPE-painike, ja rivi sulkeutuu valinnan jälkeen. Rivin ?-painike avaa asteikon ohjeen. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva; työsarjalle tavoite on Työläs, eli kaksi toistoa varastossa."
+      "<b style=\"color:var(--chalk);\">Tuntuma (RPE 6–10)</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut sarjan jälkeen. Tuntuma valitaan RPE-ikkunassa, joka avautuu, kun merkitset sarjan tai lämmittelyn valmiiksi ✓:llä; rivin RPE-painike avaa ikkunan uudelleen. Ikkunassa ovat painikkeet 6–10 sanoineen, asteikon ohje sekä tuntuman ja sarjan poisto, ja valinta sulkee ikkunan. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva; työsarjalle tavoite on Työläs, eli kaksi toistoa varastossa."
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">6 Kevyt</b> — meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän.",
       "<b style=\"color:var(--chalk);\">7 Sujuva</b> — vaati vähän voimaa, kolme toistoa olisi vielä tullut.",
@@ -6889,7 +6960,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("3. Painoehdotukset", ohjeP(
       "<b style=\"color:var(--chalk);\">Liikkeellä ei ole tehoa:</b> ehdotus lasketaan jokaiselle sarjalle erikseen viime kerran samasta sarjasta. Jos tavoitetoistot täyttyivät, paino nousee vähintään 2,5 kg ja enintään 5 %; jos toistoja jäi yksi vajaaksi, paino pysyy samana; jos toistoja jäi kaksi tai enemmän vajaaksi, paino kevenee 5 % alaspäin pyöristäen. Sarjarivin yläpuolella kerrotaan jokaisen sarjan peruste."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Tuntuma ehdotuksessa:</b> jos viime kerran sarjalle on kirjattu tuntuma (rivin RPE-painikkeesta), se tulkitaan varastoon jääneiksi toistoiksi — Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0 — ja lisätään toistoihin Epley-kaavassa. Ehdotus on paino, jolla tavoitetoistot tuntuisivat Työläältä, 1,25 % kehityksellä, ilman edellä mainittuja nosto- ja kevennyshaaroja ja niiden rajoja: sama paino ja toistot antavat Kevyellä suuremman ehdotuksen kuin Äärirajoilla. Äärirajoilla-tuntuma keventää painoa vain, jos toistot jäivät alle tavoitteen; tavoitteen täyttänyt äärirajoilla tehty sarja pitää painon, koska se on loppusarjalle normaali tila (esim. tavoite 12, viimeksi 162,5 kg × 12: Kevyt 172,5 kg, Työläs 165 kg, Äärirajoilla 162,5 kg; 162,5 kg × 10 Äärirajoilla → 155 kg). Ilman tuntumaa laskenta on täsmälleen entinen (Työläs). Kehitys-näkymän 1RM lasketaan aina ilman tuntumaa, jotta historia pysyy vertailukelpoisena."
+      "<b style=\"color:var(--chalk);\">Tuntuma ehdotuksessa:</b> jos viime kerran sarjalle on kirjattu tuntuma (RPE-ikkunasta), se tulkitaan varastoon jääneiksi toistoiksi — Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0 — ja lisätään toistoihin Epley-kaavassa. Ehdotus on paino, jolla tavoitetoistot tuntuisivat Työläältä, 1,25 % kehityksellä, ilman edellä mainittuja nosto- ja kevennyshaaroja ja niiden rajoja: sama paino ja toistot antavat Kevyellä suuremman ehdotuksen kuin Äärirajoilla. Äärirajoilla-tuntuma keventää painoa vain, jos toistot jäivät alle tavoitteen; tavoitteen täyttänyt äärirajoilla tehty sarja pitää painon, koska se on loppusarjalle normaali tila (esim. tavoite 12, viimeksi 162,5 kg × 12: Kevyt 172,5 kg, Työläs 165 kg, Äärirajoilla 162,5 kg; 162,5 kg × 10 Äärirajoilla → 155 kg). Ilman tuntumaa laskenta on täsmälleen entinen (Työläs). Kehitys-näkymän 1RM lasketaan aina ilman tuntumaa, jotta historia pysyy vertailukelpoisena."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Jumitunnistus ja kevennys:</b> jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmällä kerralla vähintään yksi sarja jäi vajaaksi, sovellus ehdottaa kevennystä ja selite kertoo syyn. Ilman tuntumaa vaje tarkoittaa tavoitetta vähempiä toistoja ja kevennys on 10 % edellisen kerran sarjan painosta alaspäin pyöristäen. Tuntuman kanssa vaje mitataan toistoista ja varastosta yhteensä: sarja on vajaa, kun toistot + varastoon jääneet toistot jäävät alle tavoitetoistot + 2 — kaksi vajaaksi jäänyt mutta Kevyt ei ole vaje. Tavoitteen täyttänyt äärirajoilla tehty sarja ei ole vaje, ja se kevennetään kuten ilman tuntumaa — sama sääntö kuin ehdotuksessa. Muuten kevennys on 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen, jolloin selite lisää \"tuntuma huomioiden\" (esim. tavoite 12: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg eli sama kuin ilman tuntumaa; 162,5 kg × 12 Äärirajoilla ei laukaise kevennystä, ja toisen sarjan vajeen laukaisemana se kevenee 145 kg:aan). Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta."
     ) + ohjeP(
@@ -7019,15 +7090,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function closeSheet(){
     var opener = state.sheet;
     state.sheet = null;
+    var rpeTarget = null;
+    if(opener === "rpe"){ rpeTarget = state.rpeSheet; state.rpeSheet = null; }
     if(opener === "uusi-ohjelma" && state.pendingProgram){
       // Sulkeminen ilman valintaa: muokkaus jatkuu tai CSV-tuonti perutaan.
       var src = state.pendingProgram.source;
       state.pendingProgram = null;
       if(src === "csv") showToast("Tuonti peruttu");
     }
+    // RPE-ikkunan sulkeutuminen (valinta tai ohitus) käynnistää sarjan
+    // lepoajastimen pienessä näkymässä; käynnistys on tässä, jotta valinta,
+    // sulkupainike, tausta ja Escape käyttäytyvät samoin.
+    if(rpeTarget && rpeTarget.pendingRest) startRestTimer(state.restDurationSeconds, true);
     afterRender(function(){
-      var btn = document.querySelector('[data-open-sheet="' + opener + '"]');
-      if(btn) btn.focus();
+      var btn = rpeTarget ? document.querySelector('[data-set-more][data-id="' + rpeTarget.id + '"][data-idx="' + rpeTarget.idx + '"]') : null;
+      if(!btn) btn = document.querySelector('[data-open-sheet="' + opener + '"]');
+      if(btn){ try{ btn.focus({ preventScroll: true }); }catch(e){ btn.focus(); } }
     });
   }
   // Suorittaa fn:n vasta kun render() on piirtänyt uuden DOM:in — myös
@@ -7124,14 +7202,45 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '</div>';
     }
     if(state.sheet === "rpe"){
-      // RPE-asteikon ohje: sama sisältö kuin Ohjeen luettelossa, avataan
-      // RPE-rivin ?-painikkeesta.
-      title = "RPE-asteikko";
-      body = '<p>RPE (rating of perceived exertion) vastaa kysymykseen, montako toistoa olisit vielä jaksanut sarjan jälkeen. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus.</p>' +
+      // RPE-ikkuna: kohderivin tuntuma valitaan viidestä painikkeesta (luku ja
+      // sana; data-warmup-rpe kuten ennen, joten käsittelijä ja tallennus ovat
+      // ennallaan), alla asteikon ohje ja rivin toiminnot (tuntuman poisto,
+      // sarjan poisto). Avautuu ✓:stä ja rivin RPE-painikkeesta; valinta
+      // sulkee ikkunan ja lepoajastin käynnistyy sulkeuduttua (closeSheet).
+      // Ilman kohderiviä näytetään pelkkä ohje.
+      var rt = state.rpeSheet;
+      var rtEx = rt ? findExerciseById(rt.id) : null;
+      var rtRow = (rt && rtEx && state.draftSets[rt.id]) ? state.draftSets[rt.id][rt.idx] : null;
+      var rtLabel = rtRow ? rpeRowLabel(rt.id, rt.idx) : "";
+      var rtSel = rtRow ? feelStep(rtRow.rpe) : null;
+      var rtWarm = isWarmupRow(rtRow);
+      title = rtRow ? "RPE · " + rtLabel : "RPE-asteikko";
+      var pickHtml = "";
+      if(rtRow){
+        var rtVals = rtRow.weight ? ', ' + escapeHtml(String(rtRow.weight).replace(".", ",")) + ' kg × ' + escapeHtml(String(rtRow.reps || "–")) : '';
+        pickHtml = '<p class="rpe-sheet-q"><b style="color:var(--chalk);">' + escapeHtml(rtEx.name) + '</b> · ' + escapeHtml(rtLabel.toLowerCase()) + rtVals + '. ' + escapeHtml(WARMUP_FEEL_PROMPT) + '</p>' +
+          '<div class="rpe-pick" role="group" aria-label="' + escapeHtml(rtLabel) + ': RPE">' +
+          WARMUP_SCALE.map(function(step){
+            var on = !!(rtSel && rtSel.rpe === step.rpe);
+            return '<button type="button" class="rpe-pick-btn" data-warmup-rpe data-id="' + rt.id + '" data-idx="' + rt.idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="' + step.rpe + ' ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '">' +
+              '<span class="rpe-pick-num" aria-hidden="true">' + step.rpe + '</span>' +
+              '<span class="rpe-pick-word" aria-hidden="true">' + escapeHtml(step.label).replace("Äärirajoilla", "Ääri&shy;rajoilla") + '</span>' +
+              '</button>';
+          }).join("") + '</div>';
+      }
+      var restNote = (rt && rt.pendingRest && state.restTimerEnabled) ? " ja käynnistää lepoajastimen pienenä palkkina näytön alareunaan" : "";
+      body = pickHtml +
         '<div class="rpe-guide">' + WARMUP_SCALE.map(function(step){
-          return '<div class="rpe-guide-row"><span class="rpe-guide-num">' + step.rpe + '</span><div><b style="color:var(--chalk);">' + escapeHtml(step.label) + '</b><br>' + escapeHtml(step.desc) + '.</div></div>';
+          return '<div class="rpe-guide-row"><span class="rpe-guide-num">' + step.rpe + '</span><div><b style="color:var(--chalk);">' + escapeHtml(step.label) + '</b> — ' + escapeHtml(step.desc) + '.</div></div>';
         }).join("") + '</div>' +
-        '<p style="margin-top:12px;">Lämmittelylle tavallinen vastaus on 6 tai 7; työsarjan tavoite on 8 eli kaksi toistoa varastossa. Työsarjan RPE vaikuttaa seuraavan kerran painoehdotukseen, ja lämmittelyn RPE voi säätää saman treenin työsarjoja (ks. Ohje, kohta 2). Valinta on vapaaehtoinen, ja valitun luvun uusi napautus poistaa sen.</p>';
+        '<p style="margin-top:12px;">RPE kertoo, montako toistoa olisit vielä jaksanut sarjan jälkeen. Arvioi sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on 6 tai 7; työsarjan tavoite on 8 eli kaksi toistoa varastossa. Työsarjan RPE vaikuttaa seuraavan kerran painoehdotukseen, ja lämmittelyn RPE voi säätää saman treenin työsarjoja (ks. Ohje, kohta 2).' +
+        (rtRow ? ' Valinta sulkee ikkunan' + restNote + '. Tuntuma on vapaaehtoinen: voit sulkea ikkunan ilman valintaa ja avata sen myöhemmin rivin RPE-painikkeesta.' : '') + '</p>' +
+        (rtRow
+          ? '<div class="rpe-sheet-actions">' +
+            (rtSel ? '<button type="button" class="btn-tertiary btn-sm" data-rpe-clear data-id="' + rt.id + '" data-idx="' + rt.idx + '">Poista tuntuma</button>' : '<span></span>') +
+            '<button type="button" class="btn-tertiary btn-sm" data-remove-set data-id="' + rt.id + '" data-idx="' + rt.idx + '" style="color:var(--danger-text);">' + icon("poista", 16) + '<span>' + (rtWarm ? "Poista lämmittely" : "Poista sarja") + '</span></button>' +
+            '</div>'
+          : '');
     }
     if(state.sheet === "liike"){
       title = "Valitse liike";
@@ -7587,16 +7696,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       (ex.method ? '<b style="color:var(--brass);">' + escapeHtml(ex.method) + ':</b> ' : '') +
       escapeHtml(ex.methodNote) + '</div>';
   }
-  // Viime-sarakkeen solu: edellisen kerran paino×toistot tai viiva. Sisältö
-  // on myös ruudunlukijalle (aria-label), vaikka sarake piilotetaan kapealla.
+  // Viime-sarakkeen solu: edellisen kerran paino×toistot tai viiva, ja sen
+  // alla toisella rivillä "RPE 8", jos viime kerran sarjalle oli merkitty
+  // tuntuma (työsarjalla ja lämmittelyllä sama kenttä `rpe`). Sisältö on
+  // myös ruudunlukijalle (aria-label), vaikka sarake piilotetaan kapealla.
   function renderLastCell(last, rowName){
     var w = last ? String(last.weight || "").replace(".", ",") : "";
     var r = last ? String(last.reps || "") : "";
     // Cluster-kerta näyttää myös osasarjat: "60×6×5" (vain kun niitä on > 1).
     var sub = (last && setSubsets(last) > 1) ? String(setSubsets(last)) : "";
+    var rpe = (last && last.rpe !== null && last.rpe !== undefined && isFinite(toNumber(last.rpe))) ? toNumber(last.rpe) : null;
+    var rpeText = rpe !== null ? "RPE " + String(rpe).replace(".", ",") : "";
     var text = (w || r) ? (w || "–") + "×" + (r || "–") + (sub ? "×" + sub : "") : "–";
-    var label = (w || r) ? rowName + " viime kerralla " + (w || "–") + " kg × " + (r || "–") + (sub ? " × " + sub + " osasarjaa" : "") : rowName + ": ei aiempaa kertaa";
-    return '<div class="set-last" role="img" aria-label="' + escapeHtml(label) + '">' + escapeHtml(text) + '</div>';
+    var label = (w || r) ? rowName + " viime kerralla " + (w || "–") + " kg × " + (r || "–") + (sub ? " × " + sub + " osasarjaa" : "") + (rpeText ? ", " + rpeText + " (" + warmupFeelWord(rpe) + ")" : "") : rowName + ": ei aiempaa kertaa";
+    return '<div class="set-last" role="img" aria-label="' + escapeHtml(label) + '">' +
+      '<span class="set-last-main">' + escapeHtml(text) + '</span>' +
+      (rpeText ? '<span class="set-last-rpe">' + escapeHtml(rpeText) + '</span>' : '') +
+      '</div>';
   }
 
   // ---------- kirjausnäppäimistö ----------
@@ -7878,21 +7994,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // data-warmup-rpe-käsittelijä palvelee molempia: se kirjoittaa rivin rpe-
   // kentän ja laskee lämmittelysäädön uudelleen. Painikkeen nimi sisältää
   // rivin nimen, sanan ja kuvauksen; selite ja aria-live-teksti erikseen.
-  // RPE-valitsin: painikkeissa luvut 6–10 (käyttäjän päätös: ei hymiöitä eikä
-  // selitettä rivin alla; asteikon kuvaukset ovat ohjeikkunassa, jonka
-  // ?-painike [data-open-sheet="rpe"] avaa). data-rpe on yhä luku, joten
-  // käsittelijä, laskenta ja tallennus ovat ennallaan. Painikkeen aria-label
-  // sisältää sanan ja kuvauksen; valinta luetaan aria-live-alueesta.
-  function renderFeelPicker(exId, idx, rpe, rowLabel){
-    var selected = null;
-    var buttons = WARMUP_SCALE.map(function(step){
-      var on = rpe === step.rpe;
-      if(on) selected = step;
-      return '<button type="button" class="weight-step-btn feel-btn" data-warmup-rpe data-id="' + exId + '" data-idx="' + idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="' + escapeHtml(rowLabel) + ': ' + step.rpe + ' ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + '"' + (on ? ' style="background:var(--brass); color:var(--ink); border-color:var(--brass);"' : '') + '>' + step.rpe + '</button>';
-    }).join("");
-    var label = '<span class="rpe-row-label" aria-hidden="true">RPE</span>';
-    var help = '<button type="button" class="icon-btn rpe-help-btn" data-open-sheet="rpe" aria-label="RPE-asteikon ohje">' + icon("ohje", 16) + '</button>';
-    return { buttons: buttons, label: label, help: help, selected: selected };
+  // Asteikon pykälä täsmälleen tallennetulle RPE-luvulle (null = ei tuntumaa).
+  function feelStep(rpe){
+    for(var i=0;i<WARMUP_SCALE.length;i++){ if(WARMUP_SCALE[i].rpe === rpe) return WARMUP_SCALE[i]; }
+    return null;
+  }
+  // Sarjarivin viimeinen sarake: pieni "RPE"-painike, joka avaa RPE-ikkunan
+  // (tuntuma, tuntuman poisto ja sarjan poisto) ja näyttää valitun luvun
+  // tunnisteen alla. rowLabel on genetiivissä ("Sarjan 2", "Lämmittelyn 1").
+  function renderRpeRowButton(exId, idx, rpe, rowLabel){
+    var sel = feelStep(rpe);
+    return '<button type="button" class="set-more" data-set-more data-id="' + exId + '" data-idx="' + idx + '" aria-haspopup="dialog" aria-label="' + escapeHtml(rowLabel) + ' RPE ja poisto' + (sel ? ' (RPE ' + sel.rpe + ', ' + escapeHtml(sel.label.toLowerCase()) + ')' : '') + '">' +
+      '<span class="rpe-btn-label" aria-hidden="true">RPE</span>' +
+      (sel ? '<span class="rpe-btn-val" aria-hidden="true">' + sel.rpe + '</span>' : '') +
+      '</button>';
   }
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
@@ -7902,7 +8017,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Teholiike ilman 1RM:ää ei ole mykkä: selite kertoo, mitä kirjataan.
     if(ex.intensity && !state.autoCalcInfo[ex.id] && !isExerciseLogged(ex)) hint += renderNoMaxHint(ex);
     hint += autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
-    var extras = state.setExtra[ex.id] || {};
     var warmCount = 0;
     // Viime-sarake: edellisen kerran sarjat samasta liikkeestä. Jo tallennettua
     // merkintää korjattaessa lastSet on tämä sama kerta, joten näytetään sitä
@@ -7916,38 +8030,26 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Sarjan numero on pelkkä visuaalinen merkki — hyväksyntä tehdään aina
       // erillisestä, selvästi nimetystä painikkeesta.
       if(isWarmupRow(s)){
-        // Lämmittelyrivi: L-numero, paino, toistot, valmis; RPE-valitsin
-        // (luvut 6–10, ohjepainike) ja poisto omalla rivillään aina näkyvissä.
+        // Lämmittelyrivi: L-numero, Viime, paino, toistot, valmis ja RPE-
+        // painike. Tuntuma ja poisto ovat RPE-ikkunassa (pohjalevy "rpe"),
+        // joka avautuu ✓:stä ja RPE-painikkeesta (käyttäjän päätös 10.9.2026).
         warmCount++;
-        var feelId = "feel-" + ex.id + "-" + idx;
-        var feelParts = renderFeelPicker(ex.id, idx, s.rpe, "Lämmittely " + warmCount);
-        var rpeButtons = feelParts.buttons, selectedStep = feelParts.selected;
         var warmPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
         var lastWarm = lastSession && lastSession.warmups ? lastSession.warmups[warmCount - 1] : null;
-        return '<div class="ledger-row has-extra">' +
+        return '<div class="ledger-row">' +
           '<div class="set-num' + (s.done ? " done" : "") + (warmPop ? " pop" : "") + '" aria-hidden="true">L' + warmCount + '</div>' +
           renderLastCell(lastWarm, "Lämmittely " + warmCount) +
           '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
           '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Lämmittely ' + warmCount + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
           '<button type="button" class="set-done-btn' + (warmPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Lämmittely " + warmCount + " merkitty valmiiksi" : "Merkitse lämmittely " + warmCount + " valmiiksi") + '">✓</button>' +
-          '<div></div>' +
-          '</div>' +
-          '<div class="set-extra warmup-feel">' +
-          '<div class="warmup-feel-head">' +
-          '<span id="' + feelId + '-q" class="sr-only">Miltä lämmittely ' + warmCount + ' tuntui?</span>' +
-          feelParts.label +
-          '<div class="warmup-feel-btns" role="group" aria-labelledby="' + feelId + '-q">' + rpeButtons + '</div>' +
-          feelParts.help +
-          '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista lämmittely ' + warmCount + '" style="padding:6px 10px; margin-left:auto;">' + icon("poista", 18) + '</button>' +
-          '</div>' +
-          '<span class="sr-only" id="' + feelId + '-live" aria-live="polite">' + (selectedStep ? escapeHtml(selectedStep.label) + ': ' + escapeHtml(selectedStep.desc) + '.' : WARMUP_FEEL_PROMPT) + '</span>' +
+          renderRpeRowButton(ex.id, idx, s.rpe, "Lämmittelyn " + warmCount) +
           '</div>';
       }
-      // Lisärivi (tuntuma ja poisto) on auki vain ⋮-painikkeesta. Sarjan
-      // huomiokenttä poistettiin käyttäjän päätöksellä (ei käyttöä); rivin
-      // notes-kenttä säilyy tyhjänä, jotta merkinnän ja varmuuskopion muoto
-      // eivät muutu ja vanhat huomiot näkyvät yhä Historiassa.
-      var extraOpen = !!extras[idx];
+      // Työsarja: numero, Viime, paino, toistot, ✓ ja RPE-painike. Tuntuma ja
+      // poisto ovat RPE-ikkunassa. Sarjan huomiokenttä poistettiin käyttäjän
+      // päätöksellä (ei käyttöä); rivin notes-kenttä säilyy tyhjänä, jotta
+      // merkinnän ja varmuuskopion muoto eivät muutu ja vanhat huomiot näkyvät
+      // yhä Historiassa.
       // Sarjanumero on aina näkyvissä (selitteen "S2" viittaa siihen); tehty-
       // tila näkyy ✓-painikkeen täytöstä ja numeron väristä.
       var workPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
@@ -7956,14 +8058,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Työsarjat numeroidaan ykkösestä lämmittelyistä riippumatta (käyttäjän
       // päätös); idx on rivin paikka koko taulukossa lämmittelyt mukaan lukien.
       var setNo = workIndex;
-      var workFeelId = "feel-" + ex.id + "-" + idx;
-      var workFeel = renderFeelPicker(ex.id, idx, s.rpe, "Sarja " + setNo);
       // Cluster: osasarjalaskuri aina näkyvissä rivin alla (data-cluster-step
       // ±1); lukumäärä on live-alue, jotta ruudunlukija kuulee muutoksen.
       var cluster = isClusterExercise(ex);
       var subCount = cluster ? (isFinite(toNumber(s.subsets)) && toNumber(s.subsets) > 0 ? toNumber(s.subsets) : 0) : 0;
       var clusterHtml = cluster
-        ? '<div class="set-extra cluster-row' + (extraOpen ? " cluster-more-open" : "") + '">' +
+        ? '<div class="set-extra cluster-row">' +
           '<button type="button" class="cluster-step" data-cluster-step="-1" data-id="' + ex.id + '" data-idx="' + idx + '" aria-label="Poista osasarja, sarja ' + setNo + '">−</button>' +
           '<div class="cluster-count" aria-live="polite"><span class="cluster-num' + (s.done ? " done" : "") + '" data-cluster-num>' + subCount + '</span><span class="cluster-unit">osasarjaa</span></div>' +
           '<button type="button" class="cluster-step cluster-plus" data-cluster-step="1" data-id="' + ex.id + '" data-idx="' + idx + '" aria-label="Lisää osasarja, sarja ' + setNo + '">+</button>' +
@@ -7971,35 +8071,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         : '';
       // inputmode="none": laitteen näppäimistö ei avaudu, vaan kentän napautus
       // avaa kirjausnäppäimistön (focusin/click). Kenttä on silti muokattava.
-      return '<div class="ledger-row' + ((extraOpen || cluster) ? " has-extra" : "") + '">' +
+      return '<div class="ledger-row' + (cluster ? " has-extra" : "") + '">' +
         '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(setNo) + '</div>' +
         renderLastCell(lastWork, "Sarja " + setNo) +
         '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
         '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + setNo + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + setNo + " merkitty valmiiksi" : "Merkitse sarja " + setNo + " valmiiksi") + '">✓</button>' +
-        // Rivin viimeinen painike on pieni "RPE" (entinen ⋮), joka avaa RPE-
-        // rivin; valittu luku näkyy painikkeessa tunnisteen alla.
-        '<button type="button" class="set-more' + (extraOpen ? " on" : "") + '" data-set-more data-id="' + ex.id + '" data-idx="' + idx + '" aria-expanded="' + (extraOpen ? "true" : "false") + '" aria-label="Sarjan ' + setNo + ' RPE ja poisto' + (workFeel.selected ? " (RPE " + workFeel.selected.rpe + ", " + workFeel.selected.label.toLowerCase() + ")" : "") + '">' +
-        '<span class="rpe-btn-label" aria-hidden="true">RPE</span>' +
-        (workFeel.selected ? '<span class="rpe-btn-val" aria-hidden="true">' + workFeel.selected.rpe + '</span>' : '') +
-        '</button>' +
+        renderRpeRowButton(ex.id, idx, s.rpe, "Sarjan " + setNo) +
         '</div>' +
-        clusterHtml +
-        (extraOpen
-          // Tuntuma on vapaaehtoinen: valinta kulkee merkintään ja seuraavan
-          // kerran ehdotukseen (RIR), ilman valintaa laskenta on ennallaan.
-          // Poisto on hymiöiden rivin oikeassa reunassa kuten lämmittelyllä.
-          ? '<div class="set-extra warmup-feel set-feel">' +
-            '<div class="warmup-feel-head">' +
-            '<span id="' + workFeelId + '-q" class="sr-only">Miltä sarja ' + setNo + ' tuntui?</span>' +
-            workFeel.label +
-            '<div class="warmup-feel-btns" role="group" aria-labelledby="' + workFeelId + '-q">' + workFeel.buttons + '</div>' +
-            workFeel.help +
-            '<button class="btn-danger btn-sm btn-auto" data-remove-set data-id="' + ex.id + '" data-idx="' + idx + '" type="button" aria-label="Poista sarja ' + setNo + '" style="padding:6px 10px; margin-left:auto;">' + icon("poista", 18) + '</button>' +
-            '</div>' +
-            '<span class="sr-only" id="' + workFeelId + '-live" aria-live="polite">' + (workFeel.selected ? escapeHtml(workFeel.selected.label) + ': ' + escapeHtml(workFeel.selected.desc) + '.' : WARMUP_FEEL_PROMPT) + '</span>' +
-            '</div>'
-          : '');
+        clusterHtml;
     });
     // Rivit on tuotettu yhdellä silmukalla todellisilla indekseillä; tässä
     // ne vain jaetaan lämmittely- ja työsarjalohkoihin näyttöä varten.
@@ -8991,14 +9071,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var name = data.name || key;
           var clusterEntry = data.kind === "cluster";
           // Cluster-rivi: "60 kg × 6 × 5", jossa viimeinen luku on osasarjat
-          // (puuttuva tai 1 → tavallinen esitys).
+          // (puuttuva tai 1 → tavallinen esitys). Sarjan alla on "RPE 8", kun
+          // tuntuma oli merkitty; ruudunlukijalle pilkku erottaa sen arvoista.
           var setsStr = (data.sets || []).map(function(s, i){
             var sub = setSubsets(s) > 1 ? " × " + setSubsets(s) : "";
-            return (i+1) + ": " + (s.weight || "–") + " kg × " + (s.reps || "–") + sub + (s.notes ? " (" + escapeHtml(s.notes) + ")" : "");
+            var rpeVal = (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? toNumber(s.rpe) : null;
+            return '<span class="hist-set">' + (i+1) + ": " + (s.weight || "–") + " kg × " + (s.reps || "–") + sub + (s.notes ? " (" + escapeHtml(s.notes) + ")" : "") +
+              (rpeVal !== null ? '<span class="hist-set-rpe"><span class="sr-only">, </span>RPE ' + String(rpeVal).replace(".", ",") + '</span>' : '') +
+              '</span>';
           }).join(" · ");
           return '<div style="margin-top:10px;"><div style="font-weight:600; font-size:var(--fs-md);">' + escapeHtml(name) +
             (clusterEntry ? ' <span style="color:var(--mist); font-size:var(--fs-xs); font-weight:400;">cluster</span>' : '') + '</div>' +
-            '<div style="color:var(--mist); font-size:var(--fs-sm); font-variant-numeric:tabular-nums; margin-top:2px;">' + setsStr + '</div></div>';
+            '<div class="hist-sets">' + setsStr + '</div></div>';
         }).join("");
       }
       // Poisto on toissijainen toiminto: pieni tekstipainike kortin alareunassa,
@@ -9486,6 +9570,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if((el = e.target.closest("[data-open-sheet]"))){
       state.sheet = el.dataset.openSheet;
+      state.rpeSheet = null;
       // Pohjalevy nousee näppäimistön päälle: näppäimistö suljetaan.
       state.keypad = null;
       if(state.sheet === "liike" && state.editor){
@@ -9531,7 +9616,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(e.target.closest("[data-new-program-activate]")){ await acceptPendingProgram(true); return; }
     if(e.target.closest("[data-new-program-shelve]")){ await acceptPendingProgram(false); return; }
     if(e.target.closest("[data-new-program-cancel]")){ closeSheet(); return; }
-    if(e.target.closest("[data-close-sheet]")){
+    // RPE-ikkunan omat painikkeet (tuntuma, tuntuman poisto, sarjan poisto)
+    // käsitellään omissa käsittelijöissään jäljempänä, joten ne ohittavat
+    // taustan sulkutarkistuksen.
+    if(e.target.closest("[data-close-sheet]") && !e.target.closest("[data-warmup-rpe], [data-rpe-clear], [data-remove-set]")){
       // Vain tausta tai sulkupainike sulkee; paneelin sisällön napautus ei.
       var closeEl = e.target.closest("[data-close-sheet]");
       if(closeEl.classList.contains("sheet-backdrop") && e.target !== closeEl) return;
@@ -9837,10 +9925,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("[data-set-more]"))){
-      var moreId = el.dataset.id, moreIdx = parseInt(el.dataset.idx, 10);
-      if(!state.setExtra[moreId]) state.setExtra[moreId] = {};
-      state.setExtra[moreId][moreIdx] = !state.setExtra[moreId][moreIdx];
-      render();
+      // Rivin RPE-painike avaa RPE-ikkunan uudelleen (ilman lepoajastinta).
+      openRpeSheet(el.dataset.id, parseInt(el.dataset.idx, 10), false);
+      afterRender(focusSheetClose);
       return;
     }
     if((el = e.target.closest("[data-add-set]"))){
@@ -9903,24 +9990,34 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("[data-warmup-rpe]"))){
+      // RPE-ikkunan painike: pykälä kirjoitetaan riville ja ikkuna sulkeutuu
+      // (closeSheet käynnistää odottavan lepoajastimen). Tuntuman poisto on
+      // erillinen painike [data-rpe-clear].
       var idr = el.dataset.id, idxr = parseInt(el.dataset.idx, 10);
       var rowr = state.draftSets[idr] && state.draftSets[idr][idxr];
       if(rowr){
-        // Valitun pykälän uusi napautus poistaa valinnan (tuntuma on
-        // vapaaehtoinen); muuten pykälä vaihtuu.
-        var rpeVal = parseInt(el.dataset.rpe, 10);
-        rowr.rpe = rowr.rpe === rpeVal ? null : rpeVal;
+        rowr.rpe = parseInt(el.dataset.rpe, 10);
         state.dirtySets[idr] = true;
         applyWarmupAdjustment(idr);
-        // Työsarjan RPE-rivi sulkeutuu valinnan (tai valinnan poiston)
-        // jälkeen itsestään; lämmittelyn rivi on aina näkyvissä.
-        if(!isWarmupRow(rowr) && state.setExtra[idr]) delete state.setExtra[idr][idxr];
       }
-      render();
+      if(state.sheet === "rpe") closeSheet(); else render();
+      return;
+    }
+    if((el = e.target.closest("[data-rpe-clear]"))){
+      var idc = el.dataset.id, idxc = parseInt(el.dataset.idx, 10);
+      var rowc = state.draftSets[idc] && state.draftSets[idc][idxc];
+      if(rowc){
+        rowc.rpe = null;
+        state.dirtySets[idc] = true;
+        applyWarmupAdjustment(idc);
+      }
+      if(state.sheet === "rpe") closeSheet(); else render();
       return;
     }
     if((el = e.target.closest("[data-remove-set]"))){
       var id2 = el.dataset.id, idx2 = parseInt(el.dataset.idx, 10);
+      // Poisto RPE-ikkunasta sulkee ikkunan ilman lepoajastinta.
+      if(state.sheet === "rpe"){ state.sheet = null; state.rpeSheet = null; }
       if(state.draftSets[id2]){
         state.draftSets[id2].splice(idx2, 1);
         if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });

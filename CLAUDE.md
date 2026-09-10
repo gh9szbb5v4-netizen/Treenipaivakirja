@@ -88,7 +88,7 @@ Kirjaus: `renderLedger` piirtää cluster-rivin alle aina näkyvän
 painikkeet ovat 44 × 44 px kuten rivin ✓ ja lukumäärä 22 px: kehotteen
 "plus on rivin suurin kosketuskohde" (56 px, flex:1) toteutettiin ensin,
 mutta käyttäjä pyysi pienentämään ne huomattavasti muiden painikkeiden
-kokoon (käyttäjän päätös). Tuntuma ja poisto ovat RPE-lisärivillä kuten muilla
+kokoon (käyttäjän päätös). Tuntuma ja poisto ovat RPE-ikkunassa kuten muilla
 sarjoilla (kehotteen "huomiokenttä laskurin alle" jäi toteuttamatta, koska
 sarjan huomiokenttä poistettiin käyttäjän päätöksellä). Käsittelijä
 `[data-cluster-step]`: plus kasvattaa `subsets`-arvoa, asettaa `dirtySets` ja
@@ -325,6 +325,16 @@ kirjoitetaan takaisin täsmälleen samalle avaimelle, joten sidonta ohjelmaan on
 eksakti eikä `matchImportedDatesToProgramDays()`-heuristiikkaa tarvita —
 heuristiikka jää voimaan vain tunnisteettomille (vanhoille) tiedostoille.
 
+Merkintäosiossa liikkeen lämmittelyt (`data.warmups`) viedään työsarjojen
+jälkeen riveinä, joiden `Sarja` on `L1`, `L2`, … (paino, toistot, `Tuntuma`
+sanana; Huomiot ja Osasarjat tyhjiä), jotta RPE-tiedot ovat varmuuskopiossa
+kokonaan (käyttäjän pyyntö 10.9.2026). `parseEntriesCSV()` tunnistaa
+`/^L\d+$/`-rivin, liittää sen edeltävään lohkoon (`block.warmups`, ei
+aloita uutta lohkoa eikä vaikuta duplikaattitunnisteeseen) ja
+`importEntriesData()` kirjoittaa ne merkintään `warmups`-kenttään, josta
+`rebuildTrackersForName()` rakentaa `lastSet`-lämmittelyt. Vanha tiedosto
+ilman L-rivejä tuodaan ennallaan.
+
 `intensityToText()` kirjoittaa tehon takaisin samaan muotoon, josta
 `parseIntensity()` sen lukee, jotta `intensity`-olio syntyy uudelleen samana.
 `parseBackupProgram()` asettaa valinnaiset PDF-kentät (`method`, `perSet`,
@@ -485,7 +495,12 @@ kuvakepainikkeiden rinnalla). Viime-solu (`renderLastCell`) näyttää edellisen
 kerran saman järjestysluvun sarjan `state.lastSet[nimi].sets[i]` muodossa
 "60×10" (lämmittelyillä `warmups[i]`), tai viivan; jo tallennettua
 merkintää korjattaessa `lastSet` on tämä sama kerta, joten näytetään
-`prior[0]`. Työsarjat numeroidaan ykkösestä lämmittelyistä riippumatta
+`prior[0]`. Solu on kaksirivinen (`.set-last-main`, `.set-last-rpe`):
+alarivi "RPE 8" näytetään vain, kun viitesarjalla on `rpe`-luku
+(käyttäjän päätös 10.9.2026), ja aria-label saa lisän ", RPE 8 (työläs)";
+kaksi 12 px:n riviä mahtuu 44 px:n kenttien rinnalle, joten rivin korkeus
+ei muutu. Simuloinnin `pushLastSet` ei kirjoita `rpe`-kenttää, joten
+simuloidut kerrat näkyvät ilman RPE-riviä. Testi: `test_viime_rpe.js`. Työsarjat numeroidaan ykkösestä lämmittelyistä riippumatta
 (`setNo` = järjestysluku työsarjojen joukossa; `idx` on paikka koko
 `draftSets`-taulukossa, jossa lämmittelyt ovat alussa) — sama numero on
 `.set-num`-merkissä, kenttien aria-labeleissa, Viime-solussa ja
@@ -501,12 +516,11 @@ napautus avaa kirjausnäppäimistön (seuraava kappale). Tyhjässä kentässä
 ensimmäinen ± tuo viime kerran suurimman painon (`state.lastSet`), ei 2,5 kg
 nollasta. `state.activeSet` ja `activeSetIndex()` on poistettu (±-rivit
 sarjan alla on poistettu, eikä mikään lukenut tilaa). Tuntuma ja poisto
-ovat `state.setExtra[id][idx]`-lisärivillä (`.set-extra.warmup-feel.set-feel`:
-RPE-tunniste, luvut 6–10, ?-ohjepainike ja poistopainike samalla rivillä
-kuten lämmittelyllä), joka avataan rivin RPE-painikkeesta (`.set-more`,
-entinen ⋮; `.rpe-btn-label` "RPE" ja valittu luku `.rpe-btn-val`) ja joka
-sulkeutuu itsestään valinnan jälkeen (`[data-warmup-rpe]`-käsittelijä
-poistaa `setExtra`-avaimen työsarjalta). Sarjan huomiokenttä poistettiin käyttäjän päätöksellä
+ovat RPE-ikkunassa (ks. oma osio), jonka rivin RPE-painike
+(`renderRpeRowButton`, `.set-more`, entinen ⋮; `.rpe-btn-label` "RPE" ja
+valittu luku `.rpe-btn-val`; myös lämmittelyrivin viimeinen sarake) avaa
+uudelleen; sarjarivien alla ei ole lisäriviä (`state.setExtra` poistettu).
+Sarjan huomiokenttä poistettiin käyttäjän päätöksellä
 (ei käyttöä): rivin ja merkinnän `notes`-kenttä säilyy tyhjänä, Historia
 näyttää vanhat huomiot ja varmuuskopion Huomiot-sarake on ennallaan.
 "Nostettu yhteensä" päivitetään ilman render()-kutsua (`syncSubtotalDom`,
@@ -617,6 +631,46 @@ oma viikon nimi, Jatka jo avatulla liikkeellä). Testissä on odotettava yli
 on kesken, ja Playwright siirtyy sen aikana uusintayrityksiin, jotka
 vierittävät sivua itse.
 
+## RPE-ikkuna (toteutettu, 10.9.2026)
+
+Sarjan tuntuma valitaan pohjalevyssä `state.sheet === "rpe"`, jonka kohde
+on `state.rpeSheet = { id, idx, pendingRest }` (käyttäjän päätös: aiempi
+rivin alle avautuva RPE-rivi vaati liikaa painalluksia ✓ → modaali →
+pienennä → RPE → valinta → sulje). Avaus: `toggleSetDone` kutsuu valmiiksi
+merkittäessä `openRpeSheet(id, idx, pendingRest)`-funktiota (`pendingRest`
+= työsarja, joka ei ole liikkeen viimeinen; lämmittelyllä aina false) ja
+piirtää `afterRender(focusSheetClose)`-kutsulla; rivin RPE-painike
+`[data-set-more]` avaa saman ikkunan ilman ajastinta. `openRpeSheet` nollaa
+`state.keypad`-tilan (ikkuna nousee näppäimistön päälle). Sisältö
+(`renderSheet`): otsikko "RPE · Sarja 2" / "RPE · Lämmittely 1"
+(`rpeRowLabel`), kysymysrivi liikkeen nimellä ja rivin arvoilla
+(`.rpe-sheet-q`), viisi `.rpe-pick-btn`-painiketta (`[data-warmup-rpe]`
+kuten ennen, `aria-pressed`, luku `.rpe-pick-num` ja sana `.rpe-pick-word`;
+"Ääri&shy;rajoilla" rivittyy kapealla), asteikon ohje `.rpe-guide` yhdellä
+rivillä per pykälä, käyttövihje (mainitsee lepoajastimen vain, kun
+`pendingRest` ja ajastin käytössä) ja `.rpe-sheet-actions`: `[data-rpe-clear]`
+"Poista tuntuma" (vain kun `rpe` on) sekä `[data-remove-set]` "Poista
+sarja" / "Poista lämmittely". Ilman kohderiviä (yleinen
+`[data-open-sheet="rpe"]`) näytetään pelkkä ohje.
+
+Sulkeminen: `[data-warmup-rpe]` kirjoittaa pykälän riville (ei enää
+"uusi napautus nollaa"), kutsuu `applyWarmupAdjustment` ja `closeSheet()`;
+`[data-rpe-clear]` nollaa ja sulkee; sulkupainike, tausta ja Escape
+kutsuvat `closeSheet()`; `[data-remove-set]` sulkee ikkunan ilman
+ajastinta. `closeSheet()` käynnistää `pendingRest`-tilassa
+`startRestTimer(state.restDurationSeconds, true)`: uusi `minimized`-
+parametri näyttää heti pienen palkin (`#rest-timer-mini`) ilman modaalia,
+`#app`-inert-tilaa ja fokuksen siirtoa; ajastimen päättyminen näyttää
+modaalin kuten ennen. Fokus palaa rivin RPE-painikkeeseen
+(`[data-set-more][data-id][data-idx]`, `preventScroll`). Clusterin
+osasarjan + käynnistää 15 s:n ajastimen edelleen modaalina.
+
+Testit: `test_rpe_sheet.js` (avaus ✓:stä, valinta sulkee ja käynnistää
+pienen ajastimen, uudelleenavaus ja poisto, viimeinen sarja ilman
+ajastinta, lämmittely, näppäimistön ✓, 360 px, axe, varmuuskopion
+L-rivit); vanhat testit avaavat ikkunan ✓:stä ja sulkevat sen Escapella
+(`done`-apurit), koska ✓ avaa ikkunan aina.
+
 ## Näppäimistö ja fokus mobiilissa (toteutettu)
 
 Kehote "näppäimistön ja fokuksen käytettävyys mobiilissa + kiinnitetty
@@ -668,8 +722,10 @@ sarjarivillä, joten lisäriviä ei tehty erikseen. Toteutetut osat:
   `updateSetFieldFocusState()`.
 - **`toggleSetDone(id, idx)`** on rivin ✓:n ja kirjausnäppäimistön ✓:n
   (`[data-keypad-key="done"]`, alue `ok` ±-näppäinten alla; ei
-  muokkaustilan näppäimistössä) yhteinen funktio; sisältää `render()`-
-  kutsun. Näppäimistö pysyy samassa sarjassa (ei siirry seuraavaan).
+  muokkaustilan näppäimistössä) yhteinen funktio; piirtää näkymän.
+  Valmiiksi merkitseminen avaa RPE-ikkunan, joka sulkee näppäimistön
+  (`openRpeSheet` nollaa `state.keypad`-tilan); seuraavan sarjan kenttä
+  avaa sen uudelleen.
   Ruudukko on nyt 4 riviä × 60 px (`grid-template-areas` "up dn ok nx").
 - Rivin ✓ ja "+ Sarja" estävät `pointerdown`-oletuksen, kun fokus on
   sarjakentässä, jottei fokus siirry painikkeeseen (iOS: `mousedown` ei
@@ -698,7 +754,13 @@ mutta testien on avattava oikea osio ennen niihin koskemista (testien
 
 Historia esilataa kaikki merkinnät `historyCache`-välimuistiin
 `loadHistory()`:ssa, jotta suljettu päiväkortti voi näyttää yhteenvetorivin
-(`historyDaySummary()`). Poisto on kortin alareunan tekstipainike, joka
+(`historyDaySummary()`). Avatun päivän sarjat (`renderHistoryDate`) ovat
+`.hist-sets`-lohkossa inline-lohkoina `.hist-set` (" · "-erottimet
+tekstisolmuina välissä, jotta teksti "1: 60 kg × 10 · 2: …" säilyy
+testeille ja ruudunlukijalle), ja sarjan alla on `.hist-set-rpe` "RPE 8"
+vain, kun merkinnän sarjalla on `rpe`-luku (käyttäjän päätös 10.9.2026;
+sama esitys kuin Viime-solussa; ruudunlukijalle `.sr-only`-pilkku ennen
+sitä). Lämmittelyjä Historia ei näytä. Testi: `test_viime_rpe.js` osio 6. Poisto on kortin alareunan tekstipainike, joka
 vahvistettaessa muuttuu tuhoavaksi painikkeeksi; `data-delete-history` ja
 `confirmingDeleteDate` ennallaan.
 
@@ -977,10 +1039,9 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   ensin aiemman säädön (`weight === adjusted` → `base`), joten tuntuman
   vaihto lähtee aina alkuperäisestä ehdotuksesta. Työsarjan tuntuma on
   kentässä `rpe` kuten lämmittelyillä (ei erillistä `tuntuma`-kenttää):
-  valitsin `renderFeelPicker()` on työsarjan RPE-lisärivillä
-  (`.set-extra.set-feel`, avataan rivin RPE-painikkeesta `[data-set-more]`;
-  sama `[data-warmup-rpe]`-käsittelijä, jossa valitun luvun uusi napautus
-  nollaa `rpe`-kentän ja työsarjan rivi sulkeutuu valinnan jälkeen), valittu
+  valinta tehdään RPE-ikkunassa (ks. oma osio; sama `[data-warmup-rpe]`-
+  käsittelijä työ- ja lämmittelysarjoille, `[data-rpe-clear]` nollaa
+  `rpe`-kentän), valittu
   luku näkyy `.rpe-btn-val`-merkkinä RPE-painikkeessa, `saveExerciseLog`
   vie sen merkinnän sarjaan ja `lastSet`-sarjaan, ja varmuuskopion
   `#MERKINNÄT`-osiossa on viimeisenä sarake `Tuntuma` (asteikon sana;
@@ -1034,24 +1095,16 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   koskee vain rivejä, joilla `weight === base` tai `weight === adjusted`,
   jotta RPE:n vaihto samassa treenissä säätää uudelleen mutta käsin
   muokattu rivi jää rauhaan. `lastSet`-kerroilla ja merkinnöillä on
-  `warmups: [{ weight, reps, rpe }]`; lämmittelyt eivät sisälly CSV-vientiin
-  eivätkä Kehityksen laskentaan. Tuntuma kysytään käyttöliittymässä
+  `warmups: [{ weight, reps, rpe }]`; lämmittelyt ovat varmuuskopiossa
+  L-riveinä (ks. Varmuuskopio) mutta eivät Kehityksen laskennassa.
+  Tuntuma kysytään käyttöliittymässä
   sanallisella asteikolla `WARMUP_SCALE` (Kevyt 6, Sujuva 7, Työläs 8,
   Raskas 9, Äärirajoilla 10; kuvaus = toistoja varastossa), mutta `rpe`
   tallennetaan yhä lukuna ja `data-rpe` on luku, joten käsittelijä, laskenta
   ja vanhat kirjaukset ovat ennallaan. Painikkeissa näkyvät luvut 6–10
-  (käyttäjän päätös 9.9.2026: hymiöt ja rivin alla ollut selite
-  `.warmup-feel-desc` poistettiin, samoin `WARMUP_SCALE[i].emoji`):
-  rivillä on ensin `.rpe-row-label` "RPE", sitten viisi `.feel-btn`-
-  painiketta (34 × 40 px, reunus ja täyttö läpinäkyvät käyttäjän
-  päätöksellä, vain valittu saa messinkitäytön) ja niiden
-  perässä `.rpe-help-btn` (`[data-open-sheet="rpe"]`), joka avaa
-  pohjalevyn "RPE-asteikko" (`renderSheet`, `.rpe-guide`: luku, sana ja
-  kuvaus `WARMUP_SCALE`-taulukosta sekä käyttövihje); `.warmup-feel-head`
-  rivittyy tarvittaessa (`flex-wrap`). Painikkeen aria-label sisältää
-  luvun, sanan ja kuvauksen, ryhmällä on `aria-labelledby` `.sr-only`-
-  kysymyksestä ("Miltä lämmittely N tuntui?") ja valitun pykälän kuvaus
-  (tai `WARMUP_FEEL_PROMPT`) on `.sr-only`-elementissä `aria-live="polite"`.
+  sanoineen (käyttäjän päätös 9.9.2026: ei hymiöitä; 10.9.2026: valinta
+  siirtyi rivin alta RPE-ikkunaan, ks. oma osio; `WARMUP_SCALE[i].emoji`,
+  `.feel-btn`, `.rpe-help-btn` ja `.warmup-feel-*` on poistettu).
   Selitteet ja Ohje käyttävät yhä sanoja (`warmupFeelWord(rpe)`; keskiarvo
   pyöristetään lähimpään pykälään), Ohjeen luettelossa luku sanan edellä.
   Uusi lämmittelyrivi
