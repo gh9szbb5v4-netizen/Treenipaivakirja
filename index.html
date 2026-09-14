@@ -216,6 +216,16 @@
   .kehitys-back{font:inherit; font-size:var(--fs-md); font-weight:700; background:transparent; border:0; color:var(--brass); min-height:44px; min-width:44px; padding:0 8px 0 0; cursor:pointer; border-radius:8px;}
   .kehitys-back:focus-visible{outline:2px solid var(--brass);}
   .kehitys-detail-title{font-size:var(--fs-xl); font-weight:800; margin:0; flex:1; min-width:0; overflow-wrap:anywhere;}
+  /* Kirjausruutu (kapea asettelu): sama otsikkomalli kuin Kehityksen
+     liikenäkymässä. Kortti on ilman otsikkoriviä, joten sarjataulukko alkaa
+     heti kortin yläreunasta. */
+  .kirjaus-head{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .kirjaus-kicker{font-size:var(--fs-xs); font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--mist);}
+  .kirjaus-title{font-size:var(--fs-2xl); font-weight:800; line-height:1.2; margin:4px 0 0; overflow-wrap:anywhere; display:flex; align-items:center; flex-wrap:wrap; gap:4px;}
+  .kirjaus-title:focus{outline:none;}
+  .kirjaus-title:focus-visible{outline:2px solid var(--brass); outline-offset:4px; border-radius:4px;}
+  .kirjaus-target{margin:6px 0 12px;}
+  .kirjaus-card .ledger{padding-top:12px;}
   /* Viikon liikelista: aina kaksi riviä (nimi, sen alla luvut), jotta rivit
      eivät rivity eri tavoin nimen pituuden mukaan. */
   .week-ex-row{display:block; padding:8px 0; border-top:1px dashed var(--line); font-size:var(--fs-sm);}
@@ -628,13 +638,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.4";
+  var APP_VERSION = "0.4.5";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-14", items: [
+      "Kapealla näytöllä liike avautuu nyt omaksi kirjausruudukseen (versio 0.4.5): ruudun yläreunassa on ‹ Ohjelma -painike ja liikkeen nimi, sen alla treenipäivä ja liikkeen järjestysnumero, tavoiterivi ja koko sarjataulukko. Laitteen taaksepäin-ele ja ‹ Ohjelma sulkevat ruudun, ja välilehden vaihto sulkee sen samalla tavalla; kesken jäänyt luonnos säilyy ja palaa Seuraavaksi-kortin Jatka-painikkeesta. Tallennuksen jälkeen ruutu vaihtuu suoraan päivän seuraavaan liikkeeseen, ja päivän viimeisen liikkeen jälkeen palataan ohjelmaan. Tabletilla avattu liike näkyy edelleen oikean palstan paneelissa.",
       "Ohjelma-näkymän ylimpänä on nyt Seuraavaksi-kortti (versio 0.4.4): se kertoo vuorossa olevan treenipäivän ja liikkeen, keskeneräisen liikkeen sarjatilanteen, tallennettujen liikkeiden osuuden palkkina ja edellisen kirjauspäivän, ja sen Aloita/Jatka-painike avaa päivän ja liikkeen kuten ennenkin. Päiväkortin oma Aloita-painike poistui: päiväkortti vain avaa päivän. Kun viikon kaikki päivät on tehty, kortti kertoo sen ja tarjoaa siirtymän seuraavaan viikkoon.",
     ] },
     { date: "2026-09-10", items: [
@@ -3743,6 +3754,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     var ex = findExerciseById(id);
     if(!ex) return;
+    if(!isWideLayout()){
+      // Kapea asettelu: liike avautuu omaksi päällysruudukseen. Ruutu auki →
+      // vaihto (esim. completeAndAdvance seuraavaan liikkeeseen) korvaa
+      // merkinnän; muuten ruutu avataan juuren päälle.
+      var screen = { view: "ohjelma", detail: id };
+      if(state.navDepth === 2 && currentHistoryScreen().view === "ohjelma") replaceScreen(screen, 2);
+      else pushScreen(screen, 2);
+    }
+    await openExerciseForLogging(id);
+  }
+  // Avaa liikkeen kirjattavaksi: luonnoksen palautus tai rakentaminen ja
+  // vieritys. Ei historiapinon käsittelyä — sitä hoitavat toggleExercise
+  // (käyttäjän avaus) ja applyScreen (paluu pinosta, uudelleenlataus).
+  async function openExerciseForLogging(id){
+    var ex = findExerciseById(id);
+    if(!ex) return;
     state.openExercise = id;
     if(!state.draftSets[id] || !state.dirtySets[id]){
       // exerciseLogIndex kattaa merkinnän riippumatta siitä, minä päivänä se on
@@ -3776,6 +3803,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // fokusta painokenttään: se avaisi näppäimistön jokaisella avauksella.
   function revealOpenExercise(){
     if(isWideLayout()) return;
+    if(kirjausScreenOpen()){
+      // Kirjausruutu: ruutu alkaa ylhäältä ja otsikko saa fokuksen.
+      window.scrollTo(0, 0);
+      var t = document.getElementById("kirjaus-title");
+      if(t){ try{ t.focus({ preventScroll: true }); }catch(e){} }
+      return;
+    }
     var card = document.querySelector(".exercise.open");
     var head = card ? card.querySelector("[data-toggle-ex][tabindex]") : null;
     if(!card || !head) return;
@@ -4013,6 +4047,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.swapExercise = null;
     // Vaihdettu liike jää auki, mutta sarjat lasketaan uudelleen uudelle nimelle.
     state.openExercise = newId;
+    // Kirjausruudun historiamerkintä vastaa näkyvää liikettä.
+    if(newId && !isWideLayout() && state.navDepth === 2) replaceScreen({ view: "ohjelma", detail: newId }, 2);
     var swapped = newId ? findExerciseById(newId) : null;
     if(swapped){ await prepareClusterRef(swapped); state.draftSets[newId] = buildDraftRows(swapped, newId); }
     showToast(targets.length > 1 ? "Liike vaihdettu " + targets.length + " kohdassa" : "Liike vaihdettu");
@@ -4610,6 +4646,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var nextEx = (groupList && idx !== -1 && idx + 1 < groupList.length) ? groupList[idx + 1] : null;
     await saveExerciseLog(id);
     if(state.openExercise === null && nextEx){ await toggleExercise(nextEx.id); }
+    else if(state.openExercise === null && !isWideLayout() && state.navDepth === 2){
+      // Päivän viimeinen liike tallennettu: ruutu on jo tyhjä, historiapinon
+      // merkintä puretaan, jotta taaksepäin-ele ei jää haamumerkintään.
+      await navigate({ view: "ohjelma", detail: null });
+    }
     // Kun koko treenipäivä valmistuu, se niputetaan takaisin kiinni omaksi
     // "tehty"-kortikseen, vaikka käyttäjä olisi itse avannut sen aiemmin
     // (muuten se jäisi auki listana, koska avaus jätti expandedDaySummaries-
@@ -6722,7 +6763,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var html = '<div class="header">' +
       '<h1 class="app-title"><img class="app-logo" src="' + APP_LOGO_SRC + '" width="59" height="40" alt="Treenipäiväkirja" decoding="async"></h1>' +
       (showNav ? '<div style="display:flex; gap:8px;">' +
-        (state.view === "ohjelma" ? '<button type="button" class="icon-btn" data-edit-program aria-label="Muokkaa ohjelmaa">' + icon("muokkaa", 20) + '</button>' : "") +
+        (state.view === "ohjelma" && !kirjausScreenOpen() ? '<button type="button" class="icon-btn" data-edit-program aria-label="Muokkaa ohjelmaa">' + icon("muokkaa", 20) + '</button>' : "") +
         '<button type="button" class="icon-btn' + (state.view === "ohje" ? " active" : "") + '" data-tab="ohje" aria-label="Ohje"' +
         (state.view === "ohje" ? ' aria-current="page"' : "") + '>' + icon("ohje", 21) + '</button></div>' : "") +
       '</div>';
@@ -6733,7 +6774,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       html += renderBanner("danger", "varoitus", "Merkinnät eivät säily",
         'Tallennus ei toimi tässä ympäristössä, joten tiedot katoavat, kun suljet sivun. Kokeile avata treenipäiväkirja Claude-sovelluksen kautta tai salli selaimen tallennustila (yksityinen selaus ja evästeiden esto estävät tallennuksen).' +
         (state.lastError ? '<div style="margin-top:8px; font-size:11px; color:var(--mist); font-family:ui-monospace,monospace;">Virhe: ' + escapeHtml(state.lastError) + '</div>' : ''), "");
-    } else if(shouldShowExportReminder() && state.view === "ohjelma"){
+    } else if(shouldShowExportReminder() && state.view === "ohjelma" && !kirjausScreenOpen()){
       // Vasta viimeisenä: tallennusongelmasta kertova varoitus on aina
       // tärkeämpi, eikä kahta banneria pinota päällekkäin. Muistutus ja
       // vinkki näytetään vain Ohjelma-välilehdellä, jotta muut näkymät
@@ -6744,7 +6785,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // tärkeämpi, ja aloitusnäyttövinkki näytetään vasta kun se on ohi.
     // Aloitusnäyttövihje ei koskaan avoimen liikkeen päälle: se odottaa,
     // kunnes liike on tallennettu ja suljettu.
-    if(state.showHomescreenHint && !shouldShowFirstLogHint() && state.view === "ohjelma" && !state.openExercise) html += renderHomescreenHint();
+    if(state.showHomescreenHint && !shouldShowFirstLogHint() && state.view === "ohjelma" && !state.openExercise && !kirjausScreenOpen()) html += renderHomescreenHint();
     if(showNav) html += renderTabs();
     return html;
   }
@@ -6766,18 +6807,29 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // replaceState, takaisin Ohjelmaan history.back(); päällysruutu pushState
   // sen ruudun päälle, josta se avattiin, ja sen sulkeminen history.back().
   // Historiamerkintä on { view, detail, depth }. state.view ja
-  // state.kehitysDetail asetetaan vain applyScreen()-funktiossa.
+  // state.kehitysDetail asetetaan vain applyScreen()-funktiossa. Kapean
+  // asettelun kirjausruutu on päällysruutu { view: "ohjelma", detail:
+  // <liikkeen id> } syvyydellä 2: avaus pushState (toggleExercise), vaihto
+  // seuraavaan liikkeeseen replaceState (completeAndAdvance, liikkeen
+  // vaihto), sulkeminen history.back(), ja state.openExercise nollataan
+  // kapeassa asettelussa vain applyScreen()-funktiossa (sekä
+  // saveExerciseLog-tallennuksessa). Leveässä asettelussa paneeli ei ole
+  // pinossa. Ohjelmanäkymän merkinnät tehdään vain funktioissa
+  // toggleExercise, completeAndAdvance, performExerciseSwap, onWideChange
+  // ja applyScreen.
   var NAV_VIEWS = ["ohjelma", "historia", "kehitys", "asetukset", "ohje"];
   var hasHistoryApi = !!(window.history && typeof window.history.pushState === "function");
   function screenDepth(screen){
     if(screen.view === "asetukset") return 2;
     if(screen.view === "kehitys" && screen.detail) return 2;
-    if(screen.view === "ohjelma") return 0;
+    if(screen.view === "ohjelma") return screen.detail ? 2 : 0;
     return 1;
   }
   function normalizeScreen(target){
     var view = (target && NAV_VIEWS.indexOf(target.view) !== -1) ? target.view : "ohjelma";
-    var detail = (view === "kehitys" && target && target.detail) ? String(target.detail) : null;
+    var detail = null;
+    if(view === "kehitys" && target && target.detail) detail = String(target.detail);
+    if(view === "ohjelma" && target && target.detail) detail = String(target.detail);
     return { view: view, detail: detail };
   }
   function sameScreen(a, b){ return a.view === b.view && (a.detail || null) === (b.detail || null); }
@@ -6785,6 +6837,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function currentHistoryScreen(){
     var hs = hasHistoryApi ? window.history.state : null;
     if(hs && NAV_VIEWS.indexOf(hs.view) !== -1) return normalizeScreen(hs);
+    // Ilman History APIa nykyinen ruutu johdetaan sovelluksen tilasta, jotta
+    // päällysruudun (Kehityksen liikenäkymä, kirjausruutu) sulkeminen ei
+    // näytä saman ruudun napautukselta.
+    if(!hasHistoryApi && NAV_VIEWS.indexOf(state.view) !== -1){
+      var detail = state.view === "kehitys" ? state.kehitysDetail : (kirjausScreenOpen() ? state.openExercise : null);
+      return normalizeScreen({ view: state.view, detail: detail });
+    }
     return { view: "ohjelma", detail: null };
   }
   function historyEntryFor(screen, depth){ return { view: screen.view, detail: screen.detail || null, depth: depth }; }
@@ -6861,13 +6920,28 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     screen = normalizeScreen(screen);
     var prevView = state.view, prevDetail = state.kehitysDetail;
     state.view = screen.view;
-    state.kehitysDetail = screen.detail;
+    // detail on Kehityksen liikeavain vain Kehitys-näkymässä; Ohjelma-
+    // näkymässä se on kirjausruudun liike-id, joka näkyy state.openExercise-
+    // tilasta.
+    state.kehitysDetail = screen.view === "kehitys" ? screen.detail : null;
+    if(state.view === "ohjelma" && !isWideLayout()){
+      if(screen.detail && findExerciseById(screen.detail)){
+        if(state.openExercise !== screen.detail) await openExerciseForLogging(screen.detail);
+      } else {
+        // Ruutu suljetaan: pelkkä näkymän piilotus, luonnos säilyy (sama
+        // sääntö kuin nuolesta sulkemisessa). Jos merkintä viittaa liikkeeseen,
+        // jota ei enää ole (uudelleenlataus ohjelman muutoksen jälkeen), pino
+        // korjataan juureksi.
+        if(screen.detail) replaceScreen({ view: "ohjelma", detail: null }, 0);
+        state.openExercise = null;
+      }
+    }
     resetScreenState();
     var backToList = state.view === "kehitys" && prevView === "kehitys" && prevDetail && !state.kehitysDetail;
     if(state.view === "historia" && state.historyDates === undefined){ await loadHistory(); window.scrollTo(0, 0); }
     else if(state.view === "kehitys" && state.kehitys === undefined){ await loadKehitys(); window.scrollTo(0, 0); }
     else if(backToList){ afterRender(function(){ window.scrollTo(0, state.kehitysScrollY || 0); }); }
-    else if(prevView !== state.view || prevDetail !== state.kehitysDetail){ afterRender(function(){ window.scrollTo(0, 0); }); }
+    else if(prevView !== state.view || prevDetail !== screen.detail){ afterRender(function(){ window.scrollTo(0, 0); }); }
     else render();
   }
   if(hasHistoryApi){
@@ -6961,7 +7035,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehden ylin kortti kertoo, mikä treenipäivä ja liike on seuraavaksi vuorossa, ja sen \"Aloita\"- tai \"Jatka\"-painike avaa päivän ja liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta: silloin avautuu RPE-ikkuna, jossa valitset sarjan tuntuman (6–10) tai suljet ikkunan ilman valintaa, ja lepoajastin käynnistyy vasta ikkunan sulkeuduttua pienenä palkkina näytön alareunassa. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n, jos se oli merkitty. Rivin lopun RPE-painike näyttää valitun luvun ja avaa saman ikkunan uudelleen; ikkunassa ovat myös tuntuman poisto ja sarjan poisto. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino ja toistot; lämmittelyn ✓ avaa saman RPE-ikkunan tuntumaa varten. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+      "Ohjelma-välilehden ylin kortti kertoo, mikä treenipäivä ja liike on seuraavaksi vuorossa, ja sen \"Aloita\"- tai \"Jatka\"-painike avaa päivän ja liikkeen. Kapealla näytöllä liike avautuu omaksi ruudukseen, josta palataan yläreunan ‹ Ohjelma -painikkeesta tai laitteen taaksepäin-eleellä; tabletilla liike näkyy oikean palstan paneelissa. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta: silloin avautuu RPE-ikkuna, jossa valitset sarjan tuntuman (6–10) tai suljet ikkunan ilman valintaa, ja lepoajastin käynnistyy vasta ikkunan sulkeuduttua pienenä palkkina näytön alareunassa. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n, jos se oli merkitty. Rivin lopun RPE-painike näyttää valitun luvun ja avaa saman ikkunan uudelleen; ikkunassa ovat myös tuntuman poisto ja sarjan poisto. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino ja toistot; lämmittelyn ✓ avaa saman RPE-ikkunan tuntumaa varten. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Tuntuma (RPE 6–10)</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut sarjan jälkeen. Tuntuma valitaan RPE-ikkunassa, joka avautuu, kun merkitset sarjan tai lämmittelyn valmiiksi ✓:llä; rivin RPE-painike avaa ikkunan uudelleen. Ikkunassa ovat painikkeet 6–10 sanoineen, asteikon ohje sekä tuntuman ja sarjan poisto, ja valinta sulkee ikkunan. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva; työsarjalle tavoite on Työläs, eli kaksi toistoa varastossa."
     ) + ohjeList([
@@ -7517,6 +7591,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '</section>';
   }
   function renderOhjelma(){
+    if(kirjausScreenOpen()){
+      // Kapea asettelu: avattu liike on oma ruutunsa listan sijaan.
+      var openScreenEx = findExerciseById(state.openExercise);
+      if(openScreenEx) return renderKirjaus(openScreenEx);
+      state.openExercise = null;   // liike poistettu ohjelmasta kesken kirjauksen
+    }
     var hasWeeks = state.program.weeks && state.program.weeks.length > 0;
     var groupsToShow = state.program.days;
 
@@ -7674,8 +7754,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '</div>' + right + '</div>' +
       '</div>';
   }
-  function renderExercise(ex, noLedger){
-    var open = state.openExercise === ex.id;
+  // Liikkeen otsikon osat (kortti ja kirjausruutu käyttävät samoja sääntöjä):
+  // otsikkona katalogin liikenimi, tallennettu-merkki, tarkenteet, tavoiterivi,
+  // tallennetun clusterin yhteenveto ja tietopainike.
+  function exerciseHeadParts(ex, open, noLedger){
     var isSaved = isExerciseLogged(ex);
     var parts = [];
     // Taivutus: "1 sarja · 1 toisto", muut muodot (3–4, "6, 10, 10", "12 min") ennallaan.
@@ -7698,14 +7780,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var target = parts.join(" · ");
     // Tallennettu cluster näyttää tuloksensa (kuorma ja osasarjat) suljettuna.
     var clusterLogged = (isSaved && isClusterExercise(ex) && !open && state.exerciseLogIndex[ex.id].data) ? clusterSummaryText(state.exerciseLogIndex[ex.id].data.sets) : "";
-    var badge = isSaved
+    var badgeHtml = isSaved
       ? '<div class="saved-badge' + (state.justSavedEx === ex.id ? " pop" : "") + '" title="Tallennettu">✓</div>'
       : '';
-    // Avoinna oleva liike suljetaan aina nuolesta erikseen, koskematta
-    // tallennustilaan — muuten (kiinni) koko otsikkorivi avaa liikkeen.
-    var chevronHtml = open
-      ? '<button type="button" class="chevron-btn" data-close-ex data-id="' + ex.id + '" aria-label="Sulje liike"><span class="chevron">›</span></button>'
-      : '<div class="chevron">›</div>';
     // Otsikkona katalogin liikenimi; väline, variaatio ja lihasryhmä ovat
     // pienenä tarkenteena sen alla. Katalogin ulkopuolinen nimi sellaisenaan.
     var nameParts = catalogPartsFor(ex.name);
@@ -7725,15 +7802,48 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var infoBtn = (open && !noLedger)
       ? '<button type="button" class="info-btn" data-open-sheet="laskenta" data-id="' + ex.id + '" aria-label="Painojen laskenta: ' + escapeHtml(title) + '">' + icon("tieto", 20) + '</button>'
       : '';
+    return { title: title, badgeHtml: badgeHtml, detailHtml: detailHtml, target: target, clusterLogged: clusterLogged, infoBtn: infoBtn };
+  }
+  function renderExercise(ex, noLedger){
+    var open = state.openExercise === ex.id;
+    var p = exerciseHeadParts(ex, open, noLedger);
+    // Avoinna oleva liike suljetaan aina nuolesta erikseen, koskematta
+    // tallennustilaan — muuten (kiinni) koko otsikkorivi avaa liikkeen.
+    var chevronHtml = open
+      ? '<button type="button" class="chevron-btn" data-close-ex data-id="' + ex.id + '" aria-label="Sulje liike"><span class="chevron">›</span></button>'
+      : '<div class="chevron">›</div>';
     return '<div class="exercise ' + (open ? "open" : "") + '">' +
       '<div class="exercise-head">' +
       '<div class="exercise-head-main" data-toggle-ex data-id="' + ex.id + '">' +
-      '<div class="exercise-name"><span class="exercise-name-btn" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' + escapeHtml(title) + tehoBadge(ex) + '</span>' + infoBtn + '</div>' + detailHtml +
-      (target ? '<div class="exercise-target">' + escapeHtml(target) + '</div>' : '') +
-      (clusterLogged ? '<div class="exercise-target">Kirjattu: ' + escapeHtml(clusterLogged) + '</div>' : '') +
-      '</div><div style="display:flex; align-items:center;">' + badge + chevronHtml + '</div></div>' +
+      '<div class="exercise-name"><span class="exercise-name-btn" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' + escapeHtml(p.title) + tehoBadge(ex) + '</span>' + p.infoBtn + '</div>' + p.detailHtml +
+      (p.target ? '<div class="exercise-target">' + escapeHtml(p.target) + '</div>' : '') +
+      (p.clusterLogged ? '<div class="exercise-target">Kirjattu: ' + escapeHtml(p.clusterLogged) + '</div>' : '') +
+      '</div><div style="display:flex; align-items:center;">' + p.badgeHtml + chevronHtml + '</div></div>' +
       (open && !noLedger ? renderLedger(ex) : '') +
       '</div>';
+  }
+  // Kirjausruutu (kapea asettelu): takaisin-painike, treenipäivä ja liikkeen
+  // järjestysnumero, liikkeen otsikko tietopainikkeineen, tarkenteet,
+  // tavoiterivi ja kortti, jossa on pelkkä sarjataulukko (renderLedger:
+  // sarjat, + Sarja, lämmittely, yhteensä, Tallenna ja liikkeen vaihto).
+  // .exercise.open-luokat säilyvät, jotta laskentaikkunan ehto ja
+  // .chevron-säännöt toimivat ennallaan. Ei render()-kutsuja.
+  function renderKirjaus(ex){
+    var p = exerciseHeadParts(ex, true, false);
+    var day = findGroupForExerciseId(ex.id);
+    var pos = day ? (day.exercises.indexOf(ex) + 1) + " / " + day.exercises.length : "";
+    var dayTitle = day
+      ? (day.week ? weekDisplayName(day.week) + " · " : "") + (day.label || dayLabelFromName(day))
+      : "";
+    return '<div class="kirjaus-head">' +
+      '<button type="button" class="kehitys-back" data-close-ex data-id="' + ex.id + '" aria-label="Takaisin ohjelmaan">‹ Ohjelma</button>' +
+      '</div>' +
+      '<div class="kirjaus-kicker">' + escapeHtml(dayTitle) + (pos ? ' · liike ' + pos : '') + '</div>' +
+      '<h2 class="kirjaus-title" id="kirjaus-title" tabindex="-1">' + escapeHtml(p.title) + p.badgeHtml + p.infoBtn + '</h2>' +
+      p.detailHtml +
+      (p.target ? '<div class="exercise-target kirjaus-target">' + escapeHtml(p.target) + '</div>' : '') +
+      (p.clusterLogged ? '<div class="exercise-target">Kirjattu: ' + escapeHtml(p.clusterLogged) + '</div>' : '') +
+      '<div class="exercise open kirjaus-card">' + renderLedger(ex) + '</div>';
   }
   // Sarjanumerot luettavaksi luetteloksi: [2,3] → "sarjat 2–3", [1] →
   // "sarja 1", [1,3] → "sarjat 1 ja 3", [1,2,4] → "sarjat 1–2 ja 4".
@@ -9530,8 +9640,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // piirretään uudelleen.
   var wideQuery = window.matchMedia ? window.matchMedia("(min-width: 768px)") : null;
   function isWideLayout(){ return !!(wideQuery && wideQuery.matches); }
+  // Kapean asettelun kirjausruutu on auki, kun Ohjelma-näkymässä on avoin
+  // liike; tila johdetaan state.openExercise-arvosta, ei omasta muuttujasta.
+  function kirjausScreenOpen(){
+    return !!(state.program && !state.loading && !state.editMode &&
+              state.view === "ohjelma" && state.openExercise && !isWideLayout());
+  }
   if(wideQuery){
-    var onWideChange = function(){ if(state.program && !state.loading && !state.editMode) render(); };
+    var onWideChange = function(){
+      if(!(state.program && !state.loading && !state.editMode)) return;
+      // Avoin liike siirtyy asettelun mukana: kapeaksi → kirjausruutu pinoon,
+      // leveäksi → paneeli, merkintä pois pinosta.
+      if(state.view === "ohjelma" && state.openExercise){
+        if(!isWideLayout() && state.navDepth !== 2) pushScreen({ view: "ohjelma", detail: state.openExercise }, 2);
+        if(isWideLayout() && state.navDepth === 2 && currentHistoryScreen().view === "ohjelma") replaceScreen({ view: "ohjelma", detail: null }, 0);
+      }
+      render();
+    };
     if(wideQuery.addEventListener) wideQuery.addEventListener("change", onWideChange);
     else if(wideQuery.addListener) wideQuery.addListener(onWideChange);
   }
@@ -10052,9 +10177,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("[data-close-ex]"))){
-      // Nuolesta sulkeminen on pelkkä näkymän piilotus — ei koske
+      // Sulkeminen on pelkkä näkymän piilotus — ei koske
       // draftSets/dirtySets/todayEntry-tilaan, joten tallennustila säilyy
-      // täsmälleen sellaisena kuin se oli ennen sulkemista.
+      // täsmälleen sellaisena kuin se oli ennen sulkemista. Kapeassa
+      // asettelussa ruutu suljetaan historiapinon kautta (applyScreen nollaa
+      // state.openExercise-tilan); leveässä paneeli suljetaan suoraan.
+      if(!isWideLayout() && state.navDepth === 2){ await navigate({ view: "ohjelma", detail: null }); return; }
       state.openExercise = null;
       render();
       return;

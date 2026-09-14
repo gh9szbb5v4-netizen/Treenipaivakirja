@@ -471,9 +471,11 @@ päivälle" -teksti on ruudunlukijalle `.sr-only`-elementtinä. "Kirjaa vaiva"
 on `.pain-row`-tekstipainike (`[data-pain-open]`) treenipäivien jälkeen
 ennen ohjelman muistiinpanoja, ei otsikkorivin alla.
 
-Avattu liike vieritetään näkyviin: `toggleExercise()`,
+Avattu liike vieritetään näkyviin: `openExerciseForLogging()`,
 `completeAndAdvance()` ja `[data-start-day]` (kun liike on jo auki) kutsuvat
-`afterRender(revealOpenExercise)`, joka kapealla näytöllä vierittää
+`afterRender(revealOpenExercise)`, joka kapealla näytöllä (0.4.5 alkaen
+kirjausruudulla: vieritys ylös ja fokus `#kirjaus-title`-otsikkoon; alla
+kuvattu kortin vieritys koskee vain vanhaa kortin sisäistä avausta) vierittää
 `.exercise.open`-kortin **aina** näytön yläreunaan (`scroll-margin-top` on
 kortilla ja `html`-elementin `scroll-padding-top` 16 px; `scrollIntoView`
 kortille, sujuvasti ellei `prefers-reduced-motion`) ja siirtää fokuksen
@@ -692,6 +694,56 @@ alkaa "Paina ylimmän kortin Aloita.". Leveässä asettelussa kortti on
 `.ohjelma-list`-palstan alussa, ei paneelissa. Testi kehotteen
 tapauksille 1–21 ajettiin Playwrightilla (`test_next_card.js`, ei
 repossa kuten muutkaan testit).
+
+## Kirjausruutu kapeassa asettelussa (toteutettu, 0.4.5)
+
+Kapealla näytöllä (`!isWideLayout()`) avattu liike ei laajene päiväkortin
+sisällä vaan on oma päällysruutunsa `renderKirjaus(ex)` (`.kirjaus-head`
+`‹ Ohjelma` `[data-close-ex]` `aria-label="Takaisin ohjelmaan"`,
+`.kirjaus-kicker` "Viikko 1 · Päivä 1 · liike 2 / 3", `h2#kirjaus-title`
+`tabindex="-1"` otsikko + tallennettu-merkki + tietopainike, tarkenteet,
+tavoiterivi ja `.exercise.open.kirjaus-card`, jossa pelkkä
+`renderLedger(ex)`). `renderOhjelma` palauttaa sen ensimmäisenä, kun
+`kirjausScreenOpen()` (ohjelma, ei lataus, ei muokkaustila, `state.view ===
+"ohjelma"`, `state.openExercise`, kapea) on tosi; ei uutta tilamuuttujaa.
+Otsikon osat on irrotettu `exerciseHeadParts(ex, open, noLedger)`-funktioon
+(`{ title, badgeHtml, detailHtml, target, clusterLogged, infoBtn }`), jota
+`renderExercise` käyttää; kortin HTML ei muuttunut (testi vertasi leveän
+asettelun listan ja paneelin HTML:ää vanhaan versioon merkilleen).
+
+Historiapino: ruutu on merkintä `{ view: "ohjelma", detail: <liike-id>,
+depth: 2 }` (`normalizeScreen` säilyttää detailin myös ohjelmalle,
+`screenDepth` antaa 2). `toggleExercise` jakautui: `openExerciseForLogging(id)`
+on entinen avaushaara ilman pinoa, ja `toggleExercise` tekee kapeassa
+asettelussa ensin `pushScreen` (tai `replaceScreen`, kun ruutu on jo auki:
+`navDepth === 2` ja `currentHistoryScreen().view === "ohjelma"`, esim.
+`completeAndAdvance` seuraavaan liikkeeseen). `applyScreen` asettaa
+`state.kehitysDetail`-arvon vain Kehitys-näkymälle ja kapeassa
+Ohjelma-näkymässä avaa `openExerciseForLogging(detail)`:n tai nollaa
+`state.openExercise`-tilan (luonnos säilyy); detail ilman liikettä
+(uudelleenlataus poistetulla id:llä) korjaa pinon juureksi
+`replaceScreen`-kutsulla. Vieritysehto on `prevDetail !== screen.detail`.
+Sulkeminen: `[data-close-ex]` kapeassa asettelussa `navigate({ view:
+"ohjelma", detail: null })` (historyBack → popstate → applyScreen), leveässä
+suoraan; `completeAndAdvance` purkaa merkinnän samalla `navigate`-kutsulla,
+kun päivän viimeinen liike tallennettiin (`nextEx` null);
+`performExerciseSwap` tekee `replaceScreen` uudelle id:lle; välilehden
+vaihto sulkee ruudun `navigate`-funktion kaksivaiheisella siirtymällä
+(tarkoitettu muutos). `onWideChange` siirtää avoimen liikkeen asettelun
+mukana: kapeaksi → `pushScreen`, leveäksi → `replaceScreen` juureen.
+`currentHistoryScreen()` johtaa ilman History APIa ruudun sovelluksen
+tilasta (`state.view`, `kehitysDetail` tai kirjausruudun liike), koska
+muuten `navigate` pitäisi sulkemista saman ruudun napautuksena.
+`revealOpenExercise` vierittää ruudulla ylös ja fokusoi `#kirjaus-title`-
+otsikon. `renderHeader` pudottaa kynäkuvakkeen, vientimuistutuksen ja
+aloitusnäyttövihjeen ruudun ajaksi; tallennusvaroitukset näkyvät.
+Ohjelmanäkymän `pushScreen`/`replaceScreen`-kutsut ovat vain funktioissa
+`toggleExercise`, `completeAndAdvance`, `performExerciseSwap`,
+`onWideChange` ja `applyScreen`. Testi kehotteen tapauksille 1–23 ajettiin
+Playwrightilla (`test_kirjaus.js`; lepoajastin palautuu tallennuksesta,
+joten testin siemennys tyhjentää tallennustilan sivulla, jossa sovellus ei
+ole käynnissä). `test_next_card.js` sovitettiin: kortti luetaan
+‹ Ohjelma -paluun jälkeen.
 
 ## RPE-ikkuna (toteutettu, 10.9.2026)
 
