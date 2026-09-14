@@ -725,10 +725,11 @@ repossa kuten muutkaan testit).
 ## Kirjausruutu kapeassa asettelussa (toteutettu, 0.4.5)
 
 Kapealla näytöllä (`!isWideLayout()`) avattu liike ei laajene päiväkortin
-sisällä vaan on oma päällysruutunsa `renderKirjaus(ex)` (`.kirjaus-head`
-`‹ Ohjelma` `[data-close-ex]` `aria-label="Takaisin ohjelmaan"`,
-`.kirjaus-kicker` "Viikko 1 · Päivä 1 · liike 2 / 3", `h2#kirjaus-title`
-`tabindex="-1"` otsikko + tallennettu-merkki + tietopainike, tarkenteet,
+sisällä vaan on oma päällysruutunsa `renderKirjaus(ex)` (0.4.12 alkaen
+`renderScreenHead`-otsikkorivi: takaisin `[data-close-ex]`
+`aria-label="Takaisin ohjelmaan"`, kicker "Viikko 1 · Päivä 1 · liike
+2 / 3", `h1#kirjaus-title` `tabindex="-1"` + tallennettu-merkki, ⓘ
+oikealla; ks. Kirjaus-sarja 2–5), tarkenteet,
 tavoiterivi ja `.exercise.open.kirjaus-card`, jossa pelkkä
 `renderLedger(ex)`). `renderOhjelma` palauttaa sen ensimmäisenä, kun
 `kirjausScreenOpen()` (ohjelma, ei lataus, ei muokkaustila, `state.view ===
@@ -771,6 +772,56 @@ Playwrightilla (`test_kirjaus.js`; lepoajastin palautuu tallennuksesta,
 joten testin siemennys tyhjentää tallennustilan sivulla, jossa sovellus ei
 ole käynnissä). `test_next_card.js` sovitettiin: kortti luetaan
 ‹ Ohjelma -paluun jälkeen.
+
+## Kirjaus-sarja 2–5: otsikkorivi, tavoiterivi, desimaalipilkku, seuraava sarja (toteutettu, 0.4.12–0.4.15)
+
+**Päällysruutujen otsikkorivi (0.4.12).** `ownHeadScreen()` on tosi
+kirjausruudulla, Kehityksen liikenäkymässä kapeana ja Asetusten
+alinäkymässä; silloin `renderHeader` jättää logorivin (logo, kynä, ?)
+pois ja palauttaa vain tallennusvaroitukset ja navigaation.
+`renderScreenHead(opts)` (`.screen-head`: `icon-btn` takaisin `opts.backAttr`
++ `aria-label`, `.screen-kicker`, otsikko `h1.screen-title` — `opts.heading`
+"h2" paneelissa, koska logon h1 on silloin ruudulla — `titleId` antaa
+`tabindex="-1"`, `titleExtra` otsikon perään, `.screen-head-right`
+ruudun omalle toiminnolle; tyhjä `backAttr` → ei painiketta) on kolmen
+ruudun yhteinen: `renderKirjaus` (kicker "Viikko 1 · Päivä 1 · liike
+1 / 6", `#kirjaus-title`, oikealla ⓘ 44 × 44 `.screen-head-right .info-btn`
+ilman negatiivisia marginaaleja), `renderKehitysDetail` (kicker "Kehitys",
+Pysähtynyt-chip `titleExtra`; paneelissa ilman painiketta ja kickeriä) ja
+`renderSubviewHeader` (kicker "Asetukset"). `.kirjaus-head`, `.kirjaus-
+kicker`, `.kirjaus-title`, `.kehitys-detail-head`, `.kehitys-back`,
+`.kehitys-detail-title` ja `.subview-head` on poistettu. Ensimmäinen
+sarjarivi nousi kirjausruudulla 114 px (mitattu edelliseen versioon).
+
+**Tavoiterivi (0.4.13).** `targetRpeText(ex)` = "RPE " + (10 − `TARGET_RIR`)
+painoperusteisille liikkeille (ei cluster, ei yhdistelmä/kesto) ja
+`suggestionDeltaText(ex, id)` (vain `autoCalcInfo.type === "formula"`:
+`info.weight` − perSet-rivien suurin `prevWeight`; "ehdotus +2,5 kg",
+"ehdotus sama paino", plateau → "kevennys −5 kg"; puhtaat, eivät muuta
+`autoCalcInfo`-oliota). `exerciseHeadParts` lisää ne `parts`-taulukon
+loppuun vain, kun `open && !noLedger` (sama ehto kuin tietopainikkeella:
+kirjausruutu ja tabletin paneeli; listan kortit, myös tabletin listan
+avoin, ennallaan — kehotteen "vain open === true" olisi näyttänyt lisäyksen
+tabletin listassa). `target` korvattiin `targetHtml`-kentällä (escapattu
+perusosa + `<span class="accent">`-ehdotus), ja kutsujat eivät enää
+escapaa sitä.
+
+**Desimaalipilkku (0.4.14).** `fmtFieldValue(v)` (`.` → `,`) ledgerin
+paino­kenttien `value`-attribuutissa (työsarjat ja lämmittelyt) ja
+`[data-weight-step]`-käsittelijän DOM-päivityksessä; luonnokseen tallentuu
+edelleen `String(next)`. Muunnos on pelkkä esitys: fyysisellä
+näppäimistöllä kirjoitettu "52.5" säilyy kentässä seuraavaan piirtoon.
+
+**Seuraava sarja (0.4.15).** `renderLedger` laskee `nextIdx` (ensimmäinen
+rivi ilman `done`, lämmittelyt ennen työsarjoja) ja antaa riville luokan
+`next` ja `aria-current="step"`; CSS `.ledger-row.next` (tausta
+`rgba(201,162,39,.06)` kortin reunasta reunaan negatiivisilla 16 px:n
+marginaaleilla = `.ledger`-täyte, numero messinkinen). Ei uutta tilaa.
+Testi: `test_kirjaus_2_5.js` (kehotteiden 2–5 tapaukset; viime kerta 50 kg,
+jotta ehdotus on 52,5; `TARGET_RIR`-koeajoa ja tallennusvaroitusta ei
+testattu, koska vakio on sulkeuman sisällä eikä varatallennustilaa voi
+pakottaa). Valinnaista kehotetta 6 (✓ harmaaksi) ei ajettu: sen teksti
+edellyttää erillistä vahvistusta 7.9.2026 tehdyn päätöksen muuttamiselle.
 
 ## RPE-ikkuna (toteutettu, 10.9.2026)
 

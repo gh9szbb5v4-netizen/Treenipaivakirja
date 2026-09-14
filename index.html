@@ -78,6 +78,18 @@
   .header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 2px 18px;}
   .app-title{margin:0; font-size:0; line-height:0;}
   .app-logo{display:block; height:40px; width:auto;}
+  /* Päällysruutujen yhteinen otsikkorivi (renderScreenHead): kirjausruutu,
+     Kehityksen liikenäkymä ja Asetusten alinäkymät alkavat tästä ilman
+     logoriviä. Takaisin-painike vasemmalla, kicker ja otsikko keskellä,
+     ruudun oma toiminto oikealla. */
+  .screen-head{display:flex; align-items:center; gap:10px; margin:0 0 10px; min-height:44px;}
+  .screen-head-main{flex:1; min-width:0;}
+  .screen-kicker{font-size:var(--fs-xs); font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--mist);}
+  .screen-title{font-size:var(--fs-2xl); font-weight:800; line-height:1.2; margin:2px 0 0; overflow-wrap:anywhere; display:flex; align-items:center; flex-wrap:wrap; gap:4px 6px;}
+  .screen-title:focus{outline:none;}
+  .screen-title:focus-visible{outline:2px solid var(--brass); outline-offset:4px; border-radius:4px;}
+  .screen-head-right{flex-shrink:0;}
+  .screen-head-right .info-btn{width:44px; height:44px; margin:0;}
   /* Otsikkorivin kuvakepainikkeet: Ohje (kysymysmerkki) kaikissa näkymissä ja
      Muokkaa ohjelmaa (kynä) Ohjelma-näkymässä. Asetukset on alavalikon viimeinen kohta. */
   .icon-btn{flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; padding:0; background:var(--surface-2); border:1px solid var(--line-strong); border-radius:999px; color:var(--mist); cursor:pointer;}
@@ -131,7 +143,6 @@
 
   /* ---------- Asetusten riviluettelo ja alinäkymän otsikko ---------- */
   .view-title{font-size:var(--fs-xl); font-weight:800; margin:0 0 14px; letter-spacing:-.01em;}
-  .subview-head{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
   .settings-list{background:var(--surface); border-radius:var(--radius); border:1px solid rgba(255,255,255,0.04); overflow:hidden; margin-bottom:14px;}
   .settings-row{display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px 12px 16px; background:transparent; border:0; border-bottom:1px solid var(--line); color:var(--chalk); text-align:left; font:inherit; cursor:pointer; min-height:60px; -webkit-tap-highlight-color:transparent;}
   .settings-row:last-child{border-bottom:0;}
@@ -231,10 +242,6 @@
   .chart-legend i.dash{border-top-style:dashed; border-top-color:var(--mist);}
   .chart-empty{font-size:var(--fs-sm); color:var(--mist); padding:18px 0; text-align:center;}
   .chart-range{margin-bottom:8px;}
-  .kehitys-detail-head{display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
-  .kehitys-back{font:inherit; font-size:var(--fs-md); font-weight:700; background:transparent; border:0; color:var(--brass); min-height:44px; min-width:44px; padding:0 8px 0 0; cursor:pointer; border-radius:8px;}
-  .kehitys-back:focus-visible{outline:2px solid var(--brass);}
-  .kehitys-detail-title{font-size:var(--fs-xl); font-weight:800; margin:0; flex:1; min-width:0; overflow-wrap:anywhere;}
   /* Kehityksen kortit: luokkien arvot ovat täsmälleen aiempien inline-tyylien
      arvot; 1RM-kortin hero-luku, muutoschip ja variaatiochipit ovat uusia. */
   .kehitys-card{padding:16px; margin-bottom:10px;}
@@ -258,11 +265,6 @@
   /* Kirjausruutu (kapea asettelu): sama otsikkomalli kuin Kehityksen
      liikenäkymässä. Kortti on ilman otsikkoriviä, joten sarjataulukko alkaa
      heti kortin yläreunasta. */
-  .kirjaus-head{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
-  .kirjaus-kicker{font-size:var(--fs-xs); font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--mist);}
-  .kirjaus-title{font-size:var(--fs-2xl); font-weight:800; line-height:1.2; margin:4px 0 0; overflow-wrap:anywhere; display:flex; align-items:center; flex-wrap:wrap; gap:4px;}
-  .kirjaus-title:focus{outline:none;}
-  .kirjaus-title:focus-visible{outline:2px solid var(--brass); outline-offset:4px; border-radius:4px;}
   .kirjaus-target{margin:6px 0 12px;}
   .kirjaus-card .ledger{padding-top:12px;}
   /* Viikon liikelista: aina kaksi riviä (nimi, sen alla luvut), jotta rivit
@@ -283,6 +285,7 @@
      korkeuden ennallaan, vaikka kosketuskohde on 36 px. */
   .info-btn{display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; margin:-9px 0 -9px 2px; padding:0; background:none; border:none; border-radius:999px; color:var(--brass); cursor:pointer; vertical-align:middle; flex-shrink:0;}
   .exercise-name-btn{display:inline; border-radius:4px;}
+  .exercise-target .accent{color:var(--brass); font-weight:700;}
   .sheet .calc-hint{font-size:var(--fs-sm); color:var(--mist); margin-bottom:12px;}
   .sheet .calc-hint:last-child{margin-bottom:0;}
 
@@ -293,6 +296,12 @@
      entisestä. Alle 375 px:n näytöllä Viime-sarake piilotetaan, jotta paino-
      ja toistokentät pysyvät luettavina. */
   .ledger-row{position:relative; display:grid; grid-template-columns:40px 52px minmax(0,1fr) minmax(0,0.8fr) 44px 40px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px dashed var(--line);}
+  /* Vuorossa oleva sarja: hento messinkitausta kortin reunasta reunaan ja
+     messinkinen numero. Kenttien reunukset ennallaan, jotta näppäimistön
+     kohdekentän reunus erottuu. Negatiiviset marginaalit vastaavat .ledger-
+     täytettä (16 px); jos täyte muuttuu, muuta molemmat. */
+  .ledger-row.next{background:rgba(201,162,39,.06); margin-left:-16px; margin-right:-16px; padding-left:16px; padding-right:16px;}
+  .ledger-row.next .set-num{color:var(--brass);}
   .ledger-row .ledger-input{text-align:center; font-weight:700; padding:8px 4px;}
   /* Näppäimistön kohdekenttä korostetaan luokalla, ei fokuksella: kosketus-
      laitteella kenttä ei ole fokusoituna näppäimistön aikana (ks. openKeypad). */
@@ -656,7 +665,7 @@
     .ohjelma-pane > .exercise{margin-bottom:0;}
     .kehitys-cols{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:20px; align-items:start;}
     .kehitys-pane{position:sticky; top:calc(env(safe-area-inset-top) + 14px); max-height:calc(100vh - 40px); overflow:auto;}
-    .kehitys-pane .kehitys-detail-head{margin-top:0;}
+    .kehitys-pane .screen-head{margin-top:0;}
   }
 
   /* Ilmoitusruutu nousee alhaalta navigaation yläpuolelle: se ei peitä
@@ -699,13 +708,17 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.11";
+  var APP_VERSION = "0.4.15";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-14", items: [
+      "Kirjauskortissa vuorossa oleva sarja on korostettu hennolla messinkitaustalla ja messinkisellä numerolla (versio 0.4.15), jotta seuraava sarja näkyy myös lepotauon aikana näppäimistön ollessa kiinni.",
+      "Painokentät näyttävät desimaalit pilkulla (52,5) myös silloin, kun paino on ehdotuksesta esitäytetty (versio 0.4.14).",
+      "Avoimen liikkeen tavoiterivillä lukee nyt myös työsarjan RPE-tavoite (8) ja ehdotuksen suunta viime kertaan nähden (esim. ehdotus +2,5 kg tai kevennys −5 kg) (versio 0.4.13). Perustelut ovat edelleen tietopainikkeen ikkunassa.",
+      "Kirjausruutu, Kehityksen liikenäkymä ja Asetusten alinäkymät alkavat nyt suoraan otsikkorivillä (takaisin-painike, otsikko, ruudun oma toiminto) ilman logoriviä (versio 0.4.12), joten kirjausruudulla ensimmäinen sarja on lähempänä yläreunaa. Ohje avataan edelleen päänäkymien ?-painikkeesta.",
       "Kirjauskortin alaosa tiivistyi (versio 0.4.11): sarjojen alla ovat + Sarja ja + Lämmittely rinnakkain, niiden alla volyymirivi (suunniteltu, viime kerta, toteutunut) toteumapalkkeineen, ja alimpana Vaihda ja Tallenna merkintä samalla rivillä. Toteutunut lasketaan vain valmiiksi merkityistä sarjoista ja muuttuu vihreäksi, kun kaikki on tehty.",
       "Tabletilla Kehitys on nyt kaksipalstainen (versio 0.4.10): osiot ja liikelista vasemmalla, valitun liikkeen näkymä oikealla kiinnitettynä. Valinta säilyy, kun välilehdeltä palataan, ja kapealla näytöllä liikenäkymä toimii kuten ennen.",
       "Liikenäkymän 1RM-välilehti alkaa nyt suurella 1RM-luvulla ja muutoksella neljään viikkoon (versio 0.4.9); vertailut kuukauteen, puoleen vuoteen, vuoteen ja ennätykseen ovat ruudukossa, variaatiot merkkeinä ja käyrän alla kaksi selitettä. Liikkeen nimeä ei enää toisteta kortissa.",
@@ -6856,7 +6869,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '<h1 class="app-title"><img class="app-logo" src="' + APP_LOGO_SRC + '" width="59" height="40" alt="Treenipäiväkirja" decoding="async"></h1>' +
         '<div style="font-weight:800; font-size:var(--fs-lg);">' + escapeHtml(editorTitle()) + '</div></div>';
     }
-    var html = '<div class="header">' +
+    // Päällysruudut alkavat omalla otsikkorivillään (renderScreenHead):
+    // logorivi jää pois, tallennusvaroitukset ja navigaatio säilyvät.
+    var own = ownHeadScreen();
+    var html = own ? '' : '<div class="header">' +
       '<h1 class="app-title"><img class="app-logo" src="' + APP_LOGO_SRC + '" width="59" height="40" alt="Treenipäiväkirja" decoding="async"></h1>' +
       (showNav ? '<div style="display:flex; gap:8px;">' +
         (state.view === "ohjelma" && !kirjausScreenOpen() ? '<button type="button" class="icon-btn" data-edit-program aria-label="Muokkaa ohjelmaa">' + icon("muokkaa", 20) + '</button>' : "") +
@@ -7146,7 +7162,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehden ylin kortti kertoo, mikä treenipäivä ja liike on seuraavaksi vuorossa, ja sen \"Aloita\"- tai \"Jatka\"-painike avaa päivän ja liikkeen. Kapealla näytöllä liike avautuu omaksi ruudukseen, josta palataan yläreunan ‹ Ohjelma -painikkeesta tai laitteen taaksepäin-eleellä; tabletilla liike näkyy oikean palstan paneelissa. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta: silloin avautuu RPE-ikkuna, jossa valitset sarjan tuntuman (6–10) tai suljet ikkunan ilman valintaa, ja lepoajastin käynnistyy vasta ikkunan sulkeuduttua pienenä palkkina näytön alareunassa. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n, jos se oli merkitty. Rivin lopun RPE-painike näyttää valitun luvun ja avaa saman ikkunan uudelleen; ikkunassa ovat myös tuntuman poisto ja sarjan poisto. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"+ Lämmittely\" lisää lämmittelyrivin, jolle kirjataan paino ja toistot; lämmittelyn ✓ avaa saman RPE-ikkunan tuntumaa varten. Sarjojen alla näkyy suunniteltu volyymi, viime kerran volyymi ja toteutunut volyymi, joka kertyy sarja kerrallaan. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+      "Ohjelma-välilehden ylin kortti kertoo, mikä treenipäivä ja liike on seuraavaksi vuorossa, ja sen \"Aloita\"- tai \"Jatka\"-painike avaa päivän ja liikkeen. Tavoiterivi kertoo RPE-tavoitteen ja sen, nousiko ehdotus viime kerrasta. Kapealla näytöllä liike avautuu omaksi ruudukseen, josta palataan yläreunan ‹ Ohjelma -painikkeesta tai laitteen taaksepäin-eleellä; tabletilla liike näkyy oikean palstan paneelissa. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta: silloin avautuu RPE-ikkuna, jossa valitset sarjan tuntuman (6–10) tai suljet ikkunan ilman valintaa, ja lepoajastin käynnistyy vasta ikkunan sulkeuduttua pienenä palkkina näytön alareunassa. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n, jos se oli merkitty. Rivin lopun RPE-painike näyttää valitun luvun ja avaa saman ikkunan uudelleen; ikkunassa ovat myös tuntuman poisto ja sarjan poisto. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"+ Lämmittely\" lisää lämmittelyrivin, jolle kirjataan paino ja toistot; lämmittelyn ✓ avaa saman RPE-ikkunan tuntumaa varten. Sarjojen alla näkyy suunniteltu volyymi, viime kerran volyymi ja toteutunut volyymi, joka kertyy sarja kerrallaan. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Tuntuma (RPE 6–10)</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut sarjan jälkeen. Tuntuma valitaan RPE-ikkunassa, joka avautuu, kun merkitset sarjan tai lämmittelyn valmiiksi ✓:llä; rivin RPE-painike avaa ikkunan uudelleen. Ikkunassa ovat painikkeet 6–10 sanoineen, asteikon ohje sekä tuntuman ja sarjan poisto, ja valinta sulkee ikkunan. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva; työsarjalle tavoite on Työläs, eli kaksi toistoa varastossa."
     ) + ohjeList([
@@ -7865,9 +7881,30 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '</div>' + right + '</div>' +
       '</div>';
   }
+  // Työsarjan RPE-tavoite (10 − TARGET_RIR) painoperusteisille liikkeille;
+  // clusterin mittari on osasarjat, yhdistelmä- ja kestoliikkeillä ei painoa.
+  function targetRpeText(ex){
+    if(!exerciseRequiresWeightForDone(ex) || isClusterExercise(ex)) return "";
+    return "RPE " + (10 - TARGET_RIR);
+  }
+  // Ehdotuksen suunta viime kertaan nähden (vain tyyppi "formula"): suurin
+  // ehdotettu paino vs. viime kerran suurin sarjapaino. Puhdas; lukee
+  // autoCalcInfo-oliota muuttamatta sitä. Perustelut ovat ⓘ-ikkunassa.
+  function suggestionDeltaText(ex, id){
+    var info = state.autoCalcInfo[id];
+    if(!info || info.type !== "formula" || !isFinite(toNumber(info.weight))) return "";
+    var prevMax = null;
+    (info.perSet || []).forEach(function(p){ if(isFinite(p.prevWeight) && (prevMax === null || p.prevWeight > prevMax)) prevMax = p.prevWeight; });
+    if(prevMax === null) return "";
+    var diff = toNumber(info.weight) - prevMax;
+    if(info.plateau) return "kevennys " + fmtSignedKg(diff);
+    return diff === 0 ? "ehdotus sama paino" : "ehdotus " + fmtSignedKg(diff);
+  }
   // Liikkeen otsikon osat (kortti ja kirjausruutu käyttävät samoja sääntöjä):
-  // otsikkona katalogin liikenimi, tallennettu-merkki, tarkenteet, tavoiterivi,
-  // tallennetun clusterin yhteenveto ja tietopainike.
+  // otsikkona katalogin liikenimi, tallennettu-merkki, tarkenteet, tavoiterivi
+  // (targetHtml, escapattu; avoimella liikkeellä lisäksi RPE-tavoite ja
+  // ehdotuksen suunta .accent-korostuksella), tallennetun clusterin
+  // yhteenveto ja tietopainike.
   function exerciseHeadParts(ex, open, noLedger){
     var isSaved = isExerciseLogged(ex);
     var parts = [];
@@ -7888,7 +7925,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Menetelmä (rest-pause, Cluster, drop) kuuluu tavoiteriville, mutta vain
     // kerran: jäsennin on osalle riveistä jo kopioinut sen huomautukseen.
     if(ex.method && String(ex.notes || "").indexOf(ex.method) === -1) parts.push(ex.method);
-    var target = parts.join(" · ");
+    // Lisäys vain kortissa, jossa sarjat kirjataan (sama ehto kuin
+    // tietopainikkeella): listan kortit, myös tabletin listassa avoin, ennallaan.
+    var suggestion = "";
+    if(open && !noLedger){
+      var rpeTxt = targetRpeText(ex);
+      if(rpeTxt) parts.push(rpeTxt);
+      suggestion = suggestionDeltaText(ex, ex.id);
+    }
+    var targetHtml = escapeHtml(parts.join(" · "));
+    if(suggestion) targetHtml += (targetHtml ? " · " : "") + '<span class="accent">' + escapeHtml(suggestion) + '</span>';
     // Tallennettu cluster näyttää tuloksensa (kuorma ja osasarjat) suljettuna.
     var clusterLogged = (isSaved && isClusterExercise(ex) && !open && state.exerciseLogIndex[ex.id].data) ? clusterSummaryText(state.exerciseLogIndex[ex.id].data.sets) : "";
     var badgeHtml = isSaved
@@ -7913,7 +7959,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var infoBtn = (open && !noLedger)
       ? '<button type="button" class="info-btn" data-open-sheet="laskenta" data-id="' + ex.id + '" aria-label="Painojen laskenta: ' + escapeHtml(title) + '">' + icon("tieto", 20) + '</button>'
       : '';
-    return { title: title, badgeHtml: badgeHtml, detailHtml: detailHtml, target: target, clusterLogged: clusterLogged, infoBtn: infoBtn };
+    return { title: title, badgeHtml: badgeHtml, detailHtml: detailHtml, targetHtml: targetHtml, clusterLogged: clusterLogged, infoBtn: infoBtn };
   }
   function renderExercise(ex, noLedger){
     var open = state.openExercise === ex.id;
@@ -7927,14 +7973,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="exercise-head">' +
       '<div class="exercise-head-main" data-toggle-ex data-id="' + ex.id + '">' +
       '<div class="exercise-name"><span class="exercise-name-btn" data-toggle-ex data-id="' + ex.id + '" role="button" tabindex="0" aria-expanded="' + (open ? "true" : "false") + '">' + escapeHtml(p.title) + tehoBadge(ex) + '</span>' + p.infoBtn + '</div>' + p.detailHtml +
-      (p.target ? '<div class="exercise-target">' + escapeHtml(p.target) + '</div>' : '') +
+      (p.targetHtml ? '<div class="exercise-target">' + p.targetHtml + '</div>' : '') +
       (p.clusterLogged ? '<div class="exercise-target">Kirjattu: ' + escapeHtml(p.clusterLogged) + '</div>' : '') +
       '</div><div style="display:flex; align-items:center;">' + p.badgeHtml + chevronHtml + '</div></div>' +
       (open && !noLedger ? renderLedger(ex) : '') +
       '</div>';
   }
-  // Kirjausruutu (kapea asettelu): takaisin-painike, treenipäivä ja liikkeen
-  // järjestysnumero, liikkeen otsikko tietopainikkeineen, tarkenteet,
+  // Kirjausruutu (kapea asettelu): otsikkorivi (renderScreenHead: takaisin,
+  // treenipäivä ja liikkeen järjestysnumero, otsikko, ⓘ oikealla), tarkenteet,
   // tavoiterivi ja kortti, jossa on pelkkä sarjataulukko (renderLedger:
   // sarjat, + Sarja, lämmittely, yhteensä, Tallenna ja liikkeen vaihto).
   // .exercise.open-luokat säilyvät, jotta laskentaikkunan ehto ja
@@ -7946,13 +7992,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var dayTitle = day
       ? (day.week ? weekDisplayName(day.week) + " · " : "") + (day.label || dayLabelFromName(day))
       : "";
-    return '<div class="kirjaus-head">' +
-      '<button type="button" class="kehitys-back" data-close-ex data-id="' + ex.id + '" aria-label="Takaisin ohjelmaan">‹ Ohjelma</button>' +
-      '</div>' +
-      '<div class="kirjaus-kicker">' + escapeHtml(dayTitle) + (pos ? ' · liike ' + pos : '') + '</div>' +
-      '<h2 class="kirjaus-title" id="kirjaus-title" tabindex="-1">' + escapeHtml(p.title) + p.badgeHtml + p.infoBtn + '</h2>' +
+    return renderScreenHead({
+        backAttr: 'data-close-ex data-id="' + ex.id + '"', backLabel: "Takaisin ohjelmaan",
+        kicker: escapeHtml(dayTitle) + (pos ? ' · liike ' + pos : ''),
+        title: escapeHtml(p.title), titleExtra: p.badgeHtml, titleId: "kirjaus-title", right: p.infoBtn }) +
       p.detailHtml +
-      (p.target ? '<div class="exercise-target kirjaus-target">' + escapeHtml(p.target) + '</div>' : '') +
+      (p.targetHtml ? '<div class="exercise-target kirjaus-target">' + p.targetHtml + '</div>' : '') +
       (p.clusterLogged ? '<div class="exercise-target">Kirjattu: ' + escapeHtml(p.clusterLogged) + '</div>' : '') +
       '<div class="exercise open kirjaus-card">' + renderLedger(ex) + '</div>';
   }
@@ -8120,6 +8165,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       name = "Sarja " + w;
     }
     return name + " · " + (k.field === "weight" ? "Paino" : "Toistot");
+  }
+  // Painokentän esitysmuoto: desimaalipilkku ("52,5") myös ehdotuksesta
+  // esitäytetylle "52.5"-merkkijonolle. Pelkkä esitys: luonnokseen ja
+  // merkintään arvo tallentuu kuten ennen (toNumber hyväksyy molemmat).
+  function fmtFieldValue(v){
+    if(v === null || v === undefined) return "";
+    return String(v).replace(".", ",");
   }
   function keypadShownValue(row){
     var val = String(row[state.keypad.field] || "");
@@ -8426,6 +8478,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // edeltävä (prior[0]).
     var lastSession = ledgerLastSession(ex);
     var workIndex = 0;
+    // Vuorossa oleva sarja: ensimmäinen tekemätön rivi taulukon järjestyksessä
+    // (lämmittelyt ennen työsarjoja); johdetaan riveistä joka piirrossa.
+    var nextIdx = -1;
+    sets.forEach(function(s, i){ if(nextIdx === -1 && !s.done) nextIdx = i; });
     var rowParts = sets.map(function(s, idx){
       // Sarjan numero on pelkkä visuaalinen merkki — hyväksyntä tehdään aina
       // erillisestä, selvästi nimetystä painikkeesta.
@@ -8436,10 +8492,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         warmCount++;
         var warmPop = !!(s.done && state.justDone && state.justDone.id === ex.id && state.justDone.idx === idx);
         var lastWarm = lastSession && lastSession.warmups ? lastSession.warmups[warmCount - 1] : null;
-        return '<div class="ledger-row">' +
+        return '<div class="ledger-row' + (idx === nextIdx ? " next" : "") + '"' + (idx === nextIdx ? ' aria-current="step"' : '') + '>' +
           '<div class="set-num' + (s.done ? " done" : "") + (warmPop ? " pop" : "") + '" aria-hidden="true">L' + warmCount + '</div>' +
           renderLastCell(lastWarm, "Lämmittely " + warmCount) +
-          '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+          '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Lämmittely ' + warmCount + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(fmtFieldValue(s.weight)) + '">' +
           '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Lämmittely ' + warmCount + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
           '<button type="button" class="set-done-btn' + (warmPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Lämmittely " + warmCount + " merkitty valmiiksi" : "Merkitse lämmittely " + warmCount + " valmiiksi") + '">✓</button>' +
           renderRpeRowButton(ex.id, idx, s.rpe, "Lämmittelyn " + warmCount) +
@@ -8471,10 +8527,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         : '';
       // inputmode="none": laitteen näppäimistö ei avaudu, vaan kentän napautus
       // avaa kirjausnäppäimistön (focusin/click). Kenttä on silti muokattava.
-      return '<div class="ledger-row' + (cluster ? " has-extra" : "") + '">' +
+      return '<div class="ledger-row' + (cluster ? " has-extra" : "") + (idx === nextIdx ? " next" : "") + '"' + (idx === nextIdx ? ' aria-current="step"' : '') + '>' +
         '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(setNo) + '</div>' +
         renderLastCell(lastWork, "Sarja " + setNo) +
-        '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(s.weight) + '">' +
+        '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(fmtFieldValue(s.weight)) + '">' +
         '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + setNo + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
         '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + setNo + " merkitty valmiiksi" : "Merkitse sarja " + setNo + " valmiiksi") + '">✓</button>' +
         renderRpeRowButton(ex.id, idx, s.rpe, "Sarjan " + setNo) +
@@ -9476,10 +9532,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var tabs = [["1rm", "1RM", true], ["ennatykset", "Ennätykset", hasRecords], ["volyymi", "Volyymi", hasVolume], ["toteutuminen", "Toteutuminen", hasAdherence]];
     // Paneelissa (leveä asettelu) ei ole takaisin-painiketta: liikenäkymä ei
     // ole päällysruutu.
-    var html = '<div class="kehitys-detail-head">' +
-      (pane ? '' : '<button type="button" class="kehitys-back" data-close-kehitys>‹ Kehitys</button>') +
-      '<h2 class="kehitys-detail-title">' + escapeHtml(item.name) + '</h2>' +
-      ((a && a.stalled) ? '<span class="chip chip-danger">Pysähtynyt</span>' : '') + '</div>' +
+    var html = renderScreenHead({
+        backAttr: pane ? "" : "data-close-kehitys", backLabel: "Takaisin Kehitykseen",
+        kicker: pane ? "" : "Kehitys", title: escapeHtml(item.name), heading: pane ? "h2" : "h1",
+        titleExtra: (a && a.stalled) ? '<span class="chip chip-danger">Pysähtynyt</span>' : '' }) +
       '<div class="segmented kehitys-tabs" role="tablist" aria-label="Liikkeen tiedot">' +
       tabs.map(function(t){
         var on = tab === t[0];
@@ -9798,9 +9854,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return html;
   }
   function renderSubviewHeader(title){
-    return '<div class="subview-head">' +
-      '<button type="button" class="icon-btn" data-settings-back aria-label="Takaisin asetuksiin">' + icon("takaisin", 20) + '</button>' +
-      '<h2 class="view-title" style="margin:0;">' + title + '</h2></div>';
+    return renderScreenHead({ backAttr: "data-settings-back", backLabel: "Takaisin asetuksiin", kicker: "Asetukset", title: title });
   }
   function settingsP(text, margin){
     return '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:' + (margin || "0 0 12px") + ';">' + text + '</p>';
@@ -9969,6 +10023,32 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Kehitys on leveässä asettelussa kaksipalstainen (lista + paneeli).
   function kehitysWide(){
     return !!(state.program && !state.loading && !state.editMode && state.view === "kehitys" && isWideLayout());
+  }
+  // Ruudut, joilla on oma takaisin-toiminto (kirjausruutu, Kehityksen
+  // liikenäkymä kapeana, Asetusten alinäkymä): logorivi jää pois ja ruutu
+  // alkaa renderScreenHead-otsikkorivillä.
+  function ownHeadScreen(){
+    if(!state.program || state.loading || state.editMode) return false;
+    if(kirjausScreenOpen()) return true;
+    if(state.view === "kehitys" && state.kehitysDetail && !isWideLayout()) return true;
+    if(state.view === "asetukset" && state.settingsSection) return true;
+    return false;
+  }
+  // Päällysruudun otsikkorivi. opts: backAttr (tyhjä → ei painiketta),
+  // backLabel, kicker ja title valmiiksi escapattuina, titleId (saa
+  // tabindex="-1" fokusta varten), titleExtra (HTML otsikon perään), right
+  // (ruudun oma toiminto), heading ("h1" oletus; paneelissa "h2", koska
+  // logon h1 on silloin ruudulla). Ei koske tilaan.
+  function renderScreenHead(opts){
+    var tag = opts.heading || "h1";
+    return '<div class="screen-head">' +
+      (opts.backAttr ? '<button type="button" class="icon-btn" ' + opts.backAttr + ' aria-label="' + escapeHtml(opts.backLabel || "Takaisin") + '">' + icon("takaisin", 20) + '</button>' : '') +
+      '<div class="screen-head-main">' +
+        (opts.kicker ? '<div class="screen-kicker">' + opts.kicker + '</div>' : '') +
+        '<' + tag + ' class="screen-title"' + (opts.titleId ? ' id="' + opts.titleId + '" tabindex="-1"' : '') + '>' + opts.title + (opts.titleExtra || '') + '</' + tag + '>' +
+      '</div>' +
+      (opts.right ? '<div class="screen-head-right">' + opts.right + '</div>' : '') +
+      '</div>';
   }
   function kirjausScreenOpen(){
     return !!(state.program && !state.loading && !state.editMode &&
@@ -10683,7 +10763,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         // DOM:iin ilman koko näkymän piirtoa (fokus ja näppäimistö säilyvät).
         var stepInput = document.querySelector('[data-set-field][data-id="' + id3 + '"][data-idx="' + idx3 + '"][data-field="weight"]');
         if(stepInput){
-          stepInput.value = String(next3);
+          stepInput.value = fmtFieldValue(next3);
           if(autoCleared) syncWarmupNoteDom(stepInput.closest(".ledger"), id3);
           if(state.keypad && state.keypad.id === id3 && state.keypad.idx === idx3){ state.keypad.replace = false; updateKeypadValue(true); }
           syncVolumeDom(stepInput.closest(".ledger"), findExerciseById(id3), id3);
