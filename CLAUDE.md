@@ -634,15 +634,42 @@ ole painikkeen sisällä (nested-interactive); lohkolla on yhä
 `data-toggle-ex`-lohkon sisällä (muuten Enter tietopainikkeessa avaisi ja
 sulkisi liikkeen).
 
-Kirjauslohkon (`renderLedger`) järjestys: lämmittelyt, sarakeotsikot, työsarjat, `.ledger-tools`
-(+ Sarja `[data-add-set]`; sen alla `.ledger-links` ja Lisää lämmittelysarja
-`[data-add-warmup]`; lämmittelyn lisäys fokusoi uuden rivin painokentän,
-mikä avaa myös näppäimistön), `.subtotal` vain kun
-kiloja on kertynyt, ja `.ledger-save`. Tallenna on `disabled` kunnes kaikki
+Kirjauslohkon (`renderLedger`) järjestys (0.4.11): lämmittelyt,
+sarakeotsikot, työsarjat, `.ledger-actions` (`+ Sarja` `[data-add-set]` ja
+`+ Lämmittely` `[data-add-warmup]` rinnakkain 40 px:n
+`btn-secondary btn-sm btn-auto` -pillereinä; lämmittely `.ledger-warm-btn`
+mist-värillä `.ledger-actions .ledger-warm-btn` -säännöllä, koska pelkkä
+luokka häviäisi myöhemmälle `.btn-secondary`-säännölle; lämmittelyn lisäys
+fokusoi uuden rivin painokentän, mikä avaa myös näppäimistön),
+`renderVolumeRow(ex, id)` (`.volume-row[data-volume-row]`: Suunniteltu =
+kaikki työsarjat nykyisillä arvoilla, Viime kerta = `ledgerLastSession(ex)`-
+kerran työsarjat, Toteutunut = vain ✓-merkityt työsarjat `.accent`, kaikki
+tehty → `.done` vihreä; palkki `.volume-bar[role=progressbar]`
+`aria-valuemax` = suunniteltu, `aria-valuenow` = toteutunut; kaikki
+`setVolume`-kaavalla `ledgerVolumes`-apurissa, lämmittelyt eivät kuulu
+mihinkään; tyhjä merkkijono, kun suunniteltu ja toteutunut ovat 0 eikä
+viime kertaa ole — siis myös tavallinen liike ilman ehdotusta ennen
+ensimmäistä painoa), `.ledger-footer` (`Vaihda` `[data-swap-open]` kynä +
+sana, `aria-label="Vaihda liike toiseksi"`, vain `isProgramExercise`;
+`Tallenna merkintä` `.btn-primary.btn-sm.ledger-save-btn` `flex:1`, 40 px —
+sovelluksen ainoa alle 48 px:n ensisijainen painike, käyttäjän päätös
+14.9.2026) ja avattu vaihtopaneeli (`renderSwapExercise` palauttaa
+suljettuna tyhjän). `ledgerLastSession(ex)` on Viime-sarakkeen ja
+volyymirivin yhteinen viitekerta (`lastSet`, korjattaessa `prior[0]`).
+`syncVolumeDom(ledger, ex, id)` korvaa entisen `syncSubtotalDom`-funktion
+`[data-set-field]`-input- ja `[data-weight-step]`-poluilla: päivittää
+suunnitellun, toteutuneen, palkin leveyden ja aria-arvot suoraan DOM:iin
+ilman `render()`-kutsua (viime kerta ei muutu). `ledgerTotal`,
+`.add-set-btn`, `.ledger-tools`, `.ledger-links`, `.subtotal` ja
+`.ledger-save` on poistettu. Sarjojen alapuolinen osa on kehotteen CSS-
+arvoilla noin 170 px (kehotteen "noin 150 px" ei toteudu sen omilla
+arvoilla; arvot pidettiin). Tallenna on `disabled` kunnes kaikki
 sarjat on merkitty; sen selite on `.sr-only`-elementti, johon painike
 viittaa `aria-describedby`-attribuutilla, ja `.btn-primary:disabled` on
-haamutyylinen (läpinäkyvä, yhtenäinen line-strong-reunus — katkoviiva on
-varattu `.add-set-btn`-lisäyspainikkeille). Tallennuksen ilmoitus kertoo uuden
+haamutyylinen (läpinäkyvä, yhtenäinen line-strong-reunus). Testi:
+`test_volume_row.js` (kehotteen tapaukset 1–16 paitsi käsin lisätty liike,
+jolle ei ole syöttöpolkua; lepoajastin kytketään testissä pois
+`rest-timer-enabled`-avaimella, koska clusterin + avaa modaalin). Tallennuksen ilmoitus kertoo uuden
 1RM:n, kun tallennus nosti sitä eikä kyse ole korjauksesta. Tavoiterivi
 (`.exercise-target`) taivuttaa yksiköt (`plural`: "1 sarja · 1 toisto") ja
 ohittaa `notes`-tekstin, joka on sama kuin tehon teksti.
