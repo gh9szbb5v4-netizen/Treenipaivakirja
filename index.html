@@ -114,8 +114,8 @@
 
   /* ---------- Päiväkortti ----------
      Otsikkona päivän nimi, alarivillä tila ja liikemäärä. Nimiosa on
-     painike (avaa/sulkee), oikealla joko nuoli tai seuraavan treenin
-     "Aloita"-painike — sisarelementteinä, ei sisäkkäin. */
+     painike (avaa/sulkee), oikealla nuoli. Ensisijainen Aloita/Jatka on
+     Seuraavaksi-kortissa (.next-card), ei päiväkortissa. */
   .day-card-head{display:flex; align-items:center; gap:10px; padding:13px 14px 13px 16px; min-height:44px;}
   .day-card-main{flex:1; min-width:0; display:flex; align-items:center; gap:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .day-ring{flex-shrink:0; width:28px; height:28px; border-radius:50%; border:1.5px solid var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:var(--fs-xs); font-weight:800; color:var(--brass);}
@@ -539,6 +539,17 @@
   .lib-rename{display:flex; align-items:center; gap:8px;}
   .program-row{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
   .program-row-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-md);}
+  /* Seuraavaksi-kortti: ruudun ainoa ensisijainen toiminto. Messinkireunus
+     erottaa sen päiväkorteista; tehty-tilassa palkki on vihreä. */
+  .next-card{background:var(--surface); border:1px solid rgba(201,162,39,.6); border-radius:var(--radius); padding:16px; margin-bottom:12px;}
+  .next-card-kicker{font-size:var(--fs-xs); font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--brass);}
+  .next-card-title{font-size:var(--fs-2xl); font-weight:800; letter-spacing:-.01em; line-height:1.2; margin:6px 0 4px; overflow-wrap:anywhere;}
+  .next-card-sub{font-size:var(--fs-sm); color:var(--mist); font-variant-numeric:tabular-nums;}
+  .next-progress{height:6px; border-radius:3px; background:var(--surface-2); margin:12px 0 6px; overflow:hidden;}
+  .next-progress-fill{height:100%; border-radius:3px; background:var(--brass);}
+  .next-progress-fill.done{background:var(--success);}
+  .next-progress-labels{display:flex; justify-content:space-between; gap:8px; font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; margin-bottom:12px;}
+  .next-card-done .next-progress{margin-bottom:12px;}
   /* ---------- Rakenteellinen tyhjä tila ----------
      Kuvake, otsikko, selite ja tarvittaessa toiminto: sama muoto Historiassa,
      Kehityksessä, tyhjällä viikolla, 1RM-listassa ja tabletin liikepaneelissa. */
@@ -617,12 +628,15 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.3";
+  var APP_VERSION = "0.4.4";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-14", items: [
+      "Ohjelma-näkymän ylimpänä on nyt Seuraavaksi-kortti (versio 0.4.4): se kertoo vuorossa olevan treenipäivän ja liikkeen, keskeneräisen liikkeen sarjatilanteen, tallennettujen liikkeiden osuuden palkkina ja edellisen kirjauspäivän, ja sen Aloita/Jatka-painike avaa päivän ja liikkeen kuten ennenkin. Päiväkortin oma Aloita-painike poistui: päiväkortti vain avaa päivän. Kun viikon kaikki päivät on tehty, kortti kertoo sen ja tarjoaa siirtymän seuraavaan viikkoon.",
+    ] },
     { date: "2026-09-10", items: [
       "Avoimen liikkeen nimen perässä on nyt tietopainike (ⓘ, ilman kehystä ja täyttöä), joka avaa ikkunan painojen laskennasta: mihin kertaan ehdotus perustuu, jokaisen sarjan peruste, lämmittelysäätö, maksimitestin ja clusterin ohje sekä valmentajan menetelmäselite. Samat tiedot eivät enää näy sarjarivien yläpuolella, joten kirjausnäkymä on lyhyempi; \"Poista merkintä ja laske uudelleen\" on samassa ikkunassa.",
       "Sarjan ✓ avaa nyt RPE-ikkunan: valitse tuntuma painikkeista 6–10 (sana luvun alla, asteikon ohje samassa ikkunassa) tai sulje ikkuna ilman valintaa. Valinta sulkee ikkunan, ja lepoajastin käynnistyy vasta sen jälkeen suoraan pienenä palkkina näytön alareunassa — ajastinta ei tarvitse enää pienentää erikseen. Rivin RPE-painike avaa saman ikkunan uudelleen; siellä ovat myös tuntuman poisto ja sarjan poisto. Sama ikkuna hoitaa lämmittelyn tuntuman, joten rivien alla ei enää ole erillistä RPE-riviä.",
@@ -6626,11 +6640,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return Object.keys(state.exerciseLogIndex || {}).length === 0;
   }
   // Ensikirjauksen ohje on yhden rivin banneri (sama komponentti kuin
-  // aloitusnäyttövihje), ei kolmen askeleen kortti: Aloita-painike näkyy
-  // samalla ruudulla, joten sitä ei tarvitse selittää erikseen.
+  // aloitusnäyttövihje), ei kolmen askeleen kortti: Seuraavaksi-kortin
+  // Aloita-painike näkyy heti bannerin alla, joten sitä ei tarvitse
+  // selittää erikseen.
   function renderFirstLogHint(){
     return renderBanner("info", "tieto", "",
-      'Paina päivän <b style="color:var(--chalk);">Aloita</b>. Merkitse sarjat <b style="color:var(--chalk);">✓</b> ja tallenna — seuraava liike aukeaa itsestään.',
+      'Paina ylimmän kortin <b style="color:var(--chalk);">Aloita</b>. Merkitse sarjat <b style="color:var(--chalk);">✓</b> ja tallenna — seuraava liike aukeaa itsestään.',
       '<button type="button" class="btn-tertiary btn-sm" data-dismiss-first-log-hint>Selvä</button>');
   }
   function shouldShowExportReminder(){
@@ -6946,7 +6961,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]));
 
     html += ohjeSection("2. Kirjaa treeni", ohjeP(
-      "Ohjelma-välilehdellä seuraavaksi vuorossa oleva treenipäivä näyttää \"Aloita\"-painikkeen, joka avaa päivän ja sen ensimmäisen liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta: silloin avautuu RPE-ikkuna, jossa valitset sarjan tuntuman (6–10) tai suljet ikkunan ilman valintaa, ja lepoajastin käynnistyy vasta ikkunan sulkeuduttua pienenä palkkina näytön alareunassa. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n, jos se oli merkitty. Rivin lopun RPE-painike näyttää valitun luvun ja avaa saman ikkunan uudelleen; ikkunassa ovat myös tuntuman poisto ja sarjan poisto. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino ja toistot; lämmittelyn ✓ avaa saman RPE-ikkunan tuntumaa varten. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
+      "Ohjelma-välilehden ylin kortti kertoo, mikä treenipäivä ja liike on seuraavaksi vuorossa, ja sen \"Aloita\"- tai \"Jatka\"-painike avaa päivän ja liikkeen. Täytä kunkin sarjan paino ja toistot — paino on aina valmiiksi ehdotettu — ja merkitse sarja valmiiksi ✓-painikkeesta: silloin avautuu RPE-ikkuna, jossa valitset sarjan tuntuman (6–10) tai suljet ikkunan ilman valintaa, ja lepoajastin käynnistyy vasta ikkunan sulkeuduttua pienenä palkkina näytön alareunassa. Painon tai toistojen napautus avaa näppäimistön näytön alareunaan; painoille siinä ovat myös ±2,5 kg -painikkeet, jotka tuovat tyhjään kenttään ensin viime kerran painon, ja Seuraava siirtyy seuraavan sarjan samaan kenttään. Viime-sarake näyttää edellisen kerran painon ja toistot sekä niiden alla sarjan RPE:n, jos se oli merkitty. Rivin lopun RPE-painike näyttää valitun luvun ja avaa saman ikkunan uudelleen; ikkunassa ovat myös tuntuman poisto ja sarjan poisto. Tallenna liike \"Tallenna merkintä\" -painikkeella, joka aktivoituu, kun kaikki sarjat on merkitty — vain silloin merkintä jää talteen. Jo tallennetun merkinnän voi avata ja korjata myöhemmin; korjaus säilyy alkuperäisellä treenipäivällä eikä siirrä treeniä korjauspäivälle. Sarjojen alla \"Lisää lämmittelysarja\" lisää lämmittelyrivin, jolle kirjataan paino ja toistot; lämmittelyn ✓ avaa saman RPE-ikkunan tuntumaa varten. Lämmittelyjä ei tarvitse merkitä valmiiksi tallennusta varten, eikä niistä käynnisty lepoajastin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Tuntuma (RPE 6–10)</b> vastaa kysymykseen, montako toistoa olisit vielä jaksanut sarjan jälkeen. Tuntuma valitaan RPE-ikkunassa, joka avautuu, kun merkitset sarjan tai lämmittelyn valmiiksi ✓:llä; rivin RPE-painike avaa ikkunan uudelleen. Ikkunassa ovat painikkeet 6–10 sanoineen, asteikon ohje sekä tuntuman ja sarjan poisto, ja valinta sulkee ikkunan. Vastaus kuvaa sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on Kevyt tai Sujuva; työsarjalle tavoite on Työläs, eli kaksi toistoa varastossa."
     ) + ohjeList([
@@ -7401,6 +7416,106 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       'Liikkeet tunnistetaan nimen perusteella, joten eri kirjoitusasu aloittaa historian alusta. Korjaa nimi tiedostoon ja tuo ohjelma uudelleen, jos kyseessä on sama liike.',
       '<button class="btn-secondary btn-sm btn-auto" data-dismiss-import-warning type="button">Sulje</button>');
   }
+  // Seuraavaksi-kortin tiedot: kohde on ensimmäinen näytettävä treenipäivä,
+  // jota ei ole tehty kokonaan — sama sääntö kuin aiemmin päiväkortin
+  // Aloita-painikkeella. groups on renderOhjelman groupsToShow (viikkotilassa
+  // aktiivisen viikon päivät, Kaikki-tilassa koko ohjelma). Ei omaa tilaa:
+  // kaikki luetaan exerciseLogIndexistä, draftSetsistä ja openExercisesta.
+  function nextDayInfo(groups){
+    if(!groups.length) return null;
+    // Viimeisin kirjauspäivä liikelistasta; merkkijonovertailu riittää,
+    // koska päivämäärät ovat VVVV-KK-PP-muodossa (kuten renderDayCardissa).
+    function latestLoggedDate(exercises){
+      var latest = null;
+      exercises.forEach(function(ex){
+        var logged = state.exerciseLogIndex[ex.id];
+        if(!logged) return;
+        if(latest === null || logged.date > latest) latest = logged.date;
+      });
+      return latest;
+    }
+    var day = null;
+    groups.forEach(function(d){ if(day === null && !isDayFullyDone(d)) day = d; });
+    if(!day){
+      var all = [];
+      groups.forEach(function(d){ all = all.concat(d.exercises); });
+      return { allDone: true, days: groups.length, latestDate: latestLoggedDate(all) };
+    }
+    var total = day.exercises.length;
+    var doneCount = day.exercises.filter(isExerciseLogged).length;
+    var latestDate = doneCount > 0 ? latestLoggedDate(day.exercises) : null;
+    // Avoin, vielä tallentamaton liike on kohde, jos se kuuluu tähän päivään;
+    // muuten päivän ensimmäinen tallentamaton liike.
+    var nextEx = null;
+    day.exercises.forEach(function(ex){
+      if(nextEx === null && ex.id === state.openExercise && !isExerciseLogged(ex)) nextEx = ex;
+    });
+    if(!nextEx) nextEx = day.exercises.filter(function(ex){ return !isExerciseLogged(ex); })[0];
+    // Sarjatilanne: avatun liikkeen luonnosriveistä (lämmittelyt eivät
+    // laske), muuten ohjelman sarjamäärä, jos se on kokonaisluku. hasDraft
+    // kertoo, onko liikkeen kirjaus jo avattu: vain silloin kortti näyttää
+    // "sarja N / M", koska ennen avausta se toistaisi vain ohjelman
+    // sarjamäärän.
+    var rows = state.draftSets[nextEx.id] || null;
+    var setTotal, setDone;
+    if(rows){
+      var work = rows.filter(function(r){ return !isWarmupRow(r); });
+      setTotal = work.length;
+      setDone = work.filter(function(r){ return r.done; }).length;
+    } else {
+      var n = parseInt(nextEx.sets, 10);
+      setTotal = (/^\d+$/.test(String(nextEx.sets || "").trim()) && n > 0) ? n : null;
+      setDone = 0;
+    }
+    var mode = (doneCount > 0 || setDone > 0) ? "jatka" : "aloita";
+    return { allDone: false, day: day, total: total, doneCount: doneCount, latestDate: latestDate,
+      nextEx: nextEx, setTotal: setTotal, setDone: setDone, hasDraft: !!rows, mode: mode };
+  }
+  // Seuraavaksi-kortti (HTML). opts = { hasWeeks, showAllWeeks, hasNextWeek }.
+  // Painike on sama [data-start-day] kuin ennen päiväkortissa, joten avaus
+  // ja vieritys kulkevat muuttumatonta käsittelijää; tehty-tilassa
+  // "Seuraava viikko" käyttää viikkonuolen [data-week-nav]-käsittelijää.
+  function renderNextCard(info, opts){
+    if(info === null) return "";
+    if(info.allDone){
+      var weekMode = opts.hasWeeks && !opts.showAllWeeks;
+      var kicker = weekMode ? "Tämä viikko" : "Ohjelma";
+      var lastPart = info.latestDate ? " · viimeksi " + formatDateShortFI(info.latestDate) : "";
+      var button = (weekMode && opts.hasNextWeek)
+        ? '<button type="button" class="btn-secondary" data-week-nav="next">Seuraava viikko</button>'
+        : "";
+      return '<section class="next-card next-card-done" aria-labelledby="next-card-title">' +
+        '<div class="next-card-kicker">' + kicker + '</div>' +
+        '<h2 class="next-card-title" id="next-card-title">Kaikki tehty</h2>' +
+        '<div class="next-card-sub">' + escapeHtml(plural(info.days, "treenipäivä", "treenipäivää") + lastPart) + '</div>' +
+        '<div class="next-progress" role="progressbar" aria-valuemin="0" aria-valuemax="' + info.days + '" aria-valuenow="' + info.days + '" aria-label="Tehdyt treenipäivät">' +
+        '<div class="next-progress-fill done" style="width:100%;"></div></div>' +
+        button +
+        '</section>';
+    }
+    var day = info.day;
+    var label = day.label || dayLabelFromName(day);
+    var hasWeekKey = day.week !== null && day.week !== undefined && day.week !== "";
+    var title = hasWeekKey ? weekDisplayName(day.week) + " · " + label : label;
+    // Liikkeen otsikko samalla johdoksella kuin renderExercise: katalogin
+    // liikenimi, muuten koko nimi.
+    var nameParts = catalogPartsFor(info.nextEx.name);
+    var exTitle = nameParts ? nameParts.liike : info.nextEx.name;
+    var setText = (info.mode === "jatka" && info.hasDraft && typeof info.setTotal === "number")
+      ? " · sarja " + Math.min(info.setDone + 1, info.setTotal) + " / " + info.setTotal
+      : "";
+    var pct = info.total > 0 ? Math.round(info.doneCount / info.total * 1000) / 10 : 0;
+    var lastText = info.latestDate ? "viimeksi " + formatDateShortFI(info.latestDate) : "";
+    return '<section class="next-card" aria-labelledby="next-card-title">' +
+      '<div class="next-card-kicker">Seuraavaksi</div>' +
+      '<h2 class="next-card-title" id="next-card-title">' + escapeHtml(title) + '</h2>' +
+      '<div class="next-card-sub">' + escapeHtml(exTitle + setText) + '</div>' +
+      '<div class="next-progress" role="progressbar" aria-valuemin="0" aria-valuemax="' + info.total + '" aria-valuenow="' + info.doneCount + '" aria-label="Tallennetut liikkeet">' +
+      '<div class="next-progress-fill" style="width:' + pct + '%;"></div></div>' +
+      '<div class="next-progress-labels"><span>' + info.doneCount + ' / ' + info.total + ' liikettä tallennettu</span><span>' + lastText + '</span></div>' +
+      '<button type="button" class="btn-primary" data-start-day data-key="' + escapeHtml(dayKey(day)) + '">' + (info.mode === "jatka" ? "Jatka" : "Aloita") + '</button>' +
+      '</section>';
+  }
   function renderOhjelma(){
     var hasWeeks = state.program.weeks && state.program.weeks.length > 0;
     var groupsToShow = state.program.days;
@@ -7413,8 +7528,21 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       ? '<div class="program-row"><span class="chip chip-success">Käytössä</span><b class="program-row-name">' + escapeHtml(programDisplayName(state.program)) + '</b>' +
         '<button type="button" class="btn-tertiary btn-sm" data-open-settings="ohjelma">Vaihda</button></div>'
       : "";
+    // Viikkosuodatus ennen HTML:n kokoamista, koska Seuraavaksi-kortti
+    // lasketaan samasta päivälistasta kuin päiväkortit.
+    if(hasWeeks && !state.showAllWeeks){
+      groupsToShow = state.program.days.filter(function(d){ return d.week === state.activeWeek; });
+    }
+    var info = nextDayInfo(groupsToShow);
+    // Sama indeksisääntö kuin renderWeekStepperissä: tuntematon viikko = 0.
+    var weekIdx = hasWeeks ? state.program.weeks.indexOf(state.activeWeek) : -1;
+    if(hasWeeks && weekIdx === -1) weekIdx = 0;
+    var hasNextWeek = hasWeeks && weekIdx < state.program.weeks.length - 1;
+    // Seuraavaksi-kortti on bannerien alla ja Viikko|Kaikki-valitsimen
+    // yläpuolella: ruudun ainoa ensisijainen toiminto ennen muuta sisältöä.
     var html = programRow + renderImportNameWarnings() +
       (shouldShowFirstLogHint() ? renderFirstLogHint() : "") +
+      renderNextCard(info, { hasWeeks: hasWeeks, showAllWeeks: state.showAllWeeks, hasNextWeek: hasNextWeek }) +
       '<div class="date-picker-row">' +
       (hasWeeks ? renderWeekModeSwitch() : '<span>Kirjataan päivälle</span>') +
       '<span class="sr-only">Kirjataan päivälle</span>' + renderDateChip() + '</div>';
@@ -7422,9 +7550,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Viikon otsikko (tai "Koko ohjelma") heti valitsimen alla; vaivan
     // kirjaus on poikkeustilanteen toiminto ja tulee vasta päivien jälkeen.
     if(hasWeeks) html += renderWeekStepper();
-    if(hasWeeks && !state.showAllWeeks){
-      groupsToShow = state.program.days.filter(function(d){ return d.week === state.activeWeek; });
-    }
 
     var wide = isWideLayout();
     var list = "";
@@ -7432,10 +7557,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       list += renderEmptyState("ohjelma", "Tällä viikolla ei ole liikkeitä", "Lisää viikolle treenipäiviä ja liikkeitä muokkaustilassa.",
         '<button type="button" class="btn-secondary btn-sm btn-auto" data-edit-program>' + icon("muokkaa", 18) + '<span>Muokkaa ohjelmaa</span></button>', true);
     }
-    // Seuraavaksi vuorossa on ensimmäinen päivä, jota ei ole tehty kokonaan;
-    // vain se saa "Aloita"/"Jatka"-painikkeen.
-    var nextKey = null;
-    groupsToShow.forEach(function(day){ if(nextKey === null && !isDayFullyDone(day)) nextKey = dayKey(day); });
     // Kaikki-tilassa viikot erotetaan väliotsikoin, kun viikkoja on useampi.
     var showWeekHeadings = state.showAllWeeks && hasWeeks && state.program.weeks.length > 1;
     var prevWeek = null;
@@ -7452,7 +7573,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         prevWeek = day.week;
       }
       var expanded = !!state.expandedDaySummaries[dayKey(day)];
-      list += renderDayCard(day, expanded, dayKey(day) === nextKey);
+      list += renderDayCard(day, expanded);
       if(expanded){
         list += '<div class="day-exercises">';
         // Leveällä näytöllä sarjat kirjataan oikean palstan paneelissa, joten
@@ -7508,7 +7629,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(day.week === null || day.week === undefined || day.week === "") return escapeHtml(label);
     return '<span class="sr-only">' + escapeHtml(weekDisplayName(day.week)) + ' · </span>' + escapeHtml(label);
   }
-  function renderDayCard(day, expanded, isNext){
+  function renderDayCard(day, expanded){
     var totalKg = 0;
     var latestDate = null;
     var doneCount = 0;
@@ -7539,14 +7660,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if(totalKg > 0) statusParts.push(totalKg.toLocaleString("fi-FI") + " kg nostettu");
     var key = escapeHtml(dayKey(day));
-    // Seuraavaksi vuorossa oleva päivä saa ensisijaisen toimintopainikkeen;
-    // avoinna oleva ja tehty päivä saavat pelkän nuolen.
-    var right;
-    if(isNext && !expanded && !fullyDone){
-      right = '<button class="btn-primary btn-sm btn-auto" data-start-day data-key="' + key + '" type="button">' + (doneCount > 0 ? "Jatka" : "Aloita") + '</button>';
-    } else {
-      right = '<div class="chevron" style="' + (expanded ? "transform:rotate(90deg); color:var(--brass);" : "") + '">›</div>';
-    }
+    // Ensisijainen toiminto on Seuraavaksi-kortissa (renderNextCard);
+    // päiväkortti vain avaa päivän, joten oikealla on aina nuoli.
+    var right = '<div class="chevron" style="' + (expanded ? "transform:rotate(90deg); color:var(--brass);" : "") + '">›</div>';
     // Avattu päivä saa day-open-luokan (tiukempi väli liikkeisiin ja vahvempi
     // reuna); tehty-tila näkyy täytetystä vihreästä renkaasta, ei reunasta.
     return '<div class="exercise' + (expanded ? " day-open" : "") + '">' +

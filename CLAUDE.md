@@ -657,6 +657,42 @@ oma viikon nimi, Jatka jo avatulla liikkeellä). Testissä on odotettava yli
 on kesken, ja Playwright siirtyy sen aikana uusintayrityksiin, jotka
 vierittävät sivua itse.
 
+## Seuraavaksi-kortti (toteutettu, 0.4.4)
+
+Ohjelma-näkymän ensimmäinen elementti bannerien jälkeen ja Viikko|Kaikki-
+valitsimen yläpuolella on `renderNextCard(info, opts)` (`.next-card`,
+`<section aria-labelledby="next-card-title">`, otsikko `h2`), jonka tiedot
+laskee `nextDayInfo(groups)` samasta `groupsToShow`-listasta kuin
+päiväkortit. Sääntö on entinen `nextKey`-sääntö: kohde on ensimmäinen
+näytettävä päivä, joka ei ole `isDayFullyDone`. Ei uutta tilaa eikä
+vakioita: kaikki luetaan `state.exerciseLogIndex`-, `state.draftSets`- ja
+`state.openExercise`-tiloista. Kohdeliike on avoin tallentamaton liike,
+jos se kuuluu päivään, muuten päivän ensimmäinen tallentamaton; otsikko
+on `weekDisplayName(day.week) + " · " + label` (viikoton päivä pelkkä
+label) ja liikkeen nimi sama johdos kuin `renderExercise`
+(`catalogPartsFor` → `liike`). Palkki (`role="progressbar"`, `aria-label`
+"Tallennetut liikkeet") näyttää tallennettujen liikkeiden osuuden yhden
+desimaalin prosenttina, selitteet "1 / 3 liikettä tallennettu" ja
+"viimeksi 11.9." (`formatDateShortFI`). `mode` on `"jatka"`, kun päivällä
+on tallennettuja liikkeitä tai luonnoksessa valmiita työsarjoja, muuten
+`"aloita"`; sarjateksti " · sarja N / M" näytetään vain, kun liikkeellä on
+luonnosrivit (`info.hasDraft`; kehotteen pseudokoodi ja testitaulukko
+olivat tässä ristiriidassa, taulukko ratkaisi) — lämmittelyrivit
+(`isWarmupRow`) eivät laske. Painike on sama `[data-start-day]` kuin
+ennen päiväkortissa; käsittelijää ei muutettu. Tehty-tilassa
+(`.next-card-done`) kicker on "Tämä viikko" (viikkotila) tai "Ohjelma",
+otsikko "Kaikki tehty", alarivi "2 treenipäivää · viimeksi 13.9.", palkki
+vihreä (`.next-progress-fill.done`, `aria-label` "Tehdyt treenipäivät") ja
+viikkotilassa painike `btn-secondary` `[data-week-nav="next"]`, kun
+seuraava viikko on (sama indeksisääntö kuin `renderWeekStepper`). Tyhjä
+päivälista → tyhjä merkkijono. `renderDayCard(day, expanded)` ei enää ota
+`isNext`-parametria: oikealla on aina nuoli, ja Aloita/Jatka poistui
+päiväkortista (ruudulla yksi ensisijainen toiminto). Ensikirjausbanneri
+alkaa "Paina ylimmän kortin Aloita.". Leveässä asettelussa kortti on
+`.ohjelma-list`-palstan alussa, ei paneelissa. Testi kehotteen
+tapauksille 1–21 ajettiin Playwrightilla (`test_next_card.js`, ei
+repossa kuten muutkaan testit).
+
 ## RPE-ikkuna (toteutettu, 10.9.2026)
 
 Sarjan tuntuma valitaan pohjalevyssä `state.sheet === "rpe"`, jonka kohde
