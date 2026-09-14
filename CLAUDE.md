@@ -1101,6 +1101,81 @@ Playwrightilla (`test_kehitys_seg.js`; huom. Playwrightin klikkaus
 vierittää rivin näkyviin ennen klikkausta, joten `kehitysScrollY`-vertailu
 lukee aseman vasta `scrollIntoViewIfNeeded`-kutsun jälkeen).
 
+## Kehitys-sarja 2–5: listan rivi, käyrä, 1RM-kortti ja tabletti (toteutettu, 0.4.7–0.4.10)
+
+**Liikelistan rivi (0.4.7).** `fourWeekDelta(points)` (heti `computeProgress`-
+funktion perässä, puhdas): `current` = `bestWithin(points, latest.date, 28)`
+(sama luku kuin `progress.current`), `past` = paras jaksolta, joka päättyy
+`latest.date − 28` päivää, tai viimeisin arvo ennen sitä; `past === null` →
+ei muutosriviä. `kehitysListRowsHtml` käyttää sitä `renderDeltaValue`-
+kutsussa (aiemmin viimeisin vs. edellinen piste, jolloin kevyt päivä värjäsi
+rivin punaiseksi). `renderSparkline(points, muted)`: 8 viimeistä pistettä,
+`viewBox 0 0 64 24`, `x = 2 + i/(n−1)·60`, `y = 22 − …·20`, samat arvot →
+±1; alle 2 pistettä → tyhjä; pysähtynyt liike mist-värillä. Rivin rakenne
+body → sparkline → right → nuoli; `.kehitys-spark` piilossa alle 375 px.
+
+**Käyrä (0.4.8).** `state.kehitysRange` (`KEHITYS_RANGES`: 4vk 28, 3kk 91,
+1v 365, kaikki; ei tallenneta) on yksi tila kaikille käyrille;
+`renderRangeSelector()` (`.segmented.chart-range`, `[data-kehitys-range]`)
+on 1RM-kortissa, volyymikortissa (Viikko|Päivä-valitsimen rinnalla) ja
+Volyymi-välilehdellä. `filterByRange(points, secondary)` rajaa
+`daysAgoISO(days − 1)`-päivästä; `renderProgressChart(points, titlePrefix,
+unit, secondary, opts)` suodattaa itse, ellei `opts.prefiltered`
+(`renderOneRepMaxChart` suodattaa ensin, jotta `captions` ja `markers`
+osuvat indekseihin), ja tyhjä sarja antaa `.chart-empty`-lauseen (myös
+prefiltered-tyhjä). SVG `viewBox 0 0 320 118`: kolme apuviivaa `vMax`,
+`round1((vMax+vMin)/2)`, `vMin` arvoineen (`font-size="11"`, samat arvot →
+yksi viiva), päivämäärät HTML-rivinä `.chart-x` (alku, kalenterin keskipiste
+`isoAddDays(alku, floor(päiviä/2))`, loppu; yksi piste `.chart-x.single`),
+näkymätön `rect.chart-hit[data-chart-point][data-caption][data-x][data-y]`
+per piste puoliväliin naapureihin (ensimmäinen 40:stä, viimeinen 310:een),
+`.chart-caption[role=status][aria-live=polite]` oletuksena viimeisen
+pisteen selite, `opts.markers` pystykatkoviivoina tekstillä (teksti pois,
+jos edellinen merkki < 30 yksikköä vasemmalla). Kääre `.chart`.
+`[data-chart-point]`-käsittelijä päivittää selitteen ja `.chart-dot-on`-
+ympyrän suoraan DOM:iin ilman `render()`-kutsua. `buildAllOneRepMaxSeries`
+antaa pisteelle `deload` (`data.deload`, saman päivän merkinnöistä OR);
+1RM-käyrän selite on "12.9. · 106 kg mitattu (106 kg × 1) · paras 4 vk
+106 kg" ja legenda `.chart-legend` (paras 4 viikolta / päivän arvio).
+Volyymiselite on `päivä · fmtValue kg` ilman tuhaterotinta (kehotteen
+pseudokoodin ja testin mukaan; UI-tekstiesimerkki "2 640 kg" jäi
+toteuttamatta tietoisesti).
+
+**1RM-kortti (0.4.9).** `renderKehitysCard`: ei liikkeen nimeä; hero
+`.kehitys-hero` (label "Paras 1RM · 4 viikkoa", `fmtNumberFI(current)` +
+yksikkö) ja `.kehitys-delta-chip` up/down/flat (`fourWeekDelta`, "+5 kg · 4
+vk" tai "ei vertailua"); aikavälivalitsin + käyrä; `stat-grid` neljällä
+ruudulla (Kuukausi, Puoli vuotta, Vuosi, Ennätykseen; arvo `fmtSignedKg`
+luokalla `.up`/`.down`, alarivi `fmtPctPlain` — uusi apuri ilman sulkeita,
+`fmtSignedPct` ennallaan — tai "Ei dataa" / "ennätys nyt"); alle 2
+pistettä → `.kehitys-note`-lause; variaatiot `.kehitys-variants`-chippeinä;
+kaksi `.kehitys-note`-selitettä ("Mitattu/Laskennallinen 90 kg × 5, pvm" ja
+"Viimeisin treeni …" vain, kun päivät eroavat). Inline-tyylit korvattu
+luokilla `.kehitys-card`, `-head`, `-title`, `-value`, `-sub`, `.kehitys-
+note`, `.kehitys-table-title` Viikko-, volyymi- ja toteutumiskorteissa,
+välilehdissä ja `detailSentence`-lauseessa (arvot täsmälleen entiset).
+
+**Tabletti (0.4.10).** `kehitysWide()` = ohjelma, ei lataus, ei
+muokkaustila, `state.view === "kehitys"`, leveä. `render()` antaa `wide`-
+luokan myös Kehitykselle; `renderKehitys` palauttaa leveänä
+`.kehitys-cols` (`.kehitys-list` = segmentit sisältöineen, `aside.kehitys-
+pane[aria-label="Valittu liike"]` = `renderKehitysDetail(item, true)` ilman
+`‹ Kehitys` -painiketta tai tyhjä tila "Valitse liike"); valittu rivi
+`.kehitys-row.on[aria-current=true]`. `[data-open-kehitys]` leveänä asettaa
+`kehitysDetail` ja `kehitysDetailTab` ja piirtää ilman pinoa; `applyScreen`
+leveänä säilyttää valinnan välilehdeltä (Historia, Asetukset, Ohje)
+palattaessa ja nollaa sen vain juureen (Ohjelma) siirryttäessä — kehotteen
+sanamuoto "screen.view !== kehitys nollaa" olisi rikkonut sen oman
+testitapauksen 4, joten sääntö on juuri/ei-juuri; syvyyden 2 merkintä
+(uudelleenlataus tai paluu kapeasta) siirretään paneeliin ja pino
+korjataan `replaceScreen({kehitys,null},1)`. `loadKehitys`-loppu nollaa
+poistuneen liikkeen leveänä ilman `navigate`-kutsua. `onWideChange`:
+kapeaksi → `pushScreen({kehitys, detail}, 2)`, leveäksi →
+`replaceScreen({kehitys,null},1)`. Kapea käytös ennallaan. Testi:
+`test_kehitys_2_5.js` (kehotteiden 2–5 tapaukset; pisteiden arvot yhden
+toiston mittauksina, jotta 1RM on paino sellaisenaan; poistuneen liikkeen
+tapaus uudelleenlatauksella pinolla `{kehitys, id, 2}`).
+
 ## Kehityksen 1RM: liukuva paras (toteutettu)
 
 `buildAllOneRepMaxSeries()` antaa jokaiselle päivälle raskaimman sarjan
