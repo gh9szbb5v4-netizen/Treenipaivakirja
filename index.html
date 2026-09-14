@@ -229,6 +229,10 @@
   /* Viikon liikelista: aina kaksi riviä (nimi, sen alla luvut), jotta rivit
      eivät rivity eri tavoin nimen pituuden mukaan. */
   .week-ex-row{display:block; padding:8px 0; border-top:1px dashed var(--line); font-size:var(--fs-sm);}
+  /* Viikko-kortin 12 viikon volyymipylväät (renderWeekBars). */
+  .week-bars-title{font-size:var(--fs-xs); color:var(--mist); margin:2px 0 6px;}
+  .week-bars{display:block; width:100%; height:48px;}
+  .week-bars-labels{display:flex; justify-content:space-between; font-size:var(--fs-xs); color:var(--mist); font-variant-numeric:tabular-nums; margin:4px 0 8px;}
   .week-ex-name{display:block; color:var(--chalk); overflow-wrap:anywhere;}
   .week-ex-stats{display:block; color:var(--mist); font-size:var(--fs-xs); font-variant-numeric:tabular-nums; margin-top:2px;}
   .chevron{color:var(--mist); font-size:20px; transition:transform .2s, color .2s; flex-shrink:0; margin-left:10px;}
@@ -638,13 +642,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.5";
+  var APP_VERSION = "0.4.6";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-14", items: [
+      "Kehityksen etusivu on jaettu kolmeen osioon (versio 0.4.6): Yhteenveto (viikko, kokonaispaino, ohjelman toteutuminen), Liikkeet (haku ja liikelista heti ylhäällä) ja Vaivat. Valinta säilyy, kun liikenäkymästä palataan tai välilehteä vaihdetaan. Viikko-kortissa on nyt kahdentoista viikon volyymipylväät: kuluva viikko messinkinä, kevennysviikot harmaina ja viikot ilman merkintöjä ohuena viivana.",
       "Kapealla näytöllä liike avautuu nyt omaksi kirjausruudukseen (versio 0.4.5): ruudun yläreunassa on ‹ Ohjelma -painike ja liikkeen nimi, sen alla treenipäivä ja liikkeen järjestysnumero, tavoiterivi ja koko sarjataulukko. Laitteen taaksepäin-ele ja ‹ Ohjelma sulkevat ruudun, ja välilehden vaihto sulkee sen samalla tavalla; kesken jäänyt luonnos säilyy ja palaa Seuraavaksi-kortin Jatka-painikkeesta. Tallennuksen jälkeen ruutu vaihtuu suoraan päivän seuraavaan liikkeeseen, ja päivän viimeisen liikkeen jälkeen palataan ohjelmaan. Tabletilla avattu liike näkyy edelleen oikean palstan paneelissa.",
       "Ohjelma-näkymän ylimpänä on nyt Seuraavaksi-kortti (versio 0.4.4): se kertoo vuorossa olevan treenipäivän ja liikkeen, keskeneräisen liikkeen sarjatilanteen, tallennettujen liikkeiden osuuden palkkina ja edellisen kirjauspäivän, ja sen Aloita/Jatka-painike avaa päivän ja liikkeen kuten ennenkin. Päiväkortin oma Aloita-painike poistui: päiväkortti vain avaa päivän. Kun viikon kaikki päivät on tehty, kortti kertoo sen ja tarjoaa siirtymän seuraavaan viikkoon.",
     ] },
@@ -996,6 +1001,9 @@
     kehitysVolumeScale: "viikko",
     kehitysDetail: null,
     kehitysDetailTab: "1rm",
+    // Etusivun segmentti (yhteenveto | liikkeet | vaivat); ei ruutu eikä
+    // tallennettava, säilyy liikenäkymästä ja välilehdeltä palattaessa.
+    kehitysTab: "yhteenveto",
     kehitysScrollY: 0,
     kehitysFilter: "",
     expandedWeekExercises: false,
@@ -4893,11 +4901,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         var exKeys = Object.keys(exs);
         if(!exKeys.length) return;
         var ws = isoWeekStartISO(date);
-        if(!byWeek[ws]){ byWeek[ws] = { weekStart: ws, tonnage: 0, sets: 0, reps: 0, days: 0, dayMap: {}, byExercise: {} }; order.push(ws); }
+        if(!byWeek[ws]){ byWeek[ws] = { weekStart: ws, tonnage: 0, sets: 0, reps: 0, days: 0, deload: false, dayMap: {}, byExercise: {} }; order.push(ws); }
         var wk = byWeek[ws];
         if(!wk.dayMap[date]){ wk.dayMap[date] = true; wk.days++; }
         exKeys.forEach(function(ek){
           var data = exs[ek];
+          // Kevennysviikko: jokin viikon merkintä on tallennettu kevennyksenä.
+          if(data.deload === true) wk.deload = true;
           var fullName = String(data.name || "").trim();
           if(!fullName) return;
           var combo = isCombo(fullName);
@@ -7071,7 +7081,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("4. Historia ja Kehitys", ohjeP(
       "<b style=\"color:var(--chalk);\">Historia</b> näyttää kaikki kirjatut päivät sekä laskennallisen yhden toiston maksimin jokaiselle liikkeelle. Yksittäisen päivän voi poistaa avaamalla sen."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Kehitys</b> avautuu etusivuun, joka vastaa kysymykseen ”miten menee”. Viikko-kortti näyttää kuluvan (tai viimeisimmän) treeniviikon kokonaispainon, sarjat, toistot ja treenipäivät sekä erot edelliseen viikkoon; ”Näytä liikkeet” avaa viikon liikkeet. Nostettu kokonaispaino -kortissa karkeuden voi vaihtaa viikon ja päivän välillä. Ohjelman toteutuminen -kortti kertoo viimeiseltä 28 päivältä tehdyt sarjat suhteessa ohjelmoituihin, kuinka usein tavoitetoistot täyttyivät ja kuinka usein 1,25 %:n progressiotavoite toteutui, sekä pysähtyneet liikkeet. Alimpana on liikelista, jossa on jokaisen liikkeen 1RM ja ero edelliseen kertaan; yli kahdeksan liikkeen listaa voi suodattaa hakukentällä. Liike näkyy heti ensimmäisestä merkinnästä lähtien."
+      "<b style=\"color:var(--chalk);\">Kehitys</b> avautuu etusivuun, jossa on kolme osiota: Yhteenveto vastaa kysymykseen ”miten menee”, Liikkeet listaa liikkeet ja Vaivat kokoaa vaivalokin. Viikko-kortti näyttää kuluvan (tai viimeisimmän) treeniviikon kokonaispainon, sarjat, toistot ja treenipäivät sekä erot edelliseen viikkoon; ”Näytä liikkeet” avaa viikon liikkeet. Kortin pylväät näyttävät kahdentoista viikon volyymin. Nostettu kokonaispaino -kortissa karkeuden voi vaihtaa viikon ja päivän välillä. Ohjelman toteutuminen -kortti kertoo viimeiseltä 28 päivältä tehdyt sarjat suhteessa ohjelmoituihin, kuinka usein tavoitetoistot täyttyivät ja kuinka usein 1,25 %:n progressiotavoite toteutui, sekä pysähtyneet liikkeet. Alimpana on liikelista, jossa on jokaisen liikkeen 1RM ja ero edelliseen kertaan; yli kahdeksan liikkeen listaa voi suodattaa hakukentällä. Liike näkyy heti ensimmäisestä merkinnästä lähtien."
     ) + ohjeP(
       "Liikkeen rivi avaa liikenäkymän neljällä välilehdellä. <b style=\"color:var(--chalk);\">1RM</b> näyttää parhaan arvon viimeiseltä neljältä viikolta sekä muutoksen kuukauteen, puoleen vuoteen, vuoteen ja ennätykseen verrattuna. Yhden toiston sarja on mittaus; muista sarjoista arvo lasketaan Epley-kaavalla päivän raskaimmasta sarjasta. Ohjelmoitu kevyempi päivä ei pudota lukua, koska se ei ole maksimisuoritus — luku laskee vasta, kun vastaava suoritus jää toistamatta neljään viikkoon. Saman liikkeen eri variaatiot (eri tanko tai kahva) lasketaan yhteen liikkeen nimen alle. <b style=\"color:var(--chalk);\">Ennätykset</b> kertoo raskaimman painon, parhaan sarjan (paino × toistot) ja toistoaluekohtaiset ennätykset alueille 1–3, 4–6, 7–10, 11–15 ja 16+. <b style=\"color:var(--chalk);\">Volyymi</b> näyttää viimeisimmän kerran kokonaispainon, sarjat ja toistot erojen kanssa sekä käyrän. <b style=\"color:var(--chalk);\">Toteutuminen</b> vertaa kertoja siihen, mitä ohjelma ja painoehdotus edellyttivät: sarjat, toistotavoite, ehdotettu paino ja progressiotavoite, sekä viisi viimeisintä kertaa taulukkona. Pysähtynyt-tunniste tarkoittaa, että 1RM ei ole noussut kolmeen viimeisimpään kertaan."
     ) + ohjeP(
@@ -9056,8 +9066,45 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     for(var i=weekly.length-1;i>=0;i--){ if(weekly[i].weekStart === cur) return i; }
     return weekly.length - 1;
   }
-  // Viikko-kortti: 2 × 2 -ruudukko (kokonaispaino vain, jos sitä on) ja
-  // avattava viikon liikelista tonnagen mukaan, yhdistelmät lopuksi.
+  // Kahdentoista viikon volyymipylväät kortin viikkoon päättyen: kortin
+  // viikko messinkinä, kevennysviikko line-strong, muut surface-2 ja viikko
+  // ilman merkintöjä 2 px:n line-viiva. Palauttaa tyhjän, kun yhdelläkään
+  // viikolla ei ole tonnagea (vain yhdistelmäliikkeitä).
+  function renderWeekBars(weekly, idx){
+    var wk = weekly[idx];
+    if(!wk) return "";
+    var starts = [];
+    for(var k=11;k>=0;k--) starts.push(isoAddDays(wk.weekStart, -7*k));
+    var byStart = {};
+    weekly.forEach(function(w){ byStart[w.weekStart] = w; });
+    var bars = starts.map(function(st){
+      var w = byStart[st];
+      return { start: st, tonnage: w ? w.tonnage : 0, deload: !!(w && w.deload), current: st === wk.weekStart };
+    });
+    var max = 0;
+    bars.forEach(function(b){ if(b.tonnage > max) max = b.tonnage; });
+    if(max <= 0) return "";
+    var rects = bars.map(function(b, i){
+      var h = b.tonnage > 0 ? Math.max(4, Math.round(b.tonnage / max * 44)) : 2;
+      var fill = b.tonnage <= 0 ? "var(--line)" : (b.current ? "var(--brass)" : (b.deload ? "var(--line-strong)" : "var(--surface-2)"));
+      return '<rect x="' + (i * 25) + '" y="' + (48 - h) + '" width="18" height="' + h + '" rx="3" fill="' + fill + '"></rect>';
+    }).join("");
+    return '<svg class="week-bars" viewBox="0 0 300 48" width="100%" height="48" role="img" aria-label="Viikkovolyymi 12 viikolta, ' +
+      escapeHtml(formatDateShortFI(starts[0]) + '–' + formatDateShortFI(wk.weekStart)) + '">' + rects + '</svg>';
+  }
+  // Pylväiden selitteet: ensimmäinen ja kortin viikko, keskellä "kevennys",
+  // jos jokin kahdestatoista viikosta oli kevennys.
+  function renderWeekBarsLabels(weekly, idx){
+    var wk = weekly[idx];
+    var first = isoAddDays(wk.weekStart, -77);
+    var anyDeload = weekly.some(function(w){ return w.deload && w.weekStart >= first && w.weekStart <= wk.weekStart; });
+    return '<div class="week-bars-labels"><span>' + escapeHtml(formatDateShortFI(first)) + '</span>' +
+      '<span style="color:var(--line-strong);">' + (anyDeload ? "kevennys" : "") + '</span>' +
+      '<span>' + escapeHtml(formatDateShortFI(wk.weekStart)) + '</span></div>';
+  }
+  // Viikko-kortti: 2 × 2 -ruudukko (kokonaispaino vain, jos sitä on),
+  // 12 viikon volyymipylväät ja avattava viikon liikelista tonnagen mukaan,
+  // yhdistelmät lopuksi.
   function renderWeekCard(){
     var weekly = state.kehitysWeekly || [];
     if(!weekly.length) return "";
@@ -9073,8 +9120,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       renderStat("Sarjat", fmtInt(wk.sets), prev ? neutralDelta(fmtSignedInt(wk.sets - prev.sets)) : "") +
       renderStat("Toistot", fmtInt(wk.reps), prev ? neutralDelta(fmtSignedInt(wk.reps - prev.reps)) : "") +
       renderStat("Treenipäivät", fmtInt(wk.days), prev ? neutralDelta(fmtSignedInt(wk.days - prev.days)) : "") +
-      '</div>' +
-      '<button type="button" class="btn-tertiary btn-sm" data-toggle-week-exercises aria-expanded="' + (state.expandedWeekExercises ? "true" : "false") + '">' +
+      '</div>';
+    var bars = renderWeekBars(weekly, idx);
+    if(bars) html += '<div class="week-bars-title">Viikkovolyymi, 12 viikkoa</div>' + bars + renderWeekBarsLabels(weekly, idx);
+    html += '<button type="button" class="btn-tertiary btn-sm" data-toggle-week-exercises aria-expanded="' + (state.expandedWeekExercises ? "true" : "false") + '">' +
       (state.expandedWeekExercises ? "Piilota liikkeet" : "Näytä liikkeet ›") + '</button>';
     if(state.expandedWeekExercises){
       var rows = Object.keys(wk.byExercise).map(function(n){ return wk.byExercise[n]; }).sort(function(a, b){
@@ -9262,29 +9311,46 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       : "";
     return '<div class="exercise" style="padding:16px; margin-bottom:10px;">' + rows + clusterTable + table + '</div>';
   }
+  // Etusivun segmenttivalitsin: sama segmented-malli kuin liikenäkymässä.
+  function renderKehitysSegments(){
+    var tabs = [["yhteenveto", "Yhteenveto"], ["liikkeet", "Liikkeet"], ["vaivat", "Vaivat"]];
+    var cur = state.kehitysTab || "yhteenveto";
+    return '<div class="segmented kehitys-tabs" role="tablist" aria-label="Kehityksen osiot">' +
+      tabs.map(function(t){
+        var on = cur === t[0];
+        return '<button type="button" role="tab" class="' + (on ? "on" : "") + '" data-kehitys-front-tab="' + t[0] + '" aria-selected="' + (on ? "true" : "false") + '">' + t[1] + '</button>';
+      }).join("") + '</div>';
+  }
+  // Etusivu on kolme segmenttiä (state.kehitysTab): Yhteenveto (viikko,
+  // volyymi, toteutuminen), Liikkeet (haku ja lista) ja Vaivat. Tyhjä tila
+  // ja liikenäkymä ovat ennallaan ilman valitsinta.
   function renderKehitys(){
     if(state.kehitysLoading) return '<div class="empty">Lasketaan kehitystä…</div>';
     var data = state.kehitys || [];
     var weekly = state.kehitysWeekly || [];
     if(!data.length && !weekly.length){
-      return renderEmptyState("kehitys", "Ei vielä kehitystä", "Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.", goToProgramButton()) + renderPainSection();
+      return renderEmptyState("kehitys", "Ei vielä kehitystä", "Liike näkyy tässä heti, kun sille on kirjattu paino ja toistot, joista lasketaan yhden toiston maksimi.", goToProgramButton()) + renderPainSection(false);
     }
     if(state.kehitysDetail){
       var item = null;
       data.forEach(function(it){ if(it.norm === state.kehitysDetail) item = it; });
       if(item) return renderKehitysDetail(item);
     }
-    var html = renderWeekCard();
-    if(data.length){
-      html += renderVolumeCard() + renderAdherenceCard() + renderKehitysList();
+    var html = renderKehitysSegments();
+    if(state.kehitysTab === "liikkeet"){
+      html += data.length ? renderKehitysList()
+        : detailSentence("Laskennallinen 1RM vaatii painon ja toistot. Yhdistelmäliikkeet näkyvät vain viikon sarja- ja toistomäärissä.");
+    } else if(state.kehitysTab === "vaivat"){
+      html += renderPainSection(true);
     } else {
-      html += detailSentence("Laskennallinen 1RM vaatii painon ja toistot. Yhdistelmäliikkeet näkyvät vain viikon sarja- ja toistomäärissä.");
+      html += renderWeekCard() + (data.length ? renderVolumeCard() + renderAdherenceCard() : "");
     }
-    return html + renderPainSection();
+    return html;
   }
   // Kehityksen Vaivat-osio: analyysi kehonosittain ja kirjaukset uusin ensin.
-  function renderPainSection(){
-    var html = '<div class="day-heading">Vaivat</div>';
+  // Segmentin sisällä (inSegment) otsikko jää pois, koska valitsin nimeää sen.
+  function renderPainSection(inSegment){
+    var html = inSegment ? '' : '<div class="day-heading">Vaivat</div>';
     if(!state.painLog.length){
       return html + '<div class="exercise" style="padding:14px;"><div style="font-size:13px; color:var(--mist);">Ei kirjattuja vaivoja. Kirjaa vaiva Ohjelma-välilehden lopusta.</div></div>';
     }
@@ -10439,6 +10505,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       render();
       return;
     }
+    if((el = e.target.closest("[data-kehitys-front-tab]"))){
+      state.kehitysTab = el.dataset.kehitysFrontTab;
+      afterRender(function(){ window.scrollTo(0, 0); });
+      return;
+    }
     if((el = e.target.closest("[data-volume-scale]"))){
       state.kehitysVolumeScale = el.dataset.volumeScale;
       render();
@@ -10798,7 +10869,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Välilehdet, liikeotsikot ja historian päivät ovat div-elementtejä, joten
     // Enter ja välilyönti ohjataan olemassa olevaan click-käsittelijään.
     if(e.key !== "Enter" && e.key !== " ") return;
-    var el = e.target.closest("[data-tab], [data-toggle-ex], [data-history-date], [data-toggle-day-summary], [data-open-kehitys], [data-close-kehitys], [data-kehitys-tab]");
+    var el = e.target.closest("[data-tab], [data-toggle-ex], [data-history-date], [data-toggle-day-summary], [data-open-kehitys], [data-close-kehitys], [data-kehitys-tab], [data-kehitys-front-tab]");
     if(!el) return;
     // Oikea painike kohteen sisällä (esim. liikeotsikon tietopainike)
     // hoitaa Enterin itse; muuten näppäin avaisi tai sulkisi liikkeen.

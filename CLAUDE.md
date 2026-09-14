@@ -1041,7 +1041,8 @@ edellisen kerran viimeisestä sarjasta samalla kaavalla kuin `buildDraftRows`
 
 Näkymä (master–detail): `renderKehitys()` piirtää etusivun `renderWeekCard()`
 (2 × 2 `.stat-grid`, kokonaispaino vain jos > 0, `[data-toggle-week-exercises]`,
-`state.expandedWeekExercises`), `renderVolumeCard()` (korvaa
+`state.expandedWeekExercises`; 0.4.6 alkaen myös 12 viikon volyymipylväät,
+ks. oma osio), `renderVolumeCard()` (korvaa
 `renderTotalWeightCard`; `[data-volume-scale]`, `state.kehitysVolumeScale`,
 Päivä-karkeus on täsmälleen entinen käyrä), `renderAdherenceCard()`
 (`renderMetricRow(label, hit, total)`, nimittäjä 0 → rivi pois; kaikki pois →
@@ -1062,6 +1063,43 @@ välilyönti ovat sitovia välilyöntejä; huomioi testien regexeissä); volyymi
 määrien erot neutraalilla värillä (`neutralDelta`), 1RM-erot `renderDeltaValue`.
 Testit: `test_kehitys2.js` (fixture `prog_10.csv`), `test_kehitys.js` ja
 `test_variant_merge.js` avaavat liikenäkymän rivistä.
+
+## Kehityksen etusivun segmentit ja viikkopylväät (toteutettu, 0.4.6)
+
+Etusivu on kolme segmenttiä `state.kehitysTab` (`"yhteenveto" |
+"liikkeet" | "vaivat"`; ei tallenneta, ei nollata `resetScreenState`- eikä
+`applyScreen`-funktiossa, joten liikenäkymästä ja välilehdeltä palataan
+samaan segmenttiin; ei ruutu historiapinossa). `renderKehitysSegments()`
+on sama `segmented kehitys-tabs`-valitsin kuin liikenäkymässä
+(`role="tablist"`, `aria-label="Kehityksen osiot"`, painikkeet `role="tab"`
+`[data-kehitys-front-tab]`; käsittelijä asettaa tilan ja vierittää ylös
+`afterRender`-kutsulla; attribuutti on `keydown`-käsittelijän
+valitsinlistassa). `renderKehitys()`: lataus, tyhjä tila
+(`renderPainSection(false)` otsikolla, ei valitsinta) ja liikenäkymä
+ennallaan; muuten valitsin + Yhteenveto (`renderWeekCard` + datalla
+`renderVolumeCard` + `renderAdherenceCard`), Liikkeet (`renderKehitysList`
+tai ilman 1RM-dataa `detailSentence`-lause, joka aiemmin oli Viikko-kortin
+alla) tai Vaivat (`renderPainSection(true)` ilman `day-heading`-otsikkoa).
+Liikelistan otsikko on yhä "Liikkeet" + lukumäärä erillisinä span-
+elementteinä (rivin sisältö kuuluu Kehitys-sarjan kehotteeseen 2).
+
+`buildWeeklySummary` antaa viikolle `deload: true`, kun jonkin merkinnän
+`data.deload === true` (kenttä on jo merkinnässä, `saveExerciseLog`).
+`renderWeekBars(weekly, idx)` piirtää Viikko-korttiin `stat-grid`-ruudukon
+jälkeen ja ennen `[data-toggle-week-exercises]`-painiketta SVG:n
+(`viewBox 0 0 300 48`, `role="img"`, `aria-label="Viikkovolyymi 12
+viikolta, 29.6.–14.9."`): kaksitoista viikkoa kortin viikkoon päättyen
+(`isoAddDays(weekStart, -7k)`), pylväs `x = k*25`, leveys 18, `h =
+max(4, round(tonnage/max*44))` tai 2 ilman merkintöjä; täyttö kortin
+viikko `--brass`, kevennys `--line-strong`, muu `--surface-2`, tyhjä
+`--line`. Tyhjä merkkijono, kun suurin tonnage on 0 (vain yhdistelmä-
+liikkeitä), jolloin otsikko `.week-bars-title` "Viikkovolyymi, 12 viikkoa"
+ja `renderWeekBarsLabels` (ensimmäinen viikko, keskellä "kevennys"
+`--line-strong`-värillä jos jokin jakson viikko oli kevennys, kortin
+viikko) jäävät pois. Testi kehotteen tapauksille 1–13 ajettiin
+Playwrightilla (`test_kehitys_seg.js`; huom. Playwrightin klikkaus
+vierittää rivin näkyviin ennen klikkausta, joten `kehitysScrollY`-vertailu
+lukee aseman vasta `scrollIntoViewIfNeeded`-kutsun jälkeen).
 
 ## Kehityksen 1RM: liukuva paras (toteutettu)
 
