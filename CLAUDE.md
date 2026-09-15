@@ -946,7 +946,20 @@ mutta testien on avattava oikea osio ennen niihin koskemista (testien
 
 Historia esilataa kaikki merkinnät `historyCache`-välimuistiin
 `loadHistory()`:ssa, jotta suljettu päiväkortti voi näyttää yhteenvetorivin
-(`historyDaySummary()`). Avatun päivän sarjat (`renderHistoryDate`) ovat
+(`historyDaySummary()`). Historia-sarjan kehote 1 (0.4.16): `renderHistoria`
+ryhmittelee päivät kuukausittain `h3.day-heading.history-month`-otsikoin
+(`formatMonthFI`, deterministinen `MONTHS_FI`-taulukko) `#history-list`-
+kääreessä (varattu suodattimelle), ja `renderHistoryDate`-otsikkorivi on
+`.history-date-head` (44 px, ei inline-tyylejä): `.history-date-day`
+`formatDateCompactFI` ("Ma 14.9.", `WEEKDAYS_SHORT_FI`; koko päivämäärä
+`aria-label`-attribuutissa `capitalize(formatDateFI)`), `.history-date-ctx`
+`historyDayContext(entry)` (ensimmäisen ohjelmasta löytyvän liike-id:n
+päivä `findGroupForExerciseId`-apurilla: "Viikko 3 · Päivä 2", viikoton
+pelkkä label, ei ohjelmassa → ei elementtiä), `historyDayBadges(entry)`
+(`.chip.history-badge`: "kevennys" `.history-badge-deload`, kun jokin
+merkintä on `deload`; "korjattu", kun jokin on `editedAt`) ja
+`.history-date-sub` yhteenveto; nuoli `.chevron.on` avattuna. Avatun kortin
+sisältö ja poisto ennallaan. Testi: `test_history_1.js`. Avatun päivän sarjat (`renderHistoryDate`) ovat
 `.hist-sets`-lohkossa inline-lohkoina `.hist-set` (" · "-erottimet
 tekstisolmuina välissä, jotta teksti "1: 60 kg × 10 · 2: …" säilyy
 testeille ja ruudunlukijalle), ja sarjan alla on `.hist-set-rpe` "RPE 8"

@@ -593,7 +593,20 @@
   .upload-box p{color:var(--mist); font-size:var(--fs-md); line-height:1.55; margin:0 0 12px;}
   .csv-example{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; background:var(--surface-2); padding:10px; border-radius:8px; overflow-x:auto; white-space:nowrap; color:var(--mist); margin-bottom:16px;}
 
-  .history-date{background:var(--surface); border-radius:var(--radius); margin-bottom:10px; padding:14px 16px;}
+  /* Historian päiväkortti: 44 px:n otsikkorivi (lyhyt päivämäärä, ohjelman
+     viikko ja päivä, merkit, yhteenveto), kuukausiotsikot väliin. */
+  .history-date{background:var(--surface); border-radius:var(--radius); margin-bottom:8px; padding:8px 16px 10px;}
+  .history-month{margin-top:16px;}
+  .history-month:first-child{margin-top:0;}
+  .history-date-main{flex:1; min-width:0;}
+  .history-date-title{display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 8px;}
+  .history-date-day{font-weight:700; font-size:15px; font-variant-numeric:tabular-nums;}
+  .history-date-ctx{font-size:var(--fs-xs); color:var(--mist);}
+  .history-date-sub{font-size:var(--fs-xs); color:var(--mist); margin-top:2px; font-variant-numeric:tabular-nums;}
+  .history-badge{font-size:11px; font-weight:800; padding:1px 7px; border-color:var(--line-strong); color:var(--mist); background:transparent;}
+  .history-badge-deload{background:var(--line-strong); color:var(--ink); border-color:var(--line-strong);}
+  .history-date-head .chevron{margin-left:0;}
+  .history-date-head .chevron.on{transform:rotate(90deg); color:var(--brass);}
   /* Historian sarjat: jokainen sarja on inline-lohko, jonka alla toisella
      rivillä on "RPE 8", kun sarjalle oli merkitty tuntuma (käyttäjän päätös
      10.9.2026; sama esitys kuin Viime-solussa). Erottimet " · " ovat
@@ -602,7 +615,8 @@
   .hist-sets{color:var(--mist); font-size:var(--fs-sm); font-variant-numeric:tabular-nums; margin-top:2px; line-height:1.35;}
   .hist-set{display:inline-block; vertical-align:top;}
   .hist-set-rpe{display:block; font-size:var(--fs-xs); letter-spacing:.02em;}
-  .history-date-head{display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:14px; font-variant-numeric:tabular-nums; cursor:pointer; min-height:32px;}
+  .history-date-head{display:flex; align-items:center; gap:12px; min-height:44px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .history-date-head:focus-visible{outline:2px solid var(--brass); outline-offset:2px; border-radius:6px;}
 
   .empty{text-align:center; color:var(--mist); padding:48px 20px; font-size:var(--fs-md); line-height:1.6;}
   /* ---------- Ohjelmakirjasto ja käytössä olevan ohjelman rivi ---------- */
@@ -708,12 +722,15 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.15";
+  var APP_VERSION = "0.4.16";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-15", items: [
+      "Historia on ryhmitelty kuukausittain (versio 0.4.16). Päiväkortti näyttää lyhyen päivämäärän, ohjelman viikon ja päivän, kun liike on yhä käytössä olevassa ohjelmassa, sekä merkit kevennyksestä ja jälkikäteen korjatusta merkinnästä.",
+    ] },
     { date: "2026-09-14", items: [
       "Kirjauskortissa vuorossa oleva sarja on korostettu hennolla messinkitaustalla ja messinkisellä numerolla (versio 0.4.15), jotta seuraava sarja näkyy myös lepotauon aikana näppäimistön ollessa kiinni.",
       "Painokentät näyttävät desimaalit pilkulla (52,5) myös silloin, kun paino on ehdotuksesta esitäytetty (versio 0.4.14).",
@@ -1114,6 +1131,11 @@
     var d = new Date(iso + "T00:00:00");
     return d.toLocaleDateString("fi-FI", { weekday:"long", day:"numeric", month:"long" });
   }
+  // Deterministiset nimet Historian otsikoihin (ei toLocaleDateString-eroja).
+  var MONTHS_FI = ["Tammikuu","Helmikuu","Maaliskuu","Huhtikuu","Toukokuu","Kesäkuu","Heinäkuu","Elokuu","Syyskuu","Lokakuu","Marraskuu","Joulukuu"];
+  var WEEKDAYS_SHORT_FI = ["Su","Ma","Ti","Ke","To","Pe","La"];
+  function formatMonthFI(iso){ var d = new Date(iso + "T00:00:00"); return MONTHS_FI[d.getMonth()] + " " + d.getFullYear(); }
+  function formatDateCompactFI(iso){ var d = new Date(iso + "T00:00:00"); return WEEKDAYS_SHORT_FI[d.getDay()] + " " + formatDateShortFI(iso); }
   function formatDateShortFI(iso){
     var d = new Date(iso + "T00:00:00");
     return d.getDate() + "." + (d.getMonth() + 1) + ".";
@@ -7196,7 +7218,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("4. Historia ja Kehitys", ohjeP(
-      "<b style=\"color:var(--chalk);\">Historia</b> näyttää kaikki kirjatut päivät sekä laskennallisen yhden toiston maksimin jokaiselle liikkeelle. Yksittäisen päivän voi poistaa avaamalla sen."
+      "<b style=\"color:var(--chalk);\">Historia</b> näyttää kirjatut päivät kuukausittain. Päivän rivillä on ohjelman viikko ja päivä sekä merkit kevennyksestä ja korjatusta merkinnästä; avaamalla päivän näet sarjat ja voit poistaa päivän."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Kehitys</b> avautuu etusivuun, jossa on kolme osiota: Yhteenveto vastaa kysymykseen ”miten menee”, Liikkeet listaa liikkeet ja Vaivat kokoaa vaivalokin. Viikko-kortti näyttää kuluvan (tai viimeisimmän) treeniviikon kokonaispainon, sarjat, toistot ja treenipäivät sekä erot edelliseen viikkoon; ”Näytä liikkeet” avaa viikon liikkeet. Kortin pylväät näyttävät kahdentoista viikon volyymin. Nostettu kokonaispaino -kortissa karkeuden voi vaihtaa viikon ja päivän välillä. Ohjelman toteutuminen -kortti kertoo viimeiseltä 28 päivältä tehdyt sarjat suhteessa ohjelmoituihin, kuinka usein tavoitetoistot täyttyivät ja kuinka usein 1,25 %:n progressiotavoite toteutui, sekä pysähtyneet liikkeet. Liikkeet-osiossa on liikelista: liikkeen rivillä on paras 1RM viimeiseltä neljältä viikolta, muutos sitä edeltävään neljään viikkoon ja pieni käyrä viimeisistä merkinnöistä; yli kahdeksan liikkeen listaa voi suodattaa hakukentällä. Liike näkyy heti ensimmäisestä merkinnästä lähtien. Tabletilla liikelista ja liikenäkymä ovat rinnakkain."
     ) + ohjeP(
@@ -9021,7 +9043,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(state.historyLoading) return '<div class="empty">Ladataan historiaa…</div>';
     var dates = state.historyDates || [];
     if(dates.length === 0) return renderEmptyState("historia", "Ei vielä merkintöjä", "Kirjaa ensimmäinen treenisi Ohjelma-välilehdellä, niin päivät kertyvät tähän.", goToProgramButton());
-    return dates.map(function(date){ return renderHistoryDate(date); }).join("");
+    // Kuukausiotsikot h3 (kuten Ohjelma-näkymän viikot Kaikki-tilassa);
+    // #history-list-kääre on varattu suodattimelle.
+    var html = "", prevMonth = null;
+    dates.forEach(function(date){
+      var m = date.slice(0, 7);
+      if(m !== prevMonth){ html += '<h3 class="day-heading history-month">' + escapeHtml(formatMonthFI(date)) + '</h3>'; prevMonth = m; }
+      html += renderHistoryDate(date);
+    });
+    return '<div id="history-list">' + html + '</div>';
   }
   function fmtSignedKg(diff){
     var rounded = Math.round(diff * 10) / 10;
@@ -9709,6 +9739,28 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(totalKg > 0) parts.push(totalKg.toLocaleString("fi-FI") + " kg");
     return parts.join(" · ");
   }
+  // Ohjelman viikko ja päivä, kun merkinnän liike on yhä käytössä olevassa
+  // ohjelmassa; ensimmäinen löytyvä riittää (saman päivän merkinnät kuuluvat
+  // samaan treenipäivään). Tyhjä, kun id:t eivät ole ohjelmassa.
+  function historyDayContext(entry){
+    var keys = Object.keys((entry && entry.exercises) || {});
+    for(var i=0;i<keys.length;i++){
+      var day = findGroupForExerciseId(keys[i]);
+      if(day){
+        var label = day.label || dayLabelFromName(day);
+        return (day.week !== null && day.week !== undefined && day.week !== "") ? weekDisplayName(day.week) + " · " + label : label;
+      }
+    }
+    return "";
+  }
+  // Merkit: kevennys (jokin merkintä deload) ja korjattu (jokin editedAt).
+  function historyDayBadges(entry){
+    var keys = Object.keys((entry && entry.exercises) || {});
+    var deload = false, edited = false;
+    keys.forEach(function(k){ var d = entry.exercises[k] || {}; if(d.deload) deload = true; if(d.editedAt) edited = true; });
+    return (deload ? '<span class="chip history-badge history-badge-deload">kevennys</span>' : '') +
+      (edited ? '<span class="chip history-badge">korjattu</span>' : '');
+  }
   function renderHistoryDate(date){
     var expanded = state.expandedHistoryDate === date;
     var entry = state.historyCache[date];
@@ -9745,12 +9797,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '<button class="' + (confirming ? "btn-danger btn-sm btn-auto" : "btn-tertiary btn-sm") + '" data-delete-history data-date="' + date + '" type="button"' + (confirming ? "" : ' style="color:var(--danger-text);"') + '>' +
         icon("poista", 16) + '<span>' + (confirming ? "Vahvista poisto" : "Poista päivä") + '</span></button></div>';
     }
+    // Otsikkorivi: lyhyt päivämäärä (koko päivämäärä ruudunlukijalle
+    // aria-labelissa), ohjelman viikko ja päivä, merkit ja yhteenveto.
+    var ctx = entry ? historyDayContext(entry) : "";
     return '<div class="history-date">' +
       '<div class="history-date-head" data-history-date data-date="' + date + '" role="button" tabindex="0" aria-expanded="' + (expanded ? "true" : "false") + '">' +
-      '<span style="min-width:0;"><span style="display:block;">' + capitalize(formatDateFI(date)) + '</span>' +
-      (entry ? '<span style="display:block; color:var(--mist); font-size:var(--fs-sm); font-weight:400; margin-top:2px;">' + escapeHtml(historyDaySummary(entry)) + '</span>' : '') +
-      '</span>' +
-      '<span class="chevron" style="display:inline-block;' + (expanded ? "transform:rotate(90deg);color:var(--brass);" : "") + '">›</span>' +
+      '<div class="history-date-main">' +
+      '<div class="history-date-title"><span class="history-date-day" aria-label="' + escapeHtml(capitalize(formatDateFI(date))) + '">' + escapeHtml(formatDateCompactFI(date)) + '</span>' +
+      (ctx ? '<span class="history-date-ctx">' + escapeHtml(ctx) + '</span>' : '') + (entry ? historyDayBadges(entry) : '') + '</div>' +
+      (entry ? '<div class="history-date-sub">' + escapeHtml(historyDaySummary(entry)) + '</div>' : '') +
+      '</div>' +
+      '<span class="chevron' + (expanded ? " on" : "") + '">›</span>' +
       '</div>' + inner + '</div>';
   }
   function maxExerciseNames(){
