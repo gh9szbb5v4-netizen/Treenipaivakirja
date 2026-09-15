@@ -133,8 +133,9 @@ otsikkorivillä Tuntuman jälkeen Osasarjat-saraketta.
 Kolmas tapa saada ohjelma sovellukseen CSV- ja PDF-tuonnin rinnalle.
 Sisääntulo on sekä alkunäytöllä (`renderUpload`) että Asetusten Ohjelma-osiossa
 (`[data-builder-start]`). Rakentajalla ei ole omaa näkymää eikä omaa tilaa:
-`startProgramBuilder()` avaa muokkaustilan tilassa `"new"` luonnokselle
-`{ days: [Päivä 1], weeks: ["1"], weekLabels: {} }`, ja kaikki rivit,
+`startProgramBuilder()` avaa muokkaustilan tilassa `"new"` runkokyselyllä
+(ks. alakohta Runkokysely ja viikon monistus; aiemmin luonnos oli
+`{ days: [Päivä 1], weeks: ["1"], weekLabels: {} }`), ja kaikki rivit,
 lomakkeet, kopiointi ja poisto ovat muokkaustilan omia (seuraava osio).
 Aiempi erillinen rakentaja (`state.builder`, `renderProgramBuilder()`,
 `builderProgramFromDraft()`, `data-builder-*`) poistettiin UX-vaiheessa 5,
@@ -182,6 +183,59 @@ liikkeen vaihdon käytössä.
 **Ratkaistu kysymys:** rakentaja luo aina uuden ohjelman tyhjästä. Olemassa
 olevan ohjelman muokkaus on sama muokkaustila tilassa `"edit"`, ei erillinen
 toteutus. Yksittäisen liikkeen vaihto on lisäksi Ohjelma-näkymässä.
+
+### Runkokysely ja viikon monistus (toteutettu, 0.4.19, Rakentaja-sarja 1/3)
+
+`blankEditor()` sai kentät `stage` (`"setup"` | `"build"`, oletus build,
+joten muokkaus- ja tuontitila alkavat suoraan build-vaiheesta) ja `setup =
+{ daysPerWeek: 3, weeks: 4, weekless: false }`. `startProgramBuilder()`
+avaa tyhjän luonnoksen `{ days: [], weeks: [], weekLabels: {}, id, name: "" }`
+tilassa `"new"` ja `stage = "setup"`; `renderEditor()` palauttaa silloin
+`renderBuilderSetup()`:n (nimikenttä samalla `[data-editor-program-name]`-
+input-käsittelijällä, `.segmented.builder-days` `[data-setup-days]` 2–6
+`aria-pressed`, askeltin `[data-setup-weeks="-1"|"1"]` `aria-label`
+"Vähennä/Lisää viikkoja" disabled arvoilla 1 ja 12, `.builder-count`
+`aria-live`, `[data-setup-weekless]` `change`-käsittelijässä piilottaa
+`.builder-row`-rivin luokalla `hidden`, ja `state.program`-ohjelman kanssa
+`<button class="exercise builder-card builder-copy" data-setup-copy-current>`
+vihjeellä "nimi · N viikkoa · k päivää", jossa k on ensimmäisen viikon
+päivien määrä, viikottomalla kaikki päivät). `renderEditBar()` näyttää
+setup-vaiheessa Peruuta ja `[data-setup-continue]` "Jatka" →
+`builderApplySetup()`: viikot "1"…N ja jokaiselle `daysPerWeek` päivää
+`{ id: newDayId(), label: "Päivä i", name: "", week, exercises: [] }`
+(viikoton: `week: null`, `weeks []`), viikko 1 ja ensimmäinen päivä auki,
+`baseline` = luodun rungon JSON (kysely ei ole muutos → Peruuta poistuu
+ilman vahvistusta; kirjoitettu nimi tekee luonnoksesta muuttuneen jo
+kyselyssä, koska baseline on tyhjä luonnos). `builderFromCurrentProgram()`
+syväkopioi `state.program`-ohjelman uusilla ohjelma-, päivä- ja liike-
+id:illä (`state.programDraft = src` asetetaan ennen `cloneExercises`-
+kutsua), nimi "<nimi> (kopio)", `needsReview`/`rawTarget` poistetaan,
+baseline = kopio, ensimmäinen viikko auki. `finishProgramEdit` on
+ennallaan: tyhjät päivät ja viikot pudotetaan uudessa tilassa, nimetön
+ohjelma saa nimen "Oma ohjelma".
+
+Monistus: `emptyDraftWeeks(exceptKey)` = viikot ilman yhtään liikettä
+(myös päivättömät; `every` tyhjällä listalla). `editorReplicateWeek(srcKey)`
+korvaa jokaisen tyhjän viikon päivät lähdeviikon päivien kopioilla
+(`newDayId`, `cloneExercises`; `weekLabels` ei kopioidu), sijoittaa ne
+edeltävän päivällisen viikon perään `insertDaysAfterWeek`-kutsulla
+(ilman edeltävää listan alkuun) ja ilmoittaa "Monistettu viikoille 2, 4,
+5, 6" (yksi kohde: "viikolle 2"). `renderReplicateCard()` viikkolistan
+jälkeen ennen "Lisää tyhjä viikko" kaikissa tiloissa, kun viikkoja > 1,
+ensimmäisellä viikolla on liikkeitä ja jokin muu viikko on tyhjä:
+otsikko "Monista Viikko 1 viikoille 2–6" (tyhjien ensimmäinen–viimeinen,
+vaikka välissä olisi täytetty viikko; ilmoitus luettelee vain täytetyt),
+vihje "Kopioi päivät ja liikkeet; painot ehdotetaan kirjauksessa" ja
+`[data-edit-replicate="1"]` "Monista" `btn-primary`. Kohinan poisto:
+`editorMoveButtons` palauttaa tyhjän, kun `count < 2`, ja
+`editorRestartButton` tilassa `"new"` (ohjelmatason painike oli jo vain
+edit-tilassa). CSS `.builder-*` kehotteen arvoilla `.editor-title`-
+sääntöjen perässä; lisäksi `.builder-days{display:flex}`, jotta
+segmentti täyttää kortin leveyden (`.segmented` on inline-flex). Huomio:
+`.builder-hint`-väri `--line-strong` on kehotteen arvo ja axe ilmoittaa
+sen kontrastista. Testi: `test_rakentaja_1.js` (kehotteen tapaukset
+1–16; ei repossa). Kehotteet 2 (liikelomake ja lisäyssilmukka) ja 3
+(tasoittainen navigointi) ovat vielä ajamatta.
 
 ## Liikepankki (toteutettu, versio 4.9.2026)
 
