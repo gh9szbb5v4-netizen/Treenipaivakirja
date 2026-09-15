@@ -946,7 +946,59 @@ mutta testien on avattava oikea osio ennen niihin koskemista (testien
 
 Historia esilataa kaikki merkinnät `historyCache`-välimuistiin
 `loadHistory()`:ssa, jotta suljettu päiväkortti voi näyttää yhteenvetorivin
-(`historyDaySummary()`). Avatun päivän sarjat (`renderHistoryDate`) ovat
+(`historyDaySummary()`). Historia-sarjan kehote 1 (0.4.16): `renderHistoria`
+ryhmittelee päivät kuukausittain `h3.day-heading.history-month`-otsikoin
+(`formatMonthFI`, deterministinen `MONTHS_FI`-taulukko) `#history-list`-
+kääreessä (varattu suodattimelle), ja `renderHistoryDate`-otsikkorivi on
+`.history-date-head` (44 px, ei inline-tyylejä): `.history-date-day`
+`formatDateCompactFI` ("Ma 14.9.", `WEEKDAYS_SHORT_FI`; koko päivämäärä
+`aria-label`-attribuutissa `capitalize(formatDateFI)`), `.history-date-ctx`
+`historyDayContext(entry)` (ensimmäisen ohjelmasta löytyvän liike-id:n
+päivä `findGroupForExerciseId`-apurilla: "Viikko 3 · Päivä 2", viikoton
+pelkkä label, ei ohjelmassa → ei elementtiä), `historyDayBadges(entry)`
+(`.chip.history-badge`: "kevennys" `.history-badge-deload`, kun jokin
+merkintä on `deload`; "korjattu", kun jokin on `editedAt`) ja
+`.history-date-sub` yhteenveto; nuoli `.chevron.on` avattuna. Testi:
+`test_history_1.js`.
+
+Historia-kehote 2 (0.4.17): avattu päivä piirretään
+`renderHistoryExercise(date, id, data)`-lohkoina (`.history-ex`, nimi +
+`.history-ex-kind` cluster) ja `renderHistorySetRow(label, valueHtml, rpe,
+muted, ariaText)`-riveinä `.history-sets`-ruudukossa (`display:contents`-
+rivit: `.history-set-num`, `.history-set-val`, `.history-rpe` — RPE 10
+`.max` punaisena, puuttuva `.none` "–" `aria-hidden`; lämmittelyt `.warm`
+L1, L2 … ennen työsarjoja, cluster "× 4 osasarjaa", huomio
+`.history-set-note`; rivin `aria-label` "Sarja 1: 82,5 kg × 6, RPE 8" /
+"Lämmittely 1: …"). Toiminnot `.history-actions`: `[data-history-kehitys]`
+(ei yhdistelmäliikkeelle; Kehitys laskettu ja liike puuttuu → toast
+"Liikkeelle ei ole vielä kehitystä"; leveänä valinta paneeliin ja
+`navigate({kehitys, null})`, kapeana `navigate({kehitys, norm})`;
+laskematta ollessaan `loadKehitys`-loppu pudottaa listaan) ja
+`[data-history-fix]` vain kun `canFix` = liike käytössä olevassa
+ohjelmassa **ja** `exerciseLogIndex[id].date === date` (myös
+yhdistelmäliikkeelle, kehotteen sääntö 5.2; taulukon "ei kumpaakaan" oli
+ehdollistettu samaan sääntöön): asettaa `activeWeek`,
+`expandedDaySummaries` ja `state.openAfterNavigate = id` ja kutsuu
+`navigate({ohjelma})`; lippu kulutetaan `applyScreen`-funktion lopussa
+(`toggleExercise(id)`, koska `navigate` palaa ennen popstate-tapahtumaa;
+kapeana kirjausruutu syvyydellä 2). Poisto `.history-delete`-lohkossa
+ilman inline-tyylejä; `.history-date-head.open` saa alaviivan. `.hist-*`-
+luokat poistettu.
+
+Historia-kehote 3 (0.4.18): `state.historyFilter` (vain istunnon ajan; ei
+nollata `applyScreen`-funktiossa) ja `HISTORY_FILTER_MIN_DAYS = 5`:
+`renderHistoria` piirtää `#history-filter[data-history-filter]`-hakukentän
+(`type="search"`, id `restoreFocus`-tunnistukseen), kun päiviä on yli
+viisi, ja `#history-list`-kääreen sisällön `renderHistoryList(filter)`
+(`historyMatches(entry, q)` = osajono nimessä kirjainkoosta riippumatta;
+osuvat päivät `renderHistoryDate(date, onlyIds)`-kutsulla aina avattuina
+vain osuvine liikkeineen, ilman `data-history-date`/`role`/nuolta/poistoa,
+yhteenveto koko päivästä; laskuri `.history-filter-summary` "9 päivää" ja
+`[data-history-kehitys]`-linkki, kun osumien `kehitysKeyFor`-normeja on
+yksi eikä se ole yhdistelmä; ei osumia → `.history-empty`). `input`-
+käsittelijä päivittää `#history-list`-elementin ilman `render()`-kutsua
+(kuten `data-kehitys-filter`); Escape kentässä tyhjentää arvon
+dokumentin `keydown`-käsittelijässä. Testi: `test_history_2_3.js`. Avatun päivän sarjat (`renderHistoryDate`) ovat
 `.hist-sets`-lohkossa inline-lohkoina `.hist-set` (" · "-erottimet
 tekstisolmuina välissä, jotta teksti "1: 60 kg × 10 · 2: …" säilyy
 testeille ja ruudunlukijalle), ja sarjan alla on `.hist-set-rpe` "RPE 8"
