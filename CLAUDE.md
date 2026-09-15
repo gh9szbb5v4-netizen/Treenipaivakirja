@@ -267,6 +267,78 @@ palauttaa fokuksen `#editor-form-more`-painikkeeseen. Lomakkeen inline-
 tyylit (`flex:0.7` ym.) korvattiin luokilla. Tallennusmuoto ei
 muuttunut. Testi: `test_rakentaja_2.js` (kehotteen tapaukset 1–13).
 
+### Tasoittainen navigointi (toteutettu, 0.4.21, Rakentaja-sarja 3/3)
+
+Muokkaustila ei enää piirrä viikkoja, päiviä ja liikkeitä sisäkkäisinä
+haitareina vaan tasoina. `blankEditor()`: `openWeeks`, `openDays` ja
+`menuFor` poistettiin; tilalla `level = { kind: "root" | "week" | "day",
+key }` ja `levelMenu` (tason ⋮-valikko auki). `editorGoTo(kind, key)`
+nollaa näppäimistön, lomakkeen, valikon ja `confirmDelete`-tilan,
+vaihtaa tason, vierittää ylös ja fokusoi `#editor-title`-elementin
+(`afterRender`); `editorGoUp()` palaa päivästä viikkoon (viikoton →
+juuri) ja viikosta juureen. Aloitustasot: `startProgramEdit` →
+`editorGoTo("week", activeWeek)`, kun viikko on ohjelmassa, muuten juuri;
+`startProgramImport` ja `builderFromCurrentProgram` → juuri;
+`builderApplySetup` asettaa tason suoraan ensimmäiseen päivään ja kutsuu
+`editorOpenForm(päivä, null)` (lisäyslomake ja valitsin auki; ei
+`editorGoTo`-kutsua, jotta fokus päätyy hakukenttään eikä otsikkoriviin).
+Mutaatiofunktiot eivät enää koske avaustilaan; `editorCopyWeek`,
+`editorAddWeek`, `editorAddDay` ja `editorCopyDay` palauttavat uuden
+avaimen/olion, ja click-käsittelijä navigoi sille (`editorGoTo`).
+Poiston jälkeen käsittelijä navigoi ylemmälle tasolle (viikko → juuri,
+päivä → viikko tai juuri); liikkeen poisto jää päivätasolle.
+`renderEditor()` valitsee tason (`renderEditorRoot`,
+`renderEditorWeekScreen`, `renderEditorDayScreen`) ja palauttaa juureen,
+jos kohde on kadonnut; kysely (`stage "setup"`) on ennallaan.
+
+`renderScreenHead` sai valinnat `titleHtml` (h1:n tilalle; nimi on
+`<input>`, joka ei saa olla otsikon sisällä), `headId` (otsikkorivi saa
+`id`, `tabindex="-1"`, `role="group"`) ja `ariaLabel` (ruudun nimi).
+Viikko- ja päivätasolla `renderHeader` palauttaa tyhjän (logorivi vain
+juuressa), ja juuren ohjelmakortti `.editor-root-card` on `#editor-title`
+(kicker `editorTitle()`, luvut "6 viikkoa · 4 treenipäivää viikossa ·
+14 liikettä" — "viikossa" vain, kun jokaisella viikolla on yhtä monta
+päivää, muuten päivien kokonaismäärä; viikoton "3 treenipäivää · …").
+Rivit `editorRowHtml`: `.editor-row` (div) → `button.editor-row-main`
+(`data-edit-open-week` / `data-edit-open-day` / `data-edit-exercise`,
+rengas `editorRing` `.editor-row-ring[.filled]` + `sr-only` "liikkeitä
+lisätty", `.editor-row-name`, `.editor-row-sub`) + `.editor-row-tools`
+(siirtonuolet, vain `count ≥ 2`) + `.chevron`. Alarivit: viikko "4 päivää
+· 14 liikettä" / "… · ei liikkeitä", päivä "3 liikettä" / "ei liikkeitä",
+tuontitilassa lisäksi `.review` "2 riviä tarkistettavana"
+(`reviewSub`); liike "3 × 8 · tanko" (väline `catalogPartsFor(...).valine`)
+tai `.review` "Tarkista: …", tunnistamattomalla `.recognition-note` ja
+`methodNote` samassa alarivissä, `needs-review`-luokka rivillä. Tason
+⋮ (`editorLevelMenuButton`, `[data-edit-level-menu]`) avaa
+`.editor-strip.editor-level-menu`-rivin: Kopioi viikko/päivä
+(`data-edit-copy`), Aloita uudelleen (ei `new`, `editorRestartButton`) ja
+kaksivaiheinen Poista (`editorDeleteButton`). Liikkeen poisto on
+muokkauslomakkeen painikerivillä Peruuta-painikkeen vieressä
+(`editorDeleteButton("ex:…", "Poista")`, tertiary → Vahvista).
+Päivätasolla lomake avautuu rivin alle (`.editor-list` katkaistaan);
+listan alla lisäyslomake tai `+ Lisää liike`; viikkotasolla `+ Päivä`;
+juuressa monistuskortti ja `+ Tyhjä viikko`, `Kopioi viimeinen viikko`
+(`.editor-level-actions`, 40 px). Kickerit "Ohjelma › Viikko 1",
+"Viikko 1 › Päivä 2" (päivän järjestysnumero viikon sisällä, ei label),
+viikoton "Päivä 2"; takaisin `aria-label` "Takaisin ohjelmaan" /
+"Takaisin viikkoon". `keydown`-lista sai `data-edit-open-week`,
+`data-edit-open-day` ja `data-edit-back`, mutta aidolle `<button>`-
+kohteelle käsittelijä ei tee synteettistä clickiä (tuplaisi toiminnon).
+CSS: `.editor-head`, `.editor-title`, `.editor-children` ja `.editor-add`
+poistettu; `.editor-list`, `.editor-row*`, `.editor-level-actions`
+kehotteen arvoilla (+ `.editor-row-text` sarakkeeksi ja
+`-webkit-tap-highlight-color`); `.editor-strip`, `.editor-icon`,
+`.editor-note`, `.editor-row.needs-review` (vain tausta) säilyvät.
+Huomio: `.editor-row-ring` ei ole `.day-ring`, vaikka tyyli on sama,
+jotta Ohjelma-näkymän rengasta voi muuttaa erikseen. Testi:
+`test_rakentaja_3.js` (kehotteen tapaukset 1–16; tuontitilaa ei voi
+käynnistää testissä ilman PDF:ää, joten tapaus 9 tarkistaa
+`needsReview`-rivin päivätasolla edit-tilassa ja sen, ettei
+"tarkistettavana"-teksti näy edit-tilassa; import-haara on sama koodi
+`state.editor.mode`-ehdolla). `test_rakentaja_1.js` ja
+`test_rakentaja_2.js` sovitettiin tasoihin (päivä avataan viikkotasolta,
+liikkeen poisto lomakkeessa).
+
 ## Liikepankki (toteutettu, versio 4.9.2026)
 
 `EXERCISE_VARIANTS` on generoitu tiedostosta
@@ -342,10 +414,11 @@ kiinteän `.edit-bar`-alapalkin (`<footer>`, jotta se on maamerkki; painikkeet
 Peruuta ja Valmis). `enterEditor(draft, mode)` alustaa tilan; `mode` on
 `"edit"` (nykyinen ohjelma), `"new"` (rakentaja) tai `"import"`
 (PDF-tarkistus). Muokkaustilan oma tila on `state.editor = blankEditor()`:
-`mode`, `openWeeks` ja `openDays` (kartat, useampi voi olla auki),
+`mode`, `level` ja `levelMenu` (tasoittainen navigointi, ks. Rakentaja-
+sarja 3/3; aiemmat `openWeeks`, `openDays` ja `menuFor` on poistettu),
 `editingExercise`, `addingExerciseTo`, `confirmDelete` (`"delete:<kohde>"`
 tai `"restart:<kohde>"`, kohde `week:<avain>`, `day:<id>`, `ex:<id>` tai
-`program`), `confirmCancel`, `swapAll`, `menuFor`, `form`, `baseline`
+`program`), `confirmCancel`, `swapAll`, `form`, `baseline`
 (luonnoksen JSON alussa; muutosvertailu), `returnView` (näkymä, johon
 Peruuta palaa uudessa ja tuontitilassa), `importInfo` (tiedostot ja
 tarkistettavien rivien määrä) ja `pickerQuery`. Nimikentät
