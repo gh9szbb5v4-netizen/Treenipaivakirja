@@ -607,14 +607,33 @@
   .history-badge-deload{background:var(--line-strong); color:var(--ink); border-color:var(--line-strong);}
   .history-date-head .chevron{margin-left:0;}
   .history-date-head .chevron.on{transform:rotate(90deg); color:var(--brass);}
-  /* Historian sarjat: jokainen sarja on inline-lohko, jonka alla toisella
-     rivillä on "RPE 8", kun sarjalle oli merkitty tuntuma (käyttäjän päätös
-     10.9.2026; sama esitys kuin Viime-solussa). Erottimet " · " ovat
-     tekstisolmuja lohkojen välissä ja pysyvät ylärivillä (vertical-align:top),
-     joten ilman tuntumaa rivi näyttää entiseltä. */
-  .hist-sets{color:var(--mist); font-size:var(--fs-sm); font-variant-numeric:tabular-nums; margin-top:2px; line-height:1.35;}
-  .hist-set{display:inline-block; vertical-align:top;}
-  .hist-set-rpe{display:block; font-size:var(--fs-xs); letter-spacing:.02em;}
+  /* Historian avattu päivä: liike lohkona, sarjat riveinä (numero, paino ×
+     toistot, RPE-merkki) ruudukossa, lämmittelyt (L1, L2 …) vaimeampina ennen
+     työsarjoja, huomio omalla rivillään, toiminnot liikkeen alla. */
+  .history-ex{border-top:1px dashed var(--line); margin-top:10px; padding-top:10px;}
+  .history-ex:first-of-type{border-top:0;}
+  .history-date-head.open{border-bottom:1px dashed var(--line); padding-bottom:6px;}
+  .history-ex-name{font-weight:600; font-size:var(--fs-md);}
+  .history-ex-kind{color:var(--mist); font-size:var(--fs-xs); font-weight:400;}
+  .history-sets{display:grid; grid-template-columns:28px minmax(0,1fr) auto; gap:4px 8px; margin-top:6px; font-size:var(--fs-sm); font-variant-numeric:tabular-nums; align-items:center;}
+  .history-set{display:contents;}
+  .history-set-num{color:var(--brass); font-weight:700;}
+  .history-set.warm .history-set-num, .history-set.warm .history-set-val{color:var(--mist); font-size:var(--fs-xs); font-weight:500;}
+  .history-set-unit{color:var(--mist); font-size:var(--fs-xs);}
+  .history-set-note{grid-column:1 / -1; font-size:var(--fs-xs); color:var(--mist);}
+  .history-rpe{justify-self:end; font-size:11px; font-weight:800; letter-spacing:.02em; color:var(--brass); border:1px solid var(--brass); border-radius:999px; padding:0 7px; line-height:16px; white-space:nowrap;}
+  .history-rpe.max{color:var(--danger-text); border-color:var(--danger-text);}
+  .history-rpe.none{border-color:transparent; color:var(--mist);}
+  .history-set.warm .history-rpe{font-size:var(--fs-xs); border:0; padding:0; font-weight:500; color:var(--mist);}
+  .history-actions{display:flex; gap:12px; margin-top:4px;}
+  .history-actions .btn-tertiary{width:auto; min-height:40px; padding:6px 2px;}
+  .history-delete{display:flex; justify-content:flex-end; margin-top:12px; padding-top:10px; border-top:1px dashed var(--line);}
+  .history-delete .btn-tertiary{color:var(--danger-text);}
+  /* Historian liikesuodatin (sama kenttä kuin Kehityksen liikelistassa). */
+  .history-filter{margin-bottom:8px;}
+  .history-filter-summary{display:flex; justify-content:space-between; align-items:center; font-size:var(--fs-xs); color:var(--mist); margin:0 2px 8px; min-height:40px;}
+  .history-filter-summary .btn-tertiary{width:auto; min-height:40px; padding:6px 2px;}
+  .history-empty{color:var(--mist); font-size:var(--fs-sm); padding:18px 4px; text-align:center;}
   .history-date-head{display:flex; align-items:center; gap:12px; min-height:44px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .history-date-head:focus-visible{outline:2px solid var(--brass); outline-offset:2px; border-radius:6px;}
 
@@ -722,13 +741,15 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.16";
+  var APP_VERSION = "0.4.18";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-15", items: [
+      "Historiassa on hakukenttä (versio 0.4.18): liikkeen nimellä näkyviin jäävät vain päivät, joissa liike on kirjattu, ja jokaisesta päivästä vain sen liikkeen sarjat — liikkeen kaikki kerrat aikajärjestyksessä. Kun osumat ovat yhtä liikettä, listan yläpuolelta pääsee suoraan Kehitykseen.",
+      "Historian avattu päivä näyttää sarjat riveinä (versio 0.4.17): lämmittelyt L1, L2 … ennen työsarjoja, jokaisella rivillä paino × toistot, cluster-riveillä osasarjat, RPE merkkinä ja huomio omalla rivillään. Liikkeen alla on Kehityksessä-painike liikenäkymään sekä Korjaa-painike, joka avaa saman merkinnän Ohjelma-näkymässä, kun liike on ohjelmassa ja merkintä on sen viimeisin.",
       "Historia on ryhmitelty kuukausittain (versio 0.4.16). Päiväkortti näyttää lyhyen päivämäärän, ohjelman viikon ja päivän, kun liike on yhä käytössä olevassa ohjelmassa, sekä merkit kevennyksestä ja jälkikäteen korjatusta merkinnästä.",
     ] },
     { date: "2026-09-14", items: [
@@ -850,6 +871,8 @@
   var REP_RANGE_BINS = [[1,3],[4,6],[7,10],[11,15],[16,Infinity]];
   var ADHERENCE_WINDOW_DAYS = 28;
   var KEHITYS_LIST_FILTER_MIN = 8;
+  // Historian hakukenttä näytetään, kun päiviä on enemmän kuin tämä.
+  var HISTORY_FILTER_MIN_DAYS = 5;
   var STORAGE_LAST_EXPORT_KEY = "last-export-date";
   var EXPORT_REMINDER_DAYS = 14;
   var REST_DURATION_SECONDS = 90;
@@ -1102,6 +1125,11 @@
     kehitysRange: "kaikki",
     kehitysScrollY: 0,
     kehitysFilter: "",
+    // Historian liikesuodatin (vain istunnon ajan) ja Korjaa-reitin lippu:
+    // liike avataan Ohjelma-näkymässä vasta applyScreen-kutsussa, koska
+    // navigate palaa ennen popstate-tapahtumaa.
+    historyFilter: "",
+    openAfterNavigate: null,
     expandedWeekExercises: false,
     storageMode: "claude",
     storageWarn: false,
@@ -7092,6 +7120,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     else if(backToList){ afterRender(function(){ window.scrollTo(0, state.kehitysScrollY || 0); }); }
     else if(prevView !== state.view || prevDetail !== screen.detail){ afterRender(function(){ window.scrollTo(0, 0); }); }
     else render();
+    // Historian Korjaa-reitti: liike avataan vasta täällä, koska navigate
+    // palaa ennen popstate-tapahtumaa. Lippu kulutetaan aina.
+    if(state.openAfterNavigate && state.view === "ohjelma"){
+      var openId = state.openAfterNavigate; state.openAfterNavigate = null;
+      if(findExerciseById(openId)) await toggleExercise(openId);
+    }
   }
   if(hasHistoryApi){
     window.addEventListener("popstate", async function(e){
@@ -7218,7 +7252,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("4. Historia ja Kehitys", ohjeP(
-      "<b style=\"color:var(--chalk);\">Historia</b> näyttää kirjatut päivät kuukausittain. Päivän rivillä on ohjelman viikko ja päivä sekä merkit kevennyksestä ja korjatusta merkinnästä; avaamalla päivän näet sarjat ja voit poistaa päivän."
+      "<b style=\"color:var(--chalk);\">Historia</b> näyttää kirjatut päivät kuukausittain. Päivän rivillä on ohjelman viikko ja päivä sekä merkit kevennyksestä ja korjatusta merkinnästä; avaamalla päivän näet sarjat ja voit poistaa päivän. Avatun päivän liikkeestä pääsee suoraan Kehitykseen, ja Korjaa avaa merkinnän Ohjelma-näkymässä korjattavaksi. Hakukenttä rajaa listan yhteen liikkeeseen, jolloin näet sen kaikki kerrat peräkkäin; Kehitys kertoo saman liikkeen trendin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Kehitys</b> avautuu etusivuun, jossa on kolme osiota: Yhteenveto vastaa kysymykseen ”miten menee”, Liikkeet listaa liikkeet ja Vaivat kokoaa vaivalokin. Viikko-kortti näyttää kuluvan (tai viimeisimmän) treeniviikon kokonaispainon, sarjat, toistot ja treenipäivät sekä erot edelliseen viikkoon; ”Näytä liikkeet” avaa viikon liikkeet. Kortin pylväät näyttävät kahdentoista viikon volyymin. Nostettu kokonaispaino -kortissa karkeuden voi vaihtaa viikon ja päivän välillä. Ohjelman toteutuminen -kortti kertoo viimeiseltä 28 päivältä tehdyt sarjat suhteessa ohjelmoituihin, kuinka usein tavoitetoistot täyttyivät ja kuinka usein 1,25 %:n progressiotavoite toteutui, sekä pysähtyneet liikkeet. Liikkeet-osiossa on liikelista: liikkeen rivillä on paras 1RM viimeiseltä neljältä viikolta, muutos sitä edeltävään neljään viikkoon ja pieni käyrä viimeisistä merkinnöistä; yli kahdeksan liikkeen listaa voi suodattaa hakukentällä. Liike näkyy heti ensimmäisestä merkinnästä lähtien. Tabletilla liikelista ja liikenäkymä ovat rinnakkain."
     ) + ohjeP(
@@ -9044,14 +9078,50 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var dates = state.historyDates || [];
     if(dates.length === 0) return renderEmptyState("historia", "Ei vielä merkintöjä", "Kirjaa ensimmäinen treenisi Ohjelma-välilehdellä, niin päivät kertyvät tähän.", goToProgramButton());
     // Kuukausiotsikot h3 (kuten Ohjelma-näkymän viikot Kaikki-tilassa);
-    // #history-list-kääre on varattu suodattimelle.
-    var html = "", prevMonth = null;
+    // Hakukenttä vain, kun päiviä on enemmän kuin HISTORY_FILTER_MIN_DAYS;
+    // lista päivitetään kirjoitettaessa suoraan #history-list-elementtiin.
+    // Kentällä on id, jotta restoreFocus tunnistaa sen piirron yli.
+    var filterHtml = dates.length > HISTORY_FILTER_MIN_DAYS
+      ? '<input type="search" id="history-filter" class="ledger-input history-filter" data-history-filter placeholder="Hae liikettä" aria-label="Hae liikettä historiasta" autocomplete="off" value="' + escapeHtml(state.historyFilter || "") + '">'
+      : '';
+    return filterHtml + '<div id="history-list">' + renderHistoryList(state.historyFilter) + '</div>';
+  }
+  // Suodattimen osumat päivässä: liike-id:t, joiden nimi sisältää hakusanan
+  // (osajono kirjainkoosta riippumatta, kuten kehitysListRowsHtml); null =
+  // ei suodatusta, tyhjä taulukko = päivä piilotetaan.
+  function historyMatches(entry, query){
+    var q = String(query || "").trim().toLowerCase();
+    if(!q) return null;
+    var ids = [];
+    Object.keys((entry && entry.exercises) || {}).forEach(function(id){
+      var name = String(entry.exercises[id].name || "").toLowerCase();
+      if(name.indexOf(q) !== -1) ids.push(id);
+    });
+    return ids;
+  }
+  // Päivälista kuukausiotsikoin; suodattimella vain osuvat päivät avattuina
+  // osuvine liikkeineen, laskuri ja Kehityksessä-linkki, kun osumat ovat
+  // yhtä liikettä (kehitysKeyFor yhdistää variaatiot).
+  function renderHistoryList(filter){
+    var dates = state.historyDates || [];
+    var q = String(filter || "").trim();
+    var html = "", prevMonth = null, shown = 0, norms = {};
     dates.forEach(function(date){
+      var entry = state.historyCache[date];
+      var only = q ? historyMatches(entry, q) : null;
+      if(q && (!only || !only.length)) return;
+      if(q) only.forEach(function(id){ norms[kehitysKeyFor(entry.exercises[id].name).norm] = entry.exercises[id].name; });
       var m = date.slice(0, 7);
       if(m !== prevMonth){ html += '<h3 class="day-heading history-month">' + escapeHtml(formatMonthFI(date)) + '</h3>'; prevMonth = m; }
-      html += renderHistoryDate(date);
+      html += renderHistoryDate(date, only);
+      shown++;
     });
-    return '<div id="history-list">' + html + '</div>';
+    if(q && shown === 0) html = '<div class="history-empty">Ei päiviä, joissa liike ”' + escapeHtml(q) + '” olisi kirjattu.</div>';
+    var normKeys = Object.keys(norms);
+    var summary = q ? '<div class="history-filter-summary"><span>' + plural(shown, "päivä", "päivää") + '</span>' +
+      (normKeys.length === 1 && !isCombo(norms[normKeys[0]])
+        ? '<button type="button" class="btn-tertiary btn-sm" data-history-kehitys="' + escapeHtml(normKeys[0]) + '">Kehityksessä ›</button>' : '') + '</div>' : '';
+    return summary + html;
   }
   function fmtSignedKg(diff){
     var rounded = Math.round(diff * 10) / 10;
@@ -9761,53 +9831,90 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return (deload ? '<span class="chip history-badge history-badge-deload">kevennys</span>' : '') +
       (edited ? '<span class="chip history-badge">korjattu</span>' : '');
   }
-  function renderHistoryDate(date){
-    var expanded = state.expandedHistoryDate === date;
+  // Sarjarivi: numero (L1 lämmittelyillä), paino × toistot, RPE-merkki
+  // (10 = punainen, puuttuva = viiva aria-hidden). ariaText on rivin
+  // ruudunlukijateksti "Sarja 1: 82,5 kg × 6, RPE 8".
+  function renderHistorySetRow(label, valueHtml, rpe, muted, ariaText){
+    var rpeVal = (rpe !== null && rpe !== undefined && isFinite(toNumber(rpe))) ? toNumber(rpe) : null;
+    var rpeHtml = rpeVal === null ? '<span class="history-rpe none" aria-hidden="true">–</span>'
+      : '<span class="history-rpe' + (rpeVal >= 10 ? " max" : "") + '">RPE ' + String(rpeVal).replace(".", ",") + '</span>';
+    return '<div class="history-set' + (muted ? " warm" : "") + '" aria-label="' + escapeHtml(ariaText) + '"><span class="history-set-num" aria-hidden="true">' + label + '</span><span class="history-set-val" aria-hidden="true">' + valueHtml + '</span>' + rpeHtml + '</div>';
+  }
+  // Avatun päivän liike: nimi (cluster-tunniste), lämmittelyt L1, L2 … ennen
+  // työsarjoja, cluster-riveillä osasarjat, huomio omalla rivillään ja
+  // toiminnot: Kehityksessä (ei yhdistelmäliikkeelle) ja Korjaa vain, kun
+  // liike on käytössä olevassa ohjelmassa ja sen viimeisin tallennus on juuri
+  // tämä päivä (toggleExercise lataa silloin täsmälleen tämän merkinnän ja
+  // saveExerciseLog korjaa samalle päivälle).
+  function renderHistoryExercise(date, id, data){
+    var name = data.name || id;
+    var cluster = data.kind === "cluster";
+    function fmtW(w){ return String(w || "–").replace(".", ","); }
+    function rpeText(r){ return (r !== null && r !== undefined && isFinite(toNumber(r))) ? ", RPE " + String(toNumber(r)).replace(".", ",") : ""; }
+    var warm = (data.warmups || []).map(function(w, i){
+      var txt = fmtW(w.weight) + " kg × " + String(w.reps || "–");
+      return renderHistorySetRow("L" + (i+1), escapeHtml(txt), w.rpe, true, "Lämmittely " + (i+1) + ": " + txt + rpeText(w.rpe));
+    }).join("");
+    var work = (data.sets || []).map(function(s, i){
+      var subs = setSubsets(s);
+      var subTxt = subs > 1 ? " × " + subs + (cluster ? " osasarjaa" : "") : "";
+      var sub = subs > 1 ? ' × ' + subs + (cluster ? ' <span class="history-set-unit">osasarjaa</span>' : '') : '';
+      var base = fmtW(s.weight) + " kg × " + String(s.reps || "–");
+      var row = renderHistorySetRow(String(i+1), escapeHtml(base) + sub, s.rpe, false, "Sarja " + (i+1) + ": " + base + subTxt + rpeText(s.rpe));
+      if(s.notes) row += '<div class="history-set-note">Huomio: ' + escapeHtml(s.notes) + '</div>';
+      return row;
+    }).join("");
+    var norm = kehitysKeyFor(name).norm;
+    var kehitysBtn = isCombo(name) ? "" :
+      '<button type="button" class="btn-tertiary btn-sm" data-history-kehitys="' + escapeHtml(norm) + '">Kehityksessä ›</button>';
+    var logged = state.exerciseLogIndex[id];
+    var canFix = !!(logged && logged.date === date && findExerciseById(id));
+    var fixBtn = canFix ? '<button type="button" class="btn-tertiary btn-sm" data-history-fix data-id="' + escapeHtml(id) + '">Korjaa</button>' : "";
+    return '<div class="history-ex">' +
+      '<div class="history-ex-name">' + escapeHtml(name) + (cluster ? ' <span class="history-ex-kind">cluster</span>' : '') + '</div>' +
+      (warm ? '<div class="history-sets">' + warm + '</div>' : '') +
+      '<div class="history-sets">' + work + '</div>' +
+      ((kehitysBtn || fixBtn) ? '<div class="history-actions">' + kehitysBtn + fixBtn + '</div>' : '') +
+      '</div>';
+  }
+  // onlyIds (suodatin): kortti aina avattuna vain näillä liikkeillä,
+  // otsikkorivi ei ole painike eikä poistoa piirretä (poisto koskisi koko
+  // päivää, joka ei ole kokonaan näkyvissä). null = tavallinen kortti.
+  function renderHistoryDate(date, onlyIds){
+    var filtered = Array.isArray(onlyIds);
+    var expanded = filtered || state.expandedHistoryDate === date;
     var entry = state.historyCache[date];
     var inner = "";
     if(expanded){
       var keys = Object.keys((entry && entry.exercises) || {});
+      if(filtered) keys = keys.filter(function(k){ return onlyIds.indexOf(k) !== -1; });
       if(keys.length === 0){
-        inner = '<div style="color:var(--mist); font-size:var(--fs-sm); margin-top:8px;">Ei kirjattuja liikkeitä.</div>';
+        inner = '<div class="history-empty" style="text-align:left; padding:8px 0 0;">Ei kirjattuja liikkeitä.</div>';
       } else {
-        inner = keys.map(function(key){
-          var data = entry.exercises[key];
-          var name = data.name || key;
-          var clusterEntry = data.kind === "cluster";
-          // Cluster-rivi: "60 kg × 6 × 5", jossa viimeinen luku on osasarjat
-          // (puuttuva tai 1 → tavallinen esitys). Sarjan alla on "RPE 8", kun
-          // tuntuma oli merkitty; ruudunlukijalle pilkku erottaa sen arvoista.
-          var setsStr = (data.sets || []).map(function(s, i){
-            var sub = setSubsets(s) > 1 ? " × " + setSubsets(s) : "";
-            var rpeVal = (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? toNumber(s.rpe) : null;
-            return '<span class="hist-set">' + (i+1) + ": " + (s.weight || "–") + " kg × " + (s.reps || "–") + sub + (s.notes ? " (" + escapeHtml(s.notes) + ")" : "") +
-              (rpeVal !== null ? '<span class="hist-set-rpe"><span class="sr-only">, </span>RPE ' + String(rpeVal).replace(".", ",") + '</span>' : '') +
-              '</span>';
-          }).join(" · ");
-          return '<div style="margin-top:10px;"><div style="font-weight:600; font-size:var(--fs-md);">' + escapeHtml(name) +
-            (clusterEntry ? ' <span style="color:var(--mist); font-size:var(--fs-xs); font-weight:400;">cluster</span>' : '') + '</div>' +
-            '<div class="hist-sets">' + setsStr + '</div></div>';
-        }).join("");
+        inner = keys.map(function(key){ return renderHistoryExercise(date, key, entry.exercises[key]); }).join("");
       }
       // Poisto on toissijainen toiminto: pieni tekstipainike kortin alareunassa,
       // ei pääsisällön kanssa yhtä näkyvä palkki. Vahvistus vaihtaa sen
       // tuhoavaksi painikkeeksi.
-      var confirming = state.confirmingDeleteDate === date;
-      inner += '<div style="display:flex; justify-content:flex-end; margin-top:12px; padding-top:10px; border-top:1px dashed var(--line);">' +
-        '<button class="' + (confirming ? "btn-danger btn-sm btn-auto" : "btn-tertiary btn-sm") + '" data-delete-history data-date="' + date + '" type="button"' + (confirming ? "" : ' style="color:var(--danger-text);"') + '>' +
-        icon("poista", 16) + '<span>' + (confirming ? "Vahvista poisto" : "Poista päivä") + '</span></button></div>';
+      if(!filtered){
+        var confirming = state.confirmingDeleteDate === date;
+        inner += '<div class="history-delete">' +
+          '<button class="' + (confirming ? "btn-danger btn-sm btn-auto" : "btn-tertiary btn-sm") + '" data-delete-history data-date="' + date + '" type="button">' +
+          icon("poista", 16) + '<span>' + (confirming ? "Vahvista poisto" : "Poista päivä") + '</span></button></div>';
+      }
     }
     // Otsikkorivi: lyhyt päivämäärä (koko päivämäärä ruudunlukijalle
     // aria-labelissa), ohjelman viikko ja päivä, merkit ja yhteenveto.
     var ctx = entry ? historyDayContext(entry) : "";
+    var headAttrs = filtered ? '' : ' data-history-date data-date="' + date + '" role="button" tabindex="0" aria-expanded="' + (expanded ? "true" : "false") + '"';
     return '<div class="history-date">' +
-      '<div class="history-date-head" data-history-date data-date="' + date + '" role="button" tabindex="0" aria-expanded="' + (expanded ? "true" : "false") + '">' +
+      '<div class="history-date-head' + (expanded && !filtered ? " open" : "") + '"' + headAttrs + '>' +
       '<div class="history-date-main">' +
       '<div class="history-date-title"><span class="history-date-day" aria-label="' + escapeHtml(capitalize(formatDateFI(date))) + '">' + escapeHtml(formatDateCompactFI(date)) + '</span>' +
       (ctx ? '<span class="history-date-ctx">' + escapeHtml(ctx) + '</span>' : '') + (entry ? historyDayBadges(entry) : '') + '</div>' +
       (entry ? '<div class="history-date-sub">' + escapeHtml(historyDaySummary(entry)) + '</div>' : '') +
       '</div>' +
-      '<span class="chevron' + (expanded ? " on" : "") + '">›</span>' +
+      (filtered ? '' : '<span class="chevron' + (expanded ? " on" : "") + '">›</span>') +
       '</div>' + inner + '</div>';
   }
   function maxExerciseNames(){
@@ -10893,6 +11000,35 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if((el = e.target.closest("[data-history-date]"))){ await toggleHistoryDate(el.dataset.date); return; }
+    if((el = e.target.closest("[data-history-kehitys]"))){
+      // Historiasta liikenäkymään. Jos Kehitys on jo laskettu eikä liikettä
+      // ole (esim. vain ilman painoa kirjattu), ilmoitus ilman siirtymää;
+      // laskematta ollessaan loadKehitys-loppu pudottaa listaan.
+      var normK = el.dataset.historyKehitys;
+      if(state.kehitys !== undefined && !(state.kehitys || []).some(function(r){ return r.norm === normK; })){
+        showToast("Liikkeelle ei ole vielä kehitystä"); return;
+      }
+      state.kehitysDetailTab = "1rm";
+      if(isWideLayout()){
+        // Leveänä liikenäkymä on paneeli: valinta tilaan ja Kehitys-välilehdelle.
+        state.kehitysDetail = normK;
+        await navigate({ view: "kehitys", detail: null });
+        return;
+      }
+      await navigate({ view: "kehitys", detail: normK });
+      return;
+    }
+    if((el = e.target.closest("[data-history-fix]"))){
+      // Korjaa: päivä ja viikko valmiiksi, liike avataan applyScreen-kutsussa.
+      var fixId = el.dataset.id;
+      var fixDay = findGroupForExerciseId(fixId);
+      if(!fixDay){ showToast("Liike ei ole enää ohjelmassa"); return; }
+      if(fixDay.week) state.activeWeek = fixDay.week;
+      state.expandedDaySummaries = {}; state.expandedDaySummaries[dayKey(fixDay)] = true;
+      state.openAfterNavigate = fixId;
+      await navigate({ view: "ohjelma", detail: null });
+      return;
+    }
     if((el = e.target.closest("[data-open-kehitys]"))){
       // Leveänä liike avataan paneeliin ilman historiapinon merkintää.
       if(kehitysWide()){
@@ -11138,6 +11274,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   });
 
   app.addEventListener("input", function(e){
+    if(e.target.hasAttribute("data-history-filter")){
+      // Historian lista päivitetään suoraan DOM:iin, jottei fokus katoa.
+      state.historyFilter = e.target.value;
+      var hl = document.getElementById("history-list");
+      if(hl) hl.innerHTML = renderHistoryList(state.historyFilter);
+      return;
+    }
     if(e.target.hasAttribute("data-kehitys-filter")){
       // Liikelista päivitetään suoraan DOM:iin, jottei fokus katoa kentästä.
       state.kehitysFilter = e.target.value;
@@ -11297,6 +11440,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Escape kuunnellaan dokumenttitasolla: uudelleenpiirron jälkeen fokus voi
   // olla bodyssä, jolloin #app:n kuuntelija ei näkisi näppäintä lainkaan.
   document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && e.target && e.target.hasAttribute && e.target.hasAttribute("data-history-filter") && e.target.value){
+      // Historian hakukentän tyhjennys näppäimistöltä (× ei ole kaikissa selaimissa).
+      e.preventDefault();
+      e.target.value = "";
+      state.historyFilter = "";
+      var hlEsc = document.getElementById("history-list");
+      if(hlEsc) hlEsc.innerHTML = renderHistoryList("");
+      return;
+    }
     if(e.key === "Escape" && state.keypad){ e.preventDefault(); closeKeypad(); return; }
     if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="weight"], [data-set-field][data-field="reps"], [data-editor-field="sets"], [data-editor-field="reps"]')){ e.preventDefault(); keypadNext(); return; }
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
