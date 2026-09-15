@@ -178,6 +178,16 @@
   .builder-copy{display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer; font-family:inherit; color:inherit;}
   .builder-copy-title{font-size:var(--fs-md); font-weight:600;}
   .builder-replicate{display:flex; align-items:center; gap:12px; border-color:var(--brass);}
+  /* Liikelomake */
+  .editor-form-kicker{font-size:var(--fs-xs); font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--brass); margin-bottom:8px;}
+  .editor-form-fields{display:flex; gap:8px; margin-top:8px;}
+  .editor-form-fields .ledger-input{flex:1; min-width:0;}
+  .editor-form-hint{font-size:var(--fs-xs); color:var(--mist); margin-top:6px;}
+  .editor-form-more{width:auto; padding:6px 2px; margin-top:4px;}
+  .editor-form-extra{margin-top:8px; display:flex; flex-direction:column; gap:8px;}
+  .editor-form-actions{display:flex; gap:8px; margin-top:12px;}
+  .editor-form-actions .btn-sm{min-height:40px; padding-left:10px; padding-right:10px; white-space:nowrap;}
+  .editor-form-secondary{display:flex; justify-content:center; margin-top:4px;}
   .editor-name{flex:1; min-width:0; padding:8px 10px;}
   .editor-icon{width:34px; height:36px; padding:0; background:transparent; border:1px solid var(--line-strong); border-radius:8px; color:var(--mist); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; -webkit-tap-highlight-color:transparent;}
   .editor-icon.on{color:var(--brass); border-color:var(--brass);}
@@ -757,13 +767,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.19";
+  var APP_VERSION = "0.4.20";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-15", items: [
+      "Liikkeen lisäys rakentajassa on nyt silmukka (versio 0.4.20): Tallenna ja lisää seuraava avaa heti liikevalitsimen seuraavalle liikkeelle, ja sarjat, toistot ja yksikkö esitäytetään päivän edellisestä liikkeestä. Yksikkö ja teho ovat Lisää asetuksia -avauksen takana ja näkyvät oletuksena vain, kun ne on asetettu.",
       "Rakenna ohjelma alkaa runkokyselyllä (versio 0.4.19): nimi, treenipäiviä viikossa, viikkojen määrä tai viikoton ohjelma — tai käytössä olevan ohjelman kopio pohjaksi. Päivät luodaan valmiiksi, ja kun viikko 1 on rakennettu, Monista-painike täyttää loput viikot. Uudessa ohjelmassa ei enää näytetä Aloita uudelleen -toimintoa, ja siirtonuolet näkyvät vain, kun rivejä on useita.",
       "Historiassa on hakukenttä (versio 0.4.18): liikkeen nimellä näkyviin jäävät vain päivät, joissa liike on kirjattu, ja jokaisesta päivästä vain sen liikkeen sarjat — liikkeen kaikki kerrat aikajärjestyksessä. Kun osumat ovat yhtä liikettä, listan yläpuolelta pääsee suoraan Kehitykseen.",
       "Historian avattu päivä näyttää sarjat riveinä (versio 0.4.17): lämmittelyt L1, L2 … ennen työsarjoja, jokaisella rivillä paino × toistot, cluster-riveillä osasarjat, RPE merkkinä ja huomio omalla rivillään. Liikkeen alla on Kehityksessä-painike liikenäkymään sekä Korjaa-painike, joka avaa saman merkinnän Ohjelma-näkymässä, kun liike on ohjelmassa ja merkintä on sen viimeisin.",
@@ -3510,7 +3521,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
              // Rakentajan vaihe: "setup" on runkokysely (nimi, päiviä viikossa,
              // viikkoja), "build" tavallinen muokkaus. Muokkaus- ja tuontitila
              // alkavat suoraan build-vaiheesta.
-             stage: "build", setup: { daysPerWeek: 3, weeks: 4, weekless: false } };
+             stage: "build", setup: { daysPerWeek: 3, weeks: 4, weekless: false },
+             // Liikelomake: formMore avaa yksikkö- ja tehokentät, formPrefilled
+             // kertoo, että sarjat ja toistot tulivat päivän edellisestä liikkeestä.
+             formMore: false, formPrefilled: false };
   }
   // Muokkaustilalla on kolme tilaa: "edit" muokkaa nykyistä ohjelmaa, "new"
   // rakentaa uuden tyhjästä ja "import" tarkistaa PDF:stä jäsennetyn. Rivit,
@@ -3919,9 +3933,21 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ed.addingExerciseTo = ex ? null : dayId;
     ed.editingExercise = ex ? ex.id : null;
     ed.menuFor = null;
-    ed.form = ex
-      ? { name: ex.name || "", sets: ex.sets || "", reps: ex.reps || "", unit: ex.unit || "", teho: intensityToText(ex.intensity) }
-      : { name: "", sets: "", reps: "", unit: "toistoa", teho: "" };
+    if(ex){
+      ed.form = { name: ex.name || "", sets: ex.sets || "", reps: ex.reps || "", unit: ex.unit || "", teho: intensityToText(ex.intensity) };
+      ed.formPrefilled = false;
+    } else {
+      // Uusi liike esitäytetään päivän edellisestä liikkeestä (sarjat,
+      // toistot, yksikkö), koska päivän liikkeet ovat yleensä samaa muotoa.
+      var day = draftDayById(dayId);
+      var prev = (day && day.exercises.length) ? day.exercises[day.exercises.length - 1] : null;
+      ed.form = { name: "", sets: prev ? (prev.sets || "") : "", reps: prev ? (prev.reps || "") : "",
+                  unit: prev ? (prev.unit || "toistoa") : "toistoa", teho: "" };
+      ed.formPrefilled = !!prev;
+    }
+    // Yksikkö- ja tehokentät näytetään oletuksena vain, kun niissä on muu
+    // kuin oletusarvo.
+    ed.formMore = (ed.form.unit !== "" && ed.form.unit !== "toistoa") || !!String(ed.form.teho || "").trim();
     ed.swapAll = true;
     if(!ex){
       // Uusi liike valitaan pohjalevyn hakukentästä; lomake jää sen alle.
@@ -3939,7 +3965,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ed.form = null;
     render();
   }
-  function editorSaveForm(){
+  // addNext: lisäyslomakkeen "Tallenna ja lisää seuraava" — tallennuksen
+  // jälkeen avataan heti uusi lisäyslomake samalle päivälle. Muokkauksessa
+  // parametri ohitetaan.
+  function editorSaveForm(addNext){
     var ed = state.editor, f = ed.form, d = state.programDraft;
     if(!f) return;
     var name = String(f.name || "").trim();
@@ -3973,6 +4002,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       day.exercises.push({ id: newExerciseId(d), name: name, sets: sets, reps: reps, unit: unit,
         weight: "", notes: teho, intensity: parseIntensity(teho), kind: "plain", autoCalc: true });
       warnSimilarHistoryName(name);
+      if(addNext && ed.addingExerciseTo){
+        var nextDayId = ed.addingExerciseTo;
+        editorOpenForm(nextDayId, null);   // esitäyttää juuri lisätystä ja avaa valitsimen
+        showToast("Lisätty: " + name, 1500);
+        return;
+      }
     }
     editorCloseForm();
   }
@@ -7309,7 +7344,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "Jos ohjelmaa ei ole tiedostona, voit koota sen itse. Aloita etusivun kortista \"Rakenna itse\" tai Asetusten Ohjelma-osion painikkeesta \"Rakenna sovelluksessa\". Rakentaja on sama muokkaustila kuin kohdassa 5, mutta se alkaa tyhjästä ohjelmasta. Rakentaja kysyy ensin rungon (päiviä viikossa, viikkoja) ja luo päivät valmiiksi; kun viikko 1 on rakennettu, Monista täyttää loput viikot."
     ) + ohjeList([
       "Rakenne etenee ylhäältä alas: <b style=\"color:var(--chalk);\">viikko</b> → <b style=\"color:var(--chalk);\">treenipäivä</b> → <b style=\"color:var(--chalk);\">liike</b>. Jokaiselle liikkeelle annetaan sarjat, toistot, yksikkö ja teho — samat tiedot kuin CSV:n sarakkeissa.",
-      "\"Lisää liike\" ja lomakkeen nimikentän napautus avaavat liikelistan: ensimmäinen ryhmä \"Ohjelmassa ja historiassa\" sisältää nimet, joilla on jo merkintöjä tai jotka ovat ohjelmassa, joten niistä valitsemalla liike yhdistyy vanhoihin historiatietoihin; sen jälkeen tulee koko liikelista lihasryhmittäin, ja haku etsii nimen, lihasryhmän tai välineen perusteella — sama lista variaatioineen kuin liikkeen vaihdossa. Nimeä vaihdettaessa \"Muokkaa nimeä\" tuo nykyisen nimen hakukenttään. Jos liikettä ei löydy, kirjoita nimi hakukenttään ja valitse \"Käytä nimeä\".",
+      "\"Lisää liike\" ja lomakkeen nimikentän napautus avaavat liikelistan: ensimmäinen ryhmä \"Ohjelmassa ja historiassa\" sisältää nimet, joilla on jo merkintöjä tai jotka ovat ohjelmassa, joten niistä valitsemalla liike yhdistyy vanhoihin historiatietoihin; sen jälkeen tulee koko liikelista lihasryhmittäin, ja haku etsii nimen, lihasryhmän tai välineen perusteella — sama lista variaatioineen kuin liikkeen vaihdossa. Nimeä vaihdettaessa \"Muokkaa nimeä\" tuo nykyisen nimen hakukenttään. Jos liikettä ei löydy, kirjoita nimi hakukenttään ja valitse \"Käytä nimeä\". Tallenna ja lisää seuraava jatkaa suoraan seuraavaan liikkeeseen, ja sarjat ja toistot esitäytetään edellisestä.",
       "<b style=\"color:var(--chalk);\">Kopioi viimeinen viikko uudeksi</b> (tai viikon ⋮-valikon Kopioi) monistaa viikon päivineen ja liikkeineen, joten toistuvan ohjelman voi rakentaa kerran ja monistaa lopun.",
       "Liikkeetön treenipäivä jätetään tallennuksessa pois, joten keskeneräinen päivä ei päädy ohjelmaan.",
       "Ohjelma tallentuu vasta \"Valmis\"-painikkeesta. Jos jokin ohjelma on jo käytössä, sovellus kysyy, otetaanko uusi käyttöön heti vai jääkö se kirjastoon; kaikki jo kirjattu historia säilyy."
@@ -8974,7 +9009,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       (needsConfirm ? ' data-needs-confirm="1"' : '') + '>' + icon("palauta", 16) + '<span>' + (confirming ? "Vahvista" : "Aloita uudelleen") + '</span></button>';
   }
   function renderExerciseForm(ex){
-    var f = state.editor.form || { name:"", sets:"", reps:"", unit:"", teho:"" };
+    var ed = state.editor;
+    var f = ed.form || { name:"", sets:"", reps:"", unit:"", teho:"" };
     var occ = ex ? exerciseOccurrencesIn(state.programDraft, ex.name).length : 0;
     // Nimi valitaan aina liikevalitsimesta (pohjalevy), ei kirjoiteta
     // lomakkeeseen: kenttänä on painike, joka avaa listan. Näin katalogin ja
@@ -8982,31 +9018,50 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // näytä ehdotuksia (iOS Safari), ja vapaa nimi annetaan listan hausta.
     var hasName = !!(f.name && String(f.name).trim());
     var formRecog = hasName ? exerciseRecognition(f.name) : null;
-    return '<div class="exercise" style="padding:12px 14px; border-color:var(--brass); margin-bottom:10px;">' +
+    var adding = !ex;
+    var addDay = adding ? draftDayById(ed.addingExerciseTo) : null;
+    var kicker = adding ? "Liike " + ((addDay ? addDay.exercises.length : 0) + 1) : "Muokkaa liikettä";
+    var more = !!ed.formMore;
+    return '<div class="exercise editor-form" style="padding:12px 14px; border-color:var(--brass); margin-bottom:10px;">' +
+      '<div class="editor-form-kicker">' + escapeHtml(kicker) + '</div>' +
       '<button type="button" class="ledger-input pick-field' + (hasName ? "" : " empty") + '" data-open-sheet="liike" data-editor-name aria-label="' + (hasName ? "Liikkeen nimi: " + escapeHtml(f.name) + ". Valitse liikelistasta" : "Valitse liike liikelistasta") + '">' +
       '<span class="pick-field-text' + (formRecog ? (formRecog.status !== "unknown" ? " name-known" : " name-unknown") : "") + '">' + (hasName ? escapeHtml(f.name) : "Valitse liike") + '</span>' + icon("haku", 20) + '</button>' +
       // Tunnistuksen tila heti nimen alla, jotta valinnan vaikutus näkyy ennen tallennusta.
       (formRecog ? (formRecog.status !== "unknown"
         ? '<div class="recognition-ok" data-form-recognition="' + formRecog.status + '">Tunnistettu: ' + escapeHtml(formRecog.label) + '</div>'
         : '<div class="recognition-note" data-form-recognition="unknown" style="margin-top:6px; font-size:var(--fs-xs);">' + RECOGNITION_NOTE + '</div>') : '') +
-      '<div style="display:flex; gap:8px; margin-top:8px;">' +
+      '<div class="editor-form-fields">' +
       // Sarjat ja toistot kirjataan samalla kirjausnäppäimistöllä kuin
       // Ohjelma-näkymässä (inputmode="none": laitteen näppäimistö ei avaudu).
-      '<input class="ledger-input' + editorKeypadClass("sets") + '" type="text" inputmode="none" data-editor-field="sets" placeholder="Sarjat" aria-label="Sarjat" value="' + escapeHtml(f.sets) + '" style="flex:0.7;">' +
-      '<input class="ledger-input' + editorKeypadClass("reps") + '" type="text" inputmode="none" data-editor-field="reps" placeholder="Toistot" aria-label="Toistot" value="' + escapeHtml(f.reps) + '" style="flex:1;">' +
-      '<input class="ledger-input" type="text" data-editor-field="unit" placeholder="Yksikkö" aria-label="Yksikkö" value="' + escapeHtml(f.unit) + '" style="flex:1;">' +
+      '<input class="ledger-input' + editorKeypadClass("sets") + '" type="text" inputmode="none" data-editor-field="sets" placeholder="Sarjat" aria-label="Sarjat" value="' + escapeHtml(f.sets) + '">' +
+      '<input class="ledger-input' + editorKeypadClass("reps") + '" type="text" inputmode="none" data-editor-field="reps" placeholder="Toistot" aria-label="Toistot" value="' + escapeHtml(f.reps) + '">' +
       '</div>' +
-      '<div style="margin-top:8px;"><input class="ledger-input" type="text" data-editor-field="teho" placeholder="Teho (MAX tai %)" aria-label="Teho" value="' + escapeHtml(f.teho) + '"></div>' +
-      (ex && ex.autoCalc === false ? '<div style="color:var(--mist); font-size:var(--fs-xs); margin-top:6px;">' + noAutoCalcReason(ex) + '</div>' : '') +
+      (adding && ed.formPrefilled ? '<div class="editor-form-hint">Esitäytetty edellisestä liikkeestä</div>' : '') +
+      // Yksikkö ja teho ovat avauksen takana: ne poikkeavat oletuksesta harvoin.
+      '<button type="button" class="btn-tertiary btn-sm editor-form-more" id="editor-form-more" data-edit-form-more aria-expanded="' + (more ? "true" : "false") + '">' + (more ? "Vähemmän asetuksia ▴" : "Lisää asetuksia (yksikkö, teho) ▾") + '</button>' +
+      (more
+        ? '<div class="editor-form-extra">' +
+          '<input class="ledger-input" type="text" data-editor-field="unit" placeholder="Yksikkö" aria-label="Yksikkö" value="' + escapeHtml(f.unit) + '">' +
+          '<input class="ledger-input" type="text" data-editor-field="teho" placeholder="Teho (MAX tai %)" aria-label="Teho" value="' + escapeHtml(f.teho) + '">' +
+          (ex && ex.autoCalc === false ? '<div style="color:var(--mist); font-size:var(--fs-xs);">' + noAutoCalcReason(ex) + '</div>' : '') +
+          '</div>'
+        : '') +
       (ex && occ > 1
         ? '<label style="display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--mist); font-size:var(--fs-sm); cursor:pointer;">' +
-          '<input type="checkbox" id="editor-swap-all"' + (state.editor.swapAll ? " checked" : "") + ' style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
+          '<input type="checkbox" id="editor-swap-all"' + (ed.swapAll ? " checked" : "") + ' style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
           'Jos nimi muuttuu, vaihda kaikissa viikoissa (' + occ + ' kohtaa)</label>'
         : '') +
-      '<div style="display:flex; gap:8px; margin-top:12px;">' +
-      '<button type="button" class="btn-secondary" data-edit-form-cancel>Peruuta</button>' +
-      '<button type="button" class="btn-primary" data-edit-form-save>Tallenna</button>' +
-      '</div></div>';
+      (adding
+        ? '<div class="editor-form-actions">' +
+          '<button type="button" class="btn-secondary btn-sm" style="flex:1;" data-edit-form-cancel>Peruuta</button>' +
+          '<button type="button" class="btn-primary btn-sm" style="flex:2;" data-edit-form-save-next>Tallenna ja lisää seuraava</button>' +
+          '</div>' +
+          '<div class="editor-form-secondary"><button type="button" class="btn-tertiary btn-sm" data-edit-form-save>Tallenna ja lopeta</button></div>'
+        : '<div class="editor-form-actions">' +
+          '<button type="button" class="btn-secondary btn-sm" style="flex:1;" data-edit-form-cancel>Peruuta</button>' +
+          '<button type="button" class="btn-primary btn-sm" style="flex:1;" data-edit-form-save>Tallenna</button>' +
+          '</div>') +
+      '</div>';
   }
   // Liikkeen nimen tunnistus muokkaustilassa: onko nimi sama kuin
   // liikepankissa (catalogPartsFor: koostettu nimi tai liikenimi, myös omat
@@ -10419,7 +10474,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // ei säily piirron yli.
   function focusDescriptor(el){
     if(!el || !el.tagName || !el.closest) return null;
-    if(el.tagName !== "INPUT" && el.tagName !== "TEXTAREA" && el.tagName !== "SELECT") return null;
+    // Painike kelpaa vain id:llä (esim. lomakkeen "Lisää asetuksia"), jotta
+    // avauksen piirto ei pudota fokusta.
+    if(el.tagName === "BUTTON" && !el.id) return null;
+    if(el.tagName !== "INPUT" && el.tagName !== "TEXTAREA" && el.tagName !== "SELECT" && el.tagName !== "BUTTON") return null;
     var appEl = document.getElementById("app");
     if(!appEl || !appEl.contains(el)) return null;
     var selector = null;
@@ -10824,7 +10882,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-edit-add-exercise]"))){ editorOpenForm(el.dataset.editAddExercise, null); return; }
     if((el = e.target.closest("[data-edit-exercise]"))){ editorOpenForm(null, el.dataset.editExercise); return; }
     if(e.target.closest("[data-edit-form-cancel]")){ editorCloseForm(); return; }
-    if(e.target.closest("[data-edit-form-save]")){ editorSaveForm(); return; }
+    if(e.target.closest("[data-edit-form-save-next]")){ editorSaveForm(true); return; }
+    if(e.target.closest("[data-edit-form-save]")){ editorSaveForm(false); return; }
+    if(e.target.closest("[data-edit-form-more]")){
+      // Fokus palaa painikkeeseen piirron jälkeen (id, restoreFocus).
+      state.editor.formMore = !state.editor.formMore;
+      render();
+      return;
+    }
     if((el = e.target.closest("[data-edit-restart]"))){
       var rt = el.dataset.editRestart;
       if(el.dataset.needsConfirm && state.editor.confirmDelete !== "restart:" + rt){

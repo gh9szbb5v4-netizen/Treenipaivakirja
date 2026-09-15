@@ -234,8 +234,38 @@ sääntöjen perässä; lisäksi `.builder-days{display:flex}`, jotta
 segmentti täyttää kortin leveyden (`.segmented` on inline-flex). Huomio:
 `.builder-hint`-väri `--line-strong` on kehotteen arvo ja axe ilmoittaa
 sen kontrastista. Testi: `test_rakentaja_1.js` (kehotteen tapaukset
-1–16; ei repossa). Kehotteet 2 (liikelomake ja lisäyssilmukka) ja 3
-(tasoittainen navigointi) ovat vielä ajamatta.
+1–16; ei repossa).
+
+### Liikkeen lisäyssilmukka ja lomakkeen tiivistys (toteutettu, 0.4.20, Rakentaja-sarja 2/3)
+
+`blankEditor()` sai `formMore` (yksikkö- ja tehokentät näkyvissä) ja
+`formPrefilled` (vihje). `editorOpenForm(dayId, exId)` esitäyttää uuden
+liikkeen sarjat, toistot ja yksikön päivän viimeisestä liikkeestä
+(`unit` puuttuessa "toistoa") ja asettaa `formMore` todeksi vain, kun
+yksikkö on muu kuin "" tai "toistoa" tai teho on epätyhjä (sama sääntö
+muokkauksessa). `editorSaveForm(addNext)`: lisäyshaarassa `addNext`
+avaa `editorOpenForm(sama päivä, null)` uudelleen (esitäyttö juuri
+lisätystä, valitsin auki) ja ilmoittaa "Lisätty: nimi"; muokkaushaara
+sulkee aina. `renderExerciseForm` (`.exercise.editor-form`): kicker
+`.editor-form-kicker` "Liike n" (päivän liikkeet + 1) tai "Muokkaa
+liikettä", nimipainike ja tunnistusrivi ennallaan, `.editor-form-fields`
+Sarjat ja Toistot (näppäimistö ennallaan), `.editor-form-hint`
+"Esitäytetty edellisestä liikkeestä" vain lisäyksessä `formPrefilled`-
+tilassa, avaus `#editor-form-more[data-edit-form-more]` `aria-expanded`
+("Lisää asetuksia (yksikkö, teho) ▾" / "Vähemmän asetuksia ▴") ja
+`.editor-form-extra` (yksikkö, teho, `noAutoCalcReason`) vain avattuna,
+`editor-swap-all` ennallaan, painikerivi `.editor-form-actions`:
+lisäyksessä Peruuta (flex 1) + `[data-edit-form-save-next]` "Tallenna
+ja lisää seuraava" (`btn-primary`, flex 2) ja alla `.editor-form-
+secondary` `[data-edit-form-save]` "Tallenna ja lopeta"
+(`btn-tertiary`); muokkauksessa Peruuta / Tallenna. Kaikki 40 px:
+`.editor-form-actions .btn-sm` sai kehotteen `min-height` lisäksi
+`padding 10px` ja `white-space:nowrap`, koska "Tallenna ja lisää
+seuraava" rivittyi 390 px:ssä kahdelle riville (49 px). `focusDescriptor`
+hyväksyy nyt myös `BUTTON`-elementin, jolla on id, jotta avauksen piirto
+palauttaa fokuksen `#editor-form-more`-painikkeeseen. Lomakkeen inline-
+tyylit (`flex:0.7` ym.) korvattiin luokilla. Tallennusmuoto ei
+muuttunut. Testi: `test_rakentaja_2.js` (kehotteen tapaukset 1–13).
 
 ## Liikepankki (toteutettu, versio 4.9.2026)
 
