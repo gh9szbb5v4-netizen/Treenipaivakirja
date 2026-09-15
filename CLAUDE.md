@@ -634,15 +634,42 @@ ole painikkeen sisällä (nested-interactive); lohkolla on yhä
 `data-toggle-ex`-lohkon sisällä (muuten Enter tietopainikkeessa avaisi ja
 sulkisi liikkeen).
 
-Kirjauslohkon (`renderLedger`) järjestys: lämmittelyt, sarakeotsikot, työsarjat, `.ledger-tools`
-(+ Sarja `[data-add-set]`; sen alla `.ledger-links` ja Lisää lämmittelysarja
-`[data-add-warmup]`; lämmittelyn lisäys fokusoi uuden rivin painokentän,
-mikä avaa myös näppäimistön), `.subtotal` vain kun
-kiloja on kertynyt, ja `.ledger-save`. Tallenna on `disabled` kunnes kaikki
+Kirjauslohkon (`renderLedger`) järjestys (0.4.11): lämmittelyt,
+sarakeotsikot, työsarjat, `.ledger-actions` (`+ Sarja` `[data-add-set]` ja
+`+ Lämmittely` `[data-add-warmup]` rinnakkain 40 px:n
+`btn-secondary btn-sm btn-auto` -pillereinä; lämmittely `.ledger-warm-btn`
+mist-värillä `.ledger-actions .ledger-warm-btn` -säännöllä, koska pelkkä
+luokka häviäisi myöhemmälle `.btn-secondary`-säännölle; lämmittelyn lisäys
+fokusoi uuden rivin painokentän, mikä avaa myös näppäimistön),
+`renderVolumeRow(ex, id)` (`.volume-row[data-volume-row]`: Suunniteltu =
+kaikki työsarjat nykyisillä arvoilla, Viime kerta = `ledgerLastSession(ex)`-
+kerran työsarjat, Toteutunut = vain ✓-merkityt työsarjat `.accent`, kaikki
+tehty → `.done` vihreä; palkki `.volume-bar[role=progressbar]`
+`aria-valuemax` = suunniteltu, `aria-valuenow` = toteutunut; kaikki
+`setVolume`-kaavalla `ledgerVolumes`-apurissa, lämmittelyt eivät kuulu
+mihinkään; tyhjä merkkijono, kun suunniteltu ja toteutunut ovat 0 eikä
+viime kertaa ole — siis myös tavallinen liike ilman ehdotusta ennen
+ensimmäistä painoa), `.ledger-footer` (`Vaihda` `[data-swap-open]` kynä +
+sana, `aria-label="Vaihda liike toiseksi"`, vain `isProgramExercise`;
+`Tallenna merkintä` `.btn-primary.btn-sm.ledger-save-btn` `flex:1`, 40 px —
+sovelluksen ainoa alle 48 px:n ensisijainen painike, käyttäjän päätös
+14.9.2026) ja avattu vaihtopaneeli (`renderSwapExercise` palauttaa
+suljettuna tyhjän). `ledgerLastSession(ex)` on Viime-sarakkeen ja
+volyymirivin yhteinen viitekerta (`lastSet`, korjattaessa `prior[0]`).
+`syncVolumeDom(ledger, ex, id)` korvaa entisen `syncSubtotalDom`-funktion
+`[data-set-field]`-input- ja `[data-weight-step]`-poluilla: päivittää
+suunnitellun, toteutuneen, palkin leveyden ja aria-arvot suoraan DOM:iin
+ilman `render()`-kutsua (viime kerta ei muutu). `ledgerTotal`,
+`.add-set-btn`, `.ledger-tools`, `.ledger-links`, `.subtotal` ja
+`.ledger-save` on poistettu. Sarjojen alapuolinen osa on kehotteen CSS-
+arvoilla noin 170 px (kehotteen "noin 150 px" ei toteudu sen omilla
+arvoilla; arvot pidettiin). Tallenna on `disabled` kunnes kaikki
 sarjat on merkitty; sen selite on `.sr-only`-elementti, johon painike
 viittaa `aria-describedby`-attribuutilla, ja `.btn-primary:disabled` on
-haamutyylinen (läpinäkyvä, yhtenäinen line-strong-reunus — katkoviiva on
-varattu `.add-set-btn`-lisäyspainikkeille). Tallennuksen ilmoitus kertoo uuden
+haamutyylinen (läpinäkyvä, yhtenäinen line-strong-reunus). Testi:
+`test_volume_row.js` (kehotteen tapaukset 1–16 paitsi käsin lisätty liike,
+jolle ei ole syöttöpolkua; lepoajastin kytketään testissä pois
+`rest-timer-enabled`-avaimella, koska clusterin + avaa modaalin). Tallennuksen ilmoitus kertoo uuden
 1RM:n, kun tallennus nosti sitä eikä kyse ole korjauksesta. Tavoiterivi
 (`.exercise-target`) taivuttaa yksiköt (`plural`: "1 sarja · 1 toisto") ja
 ohittaa `notes`-tekstin, joka on sama kuin tehon teksti.
@@ -698,10 +725,11 @@ repossa kuten muutkaan testit).
 ## Kirjausruutu kapeassa asettelussa (toteutettu, 0.4.5)
 
 Kapealla näytöllä (`!isWideLayout()`) avattu liike ei laajene päiväkortin
-sisällä vaan on oma päällysruutunsa `renderKirjaus(ex)` (`.kirjaus-head`
-`‹ Ohjelma` `[data-close-ex]` `aria-label="Takaisin ohjelmaan"`,
-`.kirjaus-kicker` "Viikko 1 · Päivä 1 · liike 2 / 3", `h2#kirjaus-title`
-`tabindex="-1"` otsikko + tallennettu-merkki + tietopainike, tarkenteet,
+sisällä vaan on oma päällysruutunsa `renderKirjaus(ex)` (0.4.12 alkaen
+`renderScreenHead`-otsikkorivi: takaisin `[data-close-ex]`
+`aria-label="Takaisin ohjelmaan"`, kicker "Viikko 1 · Päivä 1 · liike
+2 / 3", `h1#kirjaus-title` `tabindex="-1"` + tallennettu-merkki, ⓘ
+oikealla; ks. Kirjaus-sarja 2–5), tarkenteet,
 tavoiterivi ja `.exercise.open.kirjaus-card`, jossa pelkkä
 `renderLedger(ex)`). `renderOhjelma` palauttaa sen ensimmäisenä, kun
 `kirjausScreenOpen()` (ohjelma, ei lataus, ei muokkaustila, `state.view ===
@@ -744,6 +772,56 @@ Playwrightilla (`test_kirjaus.js`; lepoajastin palautuu tallennuksesta,
 joten testin siemennys tyhjentää tallennustilan sivulla, jossa sovellus ei
 ole käynnissä). `test_next_card.js` sovitettiin: kortti luetaan
 ‹ Ohjelma -paluun jälkeen.
+
+## Kirjaus-sarja 2–5: otsikkorivi, tavoiterivi, desimaalipilkku, seuraava sarja (toteutettu, 0.4.12–0.4.15)
+
+**Päällysruutujen otsikkorivi (0.4.12).** `ownHeadScreen()` on tosi
+kirjausruudulla, Kehityksen liikenäkymässä kapeana ja Asetusten
+alinäkymässä; silloin `renderHeader` jättää logorivin (logo, kynä, ?)
+pois ja palauttaa vain tallennusvaroitukset ja navigaation.
+`renderScreenHead(opts)` (`.screen-head`: `icon-btn` takaisin `opts.backAttr`
++ `aria-label`, `.screen-kicker`, otsikko `h1.screen-title` — `opts.heading`
+"h2" paneelissa, koska logon h1 on silloin ruudulla — `titleId` antaa
+`tabindex="-1"`, `titleExtra` otsikon perään, `.screen-head-right`
+ruudun omalle toiminnolle; tyhjä `backAttr` → ei painiketta) on kolmen
+ruudun yhteinen: `renderKirjaus` (kicker "Viikko 1 · Päivä 1 · liike
+1 / 6", `#kirjaus-title`, oikealla ⓘ 44 × 44 `.screen-head-right .info-btn`
+ilman negatiivisia marginaaleja), `renderKehitysDetail` (kicker "Kehitys",
+Pysähtynyt-chip `titleExtra`; paneelissa ilman painiketta ja kickeriä) ja
+`renderSubviewHeader` (kicker "Asetukset"). `.kirjaus-head`, `.kirjaus-
+kicker`, `.kirjaus-title`, `.kehitys-detail-head`, `.kehitys-back`,
+`.kehitys-detail-title` ja `.subview-head` on poistettu. Ensimmäinen
+sarjarivi nousi kirjausruudulla 114 px (mitattu edelliseen versioon).
+
+**Tavoiterivi (0.4.13).** `targetRpeText(ex)` = "RPE " + (10 − `TARGET_RIR`)
+painoperusteisille liikkeille (ei cluster, ei yhdistelmä/kesto) ja
+`suggestionDeltaText(ex, id)` (vain `autoCalcInfo.type === "formula"`:
+`info.weight` − perSet-rivien suurin `prevWeight`; "ehdotus +2,5 kg",
+"ehdotus sama paino", plateau → "kevennys −5 kg"; puhtaat, eivät muuta
+`autoCalcInfo`-oliota). `exerciseHeadParts` lisää ne `parts`-taulukon
+loppuun vain, kun `open && !noLedger` (sama ehto kuin tietopainikkeella:
+kirjausruutu ja tabletin paneeli; listan kortit, myös tabletin listan
+avoin, ennallaan — kehotteen "vain open === true" olisi näyttänyt lisäyksen
+tabletin listassa). `target` korvattiin `targetHtml`-kentällä (escapattu
+perusosa + `<span class="accent">`-ehdotus), ja kutsujat eivät enää
+escapaa sitä.
+
+**Desimaalipilkku (0.4.14).** `fmtFieldValue(v)` (`.` → `,`) ledgerin
+paino­kenttien `value`-attribuutissa (työsarjat ja lämmittelyt) ja
+`[data-weight-step]`-käsittelijän DOM-päivityksessä; luonnokseen tallentuu
+edelleen `String(next)`. Muunnos on pelkkä esitys: fyysisellä
+näppäimistöllä kirjoitettu "52.5" säilyy kentässä seuraavaan piirtoon.
+
+**Seuraava sarja (0.4.15).** `renderLedger` laskee `nextIdx` (ensimmäinen
+rivi ilman `done`, lämmittelyt ennen työsarjoja) ja antaa riville luokan
+`next` ja `aria-current="step"`; CSS `.ledger-row.next` (tausta
+`rgba(201,162,39,.06)` kortin reunasta reunaan negatiivisilla 16 px:n
+marginaaleilla = `.ledger`-täyte, numero messinkinen). Ei uutta tilaa.
+Testi: `test_kirjaus_2_5.js` (kehotteiden 2–5 tapaukset; viime kerta 50 kg,
+jotta ehdotus on 52,5; `TARGET_RIR`-koeajoa ja tallennusvaroitusta ei
+testattu, koska vakio on sulkeuman sisällä eikä varatallennustilaa voi
+pakottaa). Valinnaista kehotetta 6 (✓ harmaaksi) ei ajettu: sen teksti
+edellyttää erillistä vahvistusta 7.9.2026 tehdyn päätöksen muuttamiselle.
 
 ## RPE-ikkuna (toteutettu, 10.9.2026)
 
@@ -1041,7 +1119,8 @@ edellisen kerran viimeisestä sarjasta samalla kaavalla kuin `buildDraftRows`
 
 Näkymä (master–detail): `renderKehitys()` piirtää etusivun `renderWeekCard()`
 (2 × 2 `.stat-grid`, kokonaispaino vain jos > 0, `[data-toggle-week-exercises]`,
-`state.expandedWeekExercises`), `renderVolumeCard()` (korvaa
+`state.expandedWeekExercises`; 0.4.6 alkaen myös 12 viikon volyymipylväät,
+ks. oma osio), `renderVolumeCard()` (korvaa
 `renderTotalWeightCard`; `[data-volume-scale]`, `state.kehitysVolumeScale`,
 Päivä-karkeus on täsmälleen entinen käyrä), `renderAdherenceCard()`
 (`renderMetricRow(label, hit, total)`, nimittäjä 0 → rivi pois; kaikki pois →
@@ -1062,6 +1141,118 @@ välilyönti ovat sitovia välilyöntejä; huomioi testien regexeissä); volyymi
 määrien erot neutraalilla värillä (`neutralDelta`), 1RM-erot `renderDeltaValue`.
 Testit: `test_kehitys2.js` (fixture `prog_10.csv`), `test_kehitys.js` ja
 `test_variant_merge.js` avaavat liikenäkymän rivistä.
+
+## Kehityksen etusivun segmentit ja viikkopylväät (toteutettu, 0.4.6)
+
+Etusivu on kolme segmenttiä `state.kehitysTab` (`"yhteenveto" |
+"liikkeet" | "vaivat"`; ei tallenneta, ei nollata `resetScreenState`- eikä
+`applyScreen`-funktiossa, joten liikenäkymästä ja välilehdeltä palataan
+samaan segmenttiin; ei ruutu historiapinossa). `renderKehitysSegments()`
+on sama `segmented kehitys-tabs`-valitsin kuin liikenäkymässä
+(`role="tablist"`, `aria-label="Kehityksen osiot"`, painikkeet `role="tab"`
+`[data-kehitys-front-tab]`; käsittelijä asettaa tilan ja vierittää ylös
+`afterRender`-kutsulla; attribuutti on `keydown`-käsittelijän
+valitsinlistassa). `renderKehitys()`: lataus, tyhjä tila
+(`renderPainSection(false)` otsikolla, ei valitsinta) ja liikenäkymä
+ennallaan; muuten valitsin + Yhteenveto (`renderWeekCard` + datalla
+`renderVolumeCard` + `renderAdherenceCard`), Liikkeet (`renderKehitysList`
+tai ilman 1RM-dataa `detailSentence`-lause, joka aiemmin oli Viikko-kortin
+alla) tai Vaivat (`renderPainSection(true)` ilman `day-heading`-otsikkoa).
+Liikelistan otsikko on yhä "Liikkeet" + lukumäärä erillisinä span-
+elementteinä (rivin sisältö kuuluu Kehitys-sarjan kehotteeseen 2).
+
+`buildWeeklySummary` antaa viikolle `deload: true`, kun jonkin merkinnän
+`data.deload === true` (kenttä on jo merkinnässä, `saveExerciseLog`).
+`renderWeekBars(weekly, idx)` piirtää Viikko-korttiin `stat-grid`-ruudukon
+jälkeen ja ennen `[data-toggle-week-exercises]`-painiketta SVG:n
+(`viewBox 0 0 300 48`, `role="img"`, `aria-label="Viikkovolyymi 12
+viikolta, 29.6.–14.9."`): kaksitoista viikkoa kortin viikkoon päättyen
+(`isoAddDays(weekStart, -7k)`), pylväs `x = k*25`, leveys 18, `h =
+max(4, round(tonnage/max*44))` tai 2 ilman merkintöjä; täyttö kortin
+viikko `--brass`, kevennys `--line-strong`, muu `--surface-2`, tyhjä
+`--line`. Tyhjä merkkijono, kun suurin tonnage on 0 (vain yhdistelmä-
+liikkeitä), jolloin otsikko `.week-bars-title` "Viikkovolyymi, 12 viikkoa"
+ja `renderWeekBarsLabels` (ensimmäinen viikko, keskellä "kevennys"
+`--line-strong`-värillä jos jokin jakson viikko oli kevennys, kortin
+viikko) jäävät pois. Testi kehotteen tapauksille 1–13 ajettiin
+Playwrightilla (`test_kehitys_seg.js`; huom. Playwrightin klikkaus
+vierittää rivin näkyviin ennen klikkausta, joten `kehitysScrollY`-vertailu
+lukee aseman vasta `scrollIntoViewIfNeeded`-kutsun jälkeen).
+
+## Kehitys-sarja 2–5: listan rivi, käyrä, 1RM-kortti ja tabletti (toteutettu, 0.4.7–0.4.10)
+
+**Liikelistan rivi (0.4.7).** `fourWeekDelta(points)` (heti `computeProgress`-
+funktion perässä, puhdas): `current` = `bestWithin(points, latest.date, 28)`
+(sama luku kuin `progress.current`), `past` = paras jaksolta, joka päättyy
+`latest.date − 28` päivää, tai viimeisin arvo ennen sitä; `past === null` →
+ei muutosriviä. `kehitysListRowsHtml` käyttää sitä `renderDeltaValue`-
+kutsussa (aiemmin viimeisin vs. edellinen piste, jolloin kevyt päivä värjäsi
+rivin punaiseksi). `renderSparkline(points, muted)`: 8 viimeistä pistettä,
+`viewBox 0 0 64 24`, `x = 2 + i/(n−1)·60`, `y = 22 − …·20`, samat arvot →
+±1; alle 2 pistettä → tyhjä; pysähtynyt liike mist-värillä. Rivin rakenne
+body → sparkline → right → nuoli; `.kehitys-spark` piilossa alle 375 px.
+
+**Käyrä (0.4.8).** `state.kehitysRange` (`KEHITYS_RANGES`: 4vk 28, 3kk 91,
+1v 365, kaikki; ei tallenneta) on yksi tila kaikille käyrille;
+`renderRangeSelector()` (`.segmented.chart-range`, `[data-kehitys-range]`)
+on 1RM-kortissa, volyymikortissa (Viikko|Päivä-valitsimen rinnalla) ja
+Volyymi-välilehdellä. `filterByRange(points, secondary)` rajaa
+`daysAgoISO(days − 1)`-päivästä; `renderProgressChart(points, titlePrefix,
+unit, secondary, opts)` suodattaa itse, ellei `opts.prefiltered`
+(`renderOneRepMaxChart` suodattaa ensin, jotta `captions` ja `markers`
+osuvat indekseihin), ja tyhjä sarja antaa `.chart-empty`-lauseen (myös
+prefiltered-tyhjä). SVG `viewBox 0 0 320 118`: kolme apuviivaa `vMax`,
+`round1((vMax+vMin)/2)`, `vMin` arvoineen (`font-size="11"`, samat arvot →
+yksi viiva), päivämäärät HTML-rivinä `.chart-x` (alku, kalenterin keskipiste
+`isoAddDays(alku, floor(päiviä/2))`, loppu; yksi piste `.chart-x.single`),
+näkymätön `rect.chart-hit[data-chart-point][data-caption][data-x][data-y]`
+per piste puoliväliin naapureihin (ensimmäinen 40:stä, viimeinen 310:een),
+`.chart-caption[role=status][aria-live=polite]` oletuksena viimeisen
+pisteen selite, `opts.markers` pystykatkoviivoina tekstillä (teksti pois,
+jos edellinen merkki < 30 yksikköä vasemmalla). Kääre `.chart`.
+`[data-chart-point]`-käsittelijä päivittää selitteen ja `.chart-dot-on`-
+ympyrän suoraan DOM:iin ilman `render()`-kutsua. `buildAllOneRepMaxSeries`
+antaa pisteelle `deload` (`data.deload`, saman päivän merkinnöistä OR);
+1RM-käyrän selite on "12.9. · 106 kg mitattu (106 kg × 1) · paras 4 vk
+106 kg" ja legenda `.chart-legend` (paras 4 viikolta / päivän arvio).
+Volyymiselite on `päivä · fmtValue kg` ilman tuhaterotinta (kehotteen
+pseudokoodin ja testin mukaan; UI-tekstiesimerkki "2 640 kg" jäi
+toteuttamatta tietoisesti).
+
+**1RM-kortti (0.4.9).** `renderKehitysCard`: ei liikkeen nimeä; hero
+`.kehitys-hero` (label "Paras 1RM · 4 viikkoa", `fmtNumberFI(current)` +
+yksikkö) ja `.kehitys-delta-chip` up/down/flat (`fourWeekDelta`, "+5 kg · 4
+vk" tai "ei vertailua"); aikavälivalitsin + käyrä; `stat-grid` neljällä
+ruudulla (Kuukausi, Puoli vuotta, Vuosi, Ennätykseen; arvo `fmtSignedKg`
+luokalla `.up`/`.down`, alarivi `fmtPctPlain` — uusi apuri ilman sulkeita,
+`fmtSignedPct` ennallaan — tai "Ei dataa" / "ennätys nyt"); alle 2
+pistettä → `.kehitys-note`-lause; variaatiot `.kehitys-variants`-chippeinä;
+kaksi `.kehitys-note`-selitettä ("Mitattu/Laskennallinen 90 kg × 5, pvm" ja
+"Viimeisin treeni …" vain, kun päivät eroavat). Inline-tyylit korvattu
+luokilla `.kehitys-card`, `-head`, `-title`, `-value`, `-sub`, `.kehitys-
+note`, `.kehitys-table-title` Viikko-, volyymi- ja toteutumiskorteissa,
+välilehdissä ja `detailSentence`-lauseessa (arvot täsmälleen entiset).
+
+**Tabletti (0.4.10).** `kehitysWide()` = ohjelma, ei lataus, ei
+muokkaustila, `state.view === "kehitys"`, leveä. `render()` antaa `wide`-
+luokan myös Kehitykselle; `renderKehitys` palauttaa leveänä
+`.kehitys-cols` (`.kehitys-list` = segmentit sisältöineen, `aside.kehitys-
+pane[aria-label="Valittu liike"]` = `renderKehitysDetail(item, true)` ilman
+`‹ Kehitys` -painiketta tai tyhjä tila "Valitse liike"); valittu rivi
+`.kehitys-row.on[aria-current=true]`. `[data-open-kehitys]` leveänä asettaa
+`kehitysDetail` ja `kehitysDetailTab` ja piirtää ilman pinoa; `applyScreen`
+leveänä säilyttää valinnan välilehdeltä (Historia, Asetukset, Ohje)
+palattaessa ja nollaa sen vain juureen (Ohjelma) siirryttäessä — kehotteen
+sanamuoto "screen.view !== kehitys nollaa" olisi rikkonut sen oman
+testitapauksen 4, joten sääntö on juuri/ei-juuri; syvyyden 2 merkintä
+(uudelleenlataus tai paluu kapeasta) siirretään paneeliin ja pino
+korjataan `replaceScreen({kehitys,null},1)`. `loadKehitys`-loppu nollaa
+poistuneen liikkeen leveänä ilman `navigate`-kutsua. `onWideChange`:
+kapeaksi → `pushScreen({kehitys, detail}, 2)`, leveäksi →
+`replaceScreen({kehitys,null},1)`. Kapea käytös ennallaan. Testi:
+`test_kehitys_2_5.js` (kehotteiden 2–5 tapaukset; pisteiden arvot yhden
+toiston mittauksina, jotta 1RM on paino sellaisenaan; poistuneen liikkeen
+tapaus uudelleenlatauksella pinolla `{kehitys, id, 2}`).
 
 ## Kehityksen 1RM: liukuva paras (toteutettu)
 
