@@ -133,8 +133,9 @@ otsikkorivillä Tuntuman jälkeen Osasarjat-saraketta.
 Kolmas tapa saada ohjelma sovellukseen CSV- ja PDF-tuonnin rinnalle.
 Sisääntulo on sekä alkunäytöllä (`renderUpload`) että Asetusten Ohjelma-osiossa
 (`[data-builder-start]`). Rakentajalla ei ole omaa näkymää eikä omaa tilaa:
-`startProgramBuilder()` avaa muokkaustilan tilassa `"new"` luonnokselle
-`{ days: [Päivä 1], weeks: ["1"], weekLabels: {} }`, ja kaikki rivit,
+`startProgramBuilder()` avaa muokkaustilan tilassa `"new"` runkokyselyllä
+(ks. alakohta Runkokysely ja viikon monistus; aiemmin luonnos oli
+`{ days: [Päivä 1], weeks: ["1"], weekLabels: {} }`), ja kaikki rivit,
 lomakkeet, kopiointi ja poisto ovat muokkaustilan omia (seuraava osio).
 Aiempi erillinen rakentaja (`state.builder`, `renderProgramBuilder()`,
 `builderProgramFromDraft()`, `data-builder-*`) poistettiin UX-vaiheessa 5,
@@ -182,6 +183,161 @@ liikkeen vaihdon käytössä.
 **Ratkaistu kysymys:** rakentaja luo aina uuden ohjelman tyhjästä. Olemassa
 olevan ohjelman muokkaus on sama muokkaustila tilassa `"edit"`, ei erillinen
 toteutus. Yksittäisen liikkeen vaihto on lisäksi Ohjelma-näkymässä.
+
+### Runkokysely ja viikon monistus (toteutettu, 0.4.19, Rakentaja-sarja 1/3)
+
+`blankEditor()` sai kentät `stage` (`"setup"` | `"build"`, oletus build,
+joten muokkaus- ja tuontitila alkavat suoraan build-vaiheesta) ja `setup =
+{ daysPerWeek: 3, weeks: 4, weekless: false }`. `startProgramBuilder()`
+avaa tyhjän luonnoksen `{ days: [], weeks: [], weekLabels: {}, id, name: "" }`
+tilassa `"new"` ja `stage = "setup"`; `renderEditor()` palauttaa silloin
+`renderBuilderSetup()`:n (nimikenttä samalla `[data-editor-program-name]`-
+input-käsittelijällä, `.segmented.builder-days` `[data-setup-days]` 2–6
+`aria-pressed`, askeltin `[data-setup-weeks="-1"|"1"]` `aria-label`
+"Vähennä/Lisää viikkoja" disabled arvoilla 1 ja 12, `.builder-count`
+`aria-live`, `[data-setup-weekless]` `change`-käsittelijässä piilottaa
+`.builder-row`-rivin luokalla `hidden`, ja `state.program`-ohjelman kanssa
+`<button class="exercise builder-card builder-copy" data-setup-copy-current>`
+vihjeellä "nimi · N viikkoa · k päivää", jossa k on ensimmäisen viikon
+päivien määrä, viikottomalla kaikki päivät). `renderEditBar()` näyttää
+setup-vaiheessa Peruuta ja `[data-setup-continue]` "Jatka" →
+`builderApplySetup()`: viikot "1"…N ja jokaiselle `daysPerWeek` päivää
+`{ id: newDayId(), label: "Päivä i", name: "", week, exercises: [] }`
+(viikoton: `week: null`, `weeks []`), viikko 1 ja ensimmäinen päivä auki,
+`baseline` = luodun rungon JSON (kysely ei ole muutos → Peruuta poistuu
+ilman vahvistusta; kirjoitettu nimi tekee luonnoksesta muuttuneen jo
+kyselyssä, koska baseline on tyhjä luonnos). `builderFromCurrentProgram()`
+syväkopioi `state.program`-ohjelman uusilla ohjelma-, päivä- ja liike-
+id:illä (`state.programDraft = src` asetetaan ennen `cloneExercises`-
+kutsua), nimi "<nimi> (kopio)", `needsReview`/`rawTarget` poistetaan,
+baseline = kopio, ensimmäinen viikko auki. `finishProgramEdit` on
+ennallaan: tyhjät päivät ja viikot pudotetaan uudessa tilassa, nimetön
+ohjelma saa nimen "Oma ohjelma".
+
+Monistus: `emptyDraftWeeks(exceptKey)` = viikot ilman yhtään liikettä
+(myös päivättömät; `every` tyhjällä listalla). `editorReplicateWeek(srcKey)`
+korvaa jokaisen tyhjän viikon päivät lähdeviikon päivien kopioilla
+(`newDayId`, `cloneExercises`; `weekLabels` ei kopioidu), sijoittaa ne
+edeltävän päivällisen viikon perään `insertDaysAfterWeek`-kutsulla
+(ilman edeltävää listan alkuun) ja ilmoittaa "Monistettu viikoille 2, 4,
+5, 6" (yksi kohde: "viikolle 2"). `renderReplicateCard()` viikkolistan
+jälkeen ennen "Lisää tyhjä viikko" kaikissa tiloissa, kun viikkoja > 1,
+ensimmäisellä viikolla on liikkeitä ja jokin muu viikko on tyhjä:
+otsikko "Monista Viikko 1 viikoille 2–6" (tyhjien ensimmäinen–viimeinen,
+vaikka välissä olisi täytetty viikko; ilmoitus luettelee vain täytetyt),
+vihje "Kopioi päivät ja liikkeet; painot ehdotetaan kirjauksessa" ja
+`[data-edit-replicate="1"]` "Monista" `btn-primary`. Kohinan poisto:
+`editorMoveButtons` palauttaa tyhjän, kun `count < 2`, ja
+`editorRestartButton` tilassa `"new"` (ohjelmatason painike oli jo vain
+edit-tilassa). CSS `.builder-*` kehotteen arvoilla `.editor-title`-
+sääntöjen perässä; lisäksi `.builder-days{display:flex}`, jotta
+segmentti täyttää kortin leveyden (`.segmented` on inline-flex). Huomio:
+`.builder-hint`-väri `--line-strong` on kehotteen arvo ja axe ilmoittaa
+sen kontrastista. Testi: `test_rakentaja_1.js` (kehotteen tapaukset
+1–16; ei repossa).
+
+### Liikkeen lisäyssilmukka ja lomakkeen tiivistys (toteutettu, 0.4.20, Rakentaja-sarja 2/3)
+
+`blankEditor()` sai `formMore` (yksikkö- ja tehokentät näkyvissä) ja
+`formPrefilled` (vihje). `editorOpenForm(dayId, exId)` esitäyttää uuden
+liikkeen sarjat, toistot ja yksikön päivän viimeisestä liikkeestä
+(`unit` puuttuessa "toistoa") ja asettaa `formMore` todeksi vain, kun
+yksikkö on muu kuin "" tai "toistoa" tai teho on epätyhjä (sama sääntö
+muokkauksessa). `editorSaveForm(addNext)`: lisäyshaarassa `addNext`
+avaa `editorOpenForm(sama päivä, null)` uudelleen (esitäyttö juuri
+lisätystä, valitsin auki) ja ilmoittaa "Lisätty: nimi"; muokkaushaara
+sulkee aina. `renderExerciseForm` (`.exercise.editor-form`): kicker
+`.editor-form-kicker` "Liike n" (päivän liikkeet + 1) tai "Muokkaa
+liikettä", nimipainike ja tunnistusrivi ennallaan, `.editor-form-fields`
+Sarjat ja Toistot (näppäimistö ennallaan), `.editor-form-hint`
+"Esitäytetty edellisestä liikkeestä" vain lisäyksessä `formPrefilled`-
+tilassa, avaus `#editor-form-more[data-edit-form-more]` `aria-expanded`
+("Lisää asetuksia (yksikkö, teho) ▾" / "Vähemmän asetuksia ▴") ja
+`.editor-form-extra` (yksikkö, teho, `noAutoCalcReason`) vain avattuna,
+`editor-swap-all` ennallaan, painikerivi `.editor-form-actions`:
+lisäyksessä Peruuta (flex 1) + `[data-edit-form-save-next]` "Tallenna
+ja lisää seuraava" (`btn-primary`, flex 2) ja alla `.editor-form-
+secondary` `[data-edit-form-save]` "Tallenna ja lopeta"
+(`btn-tertiary`); muokkauksessa Peruuta / Tallenna. Kaikki 40 px:
+`.editor-form-actions .btn-sm` sai kehotteen `min-height` lisäksi
+`padding 10px` ja `white-space:nowrap`, koska "Tallenna ja lisää
+seuraava" rivittyi 390 px:ssä kahdelle riville (49 px). `focusDescriptor`
+hyväksyy nyt myös `BUTTON`-elementin, jolla on id, jotta avauksen piirto
+palauttaa fokuksen `#editor-form-more`-painikkeeseen. Lomakkeen inline-
+tyylit (`flex:0.7` ym.) korvattiin luokilla. Tallennusmuoto ei
+muuttunut. Testi: `test_rakentaja_2.js` (kehotteen tapaukset 1–13).
+
+### Tasoittainen navigointi (toteutettu, 0.4.21, Rakentaja-sarja 3/3)
+
+Muokkaustila ei enää piirrä viikkoja, päiviä ja liikkeitä sisäkkäisinä
+haitareina vaan tasoina. `blankEditor()`: `openWeeks`, `openDays` ja
+`menuFor` poistettiin; tilalla `level = { kind: "root" | "week" | "day",
+key }` ja `levelMenu` (tason ⋮-valikko auki). `editorGoTo(kind, key)`
+nollaa näppäimistön, lomakkeen, valikon ja `confirmDelete`-tilan,
+vaihtaa tason, vierittää ylös ja fokusoi `#editor-title`-elementin
+(`afterRender`); `editorGoUp()` palaa päivästä viikkoon (viikoton →
+juuri) ja viikosta juureen. Aloitustasot: `startProgramEdit` →
+`editorGoTo("week", activeWeek)`, kun viikko on ohjelmassa, muuten juuri;
+`startProgramImport` ja `builderFromCurrentProgram` → juuri;
+`builderApplySetup` asettaa tason suoraan ensimmäiseen päivään ja kutsuu
+`editorOpenForm(päivä, null)` (lisäyslomake ja valitsin auki; ei
+`editorGoTo`-kutsua, jotta fokus päätyy hakukenttään eikä otsikkoriviin).
+Mutaatiofunktiot eivät enää koske avaustilaan; `editorCopyWeek`,
+`editorAddWeek`, `editorAddDay` ja `editorCopyDay` palauttavat uuden
+avaimen/olion, ja click-käsittelijä navigoi sille (`editorGoTo`).
+Poiston jälkeen käsittelijä navigoi ylemmälle tasolle (viikko → juuri,
+päivä → viikko tai juuri); liikkeen poisto jää päivätasolle.
+`renderEditor()` valitsee tason (`renderEditorRoot`,
+`renderEditorWeekScreen`, `renderEditorDayScreen`) ja palauttaa juureen,
+jos kohde on kadonnut; kysely (`stage "setup"`) on ennallaan.
+
+`renderScreenHead` sai valinnat `titleHtml` (h1:n tilalle; nimi on
+`<input>`, joka ei saa olla otsikon sisällä), `headId` (otsikkorivi saa
+`id`, `tabindex="-1"`, `role="group"`) ja `ariaLabel` (ruudun nimi).
+Viikko- ja päivätasolla `renderHeader` palauttaa tyhjän (logorivi vain
+juuressa), ja juuren ohjelmakortti `.editor-root-card` on `#editor-title`
+(kicker `editorTitle()`, luvut "6 viikkoa · 4 treenipäivää viikossa ·
+14 liikettä" — "viikossa" vain, kun jokaisella viikolla on yhtä monta
+päivää, muuten päivien kokonaismäärä; viikoton "3 treenipäivää · …").
+Rivit `editorRowHtml`: `.editor-row` (div) → `button.editor-row-main`
+(`data-edit-open-week` / `data-edit-open-day` / `data-edit-exercise`,
+rengas `editorRing` `.editor-row-ring[.filled]` + `sr-only` "liikkeitä
+lisätty", `.editor-row-name`, `.editor-row-sub`) + `.editor-row-tools`
+(siirtonuolet, vain `count ≥ 2`) + `.chevron`. Alarivit: viikko "4 päivää
+· 14 liikettä" / "… · ei liikkeitä", päivä "3 liikettä" / "ei liikkeitä",
+tuontitilassa lisäksi `.review` "2 riviä tarkistettavana"
+(`reviewSub`); liike "3 × 8 · tanko" (väline `catalogPartsFor(...).valine`)
+tai `.review` "Tarkista: …", tunnistamattomalla `.recognition-note` ja
+`methodNote` samassa alarivissä, `needs-review`-luokka rivillä. Tason
+⋮ (`editorLevelMenuButton`, `[data-edit-level-menu]`) avaa
+`.editor-strip.editor-level-menu`-rivin: Kopioi viikko/päivä
+(`data-edit-copy`), Aloita uudelleen (ei `new`, `editorRestartButton`) ja
+kaksivaiheinen Poista (`editorDeleteButton`). Liikkeen poisto on
+muokkauslomakkeen painikerivillä Peruuta-painikkeen vieressä
+(`editorDeleteButton("ex:…", "Poista")`, tertiary → Vahvista).
+Päivätasolla lomake avautuu rivin alle (`.editor-list` katkaistaan);
+listan alla lisäyslomake tai `+ Lisää liike`; viikkotasolla `+ Päivä`;
+juuressa monistuskortti ja `+ Tyhjä viikko`, `Kopioi viimeinen viikko`
+(`.editor-level-actions`, 40 px). Kickerit "Ohjelma › Viikko 1",
+"Viikko 1 › Päivä 2" (päivän järjestysnumero viikon sisällä, ei label),
+viikoton "Päivä 2"; takaisin `aria-label` "Takaisin ohjelmaan" /
+"Takaisin viikkoon". `keydown`-lista sai `data-edit-open-week`,
+`data-edit-open-day` ja `data-edit-back`, mutta aidolle `<button>`-
+kohteelle käsittelijä ei tee synteettistä clickiä (tuplaisi toiminnon).
+CSS: `.editor-head`, `.editor-title`, `.editor-children` ja `.editor-add`
+poistettu; `.editor-list`, `.editor-row*`, `.editor-level-actions`
+kehotteen arvoilla (+ `.editor-row-text` sarakkeeksi ja
+`-webkit-tap-highlight-color`); `.editor-strip`, `.editor-icon`,
+`.editor-note`, `.editor-row.needs-review` (vain tausta) säilyvät.
+Huomio: `.editor-row-ring` ei ole `.day-ring`, vaikka tyyli on sama,
+jotta Ohjelma-näkymän rengasta voi muuttaa erikseen. Testi:
+`test_rakentaja_3.js` (kehotteen tapaukset 1–16; tuontitilaa ei voi
+käynnistää testissä ilman PDF:ää, joten tapaus 9 tarkistaa
+`needsReview`-rivin päivätasolla edit-tilassa ja sen, ettei
+"tarkistettavana"-teksti näy edit-tilassa; import-haara on sama koodi
+`state.editor.mode`-ehdolla). `test_rakentaja_1.js` ja
+`test_rakentaja_2.js` sovitettiin tasoihin (päivä avataan viikkotasolta,
+liikkeen poisto lomakkeessa).
 
 ## Liikepankki (toteutettu, versio 4.9.2026)
 
@@ -258,10 +414,11 @@ kiinteän `.edit-bar`-alapalkin (`<footer>`, jotta se on maamerkki; painikkeet
 Peruuta ja Valmis). `enterEditor(draft, mode)` alustaa tilan; `mode` on
 `"edit"` (nykyinen ohjelma), `"new"` (rakentaja) tai `"import"`
 (PDF-tarkistus). Muokkaustilan oma tila on `state.editor = blankEditor()`:
-`mode`, `openWeeks` ja `openDays` (kartat, useampi voi olla auki),
+`mode`, `level` ja `levelMenu` (tasoittainen navigointi, ks. Rakentaja-
+sarja 3/3; aiemmat `openWeeks`, `openDays` ja `menuFor` on poistettu),
 `editingExercise`, `addingExerciseTo`, `confirmDelete` (`"delete:<kohde>"`
 tai `"restart:<kohde>"`, kohde `week:<avain>`, `day:<id>`, `ex:<id>` tai
-`program`), `confirmCancel`, `swapAll`, `menuFor`, `form`, `baseline`
+`program`), `confirmCancel`, `swapAll`, `form`, `baseline`
 (luonnoksen JSON alussa; muutosvertailu), `returnView` (näkymä, johon
 Peruuta palaa uudessa ja tuontitilassa), `importInfo` (tiedostot ja
 tarkistettavien rivien määrä) ja `pickerQuery`. Nimikentät
