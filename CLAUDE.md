@@ -1165,6 +1165,38 @@ sitä). Lämmittelyjä Historia ei näytä. Testi: `test_viime_rpe.js` osio 6. P
 vahvistettaessa muuttuu tuhoavaksi painikkeeksi; `data-delete-history` ja
 `confirmingDeleteDate` ennallaan.
 
+Historia: liikkeen siirto toiselle päivälle (0.4.22, käyttäjän pyyntö
+19.9.2026: eri päivien treenit oli kirjattu samalle päivälle).
+`renderHistoryExercise` piirtää toimintoriville aina kolmannen painikkeen
+`[data-open-sheet="siirto"][data-date][data-id]` "Siirrä päivälle"
+(`.history-actions` rivittyy); yleinen `[data-open-sheet]`-käsittelijä
+asettaa `state.moveExercise = { date, id }`, ja `renderSheet` piirtää
+pohjalevyn "Siirrä toiselle päivälle": liikkeen nimi ja kirjauspäivä
+(`formatDateFI`), `<input type="date" id="move-date">` (oletus lähdepäivä,
+`max` tänään), selite, Peruuta (`data-close-sheet`) ja
+`[data-move-exercise-confirm]` "Siirrä" — painike on
+`[data-close-sheet]`-sulkutarkistuksen poikkeuslistassa kuten RPE-ikkunan
+painikkeet. `moveHistoryExercise(fromDate, id, toDate)` (heti
+`deleteHistoryEntry`-funktion perässä): estää saman päivän ja tilanteen,
+jossa kohdepäivällä on jo sama liike-id (yhdistäminen hävittäisi toisen
+merkinnän), siirtää liikeolion samalla avaimella kohdepäivän merkintään,
+kirjoittaa `loggedAt`-kenttään uuden päivän vanhalla kellonajalla (viite-
+kerrat ja 1RM järjestyvät `loggedAt`-arvon mukaan) ja `editedAt`-leiman
+(merkki "korjattu"), tallentaa kohteen, tallentaa tai poistaa tyhjentyneen
+lähteen (`historyDates` ja `historyCache` mukana), lataa `todayEntry`-
+olion uudelleen, jos kumpikin päivä on kirjauspäivä, tyhjentää liikkeen
+luonnoksen, kutsuu `rebuildTrackersForName`, `rebuildManualMaxForName` +
+`saveManualMax`, nollaa `kehitys`, `clusterRef` ja `painAnalysis`,
+rakentaa `exerciseLogIndex`-indeksin ja avaa kohdepäivän
+(`expandedHistoryDate`). Ilmoitus "Siirretty päivälle <formatDateFI>".
+`closeSheet` palauttaa fokuksen juuri siihen siirtopainikkeeseen
+(`moveTarget`). Samalla `renderHistorySetRow` sai `role="group"`, koska
+axe 4.10 kieltää `aria-label`-attribuutin pelkällä div-elementillä.
+Testi: `test_history_move.js` (painike ja levy, saman päivän ja saman
+liikkeen esto, siirto uudelle päivälle, lastSet, tyhjän päivän poisto,
+1RM-päivä, Escape/Peruuta ja fokus, suodatintila, axe, 360 px);
+`test_history_2_3.js` suodattaa siirtopainikkeen toimintolistastaan.
+
 Kehitys näyttää vertailurivin vain, kun vertailukohta on olemassa, ja yhdellä
 merkinnällä yhden lauseen "Ei dataa" -rivien sijaan.
 
