@@ -1,0 +1,12 @@
+{
+  "name": "treenipaivakirja-tests",
+  "private": true,
+  "description": "Treenipäiväkirjan Playwright-selaintestit (eivät ole osa sovellusta).",
+  "scripts": {
+    "test": "sh run.sh"
+  },
+  "devDependencies": {
+    "axe-core": "^4.10.2",
+    "playwright": "1.56.1"
+  }
+}

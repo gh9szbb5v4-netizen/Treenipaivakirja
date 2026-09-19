@@ -12,6 +12,23 @@ PDF-tuonnin, joten CSV-käyttö ei kosketa niitä. Kirjastoa ei upoteta
 (tuotavan ohjelman käsittely ei saa vaatia ulkopuolista palvelua). Jos
 julkaisukansiota muutetaan, molemmat tiedostot on kopioitava mukana.
 
+## Selaintestit (`tests/`)
+
+Playwright-testit ovat 19.9.2026 alkaen repossa hakemistossa `tests/`
+(`test_*.js`, ajo `cd tests && npm install && npx playwright install
+chromium && npm test`; `run.sh` käynnistää palvelimen porttiin 8765 ja
+ajaa jokaisen tiedoston, tulosteet `<testi>.log`). Riippuvuudet
+(`playwright` tarkalleen 1.56.1 esiasennetun Chromiumin takia,
+`axe-core`) asennetaan vain `tests/`-hakemistoon, joten sovelluksen "ei
+riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
+ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
+avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
+lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
+Repossa ovat versioiden 0.4.4–0.4.22 testit (`tests/README.md` luettelee
+ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
+`test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
+testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
+
 ## PDF-ohjelmatuonti (toteutettu)
 
 `parseProgramPDF()` ja sen apurit ovat `parseProgramCSV()`:n jäljessä
@@ -1192,7 +1209,7 @@ rakentaa `exerciseLogIndex`-indeksin ja avaa kohdepäivän
 `closeSheet` palauttaa fokuksen juuri siihen siirtopainikkeeseen
 (`moveTarget`). Samalla `renderHistorySetRow` sai `role="group"`, koska
 axe 4.10 kieltää `aria-label`-attribuutin pelkällä div-elementillä.
-Testi: `test_history_move.js` (painike ja levy, saman päivän ja saman
+Testi: `tests/test_history_move.js` (painike ja levy, saman päivän ja saman
 liikkeen esto, siirto uudelle päivälle, lastSet, tyhjän päivän poisto,
 1RM-päivä, Escape/Peruuta ja fokus, suodatintila, axe, 360 px);
 `test_history_2_3.js` suodattaa siirtopainikkeen toimintolistastaan.
