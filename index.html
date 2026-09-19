@@ -664,6 +664,9 @@
   .history-actions .btn-tertiary{width:auto; min-height:40px; padding:6px 2px;}
   .history-delete{display:flex; justify-content:flex-end; margin-top:12px; padding-top:10px; border-top:1px dashed var(--line);}
   .history-delete .btn-tertiary{color:var(--danger-text);}
+  .history-actions{flex-wrap:wrap;}
+  .move-date-label{display:block; font-size:var(--fs-xs); color:var(--mist); margin:4px 0 6px;}
+  #move-date{margin-bottom:10px;}
   /* Historian liikesuodatin (sama kenttä kuin Kehityksen liikelistassa). */
   .history-filter{margin-bottom:8px;}
   .history-filter-summary{display:flex; justify-content:space-between; align-items:center; font-size:var(--fs-xs); color:var(--mist); margin:0 2px 8px; min-height:40px;}
@@ -776,12 +779,15 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.21";
+  var APP_VERSION = "0.4.22";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-19", items: [
+      "Historiassa liikkeen voi siirtää toiselle päivälle (versio 0.4.22): avatun päivän liikkeen alla on Siirrä päivälle -painike, joka kysyy uuden päivän. Näin väärälle päivälle kirjatun treenin voi korjata liike kerrallaan; painoehdotukset, 1RM ja Kehitys lasketaan siirron jälkeen uudelleen, ja siirretty liike saa merkin korjattu.",
+    ] },
     { date: "2026-09-15", items: [
       "Muokkaustila etenee nyt tasoittain (versio 0.4.21): ohjelma ja viikot, viikon päivät, päivän liikkeet — jokainen omalla ruudullaan takaisin-painikkeella, ja rivit ovat koko näytön levyisiä. Viikon ja päivän toiminnot (kopioi, poista) ovat ruudun ⋮-valikossa, liikkeen poisto lomakkeessa. Sama malli koskee rakentajaa, muokkausta ja tuodun ohjelman tarkistusta.",
       "Liikkeen lisäys rakentajassa on nyt silmukka (versio 0.4.20): Tallenna ja lisää seuraava avaa heti liikevalitsimen seuraavalle liikkeelle, ja sarjat, toistot ja yksikkö esitäytetään päivän edellisestä liikkeestä. Yksikkö ja teho ovat Lisää asetuksia -avauksen takana ja näkyvät oletuksena vain, kun ne on asetettu.",
@@ -1119,6 +1125,8 @@
     historyDates: undefined,
     historyLoading: false,
     historyCache: {},
+    // Historian liikkeen siirto toiselle päivälle: pohjalevyn "siirto" kohde.
+    moveExercise: null,
     expandedHistoryDate: null,
     confirmingReset: false,
     // Asetusten avoin alinäkymä (ohjelma, 1rm, lepo, varmuuskopio, lisaa) tai
@@ -5887,6 +5895,62 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }catch(e){ showToast("Poisto epäonnistui"); }
   }
 
+  // Siirtää yhden liikkeen merkinnän toiselle päivälle (Historia: "Siirrä
+  // päivälle"). Merkintä on päiväkohtainen olio, jonka avain on liikkeen
+  // ohjelma-id, joten siirto on poisto lähdepäivästä ja lisäys kohdepäivään
+  // samalla avaimella. loggedAt seuraa uutta päivää (kellonaika säilyy),
+  // jotta painoehdotuksen viitekerrat ja 1RM järjestyvät oikein, ja
+  // editedAt merkitsee siirron korjaukseksi. Sama id kohdepäivällä estää
+  // siirron, koska yhdistäminen hävittäisi toisen merkinnän.
+  async function moveHistoryExercise(fromDate, id, toDate){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(toDate || "")){ showToast("Valitse päivä"); return false; }
+    if(toDate === fromDate){ showToast("Liike on jo tällä päivällä"); return false; }
+    try{
+      var src = state.historyCache[fromDate] || await loadEntry(fromDate);
+      var data = (src.exercises || {})[id];
+      if(!data){ showToast("Merkintää ei löytynyt"); return false; }
+      var dst = state.historyCache[toDate] || await loadEntry(toDate);
+      if(!dst.exercises) dst.exercises = {};
+      if(dst.exercises[id]){ showToast("Sama liike on jo kirjattu päivälle " + formatDateFI(toDate)); return false; }
+      var oldAt = String(data.loggedAt || "");
+      var timePart = oldAt.indexOf("T") !== -1 ? oldAt.slice(oldAt.indexOf("T")) : "T12:00:00.000Z";
+      data.loggedAt = toDate + timePart;
+      data.editedAt = new Date().toISOString();
+      dst.exercises[id] = data;
+      delete src.exercises[id];
+      await storeSet("entries:" + toDate, JSON.stringify(dst));
+      state.historyCache[toDate] = dst;
+      if(state.historyDates.indexOf(toDate) === -1){
+        state.historyDates.push(toDate);
+        state.historyDates.sort().reverse();
+      }
+      if(Object.keys(src.exercises).length){
+        await storeSet("entries:" + fromDate, JSON.stringify(src));
+        state.historyCache[fromDate] = src;
+      } else {
+        await storeDelete("entries:" + fromDate);
+        delete state.historyCache[fromDate];
+        state.historyDates = state.historyDates.filter(function(d){ return d !== fromDate; });
+      }
+      if(state.draftDate === fromDate || state.draftDate === toDate) state.todayEntry = await loadEntry(state.draftDate);
+      delete state.draftSets[id]; delete state.dirtySets[id]; delete state.autoCalcInfo[id];
+      if(state.openExercise === id) state.openExercise = null;
+      var nm = (data.name || "").trim();
+      if(nm){
+        await rebuildTrackersForName(nm);
+        await rebuildManualMaxForName(nm);
+        await saveManualMax();
+      }
+      state.kehitys = undefined; state.clusterRef = {};
+      state.painAnalysis = undefined;
+      state.exerciseLogIndex = await buildExerciseLogIndex();
+      state.expandedHistoryDate = toDate;
+      state.confirmingDeleteDate = null;
+      showToast("Siirretty päivälle " + formatDateFI(toDate));
+      return true;
+    }catch(e){ showToast("Siirto epäonnistui"); return false; }
+  }
+
   // ---------- Varmuuskopion muoto ----------
   // Varmuuskopio on yksi CSV-tiedosto, joka jakautuu osioihin. Merkinnät ovat
   // ensimmäisenä samana taulukkona kuin ennenkin, jotta tiedosto avautuu yhä
@@ -7417,7 +7481,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ));
 
     html += ohjeSection("4. Historia ja Kehitys", ohjeP(
-      "<b style=\"color:var(--chalk);\">Historia</b> näyttää kirjatut päivät kuukausittain. Päivän rivillä on ohjelman viikko ja päivä sekä merkit kevennyksestä ja korjatusta merkinnästä; avaamalla päivän näet sarjat ja voit poistaa päivän. Avatun päivän liikkeestä pääsee suoraan Kehitykseen, ja Korjaa avaa merkinnän Ohjelma-näkymässä korjattavaksi. Hakukenttä rajaa listan yhteen liikkeeseen, jolloin näet sen kaikki kerrat peräkkäin; Kehitys kertoo saman liikkeen trendin."
+      "<b style=\"color:var(--chalk);\">Historia</b> näyttää kirjatut päivät kuukausittain. Päivän rivillä on ohjelman viikko ja päivä sekä merkit kevennyksestä ja korjatusta merkinnästä; avaamalla päivän näet sarjat ja voit poistaa päivän. Avatun päivän liikkeestä pääsee suoraan Kehitykseen, Korjaa avaa merkinnän Ohjelma-näkymässä korjattavaksi, ja Siirrä päivälle siirtää liikkeen sarjoineen toiselle päivälle, jos treeni on kirjattu väärälle päivälle — siirretty liike saa merkin korjattu, ja painoehdotukset, 1RM ja Kehitys lasketaan uudelleen. Hakukenttä rajaa listan yhteen liikkeeseen, jolloin näet sen kaikki kerrat peräkkäin; Kehitys kertoo saman liikkeen trendin."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Kehitys</b> avautuu etusivuun, jossa on kolme osiota: Yhteenveto vastaa kysymykseen ”miten menee”, Liikkeet listaa liikkeet ja Vaivat kokoaa vaivalokin. Viikko-kortti näyttää kuluvan (tai viimeisimmän) treeniviikon kokonaispainon, sarjat, toistot ja treenipäivät sekä erot edelliseen viikkoon; ”Näytä liikkeet” avaa viikon liikkeet. Kortin pylväät näyttävät kahdentoista viikon volyymin. Nostettu kokonaispaino -kortissa karkeuden voi vaihtaa viikon ja päivän välillä. Ohjelman toteutuminen -kortti kertoo viimeiseltä 28 päivältä tehdyt sarjat suhteessa ohjelmoituihin, kuinka usein tavoitetoistot täyttyivät ja kuinka usein 1,25 %:n progressiotavoite toteutui, sekä pysähtyneet liikkeet. Liikkeet-osiossa on liikelista: liikkeen rivillä on paras 1RM viimeiseltä neljältä viikolta, muutos sitä edeltävään neljään viikkoon ja pieni käyrä viimeisistä merkinnöistä; yli kahdeksan liikkeen listaa voi suodattaa hakukentällä. Liike näkyy heti ensimmäisestä merkinnästä lähtien. Tabletilla liikelista ja liikenäkymä ovat rinnakkain."
     ) + ohjeP(
@@ -7539,6 +7603,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     state.sheet = null;
     var rpeTarget = null;
     if(opener === "rpe"){ rpeTarget = state.rpeSheet; state.rpeSheet = null; }
+    var moveTarget = null;
+    if(opener === "siirto"){ moveTarget = state.moveExercise; state.moveExercise = null; }
     if(opener === "uusi-ohjelma" && state.pendingProgram){
       // Sulkeminen ilman valintaa: muokkaus jatkuu tai CSV-tuonti perutaan.
       var src = state.pendingProgram.source;
@@ -7551,6 +7617,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(rpeTarget && rpeTarget.pendingRest) startRestTimer(state.restDurationSeconds, true);
     afterRender(function(){
       var btn = rpeTarget ? document.querySelector('[data-set-more][data-id="' + rpeTarget.id + '"][data-idx="' + rpeTarget.idx + '"]') : null;
+      if(!btn && opener === "siirto" && moveTarget) btn = document.querySelector('[data-open-sheet="siirto"][data-date="' + moveTarget.date + '"][data-id="' + moveTarget.id + '"]');
       if(!btn) btn = document.querySelector('[data-open-sheet="' + opener + '"]');
       if(btn){ try{ btn.focus({ preventScroll: true }); }catch(e){ btn.focus(); } }
     });
@@ -7700,6 +7767,22 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       body = '<p class="rpe-sheet-q"><b style="color:var(--chalk);">' + escapeHtml(infoParts ? infoParts.liike : infoEx.name) + '</b>' +
         (infoParts && infoParts.details.length ? ' · ' + escapeHtml(infoParts.details.join(" · ")) : '') + '</p>' +
         renderCalcInfo(infoEx);
+    }
+    if(state.sheet === "siirto"){
+      // Historian liikkeen siirto toiselle päivälle: kohde state.moveExercise.
+      var mv = state.moveExercise;
+      var mvEntry = mv ? state.historyCache[mv.date] : null;
+      var mvData = (mvEntry && mvEntry.exercises) ? mvEntry.exercises[mv.id] : null;
+      if(!mvData){ state.sheet = null; state.moveExercise = null; return ""; }
+      title = "Siirrä toiselle päivälle";
+      body = '<p class="rpe-sheet-q"><b style="color:var(--chalk);">' + escapeHtml(mvData.name || mv.id) + '</b> · kirjattu ' + escapeHtml(formatDateFI(mv.date)) + '.</p>' +
+        '<label class="move-date-label" for="move-date">Uusi päivä</label>' +
+        '<input type="date" id="move-date" class="ledger-input" value="' + escapeHtml(mv.date) + '" max="' + todayISO() + '" aria-describedby="move-date-help">' +
+        '<p id="move-date-help">Liike siirtyy sarjoineen valitulle päivälle ja saa merkin ”korjattu”. Muut saman päivän liikkeet jäävät paikoilleen. Painoehdotukset, 1RM ja Kehitys lasketaan uudelleen.</p>' +
+        '<div style="display:flex; gap:8px; margin-top:12px;">' +
+        '<button type="button" class="btn-secondary btn-sm" style="flex:1;" data-close-sheet>Peruuta</button>' +
+        '<button type="button" class="btn-primary btn-sm" style="flex:1;" data-move-exercise-confirm>Siirrä</button>' +
+        '</div>';
     }
     if(state.sheet === "liike"){
       title = "Valitse liike";
@@ -10132,7 +10215,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var rpeVal = (rpe !== null && rpe !== undefined && isFinite(toNumber(rpe))) ? toNumber(rpe) : null;
     var rpeHtml = rpeVal === null ? '<span class="history-rpe none" aria-hidden="true">–</span>'
       : '<span class="history-rpe' + (rpeVal >= 10 ? " max" : "") + '">RPE ' + String(rpeVal).replace(".", ",") + '</span>';
-    return '<div class="history-set' + (muted ? " warm" : "") + '" aria-label="' + escapeHtml(ariaText) + '"><span class="history-set-num" aria-hidden="true">' + label + '</span><span class="history-set-val" aria-hidden="true">' + valueHtml + '</span>' + rpeHtml + '</div>';
+    // role="group": aria-label ei ole sallittu pelkällä div-elementillä.
+    return '<div class="history-set' + (muted ? " warm" : "") + '" role="group" aria-label="' + escapeHtml(ariaText) + '"><span class="history-set-num" aria-hidden="true">' + label + '</span><span class="history-set-val" aria-hidden="true">' + valueHtml + '</span>' + rpeHtml + '</div>';
   }
   // Avatun päivän liike: nimi (cluster-tunniste), lämmittelyt L1, L2 … ennen
   // työsarjoja, cluster-riveillä osasarjat, huomio omalla rivillään ja
@@ -10164,11 +10248,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var logged = state.exerciseLogIndex[id];
     var canFix = !!(logged && logged.date === date && findExerciseById(id));
     var fixBtn = canFix ? '<button type="button" class="btn-tertiary btn-sm" data-history-fix data-id="' + escapeHtml(id) + '">Korjaa</button>' : "";
+    // Siirto toiselle päivälle: väärälle päivälle kirjattu liike korjataan
+    // liike kerrallaan (pohjalevy "siirto", moveHistoryExercise).
+    var moveBtn = '<button type="button" class="btn-tertiary btn-sm" data-open-sheet="siirto" data-date="' + escapeHtml(date) + '" data-id="' + escapeHtml(id) + '" aria-label="Siirrä ' + escapeHtml(name) + ' toiselle päivälle">' + icon("kalenteri", 16) + '<span>Siirrä päivälle</span></button>';
     return '<div class="history-ex">' +
       '<div class="history-ex-name">' + escapeHtml(name) + (cluster ? ' <span class="history-ex-kind">cluster</span>' : '') + '</div>' +
       (warm ? '<div class="history-sets">' + warm + '</div>' : '') +
       '<div class="history-sets">' + work + '</div>' +
-      ((kehitysBtn || fixBtn) ? '<div class="history-actions">' + kehitysBtn + fixBtn + '</div>' : '') +
+      '<div class="history-actions">' + kehitysBtn + fixBtn + moveBtn + '</div>' +
       '</div>';
   }
   // onlyIds (suodatin): kortti aina avattuna vain näillä liikkeillä,
@@ -10741,6 +10828,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.rpeSheet = null;
       // Painojen laskenta kohdistuu painikkeen liikkeeseen.
       state.infoExercise = state.sheet === "laskenta" ? (el.dataset.id || null) : null;
+      // Historian siirto kohdistuu painikkeen päivään ja liikkeeseen.
+      state.moveExercise = state.sheet === "siirto" ? { date: el.dataset.date, id: el.dataset.id } : null;
       // Pohjalevy nousee näppäimistön päälle: näppäimistö suljetaan.
       state.keypad = null;
       if(state.sheet === "liike" && state.editor){
@@ -10789,7 +10878,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // RPE-ikkunan omat painikkeet (tuntuma, tuntuman poisto, sarjan poisto)
     // käsitellään omissa käsittelijöissään jäljempänä, joten ne ohittavat
     // taustan sulkutarkistuksen.
-    if(e.target.closest("[data-close-sheet]") && !e.target.closest("[data-warmup-rpe], [data-rpe-clear], [data-remove-set], [data-recalc]")){
+    if(e.target.closest("[data-close-sheet]") && !e.target.closest("[data-warmup-rpe], [data-rpe-clear], [data-remove-set], [data-recalc], [data-move-exercise-confirm]")){
       // Vain tausta tai sulkupainike sulkee; paneelin sisällön napautus ei.
       var closeEl = e.target.closest("[data-close-sheet]");
       if(closeEl.classList.contains("sheet-backdrop") && e.target !== closeEl) return;
@@ -11477,6 +11566,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         state.painAnalysis = undefined;
         // Poisto tehdään Kehitys-näkymässä, joten analyysi päivitetään heti.
         if(state.view === "kehitys") state.painAnalysis = buildPainAnalysis(await loadAllEntries());
+        render();
+      }
+      return;
+    }
+    if(e.target.closest("[data-move-exercise-confirm]")){
+      var mvT = state.moveExercise;
+      var mvInput = document.getElementById("move-date");
+      if(!mvT || !mvInput) return;
+      if(await moveHistoryExercise(mvT.date, mvT.id, mvInput.value)){
+        state.sheet = null; state.moveExercise = null;
         render();
       }
       return;
