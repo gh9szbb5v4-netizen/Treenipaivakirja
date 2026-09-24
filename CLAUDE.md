@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.24 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.25 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -663,7 +663,9 @@ jäävät pois; piirtää uudelleen vain, jos osio on yhä auki. `maxEstimateFor
 levyinen alarivi) näytetään, kun arvio poikkeaa tallennetusta (tai arvoa ei
 ole): "Kehityksen arvio 110 kg (12.9.)" ja rivillä, jolla ei ole 1RM-pohjaa
 (`refs` tyhjä), `[data-adopt-max][data-name][data-weight]` "Käytä N kg", N =
-`floorToStep(arvio, 2.5)`, vain kun N > 0 ja poikkeaa tallennetusta.
+`floorToStep(arvio, 2.5)`, vain kun N > 0 ja poikkeaa tallennetusta. 0.4.25
+alkaen N lasketaan pyöristämättömästä arviosta (`est.raw`, ks. Kehityksen
+1RM-arvio tuntumalla); näkyvä arvio on yhä `weight`.
 Käsittelijä tallentaa `{ weight: N, date: todayISO() }`. Ei automaattista
 käyttöönottoa.
 
@@ -679,6 +681,56 @@ Varmuuskopio-osion ja Ohjeen tekstit kertovat säännön. Testi:
 kapeana ja leveänä, puuttuva pohjan 1RM, MAX ennallaan, CSV sarakkeella,
 ilman ja aliaksella, varmuuskopion kierros ja vanha muoto, päiväyhdistäminen,
 luettelo ja arvio, muokkaustilan valinta, poisto ja uusi liike, axe).
+
+## Kehityksen 1RM-arvio tuntumalla (toteutettu, 0.4.25)
+
+Käyttäjän kehote 24.9.2026. "Tee muutos kopioon" tulkittiin kuten 0.4.24:ssä
+työhaaraksi (`claude/1rm-estimate-rpe-wmjccs`): alkuperäinen tiedosto säilyy
+main-haarassa (0.4.24).
+
+`oneRepMaxRir(rpe)` (heti `tuntumaToRir`-funktion perässä) palauttaa
+`TUNTUMA_RIR`-arvon `warmupScaleStep`-pykälästä (Kevyt = "neljä tai enemmän"
+lasketaan neljänä) ja puuttuvalle tuntumalle 0 — ei `tuntumaToRir`-funktion
+`TARGET_RIR`-oletusta, joka muuttaisi koko tuntumattoman historian arviot.
+`buildAllOneRepMaxSeries`: sarjalle `rir = reps >= 1 ? oneRepMaxRir(rpe) : 0`
+(nollan toiston sarjan tuntuma ohitetaan, muuten 0 + Raskas olisi "mittaus"),
+`effReps = reps + rir`, arvio `weight × (1 + effReps/30)` — sama lauseke
+kuin ennen, kun rir on 0, joten roundToStep-rajatapaukset eivät muutu —,
+mittaus kun `effReps === 1` (sinkku äärirajoilla tai ilman tuntumaa; muulla
+tuntumalla sinkku on laskennallinen), muuten `value = roundToStep(arvio,
+2.5)`. Pisteen uusi kenttä `raw` on pyöristämätön arvio (mittauksella paino),
+josta liukulukuvirhe on siivottu `Math.round(x × 1e6) / 1e6`: esim. 87,5 × (1
++ 12/30) on laskettuna 122,49999999999999, joka pyöristyisi alaspäin 120:een.
+`set.rpe` asetetaan vain, kun RIR > 0 (tuntuma vaikutti arvoon). Saman
+`value`-arvon sarjoista, saman päivän merkinnöistä ja `bestWithin`-jakson
+pisteistä voittaa suurempi `raw` (aiemmin ensimmäinen): näkyvät arvot eivät
+muutu, mutta tällaisessa tasatilanteessa selitteen sarja tai päivä voi olla
+eri kuin ennen (kehitysvaiheen vertailussa 3 / 357 pistettä, ks. alla).
+Vertailu `raw`-arvolla ensin ei käy, koska mittaus 101 voittaa nyt arvion
+101,2 (näkyvä 100). `computeProgress` → `currentRaw`, `loadMaxEstimates` →
+`{ weight, raw, date }`, `renderManualMaxList` Käytä = `floorToStep(est.raw,
+2.5)` (100 × 3 Työläs: arvio 117,5, Käytä 115; koskee myös tuntumatonta
+100 × 5:tä, jonka Käytä oli ennen 117,5). Selitteet: `fmtOneRepMaxSet(set)`
+(`fmtSetKg`-funktion perässä) = "90 kg × 1, Sujuva" (`WARMUP_SCALE`-label)
+käyrän pisteselitteessä (`renderOneRepMaxChart`) ja kortin kahdessa
+`.kehitys-note`-selitteessä (`renderKehitysCard`). Muut 1RM-sarjan lukijat
+(liikelistan luku ja muutos `fourWeekDelta`, sparkline, Pysähtynyt ja
+Toteutumisen progressiotavoite `buildAdherenceByName`) lukevat samoja
+pisteitä, joten ne seuraavat ilman omaa muutosta. Ennallaan:
+`buildRecordsByName`, volyymi, painoehdotukset (`feelSuggestion`,
+`weightFromFeel`, `tuntumaToRir`), jumitunnistus, MAX-sarjan 1RM-päivitys
+(`saveExerciseLog`, `rebuildManualMaxForName`), simulointi (ei tuntumaa) ja
+varmuuskopion muoto (Tuntuma-sarake kulki jo; kierros säilyttää pykälän).
+CHANGELOG, Ohjeen kohdat 3 (Tuntuma ehdotuksessa), 4 (1RM-välilehti) ja 6
+(Liikkeiden 1RM) sekä README päivitetty. Testi: `tests/test_1rm_tuntuma.js`
+(funktiot suoraan kutsumalla: sivulle tarjoillaan reitityksessä index.html,
+jonka sulkeuman loppuun on lisätty `window.__t`; kehotteen tilanteet,
+tuntumattoman arvon vertailu entiseen kaavaan 13 painolla × 0–20 toistolla,
+ennätykset tuntumalla ja ilman, kortin ja käyrän selitteet, 1RM-luettelon
+Käytä ja varmuuskopion kierros). Kehitysvaiheessa ajettiin lisäksi
+vertailu vanhaan versioon 260 päivän satunnaishistorialla (ei repossa):
+tuntumatta kaikki arvot, kortin luvut, muutos, Pysähtynyt ja
+progressiotavoite identtiset.
 
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
@@ -1633,7 +1685,8 @@ tapaus uudelleenlatauksella pinolla `{kehitys, id, 2}`).
 
 `buildAllOneRepMaxSeries()` antaa jokaiselle päivälle raskaimman sarjan
 Epley-arvion ja tallentaa pisteeseen myös sarjan (`set`) ja `measured`-lipun
-(yhden toiston sarja on mittaus). `computeProgress()` ei käytä viimeisintä
+(yhden toiston sarja on mittaus; 0.4.25 alkaen tuntuma huomioiden ja
+pyöristämätön arvo `raw`, ks. Kehityksen 1RM-arvio tuntumalla). `computeProgress()` ei käytä viimeisintä
 pistettä vaan `bestWithin(points, latest.date, ONE_REP_MAX_WINDOW_DAYS)`:ia:
 kortin luku on paras arvo jaksolta, joka päättyy viimeisimpään merkintään,
 ja vertailukohdat (`month`, `halfYear`, `year`) lasketaan samalla säännöllä
@@ -1726,8 +1779,10 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   vie sen merkinnän sarjaan ja `lastSet`-sarjaan, ja varmuuskopion
   `#MERKINNÄT`-osiossa on viimeisenä sarake `Tuntuma` (asteikon sana;
   `feelFromText()` lukee sanan tai luvun 6–10, puuttuva sarake = ei
-  tuntumaa). Kehityksen `buildAllOneRepMaxSeries` ei käytä RIR:ää
-  (historia pysyy vertailukelpoisena). Testi: `test_rir.js`.
+  tuntumaa). Kehityksen `buildAllOneRepMaxSeries` käyttää 0.4.25 alkaen
+  RIR:ää omalla apurillaan `oneRepMaxRir` (puuttuva tuntuma 0, ei
+  `TARGET_RIR`), jotta tuntumatta kirjattu historia ei muutu; ks. osio
+  Kehityksen 1RM-arvio tuntumalla. Testi: `test_rir.js`.
 - `WEIGHT_STEP = 2.5`, `PROGRESSION_MAX_FACTOR = 1.05` ja
   `REGRESSION_FACTOR = 0.95`: painoehdotuksen askel (sama kaikilla
   liikkeillä, myös käsipainoilla, käyttäjän päätöksellä), noston katto ja
