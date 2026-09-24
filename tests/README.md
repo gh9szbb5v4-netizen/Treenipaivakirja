@@ -38,6 +38,7 @@ hakemistoon eivätkä kuulu versionhallintaan.
 | `test_rakentaja_2.js` | Liikkeen lisäyssilmukka ja lomakkeen tiivistys (0.4.20) |
 | `test_rakentaja_3.js` | Muokkaustilan tasoittainen navigointi (0.4.21) |
 | `test_history_move.js` | Historian liikkeen siirto toiselle päivälle (0.4.22) |
+| `test_swap_done.js` | Liikkeen nimen vaihto ei koske tehtyjä liikkeitä (0.4.23) |
 
 Aiempien versioiden testit (esim. `test_cluster.js`, `test_rir.js`,
 `test_editor.js`), joihin CLAUDE.md viittaa, eivät ole repossa.

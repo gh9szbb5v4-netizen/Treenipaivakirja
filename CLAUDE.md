@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.22 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.23 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -463,6 +463,33 @@ nimeä ei kopioida. Uusi liike luodaan täsmälleen `parseProgramCSV()`:n muodos
 (`kind:"plain"`, `autoCalc:true`, `weight:""`, `notes` = tehoteksti).
 `applyExerciseSwap` on puhdas (ei tallenna, ei piirrä); kirjausnäkymän vaihto
 käyttää sitä `performExerciseSwap()`:n kautta.
+
+**Tehtyihin liikkeisiin ei kosketa (0.4.23, käyttäjän pyyntö 24.9.2026).**
+Ohjelman muutos saa vaikuttaa vain liikkeisiin, joita ei ole merkitty
+tehdyiksi (`isExerciseLogged(ex)` = `exerciseLogIndex`-merkintä liikkeen
+id:llä; muokkaustilan luonnos on syväkopio samoilla id:illä). Aiemmin
+"vaihda kaikissa viikoissa" antoi uuden id:n ja nimen myös tehdyille
+esiintymille, jolloin ne irtosivat merkinnästään ja näkyivät tekemättöminä
+uudella nimellä. `swapTargetsIn(program, id, allOccurrences)` on nyt vaihdon
+ainoa kohdelista (`applyExerciseSwap`, `performExerciseSwap`, lomakkeen ja
+Vaihda-paneelin lukumäärät): valittu liike ja kaikkien viikkojen valinnalla
+muut saman nimiset tekemättömät; `loggedOccurrencesIn` laskee tehdyt
+selitteeseen (`swapLoggedNote`: " — 1 tehty säilyy ennallaan").
+Valinnan teksti on "Jos nimi muuttuu, vaihda kaikissa tekemättömissä
+kohdissa (N kohtaa)" / "Vaihda kaikissa tekemättömissä kohdissa (N
+kohtaa)", ja se näytetään vain, kun tekemättömiä on valitun lisäksi.
+Tehdyn liikkeen oma nimi on lukittu: `renderExerciseForm` piirtää sille
+`disabled`-nimipainikkeen `.pick-field.locked` ilman `data-open-sheet`-
+attribuuttia ja selitteen `#editor-name-locked` (`LOGGED_NAME_LOCKED_TEXT`,
+`aria-describedby`), `editorSaveForm` ja `performExerciseSwap` torjuvat
+nimenmuutoksen samalla ilmoituksella (varmistus), ja kirjausnäkymän
+`[data-swap-open]`-painiketta ja `renderSwapExercise`-paneelia ei piirretä
+tehdylle liikkeelle. Sarjojen, toistojen, yksikön ja tehon muutos tehdylle
+liikkeelle on edelleen sallittu (id säilyy, merkintä ennallaan), samoin
+tietoiset "Aloita uudelleen" ja poisto. Käyttämätön
+`programExerciseOccurrences` poistettiin. Testi: `tests/test_swap_done.js`
+(muokkaustilan ja kirjausnäkymän vaihto, lukittu nimi, ainoa tekemätön
+ilman valintaa, axe; toistaa virheen korjaamattomassa versiossa).
 
 Liikkeen tunnistus: `exerciseRecognition(name)` palauttaa `history`
 (`state.lastSet`/`state.manualMax` samalla trim+toLowerCase-avaimella kuin
