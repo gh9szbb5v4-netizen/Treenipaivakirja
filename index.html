@@ -197,6 +197,12 @@
   .pick-field.locked{cursor:default; opacity:.75;}
   .editor-form-more{width:auto; padding:6px 2px; margin-top:4px;}
   .editor-form-extra{margin-top:8px; display:flex; flex-direction:column; gap:8px;}
+  .editor-maxref{display:flex; align-items:center; gap:8px;}
+  .editor-maxref .pick-field{flex:1; min-width:0;}
+  .editor-maxref .btn-tertiary{flex-shrink:0; white-space:nowrap;}
+  /* 1RM-pohjan selite: sama ilme kuin .editor-form-hint, oma luokka, koska
+     lomakkeen .editor-form-hint on esitäytön vihje. */
+  .editor-maxref-hint{font-size:var(--fs-xs); color:var(--mist); margin-top:-2px;}
   .editor-form-actions{display:flex; gap:8px; margin-top:12px;}
   .editor-form-actions .btn-sm{min-height:40px; padding-left:10px; padding-right:10px; white-space:nowrap;}
   .editor-form-secondary{display:flex; justify-content:center; margin-top:4px;}
@@ -687,6 +693,11 @@
   .lib-rename{display:flex; align-items:center; gap:8px;}
   .program-row{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
   .program-row-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-md);}
+  /* Asetusten 1RM-luettelo: 1RM-pohjan selite nimen alla ja Kehityksen
+     arvio käyttöönottopainikkeineen rivin levyisenä alarivinä. */
+  .max-row-note{font-size:var(--fs-xs); color:var(--mist); margin-top:2px;}
+  .max-estimate{grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:var(--fs-sm); color:var(--mist);}
+  .max-estimate b{color:var(--chalk); font-variant-numeric:tabular-nums;}
   /* Seuraavaksi-kortti: ruudun ainoa ensisijainen toiminto. Messinkireunus
      erottaa sen päiväkorteista; tehty-tilassa palkki on vihreä. */
   .next-card{background:var(--surface); border:1px solid rgba(201,162,39,.6); border-radius:var(--radius); padding:16px; margin-bottom:12px;}
@@ -780,13 +791,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.23";
+  var APP_VERSION = "0.4.24";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-09-24", items: [
+      "1RM-käsittely parani (versio 0.4.24). Prosenttiliikkeelle voi valita 1RM-pohjan eli liikkeen, jonka 1RM:stä prosentit lasketaan (esim. pysäytyspenkkipunnerrus 70 % penkkipunnerruksen 1RM:stä): muokkaustilan liikelomakkeen Lisää asetuksia -kohdasta samasta liikelistasta kuin nimi tai CSV:n sarakkeesta 1RM-pohja, ja pohja kulkee varmuuskopion mukana. Asetusten Liikkeiden 1RM -luettelossa ovat nyt kaikki ohjelman teholiikkeet ja pohjana käytetyt liikkeet; rivillä näkyy Kehityksen arvio, kun se poikkeaa tallennetusta, ja Käytä-painike ottaa sen käyttöön alaspäin 2,5 kg:n tarkkuuteen pyöristettynä. Varmuuskopion 1RM-arvo korvaa laitteen arvon, kun se on päivätty myöhemmäksi, ja palautuksen ilmoitus kertoo lisätyt, päivitetyt ja ohitetut arvot.",
       "Liikkeen nimen vaihto ohjelmassa ei enää koske tehtyjä liikkeitä (versio 0.4.23): valinta ”vaihda kaikissa” vaihtaa vain liikkeet, joita ei ole vielä merkitty tehdyiksi, ja tehdyt säilyvät nimineen ja merkintöineen ennallaan. Jo tehdyn liikkeen nimeä ei voi vaihtaa muokkaustilassa eikä kirjausnäkymän Vaihda-painikkeesta.",
     ] },
     { date: "2026-09-19", items: [
@@ -1052,7 +1064,12 @@
     weight: ["weight","paino","kg"],
     notes: ["notes","huomiot","lisätiedot","huomio","kommentti"],
     intensity: ["teho","intensity","rpe"],
-    kind: ["tyyppi","kind","menetelmä"]
+    kind: ["tyyppi","kind","menetelmä"],
+    // 1RM-pohja: liike, jonka 1RM:stä prosenttiteho lasketaan (ex.maxRef).
+    // Jokainen alias sisältää "1rm"-alun ja tarkenteen, joten osittainen
+    // täsmäys ei osu muihin sarakkeisiin (esim. "1RM (kg)"), eikä mikään
+    // edellä oleva alias ("rpe", "kg", "pv" ym.) sisälly näihin otsikoihin.
+    maxRef: ["1rm-pohja","1rm pohja","1rm-viite","1rm viite","1rm base","1rm ref"]
   };
 
   var state = {
@@ -1139,6 +1156,9 @@
     confirmingDeleteDate: null,
     lastSet: {},
     manualMax: {},
+    // Asetusten 1RM-luettelon Kehitys-arviot Kehityksen liikeavaimella:
+    // { weight, date }; null = ei vielä laskettu (loadMaxEstimates).
+    maxEstimates: null,
     // Cluster-liikkeen viitekuorma nimittäin (findClusterRefWeight): { weight,
     // reps, date }, weight null kun merkintää ei löytynyt. Tyhjennetään aina,
     // kun state.kehitys asetetaan undefined-arvoon (merkinnät muuttuivat).
@@ -1468,6 +1488,10 @@
         var refRepsVal = clusterRefRepsFromText(notesVal);
         if(refRepsVal !== null) csvEx.clusterRefReps = refRepsVal;
       }
+      // 1RM-pohja vain täytetystä sarakkeesta: puuttuva kenttä = liikkeen oma
+      // 1RM, joten sarakkeettomat tiedostot tuodaan täsmälleen ennallaan.
+      var maxRefVal = map.maxRef ? String(row[map.maxRef] || "").trim() : "";
+      if(maxRefVal) csvEx.maxRef = maxRefVal;
       dayMap.get(groupName).exercises.push(csvEx);
     });
     var days = [];
@@ -2096,6 +2120,39 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return list;
   }
   function findExerciseById(id){ return allExercises().find(function(e){ return e.id === id; }); }
+
+  // ---------- 1RM-pohja ----------
+  // Prosenttitehoisen liikkeen valinnainen ex.maxRef on toisen liikkeen nimi,
+  // jonka 1RM:stä prosentit lasketaan (esim. pysäytyspenkkipunnerrus
+  // penkkipunnerruksen 1RM:stä). Puuttuva tai tyhjä kenttä = liikkeen oma
+  // 1RM kuten ennen. MAX-teho käyttää ja päivittää aina liikkeen omaa 1RM:ää,
+  // joten viite vaikuttaa vain prosenttitehoon; liikkeen oma nimi viitteenä
+  // on sama kuin ei viitettä. Palauttaa viitatun nimen kirjoitusasussaan tai "".
+  function maxRefOf(ex){
+    var ref = (ex && ex.maxRef) ? String(ex.maxRef).trim() : "";
+    if(!ref || !ex.intensity || ex.intensity.isMax) return "";
+    return ref.toLowerCase() === String(ex.name || "").trim().toLowerCase() ? "" : ref;
+  }
+  // state.manualMax-avain (trim+toLowerCase), jonka arvosta liikkeen tehon
+  // painoehdotus lasketaan.
+  function oneRepMaxKeyFor(ex){
+    return (maxRefOf(ex) || String(ex.name || "")).trim().toLowerCase();
+  }
+  // 1RM-arvon muutos (Asetukset, arvion käyttöönotto, varmuuskopion palautus)
+  // päivittää heti teholiikkeiden jo rakennetut luonnokset, jotta ehdotus
+  // seuraa uutta arvoa ilman liikkeen uudelleenavausta — myös 1RM-pohjan
+  // kautta. Käsin muokattu (dirty) ja jo tallennettu luonnos jätetään
+  // rauhaan samalla säännöllä kuin liikkeen avauksessa. Cluster- ja
+  // autoCalc === false -liikkeet eivät käytä 1RM:ää (buildDraftRows käsittelee
+  // ne ennen teho-haaraa), joten niihin ei kosketa.
+  function refreshMaxDrafts(){
+    allExercises().forEach(function(ex){
+      if(!ex || !ex.intensity || !state.draftSets[ex.id]) return;
+      if(isClusterExercise(ex) || ex.autoCalc === false) return;
+      if(state.dirtySets[ex.id] || isExerciseLogged(ex)) return;
+      state.draftSets[ex.id] = buildDraftRows(ex, ex.id);
+    });
+  }
 
   function knownExerciseNames(){
     // Kaikki sovelluksen tuntemat liikenimet: ohjelma, käsin lisätyt sekä
@@ -3312,18 +3369,34 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return clean;
   }
 
-  // Varmuuskopion 1RM-arvot yhdistetään laitteella jo oleviin samalla säännöllä
-  // kuin merkinnät: jo olemassa oleva arvo ohitetaan, jottei vanhemman
-  // varmuuskopion palautus laskisi tuoreempaa 1RM:ää huomaamatta.
+  // Varmuuskopion 1RM-arvot yhdistetään laitteella jo oleviin Päivitetty-
+  // päivän perusteella: varmuuskopion arvo korvaa laitteen arvon vain, kun se
+  // on päivätty laitteen arvoa myöhemmäksi. Vanhemman (tai samanikäisen)
+  // varmuuskopion palautus ei siis koskaan laske tuoreempaa 1RM:ää
+  // huomaamatta, mutta toisella laitteella myöhemmin päivitetty arvo tulee
+  // mukaan. Kun päivää ei tiedetä (puuttuu tai ei ole muotoa VVVV-KK-PP),
+  // uudemmuutta ei voi osoittaa, joten laitteen arvo säilyy. Laitteelta
+  // puuttuva arvo lisätään aina.
+  function isIsoDate(s){ return /^\d{4}-\d{2}-\d{2}$/.test(String(s || "")); }
   async function mergeManualMax(values){
-    var added = 0, skipped = 0;
+    var added = 0, updated = 0, skipped = 0;
     Object.keys(values).forEach(function(key){
-      if(state.manualMax[key]){ skipped++; return; }
-      state.manualMax[key] = values[key];
-      added++;
+      var incoming = values[key];
+      var current = state.manualMax[key];
+      if(!current){
+        state.manualMax[key] = { weight: incoming.weight, date: isIsoDate(incoming.date) ? incoming.date : todayISO() };
+        added++;
+        return;
+      }
+      if(isIsoDate(incoming.date) && isIsoDate(current.date) && incoming.date > current.date){
+        state.manualMax[key] = { weight: incoming.weight, date: incoming.date };
+        updated++;
+        return;
+      }
+      skipped++;
     });
-    if(added) await saveManualMax();
-    return { added: added, skipped: skipped };
+    if(added || updated) await saveManualMax();
+    return { added: added, updated: updated, skipped: skipped };
   }
 
   async function saveUserExercises(){
@@ -3549,7 +3622,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
              stage: "build", setup: { daysPerWeek: 3, weeks: 4, weekless: false },
              // Liikelomake: formMore avaa yksikkö- ja tehokentät, formPrefilled
              // kertoo, että sarjat ja toistot tulivat päivän edellisestä liikkeestä.
-             formMore: false, formPrefilled: false };
+             formMore: false, formPrefilled: false,
+             // Liikevalitsimen kohde: "name" (liikkeen nimi) tai "maxRef"
+             // (1RM-pohja); sama lista kummallekin.
+             pickTarget: "name" };
   }
   // Muokkaustilalla on kolme tilaa: "edit" muokkaa nykyistä ohjelmaa, "new"
   // rakentaa uuden tyhjästä ja "import" tarkistaa PDF:stä jäsennetyn. Rivit,
@@ -3975,7 +4051,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ed.addingExerciseTo = ex ? null : dayId;
     ed.editingExercise = ex ? ex.id : null;
     if(ex){
-      ed.form = { name: ex.name || "", sets: ex.sets || "", reps: ex.reps || "", unit: ex.unit || "", teho: intensityToText(ex.intensity) };
+      ed.form = { name: ex.name || "", sets: ex.sets || "", reps: ex.reps || "", unit: ex.unit || "", teho: intensityToText(ex.intensity),
+                  maxRef: ex.maxRef ? String(ex.maxRef).trim() : "" };
       ed.formPrefilled = false;
     } else {
       // Uusi liike esitäytetään päivän edellisestä liikkeestä (sarjat,
@@ -3983,13 +4060,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var day = draftDayById(dayId);
       var prev = (day && day.exercises.length) ? day.exercises[day.exercises.length - 1] : null;
       ed.form = { name: "", sets: prev ? (prev.sets || "") : "", reps: prev ? (prev.reps || "") : "",
-                  unit: prev ? (prev.unit || "toistoa") : "toistoa", teho: "" };
+                  unit: prev ? (prev.unit || "toistoa") : "toistoa", teho: "", maxRef: "" };
       ed.formPrefilled = !!prev;
     }
-    // Yksikkö- ja tehokentät näytetään oletuksena vain, kun niissä on muu
-    // kuin oletusarvo.
-    ed.formMore = (ed.form.unit !== "" && ed.form.unit !== "toistoa") || !!String(ed.form.teho || "").trim();
+    // Yksikkö-, teho- ja 1RM-pohjakentät näytetään oletuksena vain, kun
+    // niissä on muu kuin oletusarvo.
+    ed.formMore = (ed.form.unit !== "" && ed.form.unit !== "toistoa") || !!String(ed.form.teho || "").trim() || !!ed.form.maxRef;
     ed.swapAll = true;
+    ed.pickTarget = "name";
     if(!ex){
       // Uusi liike valitaan pohjalevyn hakukentästä; lomake jää sen alle.
       ed.pickerQuery = "";
@@ -4016,6 +4094,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!name){ showToast("Kirjoita liikkeen nimi"); return; }
     var teho = String(f.teho || "").trim();
     var sets = String(f.sets || "").trim(), reps = String(f.reps || "").trim(), unit = String(f.unit || "").trim();
+    // 1RM-pohja: tyhjä valinta = liikkeen oma 1RM, jolloin kenttää ei tallenneta.
+    var maxRef = String(f.maxRef || "").trim();
     if(ed.editingExercise){
       var ex = findExerciseIn(d, ed.editingExercise);
       if(!ex){ editorCloseForm(); return; }
@@ -4034,6 +4114,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       }
       ex.sets = sets; ex.reps = reps; ex.unit = unit;
       ex.intensity = parseIntensity(teho);
+      if(maxRef) ex.maxRef = maxRef; else delete ex.maxRef;
       // Huomautus seuraa tehotekstiä vain, jos se oli tyhjä tai sama kuin vanha
       // tehoteksti — käyttäjän oma huomautus jätetään rauhaan.
       if(!ex.notes || ex.notes === oldTeho) ex.notes = teho;
@@ -4042,9 +4123,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     } else {
       var day = draftDayById(ed.addingExerciseTo);
       if(!day){ editorCloseForm(); return; }
-      // Täsmälleen sama muoto kuin parseProgramCSV tuottaa.
-      day.exercises.push({ id: newExerciseId(d), name: name, sets: sets, reps: reps, unit: unit,
-        weight: "", notes: teho, intensity: parseIntensity(teho), kind: "plain", autoCalc: true });
+      // Täsmälleen sama muoto kuin parseProgramCSV tuottaa (1RM-pohja
+      // viimeisenä ja vain asetettuna).
+      var newEx = { id: newExerciseId(d), name: name, sets: sets, reps: reps, unit: unit,
+        weight: "", notes: teho, intensity: parseIntensity(teho), kind: "plain", autoCalc: true };
+      if(maxRef) newEx.maxRef = maxRef;
+      day.exercises.push(newEx);
       warnSimilarHistoryName(name);
       if(addNext && ed.addingExerciseTo){
         var nextDayId = ed.addingExerciseTo;
@@ -4516,11 +4600,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
     // Liikkeet, joille on määritelty teho (MAX tai prosentti), eivät kuulu
     // toistopainolaskurin progressiologiikkaan: niiden painoehdotus perustuu
-    // aina liikkeen manuaalisesti syötettyyn 1RM-arvoon.
+    // aina manuaalisesti syötettyyn 1RM-arvoon — liikkeen omaan tai
+    // prosenttiteholla 1RM-pohjaksi valitun liikkeen (oneRepMaxKeyFor).
     if(ex.intensity){
       var percents = !ex.intensity.isMax ? ex.intensity.percents : [];
       var count = (explicitCount && explicitCount > 0) ? explicitCount : (percents.length || 1);
-      var maxEntry = state.manualMax[ex.name.trim().toLowerCase()];
+      var maxRefName = maxRefOf(ex);
+      var maxEntry = state.manualMax[oneRepMaxKeyFor(ex)];
       var usedMax = false;
       var maxRows = [];
       for(var i=0;i<count;i++){
@@ -4536,7 +4622,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         }
         maxRows.push({ weight: weightVal, reps: draftRepsFor(ex, i), notes: "", done: false, kind: "work" });
       }
-      if(usedMax){ state.autoCalcInfo[id] = { type:"max", weight: maxEntry.weight, isMax: ex.intensity.isMax, percents: percents }; }
+      if(usedMax){
+        state.autoCalcInfo[id] = { type:"max", weight: maxEntry.weight, isMax: ex.intensity.isMax, percents: percents };
+        // Selite kertoo, minkä liikkeen 1RM:ää käytettiin (vain 1RM-pohjalla).
+        if(maxRefName) state.autoCalcInfo[id].refName = maxRefName;
+      }
       else{ delete state.autoCalcInfo[id]; }
       return maxRows;
     }
@@ -5732,7 +5822,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             for(var k=0;k<count;k++){ sets.push({ weight: String(weight), reps: String(repsVal), notes: "" }); }
             state.manualMax[normName] = { weight: weight, date: dateISO };
           } else if(ex.intensity){
-            var maxEntry = state.manualMax[normName];
+            // Prosenttiteho samasta 1RM:stä kuin painoehdotus (1RM-pohja huomioiden).
+            var maxEntry = state.manualMax[oneRepMaxKeyFor(ex)];
             if(!maxEntry) return;
             var percents = ex.intensity.percents || [];
             for(var k2=0;k2<count;k2++){
@@ -6006,7 +6097,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // ja Käytössä erottavat ne toisistaan. Vanha lukija ilman näitä sarakkeita
   // lukee rivit yhdeksi ohjelmaksi.
   function backupProgramRows(){
-    var rows = [["Viikko","Treenipäivä","Tunniste","Liike","Sarjat","Toistot","Yksiköt","Paino","Huomautus","Teho","Tyyppi","Menetelmä","Sarjakohtaiset","Menetelmäselite","Painoehdotus","Viikon nimi","Päivän tunniste","Päivän nimi","Ohjelman tunniste","Ohjelman nimi","Käytössä","Viitetoistot"]];
+    // 1RM-pohja on viimeinen sarake: vanha lukija lukee sarakkeet otsikon
+    // nimellä ja ohittaa tuntemattoman sarakkeen, joten uusi tiedosto
+    // palautuu vanhallakin versiolla (ilman 1RM-pohjaa).
+    var rows = [["Viikko","Treenipäivä","Tunniste","Liike","Sarjat","Toistot","Yksiköt","Paino","Huomautus","Teho","Tyyppi","Menetelmä","Sarjakohtaiset","Menetelmäselite","Painoehdotus","Viikon nimi","Päivän tunniste","Päivän nimi","Ohjelman tunniste","Ohjelman nimi","Käytössä","Viitetoistot","1RM-pohja"]];
     allPrograms().forEach(function(program){
       var labels = program.weekLabels || {};
       var active = program === state.program;
@@ -6031,7 +6125,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             program.name || "",
             active ? "kyllä" : "ei",
             // Cluster-liikkeen viitetoistot (clusterRefReps); muilla tyhjä.
-            (ex.kind === "cluster" && isFinite(parseInt(ex.clusterRefReps, 10))) ? String(parseInt(ex.clusterRefReps, 10)) : ""
+            (ex.kind === "cluster" && isFinite(parseInt(ex.clusterRefReps, 10))) ? String(parseInt(ex.clusterRefReps, 10)) : "",
+            // 1RM-pohja (ex.maxRef) sellaisenaan; puuttuva = tyhjä.
+            ex.maxRef ? String(ex.maxRef).trim() : ""
           ]);
         });
       });
@@ -6293,6 +6389,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Viitetoistot vain täytetystä sarakkeesta (vanhoissa tiedostoissa ei ole).
       var refRepsCol = parseInt(String(row["viitetoistot"] || "").trim(), 10);
       if(ex.kind === "cluster" && isFinite(refRepsCol) && refRepsCol > 0) ex.clusterRefReps = refRepsCol;
+      // 1RM-pohja vain täytetystä sarakkeesta (vanhoissa tiedostoissa ei ole);
+      // viimeisenä kuten parseProgramCSV():ssä, jotta avainjärjestys säilyy.
+      var maxRefCol = String(row["1rm-pohja"] || "").trim();
+      if(maxRefCol) ex.maxRef = maxRefCol;
       pg.dayMap.get(key).exercises.push(ex);
     });
     var notesByProgram = parseBackupNotes(notesText);
@@ -6323,7 +6423,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(!name) return;
       var weight = toNumber(row["1rm (kg)"] !== undefined ? row["1rm (kg)"] : row["1rm"]);
       if(!isFinite(weight) || weight <= 0) return;
-      out[name.toLowerCase()] = { weight: weight, date: String(row["päivitetty"] || row["paivitetty"] || "").trim() || todayISO() };
+      // Päivä luetaan sellaisenaan: puuttuva päivä jää tyhjäksi, jotta
+      // mergeManualMax ei pidä sitä uutena (lisättävä arvo saa tämän päivän).
+      out[name.toLowerCase()] = { weight: weight, date: String(row["päivitetty"] || row["paivitetty"] || "").trim() };
     });
     return out;
   }
@@ -6529,11 +6631,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
 
     if(restore.manualMax && Object.keys(restore.manualMax).length){
       var maxRes = await mergeManualMax(restore.manualMax);
-      if(maxRes.added){
-        var maxMsg = plural(maxRes.added, "1RM-arvo", "1RM-arvoa");
-        if(maxRes.skipped) maxMsg += " (ohitettu " + maxRes.skipped + " jo olemassa olevaa)";
-        parts.push(maxMsg);
-      }
+      // Ilmoitus kertoo kaikki kolme lukua, jotta ohitetut (laitteella yhtä
+      // tuore tai tuoreempi arvo) eivät jää huomaamatta.
+      parts.push("1RM-arvot (lisätty " + maxRes.added + ", päivitetty " + maxRes.updated + ", ohitettu " + maxRes.skipped + ")");
+      // Ehdotukset seuraavat palautettuja arvoja heti.
+      if(maxRes.added || maxRes.updated) refreshMaxDrafts();
     }
 
     if(restore.programs && restore.programs.length){
@@ -7445,6 +7547,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "<b style=\"color:var(--chalk);\">Variaatio</b> ja <b style=\"color:var(--chalk);\">Lisävariaatio</b> liitetään omista sarakkeistaan liikkeen nimeen pilkulla erotettuna (esim. <code>Hauiskääntö taljassa, Maaten, Scott-kahva</code>).",
       "<b style=\"color:var(--chalk);\">Sarjat</b> ja <b style=\"color:var(--chalk);\">Toistot</b> määrittävät kirjattavien rivien määrän ja tavoitteen.",
       "<b style=\"color:var(--chalk);\">Teho</b>-sarakkeeseen <code>MAX</code> tai prosentti (esim. <code>90 %</code>) — ks. kohta 3.",
+      "Valinnaiseen <b style=\"color:var(--chalk);\">1RM-pohja</b>-sarakkeeseen voi kirjoittaa toisen liikkeen nimen, jonka 1RM:stä prosenttiteho lasketaan (esim. pysäytyspenkkipunnerrukselle <code>Penkkipunnerrus tangolla, Suora tanko</code>). Tyhjä tai puuttuva sarake tarkoittaa liikkeen omaa 1RM:ää.",
       "Uusi tuonti ei korvaa käytössä olevaa ohjelmaa: sovellus kysyy, otetaanko uusi ohjelma käyttöön heti vai jääkö se kirjastoon. Kaikki jo kirjattu historia säilyy kummassakin tapauksessa."
     ]) + ohjeP(
       "Jos liikkeiden nimet eivät näy tuonnin jälkeen, tarkista ettei mikään muu sarake (esim. \"Liikejärjestys\") satu alkamaan samalla sanalla kuin liike-sarakkeen otsikko."
@@ -7464,7 +7567,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     html += ohjeSection("1c. Rakenna ohjelma sovelluksessa", ohjeP(
       "Jos ohjelmaa ei ole tiedostona, voit koota sen itse. Aloita etusivun kortista \"Rakenna itse\" tai Asetusten Ohjelma-osion painikkeesta \"Rakenna sovelluksessa\". Rakentaja on sama muokkaustila kuin kohdassa 5, mutta se alkaa tyhjästä ohjelmasta. Rakentaja kysyy ensin rungon (päiviä viikossa, viikkoja) ja luo päivät valmiiksi; kun viikko 1 on rakennettu, Monista täyttää loput viikot."
     ) + ohjeList([
-      "Rakenne etenee tasoittain: <b style=\"color:var(--chalk);\">viikkolistasta</b> avataan viikko, viikosta <b style=\"color:var(--chalk);\">päivä</b> ja päivästä <b style=\"color:var(--chalk);\">liikkeet</b>; takaisin-painike palaa ylemmälle tasolle. Jokaiselle liikkeelle annetaan sarjat, toistot, yksikkö ja teho — samat tiedot kuin CSV:n sarakkeissa.",
+      "Rakenne etenee tasoittain: <b style=\"color:var(--chalk);\">viikkolistasta</b> avataan viikko, viikosta <b style=\"color:var(--chalk);\">päivä</b> ja päivästä <b style=\"color:var(--chalk);\">liikkeet</b>; takaisin-painike palaa ylemmälle tasolle. Jokaiselle liikkeelle annetaan sarjat, toistot, yksikkö ja teho sekä tarvittaessa 1RM-pohja — samat tiedot kuin CSV:n sarakkeissa.",
       "\"Lisää liike\" ja lomakkeen nimikentän napautus avaavat liikelistan: ensimmäinen ryhmä \"Ohjelmassa ja historiassa\" sisältää nimet, joilla on jo merkintöjä tai jotka ovat ohjelmassa, joten niistä valitsemalla liike yhdistyy vanhoihin historiatietoihin; sen jälkeen tulee koko liikelista lihasryhmittäin, ja haku etsii nimen, lihasryhmän tai välineen perusteella — sama lista variaatioineen kuin liikkeen vaihdossa. Nimeä vaihdettaessa \"Muokkaa nimeä\" tuo nykyisen nimen hakukenttään. Jos liikettä ei löydy, kirjoita nimi hakukenttään ja valitse \"Käytä nimeä\". Tallenna ja lisää seuraava jatkaa suoraan seuraavaan liikkeeseen, ja sarjat ja toistot esitäytetään edellisestä.",
       "<b style=\"color:var(--chalk);\">Kopioi viimeinen viikko uudeksi</b> (tai viikon ⋮-valikon Kopioi) monistaa viikon päivineen ja liikkeineen, joten toistuvan ohjelman voi rakentaa kerran ja monistaa lopun.",
       "Liikkeetön treenipäivä jätetään tallennuksessa pois, joten keskeneräinen päivä ei päädy ohjelmaan.",
@@ -7500,7 +7603,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Jumitunnistus ja kevennys:</b> jos käytetty maksimipaino ei ole noussut kolmeen kertaan ja viimeisimmällä kerralla vähintään yksi sarja jäi vajaaksi, sovellus ehdottaa kevennystä ja tietopainikkeen ikkuna kertoo syyn. Ilman tuntumaa vaje tarkoittaa tavoitetta vähempiä toistoja ja kevennys on 10 % edellisen kerran sarjan painosta alaspäin pyöristäen. Tuntuman kanssa vaje mitataan toistoista ja varastosta yhteensä: sarja on vajaa, kun toistot + varastoon jääneet toistot jäävät alle tavoitetoistot + 2 — kaksi vajaaksi jäänyt mutta Kevyt ei ole vaje. Tavoitteen täyttänyt äärirajoilla tehty sarja ei ole vaje, ja se kevennetään kuten ilman tuntumaa — sama sääntö kuin ehdotuksessa. Muuten kevennys on 90 % tuntuman mukaisesta arviosta tavoitetoistoille alaspäin pyöristäen, jolloin selite lisää \"tuntuma huomioiden\" (esim. tavoite 12: 162,5 kg × 10 Äärirajoilla → 132,5 kg, 162,5 kg × 12 Työläs → 145 kg eli sama kuin ilman tuntumaa; 162,5 kg × 12 Äärirajoilla ei laukaise kevennystä, ja toisen sarjan vajeen laukaisemana se kevenee 145 kg:aan). Kevennyskerran jälkeen on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta."
     ) + ohjeP(
-      "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti."
+      "<b style=\"color:var(--chalk);\">Liikkeellä on teho (MAX tai %):</b> ehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa. <code>MAX</code>-sarjalle ehdotetaan suoraan 1RM, prosenttisarjalle sen osuus siitä. Kirjaamalla MAX-sarjan tulos päivittää 1RM:n automaattisesti. Prosenttiliikkeelle voi valita <b style=\"color:var(--chalk);\">1RM-pohjan</b>: silloin prosentit lasketaan pohjaksi valitun liikkeen 1RM:stä (esim. pysäytyspenkkipunnerrus 70 % penkkipunnerruksen 1RM:stä), ja kun pohjan 1RM muuttuu, ehdotus muuttuu mukana. MAX-sarja käyttää ja päivittää aina liikkeen omaa 1RM:ää. Tietopainikkeen (ⓘ) ikkuna kertoo, minkä liikkeen 1RM:ää ehdotus käyttää ja mikä sen arvo on."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Menetelmäliikkeet:</b> rest-pause-, drop- ja kiertoharjoitteluriveille painoa ei ehdoteta, koska tavoite ei ole yksiselitteinen sarjamäärä × toistot. Kirjaa paino ja toistot itse. Cluster-liikkeelle ehdotetaan viitekuorma: viimeisimmän tavallisen merkinnän paino, jossa jokin sarja tehtiin täsmälleen viitetoistoilla (oletus 10; ohjelman \"N toiston maksimi\" tai \"NRM\" muuttaa sen). Jos sellaista merkintää ei ole, paino syötetään käsin."
     ));
@@ -7525,8 +7628,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Aloita uudelleen</b> merkitsee kohteen liikkeet tekemättömiksi — koko ohjelman, viikon, päivän tai yhden liikkeen. Historia ja painoehdotukset säilyvät, koska ne on sidottu liikkeen nimeen.",
       "Liikkeen <b style=\"color:var(--chalk);\">nimen muuttaminen</b> toimii kuten \"Vaihda liike toiseksi\": aiemmat merkinnät jäävät Historiaan vanhalla nimellä. Valinnan mukaan muutos koskee kaikkia saman liikkeen tekemättömiä esiintymiä, myös kopioituja viikkoja; jo tehdyiksi merkityt säilyvät nimineen ja merkintöineen ennallaan. Tehdyn liikkeen nimeä ei voi vaihtaa.",
-      "Sarjojen, toistojen, yksikön tai tehon muuttaminen nimeä muuttamatta säilyttää liikkeen ennallaan — myös jo tehty merkintä pysyy tehtynä.",
-      "<b style=\"color:var(--chalk);\">Sarjat ja toistot</b> kirjataan lomakkeessa samalla näppäimistöllä kuin Ohjelma-näkymässä: Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, nuoli sulkee milloin tahansa. Yksikkö ja teho kirjoitetaan laitteen näppäimistöllä.",
+      "Sarjojen, toistojen, yksikön, tehon tai 1RM-pohjan muuttaminen nimeä muuttamatta säilyttää liikkeen ennallaan — myös jo tehty merkintä pysyy tehtynä.",
+      "<b style=\"color:var(--chalk);\">Sarjat ja toistot</b> kirjataan lomakkeessa samalla näppäimistöllä kuin Ohjelma-näkymässä: Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, nuoli sulkee milloin tahansa. Yksikkö ja teho kirjoitetaan laitteen näppäimistöllä. 1RM-pohja (Lisää asetuksia) valitaan samasta liikelistasta kuin nimi, ja Tyhjennä palauttaa liikkeen omaan 1RM:ään.",
       "<b style=\"color:var(--chalk);\">Liikkeen tunnistus:</b> liikkeen nimi näkyy vihreänä, kun se on sama kuin liikepankissa tai liikehistoriassa, jolloin painoehdotukset ja Kehitys jatkuvat vanhoista tiedoista. Messinkinen nimi ja huomioteksti kertovat, ettei nimeä tunnistettu — liike lisätään uutena. Valitse silloin nimi liikelistasta, jos tarkoitat jo tunnettua liikettä."
     ]));
 
@@ -7534,10 +7637,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "Asetukset on luettelo, jonka jokainen rivi avaa oman näkymänsä. Takaisin luetteloon pääsee vasemman yläkulman nuolesta."
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Ohjelma</b> — muokkaa nykyistä ohjelmaa, tuo uusi tiedostosta (CSV tai PDF) tai rakenna se sovelluksessa. Ohjelmakirjastossa voi olla useita ohjelmia, mutta vain yksi on käytössä kerrallaan: vaihda, nimeä tai poista ohjelmia. Uusi ohjelma ei koskaan korvaa nykyistä ilman hyväksyntääsi, ja merkinnät säilyvät Historiassa aina.",
-      "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — hallitse MAX-tehoisten liikkeiden maksimipainoja käsin.",
+      "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — luettelossa ovat ohjelman teholiikkeet (MAX ja prosentti) ja 1RM-pohjana käytetyt liikkeet. Arvon voi asettaa ja poistaa käsin; 1RM-pohjaa käyttävä liike kertoo, minkä liikkeen arvoa se käyttää. Kun Kehityksen arvio (paras 1RM neljän viikon jaksolta, cluster-merkinnät pois lukien) poikkeaa tallennetusta arvosta, se näkyy rivillä päivämäärineen, ja Käytä-painike ottaa sen käyttöön alaspäin 2,5 kg:n tarkkuuteen pyöristettynä — arvo ei vaihdu itsestään.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
-      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta. Tiedoston voi avata Excelissä katsottavaksi; myös Excelin tallentama versio tunnistetaan palautuksessa.",
+      "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta. Poikkeus on 1RM-arvo: varmuuskopion arvo korvaa laitteen arvon, jos se on päivätty myöhemmäksi (Päivitetty-sarake), joten vanhempi varmuuskopio ei koskaan laske tuoreempaa arvoa; ilmoitus kertoo lisätyt, päivitetyt ja ohitetut 1RM-arvot. Ohjelman 1RM-pohjat kulkevat varmuuskopion mukana. Tiedoston voi avata Excelissä katsottavaksi; myös Excelin tallentama versio tunnistetaan palautuksessa.",
       "<b style=\"color:var(--chalk);\">Muutokset</b> — kooste koekäytön aikana tehdyistä muutoksista ja niiden vaikutuksesta käyttöön, uusin ensin.",
       "<b style=\"color:var(--chalk);\">Lisää</b> — simulointi (täyttää ohjelman synteettisillä merkinnöillä Historian ja Kehityksen kokeilua varten; toimii vain ilman oikeita merkintöjä), palaute tekijälle sähköpostitse, tietoja sovelluksesta sekä kaikkien tietojen tyhjennys, joka kysyy vahvistuksen."
     ]));
@@ -7643,6 +7746,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     afterRender(function(){
       var btn = rpeTarget ? document.querySelector('[data-set-more][data-id="' + rpeTarget.id + '"][data-idx="' + rpeTarget.idx + '"]') : null;
       if(!btn && opener === "siirto" && moveTarget) btn = document.querySelector('[data-open-sheet="siirto"][data-date="' + moveTarget.date + '"][data-id="' + moveTarget.id + '"]');
+      // 1RM-pohjan valitsin palauttaa fokuksen omaan kenttäänsä, ei nimikenttään.
+      if(!btn && opener === "liike" && state.editor && state.editor.pickTarget === "maxRef") btn = document.querySelector("[data-editor-maxref]");
       if(!btn) btn = document.querySelector('[data-open-sheet="' + opener + '"]');
       if(btn){ try{ btn.focus({ preventScroll: true }); }catch(e){ btn.focus(); } }
     });
@@ -7726,7 +7831,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       title = "CSV-tiedoston muoto";
       body = '<p>Ainoa pakollinen sarake on liikkeen nimi. Muut sarakkeet tunnistetaan otsikosta sekä suomeksi että englanniksi, ja erotin (puolipiste, pilkku tai sarkain) tunnistetaan itsestään — myös suomalaisen Excelin vienti toimii sellaisenaan.</p>' +
         '<div class="csv-example">Viikko;Treenipäivä;Liike;Sarjat;Toistot;Teho<br>1;1;Penkkipunnerrus;1;1;MAX<br>1;1;Penkkipunnerrus;2;3;90 %<br>1;1;Peck deck;3;10;</div>' +
-        '<p><b style="color:var(--chalk);">Viikko</b> ja <b style="color:var(--chalk);">Treenipäivä</b> ryhmittelevät ohjelman. <b style="color:var(--chalk);">Teho</b> on joko <code>MAX</code> tai prosentti, ja se ohjaa painoehdotuksen liikkeen 1RM-arvosta. Tarkemmat ohjeet löytyvät Ohje-välilehdeltä.</p>' +
+        '<p><b style="color:var(--chalk);">Viikko</b> ja <b style="color:var(--chalk);">Treenipäivä</b> ryhmittelevät ohjelman. <b style="color:var(--chalk);">Teho</b> on joko <code>MAX</code> tai prosentti, ja se ohjaa painoehdotuksen liikkeen 1RM-arvosta. Valinnainen <b style="color:var(--chalk);">1RM-pohja</b> kertoo, minkä toisen liikkeen 1RM:stä prosentit lasketaan. Tarkemmat ohjeet löytyvät Ohje-välilehdeltä.</p>' +
         '<p>PDF-ohjelmalle ei tarvita mitään muotoa: valmentajan tiedosto luetaan sellaisenaan ja näytetään tarkistettavaksi ennen tallennusta.</p>';
     }
     if(state.sheet === "uusi-ohjelma" && state.pendingProgram){
@@ -7810,11 +7915,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '</div>';
     }
     if(state.sheet === "liike"){
-      title = "Valitse liike";
+      // Sama lista valitsee liikkeen nimen tai 1RM-pohjan (pickTarget).
+      var pickRef = !!(state.editMode && state.editor.pickTarget === "maxRef");
+      title = pickRef ? "Valitse 1RM-pohja" : "Valitse liike";
       // Olemassa olevan liikkeen nimi näytetään rivillä, jotta käyttäjä
       // tietää, mitä on vaihtamassa; "Muokkaa nimeä" tuo sen hakukenttään
       // (kirjoitusvirheen korjaus tai vapaa nimi ilman uudelleen kirjoitusta).
-      var currentName = (state.editMode && state.editor.form && state.editor.form.name) ? String(state.editor.form.name) : "";
+      var currentName = (state.editMode && state.editor.form) ? String((pickRef ? state.editor.form.maxRef : state.editor.form.name) || "") : "";
       body = (currentName
         ? '<div class="pick-current"><span>Nykyinen: <b>' + escapeHtml(currentName) + '</b></span>' +
           '<button type="button" class="btn-tertiary btn-sm" data-pick-edit-current>Muokkaa nimeä</button></div>'
@@ -8351,7 +8458,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         text = "Sarjassa 1 on valmiina nykyinen 1RM (" + maxWeightStr + "). Kirjaa raskain onnistunut nosto (1 toisto) — tulos korvaa 1RM:n.";
       } else {
         var pctStr = (info.percents || []).map(function(p){ return String(p).replace(".", ",") + " %"; }).join(" / ");
-        text = "Paino " + pctStr + " liikkeen 1RM:stä (" + maxWeightStr + ").";
+        // 1RM-pohja: selite nimeää liikkeen, jonka 1RM:stä prosentit lasketaan.
+        text = info.refName
+          ? "Paino " + pctStr + " 1RM-pohjan ”" + escapeHtml(info.refName) + "” 1RM:stä (" + maxWeightStr + ")."
+          : "Paino " + pctStr + " liikkeen 1RM:stä (" + maxWeightStr + ").";
       }
     } else if(info.type === "formula"){
       var parts = (info.perSet || []).map(function(p, i){
@@ -8908,8 +9018,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     } else {
       // Jos 1RM on mutta ehdotus on kytketty pois (autoCalc === false,
       // menetelmäliike), syy ei ole puuttuva 1RM eikä selitettä näytetä.
-      if(state.manualMax[ex.name.trim().toLowerCase()]) return "";
-      text = "Liikkeelle ei ole vielä 1RM-arvoa, joten painoa ei ehdotettu. Kirjaa paino itse tai aseta 1RM Asetuksissa.";
+      // 1RM-pohjalla puuttuva arvo on viitatun liikkeen.
+      if(state.manualMax[oneRepMaxKeyFor(ex)]) return "";
+      var refName = maxRefOf(ex);
+      text = refName
+        ? "Liikkeelle ”" + refName + "” (1RM-pohja) ei ole vielä 1RM-arvoa, joten painoa ei ehdotettu. Kirjaa paino itse tai aseta sen 1RM Asetuksissa."
+        : "Liikkeelle ei ole vielä 1RM-arvoa, joten painoa ei ehdotettu. Kirjaa paino itse tai aseta 1RM Asetuksissa.";
     }
     return '<div class="calc-hint">' + escapeHtml(text) + '</div>';
   }
@@ -8926,7 +9040,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var why;
     if(isCombo(ex.name)) why = "Yhdistelmäliikkeelle ei ehdoteta painoa. Kirjaa paino ja toistot itse.";
     else if(ex.autoCalc === false) why = noAutoCalcReason(ex) + " Kirjaa paino ja toistot itse.";
-    else if(ex.intensity) why = "Painoehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa.";
+    else if(ex.intensity) why = maxRefOf(ex)
+      ? "Painoehdotus perustuu 1RM-pohjan ”" + maxRefOf(ex) + "” 1RM-arvoon, jota hallitaan Asetuksissa."
+      : "Painoehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa.";
     else why = "Tälle liikkeelle ei ole vielä painoehdotusta, koska aiempaa merkintää ei ole. Kirjaa paino ja toistot itse — seuraavalla kerralla ehdotus lasketaan tästä merkinnästä sarjoittain.";
     return '<div class="calc-hint">' + escapeHtml(why) + '</div>';
   }
@@ -9169,6 +9285,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var addDay = adding ? draftDayById(ed.addingExerciseTo) : null;
     var kicker = adding ? "Liike " + ((addDay ? addDay.exercises.length : 0) + 1) : "Muokkaa liikettä";
     var more = !!ed.formMore;
+    var hasMaxRef = !!(f.maxRef && String(f.maxRef).trim());
     return '<div class="exercise editor-form" style="padding:12px 14px; border-color:var(--brass); margin-bottom:10px;">' +
       '<div class="editor-form-kicker">' + escapeHtml(kicker) + '</div>' +
       (nameLocked
@@ -9194,6 +9311,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         ? '<div class="editor-form-extra">' +
           '<input class="ledger-input" type="text" data-editor-field="unit" placeholder="Yksikkö" aria-label="Yksikkö" value="' + escapeHtml(f.unit) + '">' +
           '<input class="ledger-input" type="text" data-editor-field="teho" placeholder="Teho (MAX tai %)" aria-label="Teho" value="' + escapeHtml(f.teho) + '">' +
+          // 1RM-pohja valitaan samasta liikelistasta kuin nimi (pohjalevy
+          // pickTarget "maxRef"); tyhjä = liikkeen oma 1RM.
+          '<div class="editor-maxref">' +
+          '<button type="button" class="ledger-input pick-field' + (hasMaxRef ? "" : " empty") + '" data-open-sheet="liike" data-pick-target="maxRef" data-editor-maxref aria-describedby="editor-maxref-hint" aria-label="' +
+          (hasMaxRef ? "1RM-pohja: " + escapeHtml(f.maxRef) + ". Valitse liikelistasta" : "1RM-pohja: liikkeen oma 1RM. Valitse liikelistasta") + '">' +
+          '<span class="pick-field-text">' + (hasMaxRef ? "1RM-pohja: " + escapeHtml(f.maxRef) : "1RM-pohja (valinnainen)") + '</span>' + icon("haku", 20) + '</button>' +
+          (hasMaxRef ? '<button type="button" class="btn-tertiary btn-sm" data-editor-maxref-clear aria-label="Tyhjennä 1RM-pohja">Tyhjennä</button>' : '') +
+          '</div>' +
+          '<div class="editor-maxref-hint" id="editor-maxref-hint">Prosenttiteho lasketaan 1RM-pohjaksi valitun liikkeen 1RM:stä; ilman sitä liikkeen omasta.</div>' +
           (ex && ex.autoCalc === false ? '<div style="color:var(--mist); font-size:var(--fs-xs);">' + noAutoCalcReason(ex) + '</div>' : '') +
           '</div>'
         : '') +
@@ -10347,27 +10473,103 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     });
     return names;
   }
-  function renderManualMaxList(){
-    var displayNames = maxExerciseNames();
-    Object.keys(state.manualMax).forEach(function(key){
-      if(!displayNames[key]) displayNames[key] = key;
-    });
-    var names = Object.keys(displayNames);
-    if(names.length === 0){
-      return renderEmptyState("kehitys", "Ei MAX-liikkeitä", "Lista täyttyy liikkeistä, joille ohjelmassa on merkitty teho MAX.", "", true);
+  // 1RM-luettelon rivit avaimella (state.manualMax-avain, trim+toLowerCase):
+  // käytössä olevan ohjelman teholiikkeet (MAX tai prosentti), liikkeet,
+  // joihin jokin 1RM-pohja viittaa, ja muut tallennetut 1RM-arvot.
+  // own = liikkeen omaa 1RM:ää käytetään (MAX, prosentti ilman 1RM-pohjaa,
+  // 1RM-pohjan kohde tai tallennettu arvo); refs = 1RM-pohjat, joista
+  // liikkeen prosenttisarjat lasketaan. Nimi ohjelman kirjoitusasussa.
+  function oneRepMaxRows(){
+    var rows = {};
+    function row(name){
+      var key = String(name).trim().toLowerCase();
+      if(!rows[key]) rows[key] = { key: key, name: String(name).trim(), own: false, refs: [] };
+      return rows[key];
     }
-    return names.sort().map(function(key){
+    var tehoExercises = allExercises().filter(function(ex){ return ex && ex.intensity && String(ex.name || "").trim(); });
+    tehoExercises.forEach(function(ex){ row(ex.name); });
+    tehoExercises.forEach(function(ex){
+      var ref = maxRefOf(ex);
+      var r = row(ex.name);
+      if(!ref){ r.own = true; return; }
+      if(!r.refs.some(function(n){ return n.toLowerCase() === ref.toLowerCase(); })) r.refs.push(ref);
+      row(ref).own = true;
+    });
+    Object.keys(state.manualMax).forEach(function(key){ row(key).own = true; });
+    return rows;
+  }
+  // Kehityksen arvio samalla laskennalla kuin Kehityksen 1RM-kortti
+  // (buildAllOneRepMaxSeries + computeProgress: paras arvo neljän viikon
+  // jaksolta, joka päättyy viimeisimpään merkintään; cluster- ja
+  // yhdistelmämerkinnät pois). Avain on Kehityksen liikeavain, joten
+  // variaatiot yhdistyvät kuten Kehityksessä. Lasketaan, kun 1RM-osio avataan.
+  async function loadMaxEstimates(){
+    var out = {};
+    try{
+      var series = buildAllOneRepMaxSeries(await loadAllEntries());
+      Object.keys(series).forEach(function(norm){
+        var progress = computeProgress(series[norm].points);
+        if(progress) out[norm] = { weight: progress.current, date: progress.currentDate };
+      });
+    }catch(e){ /* hiljainen virhe: luettelo näytetään ilman arvioita */ }
+    state.maxEstimates = out;
+    if(state.view === "asetukset" && state.settingsSection === "1rm") render();
+  }
+  function maxEstimateFor(name){
+    return state.maxEstimates ? (state.maxEstimates[kehitysKeyFor(name).norm] || null) : null;
+  }
+  function renderManualMaxList(){
+    var rows = oneRepMaxRows();
+    var keys = Object.keys(rows);
+    if(keys.length === 0){
+      return renderEmptyState("kehitys", "Ei teholiikkeitä", "Lista täyttyy liikkeistä, joille ohjelmassa on merkitty teho (MAX tai prosentti), ja liikkeistä, joihin 1RM-pohja viittaa.", "", true);
+    }
+    return keys.sort().map(function(key){
+      var r = rows[key];
       var entry = state.manualMax[key];
-      var weightHtml = entry
-        ? '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:14px; text-align:right; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>'
-        : '<div style="color:var(--mist); font-size:12.5px; text-align:right; padding-right:6px;">Ei vielä asetettu</div>';
+      var weightHtml;
+      if(entry){
+        weightHtml = '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:14px; text-align:right; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>';
+      } else if(r.own){
+        weightHtml = '<div style="color:var(--mist); font-size:12.5px; text-align:right; padding-right:6px;">Ei vielä asetettu</div>';
+      } else {
+        // Liike käyttää vain 1RM-pohjaa: ei omaa arvoa, joten nimi ja selite
+        // saavat koko rivin leveyden.
+        weightHtml = '';
+      }
       var deleteBtn = entry
         ? '<button class="remove-set" data-delete-max data-name="' + escapeHtml(key) + '" type="button" aria-label="Poista 1RM">' + (state.confirmingDeleteMax === key ? "✓" : "×") + '</button>'
-        : '';
+        : (r.own ? '<div></div>' : '');
+      // 1RM-pohjan selite: minkä liikkeen 1RM:ää prosenttisarjat käyttävät
+      // ja sen arvo.
+      var noteHtml = "";
+      if(r.refs.length){
+        var refText = r.refs.map(function(n){
+          var refEntry = state.manualMax[n.toLowerCase()];
+          return "”" + n + "” (" + (refEntry ? String(refEntry.weight).replace(".", ",") + " kg" : "ei vielä asetettu") + ")";
+        }).join(", ");
+        noteHtml = '<div class="max-row-note">' + escapeHtml((r.own ? "Prosenttisarjat käyttävät " : "Käyttää ") + (r.refs.length === 1 ? "liikkeen " : "liikkeiden ") + refText + " 1RM:ää") + '</div>';
+      }
+      // Kehityksen arvio näytetään, kun se poikkeaa tallennetusta arvosta.
+      // Käyttöönotto vain painikkeesta, alaspäin 2,5 kg:n tarkkuuteen; ei
+      // liikkeelle, jolla on 1RM-pohja jossakin ohjelman kohdassa, eikä kun
+      // pyöristetty arvo on jo tallennettu.
+      var estHtml = "";
+      var est = maxEstimateFor(r.name);
+      if(est && isFinite(est.weight) && (!entry || est.weight !== entry.weight)){
+        var adopt = floorToStep(est.weight, 2.5);
+        var adoptStr = String(adopt).replace(".", ",");
+        estHtml = '<div class="max-estimate"><span>Kehityksen arvio <b>' + String(est.weight).replace(".", ",") + ' kg</b> (' + escapeHtml(formatDateShortFI(est.date)) + ')</span>' +
+          ((!r.refs.length && adopt > 0 && (!entry || adopt !== entry.weight))
+            ? '<button type="button" class="btn-secondary btn-sm btn-auto" data-adopt-max data-name="' + escapeHtml(key) + '" data-weight="' + adopt + '" aria-label="Käytä arviota: ' + escapeHtml(capitalize(r.name)) + ' 1RM ' + adoptStr + ' kg">Käytä ' + adoptStr + ' kg</button>'
+            : '') +
+          '</div>';
+      }
       return '<div class="ledger-row" style="grid-template-columns:1fr 116px 32px; border-bottom:1px dashed var(--line); padding:8px 0;">' +
-        '<div><div style="font-size:14px;">' + escapeHtml(capitalize(displayNames[key])) + '</div></div>' +
+        '<div' + (r.own ? '' : ' style="grid-column:1 / -1;"') + '><div style="font-size:14px;">' + escapeHtml(capitalize(r.name)) + '</div>' + noteHtml + '</div>' +
         weightHtml +
         deleteBtn +
+        estHtml +
         '</div>';
     }).join("");
   }
@@ -10391,7 +10593,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return renderBanner("", "palauta", "Palautetaanko varmuuskopio?",
       '<div style="color:var(--mist);">' + escapeHtml(pr.fileName || "") + '</div>' +
       '<div style="margin-top:8px;">' + lines.map(function(l){ return escapeHtml(l); }).join("<br>") + '</div>' +
-      '<div style="margin-top:8px;">' + (state.program ? 'Varmuuskopiossa käytössä ollut ohjelma otetaan käyttöön ja nykyinen ohjelma <b style="color:var(--chalk);">jää kirjastoon</b>; laitteella jo olevat ohjelmat ohitetaan. ' : '') + 'Omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin: jo olemassa oleva ohitetaan, eikä mitään tallennettua poisteta.</div>',
+      '<div style="margin-top:8px;">' + (state.program ? 'Varmuuskopiossa käytössä ollut ohjelma otetaan käyttöön ja nykyinen ohjelma <b style="color:var(--chalk);">jää kirjastoon</b>; laitteella jo olevat ohjelmat ohitetaan. ' : '') + 'Omat liikkeet ja merkinnät yhdistetään olemassa oleviin: jo olemassa oleva ohitetaan, eikä mitään tallennettua poisteta. Puuttuvat 1RM-arvot lisätään, ja laitteen 1RM-arvo korvataan vain, jos varmuuskopion arvo on päivätty myöhemmäksi.</div>',
       '<button class="btn-primary btn-sm btn-auto" data-restore-confirm type="button">Palauta</button>' +
       '<button class="btn-tertiary btn-sm" data-restore-cancel type="button">Peruuta</button>');
   }
@@ -10489,7 +10691,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   function renderSettings1rm(){
     return '<div class="exercise" style="padding:16px;">' +
-      settingsP("Liikkeille, joille ohjelmassa on määritelty teho (MAX tai prosentti), painoehdotus lasketaan tästä 1RM-arvosta — ei aiemmista merkinnöistä. MAX-sarjan kirjaus päivittää arvon automaattisesti.") +
+      settingsP("Liikkeille, joille ohjelmassa on määritelty teho (MAX tai prosentti), painoehdotus lasketaan tästä 1RM-arvosta — ei aiemmista merkinnöistä. MAX-sarjan kirjaus päivittää arvon automaattisesti, ja 1RM-pohjan saanut prosenttiliike käyttää pohjaksi valitun liikkeen arvoa. Poikkeavan Kehityksen arvion voi ottaa käyttöön Käytä-painikkeella.") +
       renderManualMaxList() +
       '<div style="display:flex; gap:8px; margin-top:12px;">' +
       '<input type="text" id="max-name-input" class="ledger-input" list="exercise-name-options" autocomplete="off" placeholder="Liikkeen nimi" aria-label="Liikkeen nimi" style="flex:1.4;">' +
@@ -10521,7 +10723,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       settingsP("Yksi CSV-tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Data on vain tässä selaimessa, joten ota varmuuskopio säännöllisesti.") +
       '<button class="btn-secondary" id="export-btn" type="button">' + icon("tiedosto", 20) + '<span>Vie varmuuskopio CSV:nä</span></button>' +
       '<button class="btn-secondary" id="export-pain-btn" type="button" style="margin-top:10px;">Vie vaivaloki CSV:nä</button>' +
-      settingsP("Palauta varmuuskopio tai siirrä tietosi toiselta laitteelta. Ohjelma palautuu sellaisena kuin se oli varmuuskopion hetkellä; omat liikkeet, 1RM-arvot ja merkinnät yhdistetään olemassa oleviin ohittaen jo olemassa olevat, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.", "16px 0 12px") +
+      settingsP("Palauta varmuuskopio tai siirrä tietosi toiselta laitteelta. Ohjelma palautuu sellaisena kuin se oli varmuuskopion hetkellä; omat liikkeet ja merkinnät yhdistetään olemassa oleviin ohittaen jo olemassa olevat, ja 1RM-arvo korvaa laitteen arvon vain, jos varmuuskopion arvo on päivätty myöhemmäksi, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.", "16px 0 12px") +
       renderFilePicker("import-entries-input", ".csv,text/csv", false, "btn-secondary", "palauta", "Palauta varmuuskopio", "Valitse palautettava varmuuskopiotiedosto") +
       '</div>';
   }
@@ -10874,7 +11076,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(state.sheet === "liike" && state.editor){
         // Liikevalitsin avataan aina koko listalla (tyhjä haku) ja fokus
         // hakukenttään, jotta kirjoitus suodattaa heti — myös olemassa olevan
-        // liikkeen nimeä vaihdettaessa.
+        // liikkeen nimeä vaihdettaessa. Kohde on nimi tai 1RM-pohja.
+        state.editor.pickTarget = el.dataset.pickTarget === "maxRef" ? "maxRef" : "name";
         state.editor.pickerQuery = "";
         afterRender(function(){ var q = document.getElementById("liike-haku"); if(q) q.focus(); });
         return;
@@ -10887,7 +11090,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(e.target.closest("[data-pick-edit-current]")){
       // Nykyinen nimi hakukenttään muokattavaksi; lista päivitetään suoraan
       // DOM:iin ilman render()-kutsua, jotta fokus pysyy kentässä.
-      var curName = (state.editor && state.editor.form && state.editor.form.name) ? String(state.editor.form.name) : "";
+      var curForm = state.editor && state.editor.form;
+      var curName = curForm ? String((state.editor.pickTarget === "maxRef" ? curForm.maxRef : curForm.name) || "") : "";
       var hakuEl = document.getElementById("liike-haku");
       if(hakuEl){
         hakuEl.value = curName;
@@ -10902,7 +11106,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if((el = e.target.closest("[data-pick-exercise]"))){
       if(state.editMode && state.editor.form){
         var picked = el.dataset.pickExercise;
-        state.editor.form.name = picked;
+        if(state.editor.pickTarget === "maxRef") state.editor.form.maxRef = picked;
+        else state.editor.form.name = picked;
         if(el.hasAttribute("data-pick-free")){
           var similarPick = findSimilarName(picked, knownBaseExerciseNames());
           if(similarPick && normalizeName(similarPick) !== normalizeName(picked)) showToast("Listalla on jo samankaltainen liike ”" + similarPick + "” — tarkista kirjoitusasu", 4500);
@@ -10980,6 +11185,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.confirmingReset = false;
       state.programRename = null;
       state.confirmingDeleteProgram = null;
+      // 1RM-luettelon Kehitys-arviot lasketaan aina osion avauksessa, koska
+      // merkinnät ovat voineet muuttua; luettelo piirtyy uudelleen valmiina.
+      if(state.settingsSection === "1rm"){ state.maxEstimates = null; loadMaxEstimates(); }
       if(state.settingsSection === "muutokset" && changelogHasNew()){
         state.changelogSeen = CHANGELOG[0].date;
         try{ await storeSet(STORAGE_CHANGELOG_SEEN_KEY, state.changelogSeen); }
@@ -11002,6 +11210,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // osio voidaan asettaa heti sen jälkeen.
       await navigate({ view: "asetukset", detail: null });
       state.settingsSection = el.dataset.openSettings;
+      if(state.settingsSection === "1rm"){ state.maxEstimates = null; loadMaxEstimates(); }
       render();
       return;
     }
@@ -11087,6 +11296,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // Fokus palaa painikkeeseen piirron jälkeen (id, restoreFocus).
       state.editor.formMore = !state.editor.formMore;
       render();
+      return;
+    }
+    if(e.target.closest("[data-editor-maxref-clear]")){
+      // 1RM-pohjan tyhjennys: liike käyttää taas omaa 1RM:ää (tallentuu Tallenna-
+      // painikkeesta kuten lomakkeen muutkin kentät). Fokus valitsinkenttään,
+      // koska Tyhjennä-painike katoaa piirrossa.
+      if(state.editor.form) state.editor.form.maxRef = "";
+      afterRender(function(){ var mf = document.querySelector("[data-editor-maxref]"); if(mf) mf.focus(); });
       return;
     }
     if((el = e.target.closest("[data-edit-restart]"))){
@@ -11634,8 +11851,25 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(!isFinite(mWeight) || mWeight <= 0){ showToast("Kirjoita kelvollinen paino"); return; }
       state.manualMax[mName.toLowerCase()] = { weight: mWeight, date: todayISO() };
       await saveManualMax();
+      // Uusi arvo näkyy heti myös 1RM-pohjaa käyttävien liikkeiden ehdotuksessa.
+      refreshMaxDrafts();
       nameInput.value = ""; weightInput.value = "";
       showToast("1RM tallennettu");
+      render();
+      return;
+    }
+    if((el = e.target.closest("[data-adopt-max]"))){
+      // Kehityksen arvio 1RM:ksi vain käyttäjän painalluksesta. Arvo on jo
+      // pyöristetty alaspäin 2,5 kg:n tarkkuuteen (renderManualMaxList), ja
+      // päiväksi tulee tämä päivä kuten käsin tallennettaessa.
+      var aKey = el.dataset.name;
+      var aWeight = toNumber(el.dataset.weight);
+      if(!aKey || !isFinite(aWeight) || aWeight <= 0) return;
+      state.manualMax[aKey] = { weight: aWeight, date: todayISO() };
+      await saveManualMax();
+      refreshMaxDrafts();
+      state.confirmingDeleteMax = null;
+      showToast("1RM nyt " + String(aWeight).replace(".", ",") + " kg");
       render();
       return;
     }
@@ -11666,6 +11900,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(state.confirmingDeleteMax !== mKey){ state.confirmingDeleteMax = mKey; render(); return; }
       delete state.manualMax[mKey];
       await saveManualMax();
+      refreshMaxDrafts();
       state.confirmingDeleteMax = null;
       showToast("1RM poistettu");
       render();
