@@ -41,6 +41,7 @@ hakemistoon eivätkä kuulu versionhallintaan.
 | `test_swap_done.js` | Liikkeen nimen vaihto ei koske tehtyjä liikkeitä (0.4.23) |
 | `test_1rm_pohja.js` | 1RM-pohja, 1RM-luettelo ja Kehityksen arvio, varmuuskopion 1RM-yhdistäminen päivämäärän mukaan (0.4.24) |
 | `test_1rm_tuntuma.js` | Kehityksen 1RM-arvio tuntuma huomioiden: laskenta funktioita suoraan kutsumalla, selitteet, 1RM-luettelon Käytä pyöristämättömästä arviosta, ennätykset ja varmuuskopion kierros (0.4.25) |
+| `test_max_nolla.js` | MAX-rivin 1RM raskaimmasta onnistuneesta nostosta, korjaus ei muuta 1RM:ää, nollan toiston sarjat pois Kehityksen 1RM-arviosta (0.4.26) |
 
 Aiempien versioiden testit (esim. `test_cluster.js`, `test_rir.js`,
 `test_editor.js`), joihin CLAUDE.md viittaa, eivät ole repossa.

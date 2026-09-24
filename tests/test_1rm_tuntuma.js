@@ -160,13 +160,17 @@ const seriesSummary = page => page.evaluate(async () => {
   ok(c.sameDay2.value === 107.5 && c.sameDay2.weight === 95 && c.sameDay2.text === '95' + NB + 'kg × 3, Raskas', '1 90 × 1 Sujuva (102) ja 95 × 3 Raskas (107,67) → Raskas-kolmonen: ' + JSON.stringify(c.sameDay2));
   ok(c.warmup.value === 110 && c.warmup.weight === 100, '1 lämmittely tuntumalla ei vaikuta: ' + JSON.stringify(c.warmup));
   ok(c.cluster === null, '1 cluster-merkintä ei tuota pistettä');
-  ok(c.zero.value === 100 && !c.zero.measured && c.zero.text === '100' + NB + 'kg × 0', '1 nollan toiston sarjan tuntuma ohitetaan (arvo kuten ennen): ' + JSON.stringify(c.zero));
+  // 0.4.26 alkaen nollan toiston sarja ohitetaan kokonaan (ks. test_max_nolla.js).
+  ok(c.zero === null, '1 nollan toiston sarja ei tuota pistettä (0.4.26): ' + JSON.stringify(c.zero));
   ok(c.exact.raw === 122.5 && c.exact.adopt === 122.5, '1 87,5 × 10 Työläs = 122,5 ilman liukulukuvirhettä, Käytä 122,5: ' + JSON.stringify(c.exact));
   // Ilman tuntumaa arvo ja mittaus ovat täsmälleen entisen kaavan mukaiset.
   const grid = await tp.evaluate(() => {
     const t = window.__t, bad = [];
     [20, 22.5, 42.5, 52.5, 60, 87.5, 100, 102.5, 112.5, 118, 150, 162.5, 250].forEach(wt => {
-      for(let r = 0; r <= 20; r++){
+      // 0.4.26 alkaen 0 toistoa ei tuota pistettä (test_max_nolla.js).
+      const zero = t.buildAllOneRepMaxSeries([{ date: '2026-09-01', entry: { date: '2026-09-01', exercises: { a: { name: 'Kulmasoutu', sets: [{ weight: String(wt), reps: '0' }] } } } }]).kulmasoutu;
+      if(zero) bad.push(wt + '×0: piste ' + zero.points[0].value);
+      for(let r = 1; r <= 20; r++){
         const s = t.buildAllOneRepMaxSeries([{ date: '2026-09-01', entry: { date: '2026-09-01', exercises: { a: { name: 'Kulmasoutu', sets: [{ weight: String(wt), reps: String(r) }] } } } }]).kulmasoutu;
         const old = r === 1 ? wt : t.roundToStep(wt * (1 + r / 30), 2.5);
         const p = s.points[0];
@@ -175,7 +179,7 @@ const seriesSummary = page => page.evaluate(async () => {
     });
     return bad;
   });
-  ok(grid.length === 0, '1 ilman tuntumaa arvo ja mittaus = entinen kaava (13 painoa × 0–20 toistoa): ' + JSON.stringify(grid.slice(0, 5)));
+  ok(grid.length === 0, '1 ilman tuntumaa arvo ja mittaus = entinen kaava (13 painoa × 1–20 toistoa; 0 toistoa ei pistettä): ' + JSON.stringify(grid.slice(0, 5)));
   const rec = await tp.evaluate(a => {
     const list = x => Object.keys(x).sort().map(d => ({ date: d, entry: x[d] }));
     return [JSON.stringify(window.__t.buildRecordsByName(list(a[0]))), JSON.stringify(window.__t.buildRecordsByName(list(a[1])))];
