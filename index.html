@@ -194,6 +194,7 @@
   .editor-form-fields{display:flex; gap:8px; margin-top:8px;}
   .editor-form-fields .ledger-input{flex:1; min-width:0;}
   .editor-form-hint{font-size:var(--fs-xs); color:var(--mist); margin-top:6px;}
+  .pick-field.locked{cursor:default; opacity:.75;}
   .editor-form-more{width:auto; padding:6px 2px; margin-top:4px;}
   .editor-form-extra{margin-top:8px; display:flex; flex-direction:column; gap:8px;}
   .editor-form-actions{display:flex; gap:8px; margin-top:12px;}
@@ -779,12 +780,15 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.22";
+  var APP_VERSION = "0.4.23";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-09-24", items: [
+      "Liikkeen nimen vaihto ohjelmassa ei enää koske tehtyjä liikkeitä (versio 0.4.23): valinta ”vaihda kaikissa” vaihtaa vain liikkeet, joita ei ole vielä merkitty tehdyiksi, ja tehdyt säilyvät nimineen ja merkintöineen ennallaan. Jo tehdyn liikkeen nimeä ei voi vaihtaa muokkaustilassa eikä kirjausnäkymän Vaihda-painikkeesta.",
+    ] },
     { date: "2026-09-19", items: [
       "Historiassa liikkeen voi siirtää toiselle päivälle (versio 0.4.22): avatun päivän liikkeen alla on Siirrä päivälle -painike, joka kysyy uuden päivän. Näin väärälle päivälle kirjatun treenin voi korjata liike kerrallaan; painoehdotukset, 1RM ja Kehitys lasketaan siirron jälkeen uudelleen, ja siirretty liike saa merkin korjattu.",
     ] },
@@ -4016,6 +4020,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var ex = findExerciseIn(d, ed.editingExercise);
       if(!ex){ editorCloseForm(); return; }
       var oldTeho = intensityToText(ex.intensity);
+      // Tehdyn liikkeen nimi on lukittu (lomakkeen nimikenttä on pois
+      // käytöstä; tämä on varmistus).
+      if(normalizeName(name) !== normalizeName(ex.name) && isExerciseLogged(ex)){ showToast(LOGGED_NAME_LOCKED_TEXT, 4000); return; }
       if(normalizeName(name) !== normalizeName(ex.name)){
         // Nimen muutos on sama asia kuin liikkeen vaihto: uusi id, jotta vanha
         // merkintä jää historiaan vanhalla nimellä.
@@ -4224,6 +4231,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     for(var i=0;i<rows.length;i++){ if(!rows[i].done) return false; }
     return true;
   }
+  var LOGGED_NAME_LOCKED_TEXT = "Liike on jo merkitty tehdyksi, joten sen nimeä ei voi vaihtaa.";
   function isExerciseLogged(ex){
     // Liike on merkitty tehdyksi riippumatta siltä, minä päivänä se on
     // tallennettu — vuorokauden vaihtuminen ei saa "unohtaa" jo tehtyä treeniä.
@@ -4249,11 +4257,6 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       for(var j=0;j<list.length;j++){ if(list[j].id === id) return true; }
     }
     return false;
-  }
-  function programExerciseOccurrences(name){
-    // Sama liike toistuu tyypillisesti joka viikolla, joten vaihto voi koskea
-    // yhtä kohtaa tai kaikkia saman nimisiä.
-    return exerciseOccurrencesIn(state.program, name);
   }
   async function swapProgramExercise(id){
     // Ohut kääre: lukee lomakkeen kentät ja jättää varsinaisen vaihtologiikan
@@ -4296,15 +4299,34 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     do { exerciseIdCounter++; id = "ex-" + stamp + "-" + exerciseIdCounter; } while(findExerciseIn(program, id));
     return id;
   }
+  // Vaihdon kohteet: valittu liike ja kaikkien viikkojen valinnalla muut
+  // saman nimiset, mutta vain ne, joita ei ole merkitty tehdyiksi
+  // (isExerciseLogged: tallennettu merkintä liikkeen id:llä). Ohjelman
+  // muutos ei saa koskea tehtyyn liikkeeseen: uusi id irrottaisi sen
+  // merkinnästä ja se näkyisi tekemättömänä uudella nimellä. Muokkaustilan
+  // luonnos on syväkopio samoilla id:illä, joten sama tarkistus toimii
+  // molemmissa. Valitun liikkeen oma tila tarkistetaan kutsujassa.
+  function swapTargetsIn(program, id, allOccurrences){
+    var ex = findExerciseIn(program, id);
+    if(!ex) return [];
+    if(!allOccurrences) return [ex];
+    return exerciseOccurrencesIn(program, ex.name).filter(function(o){ return o.id === id || !isExerciseLogged(o); });
+  }
+  // Tehdyt esiintymät, joita kaikkien viikkojen vaihto ei koske (valinnan
+  // selitettä varten).
+  function loggedOccurrencesIn(program, name){
+    return exerciseOccurrencesIn(program, name).filter(function(o){ return isExerciseLogged(o); });
+  }
   // Puhdas ydin liikkeen vaihdolle: asettaa uuden nimen ja uuden id:n
-  // annetussa ohjelmassa, joko yhdelle kohdalle tai kaikille saman nimisille.
-  // Uusi id on välttämätön: vanhaan id:hen sidottu tämän päivän merkintä ei
-  // saa siirtyä uudelle liikkeelle, vaan jää historiaan vanhalla nimellään.
-  // Palauttaa vaihdetun liikkeen uuden id:n. Ei tallenna eikä piirrä.
+  // annetussa ohjelmassa, joko yhdelle kohdalle tai kaikille saman nimisille
+  // tekemättömille (swapTargetsIn). Uusi id on välttämätön: vanhaan id:hen
+  // sidottu merkintä ei saa siirtyä uudelle liikkeelle, vaan jää historiaan
+  // vanhalla nimellään. Palauttaa vaihdetun liikkeen uuden id:n. Ei tallenna
+  // eikä piirrä.
   function applyExerciseSwap(program, id, newName, allOccurrences){
     var ex = findExerciseIn(program, id);
     if(!ex) return null;
-    var targets = allOccurrences ? exerciseOccurrencesIn(program, ex.name) : [ex];
+    var targets = swapTargetsIn(program, id, allOccurrences);
     var newId = null;
     targets.forEach(function(target){
       var targetId = newExerciseId(program);
@@ -4342,7 +4364,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       render();
       return;
     }
-    var targets = allWeeks ? programExerciseOccurrences(oldName) : [ex];
+    // Tehdyn liikkeen nimi on lukittu (Vaihda-painiketta ei piirretä sille;
+    // tämä on varmistus).
+    if(isExerciseLogged(ex)){ state.swapExercise = null; showToast(LOGGED_NAME_LOCKED_TEXT, 4000); render(); return; }
+    var targets = swapTargetsIn(state.program, id, allWeeks);
     targets.forEach(function(target){
       // Vanhan id:n väliaikainen tila siivotaan ennen id:n vaihtoa.
       delete state.draftSets[target.id];
@@ -7499,7 +7524,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "Ohjelmaa voi muokata ilman uutta tuontia: Ohjelma-välilehden kynäkuvakkeesta (tai Asetusten Ohjelma-osiosta) avautuu muokkaustila, jossa voit lisätä, poistaa, kopioida ja järjestää viikkoja, treenipäiviä ja liikkeitä sekä nimetä viikot ja päivät. Rakenne etenee tasoittain: viikkolistasta avataan viikko, viikosta päivä ja päivästä liikkeet; takaisin-painike palaa ylemmälle tasolle. Viikon ja päivän toiminnot (kopioi, poista, aloita uudelleen) ovat ruudun ⋮-valikossa ja liikkeen poisto lomakkeessa. Muutokset tallentuvat vasta \"Valmis\"-painikkeesta; \"Peruuta\" hylkää ne."
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Aloita uudelleen</b> merkitsee kohteen liikkeet tekemättömiksi — koko ohjelman, viikon, päivän tai yhden liikkeen. Historia ja painoehdotukset säilyvät, koska ne on sidottu liikkeen nimeen.",
-      "Liikkeen <b style=\"color:var(--chalk);\">nimen muuttaminen</b> toimii kuten \"Vaihda liike toiseksi\": aiemmat merkinnät jäävät Historiaan vanhalla nimellä. Valinnan mukaan muutos koskee kaikkia saman liikkeen esiintymiä, myös kopioituja viikkoja.",
+      "Liikkeen <b style=\"color:var(--chalk);\">nimen muuttaminen</b> toimii kuten \"Vaihda liike toiseksi\": aiemmat merkinnät jäävät Historiaan vanhalla nimellä. Valinnan mukaan muutos koskee kaikkia saman liikkeen tekemättömiä esiintymiä, myös kopioituja viikkoja; jo tehdyiksi merkityt säilyvät nimineen ja merkintöineen ennallaan. Tehdyn liikkeen nimeä ei voi vaihtaa.",
       "Sarjojen, toistojen, yksikön tai tehon muuttaminen nimeä muuttamatta säilyttää liikkeen ennallaan — myös jo tehty merkintä pysyy tehtynä.",
       "<b style=\"color:var(--chalk);\">Sarjat ja toistot</b> kirjataan lomakkeessa samalla näppäimistöllä kuin Ohjelma-näkymässä: Seuraava siirtyy Sarjoista Toistoihin ja sulkee Toistoista, nuoli sulkee milloin tahansa. Yksikkö ja teho kirjoitetaan laitteen näppäimistöllä.",
       "<b style=\"color:var(--chalk);\">Liikkeen tunnistus:</b> liikkeen nimi näkyy vihreänä, kun se on sama kuin liikepankissa tai liikehistoriassa, jolloin painoehdotukset ja Kehitys jatkuvat vanhoista tiedoista. Messinkinen nimi ja huomioteksti kertovat, ettei nimeä tunnistettu — liike lisätään uutena. Valitse silloin nimi liikelistasta, jos tarkoitat jo tunnettua liikettä."
@@ -8865,7 +8890,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '</div>' +
       renderVolumeRow(ex, ex.id) +
       '<div class="ledger-footer">' +
-      (isProgramExercise(ex.id) ? '<button class="btn-secondary btn-sm btn-auto" data-swap-open data-id="' + ex.id + '" type="button" aria-label="Vaihda liike toiseksi">' + icon("muokkaa", 16) + '<span>Vaihda</span></button>' : '') +
+      (isProgramExercise(ex.id) && !isExerciseLogged(ex) ? '<button class="btn-secondary btn-sm btn-auto" data-swap-open data-id="' + ex.id + '" type="button" aria-label="Vaihda liike toiseksi">' + icon("muokkaa", 16) + '<span>Vaihda</span></button>' : '') +
       (allDone ? "" : '<span class="sr-only" id="' + saveHintId + '">Merkitse jokainen sarja valmiiksi ennen tallennusta.</span>') +
       '<button class="btn-primary btn-sm ledger-save-btn" data-save-ex data-id="' + ex.id + '" type="button"' + (allDone ? "" : ' disabled aria-describedby="' + saveHintId + '"') + '>Tallenna merkintä</button>' +
       '</div>' +
@@ -9021,10 +9046,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   }
   // Vaihtopaneeli; avauspainike "Vaihda" on kirjauskortin alarivillä
   // (renderLedger), joten suljetussa tilassa ei piirretä mitään.
+  // Kaikkien viikkojen valinnan selite tehdyistä esiintymistä.
+  function swapLoggedNote(n){
+    return n ? " — " + plural(n, "tehty säilyy", "tehtyä säilyy") + " ennallaan" : "";
+  }
   function renderSwapExercise(ex){
-    if(!isProgramExercise(ex.id)) return "";
+    if(!isProgramExercise(ex.id) || isExerciseLogged(ex)) return "";
     if(state.swapExercise !== ex.id) return "";
-    var occurrences = programExerciseOccurrences(ex.name).length;
+    // Kaikkien viikkojen vaihto koskee vain tekemättömiä esiintymiä.
+    var occurrences = swapTargetsIn(state.program, ex.id, true).length;
+    var loggedCount = loggedOccurrencesIn(state.program, ex.name).length;
     var html = '<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">' +
       '<p style="color:var(--mist); font-size:var(--fs-sm); line-height:1.5; margin:0 0 10px;">Korvaa <b style="color:var(--chalk);">' + escapeHtml(ex.name) + '</b> toisella liikkeellä. Sarjat, toistot ja teho säilyvät ennallaan. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä.</p>';
     // Teholiikkeillä (MAX/prosentti) säilyy entinen vapaa tekstikenttä; muille
@@ -9043,7 +9074,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var allWeeksChecked = guided ? (state.variantPicker.allWeeks !== false) : true;
       html += '<label style="display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--mist); font-size:var(--fs-sm); cursor:pointer;">' +
         '<input type="checkbox" id="swap-all-weeks"' + (allWeeksChecked ? " checked" : "") + ' style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
-        'Vaihda kaikissa viikoissa (' + occurrences + ' kohtaa)</label>';
+        'Vaihda kaikissa tekemättömissä kohdissa (' + occurrences + ' kohtaa)' + swapLoggedNote(loggedCount) + '</label>';
     }
     return html + '<div style="display:flex; gap:8px; margin-top:12px;">' +
       '<button class="btn-secondary" data-swap-cancel type="button">Peruuta</button>' +
@@ -9123,7 +9154,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function renderExerciseForm(ex){
     var ed = state.editor;
     var f = ed.form || { name:"", sets:"", reps:"", unit:"", teho:"" };
-    var occ = ex ? exerciseOccurrencesIn(state.programDraft, ex.name).length : 0;
+    // Kaikkien viikkojen valinta koskee vain tekemättömiä esiintymiä, ja
+    // tehdyn liikkeen oma nimi on lukittu (swapTargetsIn).
+    var occ = ex ? swapTargetsIn(state.programDraft, ex.id, true).length : 0;
+    var loggedOcc = ex ? loggedOccurrencesIn(state.programDraft, ex.name).length : 0;
+    var nameLocked = !!(ex && isExerciseLogged(ex));
     // Nimi valitaan aina liikevalitsimesta (pohjalevy), ei kirjoiteta
     // lomakkeeseen: kenttänä on painike, joka avaa listan. Näin katalogin ja
     // historian nimet ovat tarjolla myös laitteilla, joilla datalist ei
@@ -9136,8 +9171,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var more = !!ed.formMore;
     return '<div class="exercise editor-form" style="padding:12px 14px; border-color:var(--brass); margin-bottom:10px;">' +
       '<div class="editor-form-kicker">' + escapeHtml(kicker) + '</div>' +
-      '<button type="button" class="ledger-input pick-field' + (hasName ? "" : " empty") + '" data-open-sheet="liike" data-editor-name aria-label="' + (hasName ? "Liikkeen nimi: " + escapeHtml(f.name) + ". Valitse liikelistasta" : "Valitse liike liikelistasta") + '">' +
-      '<span class="pick-field-text' + (formRecog ? (formRecog.status !== "unknown" ? " name-known" : " name-unknown") : "") + '">' + (hasName ? escapeHtml(f.name) : "Valitse liike") + '</span>' + icon("haku", 20) + '</button>' +
+      (nameLocked
+        ? '<button type="button" class="ledger-input pick-field locked" data-editor-name disabled aria-describedby="editor-name-locked">' +
+          '<span class="pick-field-text' + (formRecog ? (formRecog.status !== "unknown" ? " name-known" : " name-unknown") : "") + '">' + escapeHtml(f.name) + '</span></button>' +
+          '<div class="editor-form-hint" id="editor-name-locked">' + escapeHtml(LOGGED_NAME_LOCKED_TEXT) + '</div>'
+        : '<button type="button" class="ledger-input pick-field' + (hasName ? "" : " empty") + '" data-open-sheet="liike" data-editor-name aria-label="' + (hasName ? "Liikkeen nimi: " + escapeHtml(f.name) + ". Valitse liikelistasta" : "Valitse liike liikelistasta") + '">' +
+          '<span class="pick-field-text' + (formRecog ? (formRecog.status !== "unknown" ? " name-known" : " name-unknown") : "") + '">' + (hasName ? escapeHtml(f.name) : "Valitse liike") + '</span>' + icon("haku", 20) + '</button>') +
       // Tunnistuksen tila heti nimen alla, jotta valinnan vaikutus näkyy ennen tallennusta.
       (formRecog ? (formRecog.status !== "unknown"
         ? '<div class="recognition-ok" data-form-recognition="' + formRecog.status + '">Tunnistettu: ' + escapeHtml(formRecog.label) + '</div>'
@@ -9158,10 +9197,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           (ex && ex.autoCalc === false ? '<div style="color:var(--mist); font-size:var(--fs-xs);">' + noAutoCalcReason(ex) + '</div>' : '') +
           '</div>'
         : '') +
-      (ex && occ > 1
+      (ex && !nameLocked && occ > 1
         ? '<label style="display:flex; align-items:center; gap:8px; margin-top:10px; color:var(--mist); font-size:var(--fs-sm); cursor:pointer;">' +
           '<input type="checkbox" id="editor-swap-all"' + (ed.swapAll ? " checked" : "") + ' style="width:18px; height:18px; accent-color:var(--brass); flex-shrink:0;">' +
-          'Jos nimi muuttuu, vaihda kaikissa viikoissa (' + occ + ' kohtaa)</label>'
+          'Jos nimi muuttuu, vaihda kaikissa tekemättömissä kohdissa (' + occ + ' kohtaa)' + swapLoggedNote(loggedOcc) + '</label>'
         : '') +
       (adding
         ? '<div class="editor-form-actions">' +
