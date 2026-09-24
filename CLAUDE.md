@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.23 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.24 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -64,8 +64,9 @@ PDF-tuonnista (`parseTarget` "2xCluster"; `attachDefinitions` poimii
 selitteestä viitetoistot `clusterRefRepsFromText`-apurilla: "N toiston
 maksimi" tai "NRM"), CSV-tuonnista (`ALIASES.kind` = Tyyppi/Kind/Menetelmä,
 arvo `cluster`; sarakkeen puuttuessa sana cluster huomautuksessa, viitetoistot
-huomautuksesta samalla apurilla) ja varmuuskopiosta (`Tyyppi`-sarake ja uusi
-viimeinen `Viitetoistot`-sarake ohjelmarivillä; luetaan vain täytettynä).
+huomautuksesta samalla apurilla) ja varmuuskopiosta (`Tyyppi`-sarake ja
+`Viitetoistot`-sarake ohjelmarivillä, 0.4.24 alkaen toiseksi viimeisenä ennen
+`1RM-pohja`-saraketta; luetaan vain täytettynä).
 `ensureProgramShape` ei lisää `kind`-kenttää: puuttuva = tavallinen liike.
 
 Sarjariville tuli valinnainen `subsets` (osasarjojen lukumäärä), jota
@@ -583,12 +584,101 @@ ohjelmasarakkeita luetaan yhdeksi ohjelmaksi.
 — sama sääntö kaikissa lukupaikoissa. Vienti kirjoittaa nimen ohjelman
 kirjoitusasussa (`maxExerciseNames()`), tuonti lukee sen takaisin samalla
 trim+toLowerCase-säännöllä, joten kierros on tarkka kirjoitusasusta riippumatta.
-`mergeManualMax()` ohittaa liikkeen, jolla on jo arvo laitteella: vanhemman
-varmuuskopion palautus ei saa laskea tuoreempaa 1RM:ää huomaamatta. Sama
-"jo olemassa oleva voittaa" -sääntö on merkinnöillä ja omilla liikkeillä.
+`mergeManualMax()` lisää laitteelta puuttuvan arvon ja korvaa olemassa olevan
+vain, kun varmuuskopion `Päivitetty`-päivä on laitteen arvon päivää
+myöhäisempi (0.4.24; ks. 1RM-pohja-osio): vanhemman varmuuskopion palautus ei
+saa laskea tuoreempaa 1RM:ää huomaamatta. Merkinnöillä ja omilla liikkeillä
+on yhä "jo olemassa oleva voittaa" -sääntö.
 `importEntriesData()` kutsuu vain `rebuildTrackersForName()`, ei
 `rebuildManualMaxForName()`:ia, joten merkintöjen tuonti ei ylikirjoita juuri
 palautettuja 1RM-arvoja.
+
+## 1RM-pohja, 1RM-luettelo ja varmuuskopion 1RM (toteutettu, 0.4.24)
+
+Käyttäjän kehote 24.9.2026 (neljä muutosta). "Tee muutos kopioon" tulkittiin
+työhaaraksi: alkuperäinen tiedosto säilyy main-haarassa (0.4.23).
+
+**1RM-pohja.** Liikkeen valinnainen `ex.maxRef` on toisen liikkeen nimi, jonka
+1RM:stä prosenttiteho lasketaan. `maxRefOf(ex)` palauttaa viitteen vain
+prosenttiteholla (ei MAX, ei tehoton, ei liikkeen oma nimi), muuten "";
+`oneRepMaxKeyFor(ex)` on `state.manualMax`-avain, jota tehon ehdotus käyttää
+(viite tai oma nimi, trim+toLowerCase). Käyttöpaikat: `buildDraftRows`
+teho-haara (`autoCalcInfo.refName` vain viitteellä), `autoCalcHint` ("Paino
+70 % 1RM-pohjan ”X” 1RM:stä (100 kg)."), `renderNoMaxHint` ("Liikkeelle ”X”
+(1RM-pohja) ei ole vielä 1RM-arvoa…"), `renderCalcInfo`-varasyy ja
+simuloinnin prosenttipainot. MAX (`saveExerciseLog`,
+`rebuildManualMaxForName`) käyttää ja päivittää aina omaa nimeä. Kenttä
+asetetaan vain täytettynä ja on liikeolion viimeinen avain:
+`parseProgramCSV` (`ALIASES.maxRef` = 1rm-pohja, 1rm pohja, 1rm-viite, 1rm
+viite, 1rm base, 1rm ref — jokainen alkaa "1rm" + tarkenne, jottei
+osittaistäsmäys osu esim. "1RM (kg)"-sarakkeeseen, eikä mikään vanha alias
+sisälly niihin), varmuuskopion `#OHJELMA`-osion uusi viimeinen sarake
+`1RM-pohja` (`backupProgramRows`, `parseBackupProgram`; vanha versio ohittaa
+sarakkeen, testattu 0.4.23:lla) ja muokkaustilan lomake. Viite on nimi:
+viitatun liikkeen nimen vaihto ei päivitä viittauksia, samoin kuin 1RM-arvo
+jää vanhalle nimelle.
+
+Lomake: `ed.form.maxRef`, `formMore` avautuu myös, kun viite on asetettu.
+`.editor-form-extra` sisältää tehokentän jälkeen `.editor-maxref`-rivin:
+`.pick-field[data-open-sheet="liike"][data-pick-target="maxRef"][data-editor-maxref]`
+("1RM-pohja: X" / "1RM-pohja (valinnainen)", `aria-describedby`
+`#editor-maxref-hint`; selitteen luokka on `.editor-maxref-hint`, ei
+`.editor-form-hint`, jonka `test_rakentaja_2.js` lukee esitäytön vihjeenä) ja asetettuna `[data-editor-maxref-clear]` "Tyhjennä"
+(tyhjentää kentän ja fokusoi valitsinkentän). `blankEditor().pickTarget`
+("name" | "maxRef") asetetaan `[data-open-sheet]`-käsittelijässä
+`data-pick-target`-attribuutista ja `editorOpenForm`-kutsussa arvoon "name";
+pohjalevyn otsikko on silloin "Valitse 1RM-pohja", `.pick-current` ja
+"Muokkaa nimeä" käyttävät viitettä, `[data-pick-exercise]` kirjoittaa
+`form.maxRef`-kenttään ja `closeSheet` palauttaa fokuksen
+`[data-editor-maxref]`-kenttään. `editorSaveForm` asettaa tai poistaa
+`ex.maxRef`-kentän (id säilyy). Lisää asetuksia -painikkeen teksti ennallaan
+(testi `test_rakentaja_2.js` lukee sen).
+
+`refreshMaxDrafts()` rakentaa teholiikkeiden jo olemassa olevat luonnokset
+uudelleen (ei dirty, ei tallennettu — sama sääntö kuin avauksessa), jotta
+ehdotus seuraa 1RM:n muutosta heti myös leveän asettelun avoimessa
+paneelissa: kutsutaan `#save-max-btn`-, `[data-delete-max]`- ja
+`[data-adopt-max]`-käsittelijöissä sekä palautuksessa, kun 1RM-arvoja lisättiin
+tai päivitettiin.
+
+**1RM-luettelo.** `oneRepMaxRows()` kokoaa rivit avaimella: käytössä olevan
+ohjelman teholiikkeet (MAX ja prosentti), viitatut liikkeet ja tallennetut
+`state.manualMax`-avaimet; `own` = omaa 1RM:ää käytetään, `refs` = liikkeen
+prosenttisarjojen 1RM-pohjat. Pelkkää pohjaa käyttävä rivi (`!own`) on ilman
+omaa arvoa, poistoa ja käyttöönottopainiketta, ja `.max-row-note` kertoo
+"Käyttää liikkeen ”X” (100 kg) 1RM:ää"; jos samaa liikettä käytetään myös
+omalla 1RM:llä (esim. MAX-testi), rivillä on oma arvo ja selite
+"Prosenttisarjat käyttävät …", mutta ei käyttöönottopainiketta (kehotteen
+sanamuoto: ei painiketta liikkeille, joilla on 1RM-pohja). Tyhjä luettelo:
+"Ei teholiikkeitä".
+`maxExerciseNames()` on vain viennin kirjoitusasua varten ennallaan.
+
+**Kehityksen arvio.** `loadMaxEstimates()` (kutsutaan 1RM-osion avauksessa
+`[data-settings-section]`- ja `[data-open-settings]`-poluilla,
+`state.maxEstimates = null` ensin) laskee `buildAllOneRepMaxSeries` +
+`computeProgress` (`current`, `currentDate`) Kehityksen liikeavaimella, joten
+variaatiot yhdistyvät kuten Kehityksessä ja cluster- ja yhdistelmämerkinnät
+jäävät pois; piirtää uudelleen vain, jos osio on yhä auki. `maxEstimateFor(name)`
+= `state.maxEstimates[kehitysKeyFor(name).norm]`. `.max-estimate` (rivin
+levyinen alarivi) näytetään, kun arvio poikkeaa tallennetusta (tai arvoa ei
+ole): "Kehityksen arvio 110 kg (12.9.)" ja rivillä, jolla ei ole 1RM-pohjaa
+(`refs` tyhjä), `[data-adopt-max][data-name][data-weight]` "Käytä N kg", N =
+`floorToStep(arvio, 2.5)`, vain kun N > 0 ja poikkeaa tallennetusta.
+Käsittelijä tallentaa `{ weight: N, date: todayISO() }`. Ei automaattista
+käyttöönottoa.
+
+**Varmuuskopion 1RM.** `parseBackupManualMax` jättää puuttuvan päivän
+tyhjäksi (aiemmin tämä päivä, jolloin päivätön arvo olisi näyttänyt uusimmalta).
+`mergeManualMax` → `{ added, updated, skipped }`: puuttuva lisätään (päivä
+`isIsoDate`-tarkistettuna, muuten tämä päivä), olemassa oleva korvataan vain,
+kun molemmat päivät ovat VVVV-KK-PP ja varmuuskopion päivä on myöhäisempi
+(sama päivä ohitetaan). Ilmoitus: "1RM-arvot (lisätty 2, päivitetty 1,
+ohitettu 1)" aina, kun tiedostossa oli 1RM-osio; `renderRestoreConfirm`,
+Varmuuskopio-osion ja Ohjeen tekstit kertovat säännön. Testi:
+`tests/test_1rm_pohja.js` (kehotteen tarkistustilanteet: 70 kg ja 102,5 → 72,5
+kapeana ja leveänä, puuttuva pohjan 1RM, MAX ennallaan, CSV sarakkeella,
+ilman ja aliaksella, varmuuskopion kierros ja vanha muoto, päiväyhdistäminen,
+luettelo ja arvio, muokkaustilan valinta, poisto ja uusi liike, axe).
 
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
@@ -1249,7 +1339,7 @@ merkinnällä yhden lauseen "Ei dataa" -rivien sijaan.
 Tyhjät tilat ovat yksi komponentti `renderEmptyState(iconName, title, body,
 actionsHtml, compact)` (`.empty-state`): Historia ja Kehitys ilman merkintöjä
 (`goToProgramButton()`, `data-tab="ohjelma"`), tyhjä viikko Ohjelma-näkymässä
-(toiminto `[data-edit-program]`), 1RM-lista ilman MAX-liikkeitä ja tabletin
+(toiminto `[data-edit-program]`), 1RM-lista ilman teholiikkeitä ja tabletin
 liikepaneeli ilman avattua liikettä. `.empty` jää lataustilojen tekstille.
 
 Painallustila on CSS:ssä: kaikilla kosketuskohteilla on lyhyt siirtymä ja

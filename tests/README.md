@@ -39,6 +39,7 @@ hakemistoon eivätkä kuulu versionhallintaan.
 | `test_rakentaja_3.js` | Muokkaustilan tasoittainen navigointi (0.4.21) |
 | `test_history_move.js` | Historian liikkeen siirto toiselle päivälle (0.4.22) |
 | `test_swap_done.js` | Liikkeen nimen vaihto ei koske tehtyjä liikkeitä (0.4.23) |
+| `test_1rm_pohja.js` | 1RM-pohja, 1RM-luettelo ja Kehityksen arvio, varmuuskopion 1RM-yhdistäminen päivämäärän mukaan (0.4.24) |
 
 Aiempien versioiden testit (esim. `test_cluster.js`, `test_rir.js`,
 `test_editor.js`), joihin CLAUDE.md viittaa, eivät ole repossa.
