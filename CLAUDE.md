@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.25 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.26 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -693,7 +693,9 @@ main-haarassa (0.4.24).
 lasketaan neljänä) ja puuttuvalle tuntumalle 0 — ei `tuntumaToRir`-funktion
 `TARGET_RIR`-oletusta, joka muuttaisi koko tuntumattoman historian arviot.
 `buildAllOneRepMaxSeries`: sarjalle `rir = reps >= 1 ? oneRepMaxRir(rpe) : 0`
-(nollan toiston sarjan tuntuma ohitetaan, muuten 0 + Raskas olisi "mittaus"),
+(nollan toiston sarjan tuntuma ohitetaan, muuten 0 + Raskas olisi "mittaus";
+0.4.26 alkaen alle yhden toiston sarja ohitetaan kokonaan ja `rir =
+oneRepMaxRir(rpe)`, ks. MAX-rivin 1RM -osio),
 `effReps = reps + rir`, arvio `weight × (1 + effReps/30)` — sama lauseke
 kuin ennen, kun rir on 0, joten roundToStep-rajatapaukset eivät muutu —,
 mittaus kun `effReps === 1` (sinkku äärirajoilla tai ilman tuntumaa; muulla
@@ -725,12 +727,69 @@ CHANGELOG, Ohjeen kohdat 3 (Tuntuma ehdotuksessa), 4 (1RM-välilehti) ja 6
 (Liikkeiden 1RM) sekä README päivitetty. Testi: `tests/test_1rm_tuntuma.js`
 (funktiot suoraan kutsumalla: sivulle tarjoillaan reitityksessä index.html,
 jonka sulkeuman loppuun on lisätty `window.__t`; kehotteen tilanteet,
-tuntumattoman arvon vertailu entiseen kaavaan 13 painolla × 0–20 toistolla,
+tuntumattoman arvon vertailu entiseen kaavaan 13 painolla × 1–20 toistolla
+(0.4.26 alkaen 0 toistoa ei tuota pistettä),
 ennätykset tuntumalla ja ilman, kortin ja käyrän selitteet, 1RM-luettelon
 Käytä ja varmuuskopion kierros). Kehitysvaiheessa ajettiin lisäksi
 vertailu vanhaan versioon 260 päivän satunnaishistorialla (ei repossa):
 tuntumatta kaikki arvot, kortin luvut, muutos, Pysähtynyt ja
 progressiotavoite identtiset.
+
+## MAX-rivin 1RM ja nollan toiston sarjat (toteutettu, 0.4.26)
+
+Käyttäjän kehote 24.9.2026: epäonnistuneet ja tekemättä jääneet sarjat
+kirjataan nollalla toistolla, eikä niistä saa tulla 1RM:ää. "Tee muutos
+kopioon" tulkittiin kuten aiemmin työhaaraksi (`claude/1rm-estimate-rpe-wmjccs`
+käynnistettiin uudelleen mainista, koska 0.4.25:n PR #96 oli yhdistetty);
+alkuperäinen 0.4.25 säilyy main-haarassa.
+
+`heaviestSuccessfulLift(sets)` (heti `saveExerciseLog`-funktion edellä) on
+MAX-rivin 1RM-säännön ainoa toteutus: raskain sarja, jossa `done !== false`,
+paino > 0 ja toistot >= 1; 0, kun onnistunutta nostoa ei ole. `done !==
+false` eikä `done === true`, koska varmuuskopiosta ja simuloinnista tulleilla
+merkinnöillä kenttää ei ole (kirjausnäkymän rivillä se on aina totuusarvo).
+`saveExerciseLog`: MAX-haara (ei korjaus, ei cluster) käyttää apuria
+ensimmäisen sarjan painon (`sets[0].weight`, toistoista riippumatta) sijaan;
+arvo korvaa tallennetun kuten ennen ja saa päiväksi kirjauspäivän. Ilman
+onnistunutta nostoa `maxUnchanged` → ilmoitus "Merkintä tallennettu — 1RM
+ei muuttunut, koska onnistunutta nostoa ei ollut" (4,2 s), 1RM ennallaan,
+merkintä tallentuu normaalisti. Korjauspolusta (`correction`) poistettiin
+`rebuildManualMaxForName`-kutsu: kehotteen mukaan korjaus ei päivitä 1RM:ää,
+mutta koodi laski sen aiemmin korjauksen jälkeen uudelleen historiasta
+(0e41dac), jolloin vanhan merkinnän korjaus saattoi korvata tuoreemman,
+käsin asetetun tai Käytä-painikkeella otetun arvon ja uudella säännöllä
+pelkän epäonnistuneen MAX-historian korjaus olisi poistanut 1RM:n.
+`rebuildTrackersForName` korjauksessa ennallaan. `rebuildManualMaxForName`
+(Historian siirto ja simuloinnin sammutus) käyttää samaa apuria; `anyMax`
+erottaa tilanteet: ei yhtään MAX-merkintää → arvo poistetaan kuten ennen
+(simuloinnin siivous), MAX-merkintöjä mutta ei onnistunutta nostoa → arvo
+ennallaan. Huomio (ei korjattu, kehotteen ulkopuolella): `moveHistoryExercise`
+kutsuu `rebuildManualMaxForName`-funktiota myös muille kuin MAX-liikkeille,
+jolloin prosenttiliikkeen käsin asetettu 1RM poistuu siirrossa, koska
+MAX-merkintöjä ei ole.
+
+`buildAllOneRepMaxSeries` ohittaa sarjat, joissa toistoja on alle 1
+(`refReps >= 1` samassa ehdossa kuin paino > 0; sama sääntö kuin
+`buildRecordsByName`), joten päivä, jolla on vain nollan toiston sarjoja, ei
+tuota pistettä, eikä liike, jolla on vain niitä, näy Kehityksen listassa.
+Tuntuma (`oneRepMaxRir`), mittaus, pyöristys, `raw` ja tasatilannesääntö
+ennallaan. Muut 1RM-sarjan lukijat (kortti, käyrä, `fourWeekDelta`,
+Pysähtynyt ja progressiotavoite `buildAdherenceByName`, `loadMaxEstimates`)
+seuraavat ilman omaa muutosta. Painoehdotukset (nollan toiston sarja on yhä
+vajaa sarja), jumitunnistus, volyymi, ennätykset, varmuuskopion muoto sekä
+tallennetut merkinnät ja 1RM-arvot ennallaan.
+
+Tekstit: `autoCalcHint` (MAX, 1RM olemassa) ja `renderNoMaxHint` (MAX ilman
+1RM:ää) kertovat, että yrityksiä voi lisätä sarjoina (+ Sarja),
+epäonnistunut kirjataan nollalla toistolla ja 1RM:ksi tallentuu raskain
+onnistunut nosto; Ohjeen kohdat 3 (Liikkeellä on teho), 4 (1RM-välilehti)
+ja 6 (Liikkeiden 1RM), Asetusten 1RM-osion ohje, CHANGELOG ja README.
+Testi: `tests/test_max_nolla.js` (MAX-tallennus `saveExerciseLog`-kutsuin:
+180 × 1, 185 × 0 ja ilmoitus, 180 × 1 + 185 × 0, 175 × 1 + 180 × 1,
+merkitsemätön sarja, korjaus; siirto `moveHistoryExercise`-kutsulla;
+Kehityksen tilanteet 150 × 0, 150 × 0 + 140 × 3, Työläs 117,5; ennätykset;
+käyttöliittymän kirjaus, ohjetekstit, käyrä ja 1RM-luettelo);
+`test_1rm_tuntuma.js` odottaa nyt, ettei nollan toiston sarja tuota pistettä.
 
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
@@ -956,11 +1015,14 @@ se piirretään vain, kun liike on auki ja sarjat kirjataan siinä
 `renderSheet` piirtää otsikon "Painojen laskenta", liikkeen nimen
 tarkenteineen (`catalogPartsFor`) ja `renderCalcInfo(ex)`-lohkon:
 `renderMethodNote`, teholiikkeellä ilman ehdotusta `renderNoMaxHint` (joka
-maksimitestillä kertoo sarjan 1 tallentuvan 1RM:ksi — `saveExerciseLog`
-lukee 1RM:n sarjasta 1 — ja prosenttiliikkeellä selittää puuttuvan 1RM:n
+maksimitestillä neuvoo kirjaamaan jokaisen yrityksen omaksi sarjakseen ja
+epäonnistuneen nollalla toistolla — `saveExerciseLog` tallentaa 0.4.26
+alkaen raskaimman onnistuneen noston, ks. MAX-rivin 1RM -osio; aiemmin
+sarjan 1 — ja prosenttiliikkeellä selittää puuttuvan 1RM:n
 vain, kun `state.manualMax` ei sisällä liikettä, ei `autoCalc === false`
 -menetelmäliikkeelle) ja `autoCalcHint` (maksimitestin uusinta kertoo, että
-tulos korvaa nykyisen 1RM:n; lämmittelysäädön tila ja "Poista merkintä ja
+yrityksiä voi lisätä sarjoina, epäonnistunut kirjataan nollalla toistolla ja
+raskain onnistunut nosto korvaa nykyisen 1RM:n; lämmittelysäädön tila ja "Poista merkintä ja
 laske uudelleen" `[data-recalc]` ovat siinä, joten `[data-recalc]` on
 sulkutarkistuksen poikkeuslistassa `[data-close-sheet]`-käsittelijässä ja
 ikkuna päivittyy poiston jälkeen uuteen ehdotukseen). Kun mitään selitettä
@@ -1013,7 +1075,9 @@ haamutyylinen (läpinäkyvä, yhtenäinen line-strong-reunus). Testi:
 `test_volume_row.js` (kehotteen tapaukset 1–16 paitsi käsin lisätty liike,
 jolle ei ole syöttöpolkua; lepoajastin kytketään testissä pois
 `rest-timer-enabled`-avaimella, koska clusterin + avaa modaalin). Tallennuksen ilmoitus kertoo uuden
-1RM:n, kun tallennus nosti sitä eikä kyse ole korjauksesta. Tavoiterivi
+1RM:n, kun MAX-rivin tallennus päivitti sen eikä kyse ole korjauksesta, ja
+0.4.26 alkaen "Merkintä tallennettu — 1RM ei muuttunut, koska onnistunutta
+nostoa ei ollut", kun MAX-rivillä ei ollut onnistunutta nostoa. Tavoiterivi
 (`.exercise-target`) taivuttaa yksiköt (`plural`: "1 sarja · 1 toisto") ja
 ohittaa `notes`-tekstin, joka on sama kuin tehon teksti.
 
