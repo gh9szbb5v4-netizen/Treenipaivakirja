@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.27 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.31 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -537,6 +537,42 @@ aloita uutta lohkoa eikä vaikuta duplikaattitunnisteeseen) ja
 `rebuildTrackersForName()` rakentaa `lastSet`-lämmittelyt. Vanha tiedosto
 ilman L-rivejä tuodaan ennallaan.
 
+Merkintäosion sarakkeet ovat Päivämäärä, Liike, Sarja, Paino (kg), Toistot,
+Huomiot, Tyyppi, Tunniste, Tuntuma, Osasarjat ja 0.4.29 alkaen viimeisenä
+**Kevennys** (kevennys-sarja 2/4). `deloadBackupText(data)` kirjoittaa
+merkinnän jokaiselle riville (myös L-riveille) tyhjän (ei kevennystä),
+`automaattinen` (`deload: true` ilman lajia tai muulla lajilla) tai
+`pyydetty` (`deloadKind: "pyydetty"`), ja `deloadFromBackupText(raw)`
+lukee arvon takaisin (`{ deload: true }`, `{ deload: true, deloadKind:
+"pyydetty" }` tai `null` tyhjälle ja tuntemattomalle arvolle, kirjainkoosta
+riippumatta). Molemmat ovat heti `exportAllCSV`-funktion edellä.
+`parseEntriesCSV` hakee sarakkeen `findCol(["kevennys"])`; `findCol`
+täsmää myös osamerkkijonoon, ja tarkistuksen tulos: yksikään muu hakusana
+("päivämäärä", "paivamaara", "date", "pvm", "liike", "exercise",
+"harjoitus", "sarja", "set", "paino", "weight", "kg", "toistot",
+"toistoa", "reps", "huomiot", "huomio", "notes", "kommentti", "tyyppi",
+"kind", "tunniste", "tuntuma", "osasarjat", "subsets") ei sisälly sanaan
+"kevennys", eikä "kevennys" sisälly muihin otsikoihin. Lohko saa lipun
+(`deload`, `deloadKind`) ensimmäiseltä tunnistetulta riviltä
+`startsNew`-käsittelyn jälkeen ja ennen L-rivin `return`-lausetta;
+sarake ei vaikuta lohkon rajaan. `importEntriesData` kirjoittaa uuteen
+merkintään `deload: true` ja `deloadKind` vain, kun lohkolla on lippu,
+joten tiedosto ilman saraketta tuottaa saman olion kuin ennen.
+Kaksoistunniste ei sisällä kevennystä, joten laitteella jo olevaa
+merkintää ei muuteta. `rebuildTrackersForName` kantaa `deload`-lipun
+`lastSet`-ketjuun ja 0.4.30 alkaen myös `deloadKind`-kentän (ks. Pyydetty
+kevennys). `test_warmup_suggest.js` vertaa varmuuskopion merkintärivit
+0.4.29 alkaen Kevennys-sarakkeen kanssa. `unwrapExcelBackupText` purkaa Excelin yhteen soluun
+tallentaman rivin kenttiin osion otsikkorivin kenttämäärän mukaan eikä
+oleta kiinteää sarakemäärää, joten uusi sarake ei vaatinut siihen
+muutoksia (testattu). Vanha sovellusversio ohittaa tuntemattoman
+sarakkeen. Testi: `tests/test_kevennys_2.js` (vienti, palautus tyhjälle
+laitteelle, palautetun kevennyksen vaikutus A2:n ehdotukseen 90 ja 90,
+vanha tiedosto ilman saraketta → 80 ja 80 kuten ennen, tuntematon arvo
+"kyllä", Excel-muoto, kaksoistunniste "(ohitettu 4 jo olemassa
+olevaa)" ja Muutokset; kehitysvaiheessa ajettu myös 0.4.28:aa vastaan:
+15 epäonnistumista, mm. palautuksen jälkeen 80 ja 80).
+
 `intensityToText()` kirjoittaa tehon takaisin samaan muotoon, josta
 `parseIntensity()` sen lukee, jotta `intensity`-olio syntyy uudelleen samana.
 `parseBackupProgram()` asettaa valinnaiset PDF-kentät (`method`, `perSet`,
@@ -849,6 +885,311 @@ varmuuskopion L-rivi; Ohje ja Muutokset). Kehitysvaiheessa testi ajettiin
 myös 0.4.26:ta vastaan ilman apufunktio-osiota: 17 epäonnistumista, mm.
 tapauksen 1 L1 120 × 5, L2 87,5 × 5 ja L3 115 × 3 kuten käyttäjän
 havainnossa.
+
+## Kevennysmerkintä uudelleentallennuksessa (toteutettu, 0.4.28, kevennys-sarja 1/4)
+
+Käyttäjän kehote 6.10.2026. Työ tehtiin haaraan `claude/kevennys-sarja`,
+joka haarautettiin 0.4.27:n haarasta `claude/warmup-ascending-set`
+(0.4.27 ei ollut vielä main-haarassa). Virhe: jumitunnistuksen kevennys
+tallentuu merkintään (`deload: true`) ja `lastSet`-ketjuun (`pushLastSet`),
+ja lippu estää uuden automaattisen kevennyksen kolmeksi kerraksi
+(`buildDraftRows`, `flagged`), mutta se katosi, kun jo tallennettu liike
+avattiin samana päivänä uudelleen ja tallennettiin. Syy: `saveExerciseLog`
+säilytti tallennetun merkinnän `deload`-tiedon vain korjauksessa
+(`correction`, toinen päivä). Saman päivän uudelleentallennus ei ole
+korjaus, ja `openExerciseForLogging` palauttaa luonnoksen tallennetusta
+merkinnästä tyypillä `autoCalcInfo = { type: "saved" }` ilman
+`plateau`-kenttää, joten `wasDeload` oli false ja kirjoittui merkintään ja
+`pushLastSet`-kutsulla `lastSet`-ketjun päällimmäiseen kertaan
+(`old.date === date` korvaa sen). Seuraava kerta ehdotti heti uutta
+kevennystä (kehotteen tilanteessa 90 → 80 kg), ja Historian
+kevennys-merkki katosi.
+
+Korjaus: `deloadForSave(logged, calcInfo)` (heti `saveExerciseLog`-funktion
+edellä, puhdas) palauttaa `{ deload }`: kun `logged && logged.data` on
+olemassa (sama päivä tai korjattava päivä), `!!logged.data.deload`, muuten
+`!!(calcInfo && calcInfo.plateau)`. Ehto on `logged` eikä `correction`,
+koska `exerciseLogIndex`-rivi on olemassa vain jo tallennetulla liikkeellä
+ja uusi kirjaus toiselle päivälle vaatii ensin "Poista merkintä ja laske
+uudelleen" (`[data-recalc]` poistaa rivin). Paluuarvo on olio, koska
+kevennys-sarjan kehote 3 lisää siihen kentän `deloadKind` (lisätty 0.4.30,
+ks. Pyydetty kevennys).
+`saveExerciseLog` kutsuu `deloadForSave(logged, calcInfo)` ja käyttää
+`deloadInfo.deload`-arvoa kuten ennen `wasDeload`-arvoa (merkinnän
+`deload` ja `pushLastSet`-kutsun neljäs argumentti). `plan`-kentän
+säilytysehto `(correction || calcInfo.type === "saved") && existingPlan`
+ennallaan (toimi jo). Jo menetettyjä kevennyslippuja ei palauteta (tietoa
+ei ole jäljellä); varmuuskopion kevennyssarake, pyydetty kevennys ja
+Kehityksen käsittely kuuluvat sarjan kehotteisiin 2–4, eikä
+jumitunnistuksen sääntöihin koskettu. Ohjeen lause "Kevennyskerran jälkeen
+on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta" pitää nyt
+paikkansa myös uudelleentallennuksen jälkeen, eikä Ohjetta muutettu.
+CHANGELOG-kohta lisättiin saman päivän (6.10.) ryhmän ensimmäiseksi,
+koska ryhmät ovat päiväkohtaisia.
+
+Testi: `tests/test_kevennys_1.js` (`deloadForSave` suoraan kutsuen;
+kehotteen tapaukset 1–5: lastSet 30.9. 100 × 8, 26.9. 100 × 9 ja 22.9.
+100 × 10 antaa kevennyksen 90 ja 90 sekä "kevennys −10 kg", tallennus
+90 × 9, saman päivän uudelleentallennus luonnoksesta "saved" (merkintä,
+lastSet, prior ja Historian kevennys-merkki), 9.10. uusi rivi A2 samalla
+nimellä antaa 90 ja 90 sekä "ehdotus sama paino", tavallinen liike 80 × 8
+antaa 82,5 ilman kevennystä kahdella tallennuksella ja
+`plan.suggestedWeight` 82,5, korjaus 1.10. merkintään säilyttää
+kevennyksen, `editedAt`, toistot ja `plan`). Kehitysvaiheessa testi
+ajettiin myös 0.4.27:ää vastaan ilman `deloadForSave`-osiota: 5
+epäonnistumista (uudelleentallennus false merkinnässä ja lastSet-
+ketjussa, Historian merkki puuttuu, 9.10. 80 ja 80 sekä "kevennys −10
+kg").
+
+## Pyydetty kevennys (toteutettu, 0.4.30, kevennys-sarja 3/4)
+
+Käyttäjän kehote 6.10.2026. Kevennys oli aiemmin vain reaktiivinen
+(jumitunnistus); nyt käyttäjä voi pyytää kevennyksen yksittäiselle
+liikkeelle. Pyydetty kevennys on palautumiskerta: sen jälkeen palataan
+kevennystä edeltäneelle tasolle, eikä sitä käytetä seuraavan ehdotuksen
+viitekertana (100 × 10 Työläs, pyydetty kevennys 90 × 10 Kevyt →
+seuraavaksi 102,5 kg eikä 95 kg). Jumikevennyksen kerta on sen sijaan
+tarkoituksella seuraavan ehdotuksen viitekerta (nollaus).
+
+**Tietomalli.** `DELOAD_KIND_REQUESTED = "pyydetty"` (`DELOAD_FACTOR`-
+vakion vieressä). Merkintä ja `lastSet`-kerta (päällimmäinen ja prior)
+saavat valinnaisen `deloadKind`-kentän vain, kun `deload === true` ja laji
+on pyydetty; puuttuva laji tarkoittaa jumitunnistuksen kevennystä. Kehotteen
+2 `deloadBackupText` ja `deloadFromBackupText` käyttävät vakiota
+(sarakearvo pysyy merkkijonona "pyydetty"). Työsarjarivi saa luonnoksessa
+apukentän `deloadFrom` (alkuperäinen `base`); rivin oliot tallentuvat
+merkintään sellaisinaan kuten `base` ja `adjusted`. Tila
+`state.deloadRequest` (liikkeen id → true) ja `state.deloadFlag`
+(tallennetun merkinnän id → true/false, jälkikäteinen merkintä) ei
+tallennu.
+
+**Apufunktiot** (`nonClusterSession`-funktion edellä):
+`isRequestedDeloadSession(sess)` (lastSet-kerta tai merkintä),
+`deloadReferenceSession(last)` (ensimmäinen kerta ketjusta `[last,
+...prior]`, joka ei ole pyydetty kevennys; kaikki pyydettyjä → `last`,
+jolloin ehdotus ei jää tyhjäksi; ilman `last`-arvoa null),
+`applyRequestedDeload(rows)` (rivi, jolla `done === false`, `base` > 0, ei
+`deloadFrom`-kenttää ja `weight === base`: `deloadFrom = base`, `base =
+weight = floorToStep(base × DELOAD_FACTOR)`, vähintään `WEIGHT_STEP`;
+`base` muuttuu tarkoituksella, jotta `suggestWarmup` sovittaa lämmittelyt
+kevennettyyn painoon), `removeRequestedDeload(rows)` (tekemätön rivi:
+`weight === base` → `weight = deloadFrom`, aina `base = deloadFrom`; tehty
+rivi pitää painonsa; `deloadFrom` poistetaan), `deloadEligibleExercise(ex)`
+(ei yhdistelmä-, teho- eikä cluster-liike, `autoCalc !== false`),
+`canRequestDeload(ex)` (kelpoinen, tallentamaton ja `autoCalcInfo`
+tyyppiä "formula" ilman `plateau`-tietoa: historiattomalla liikkeellä
+ehdotusta ei ole, ja jumikevennyksen kanssa kevennys kertautuisi 81 %:iin)
+ja `canFlagDeload(ex)` (kelpoinen, tallennettu, luonnos "saved" eikä
+merkintä ole automaattinen kevennys, koska jumitunnistus nojaa sen
+lippuun).
+
+**Viitekerta ja jumitunnistuksen ketju.** `buildDraftRows`-kaavahaarassa
+`last = nonClusterSession(...)` säilyy jumitunnistuksen ketjuna
+sellaisenaan, ja sarjakohtainen silmukka käyttää `ref =
+deloadReferenceSession(last)` (`ref.sets`; tyhjä → `last`). Jumitunnistuksen
+koodi (`last.prior`, `sessions`, `flagged`, `maxes`) ja `HISTORY_DEPTH`
+ovat ennallaan: jumitunnistus käyttää koko ketjua, joten syvyyden muutos
+pidentäisi sen ikkunaa, ja pyydetty kevennys ketjussa asettaa
+`flagged`-arvon, joten jumikevennystä ei voi syntyä, kun `ref !== last`, ja
+kevennystä seuraavat kolme kertaa ovat suojassa kuten automaattisen
+kevennyksen jälkeen. `autoCalcInfo` "formula": `date: ref.date` (selitteen
+viitekerta) ja `skippedDeloadDate: last.date`, kun `ref !== last`. Kun
+`state.deloadRequest[id]` on päällä, funktio kutsuu ennen paluuta
+`applyRequestedDeload(formulaRows)` ja asettaa `requestedDeload: true`,
+`weightBeforeDeload` ja `weight = floorToStep(suggestedMax ×
+DELOAD_FACTOR)`; jumikevennyksen kanssa pyyntö poistetaan. Näin jokainen
+uudelleenrakennus (avaus, liikkeen vaihto, 1RM-muutos) tuottaa saman
+kevennetyn tuloksen.
+
+**Kytkin ja jälkikäteinen merkintä.** `renderDeloadControl(ex)` (heti
+`renderCalcInfo`-funktion edellä; kutsutaan `autoCalcHint`-funktion
+jälkeen). Kun `canRequestDeload`: `.calc-hint` ja `btn-secondary btn-sm
+btn-auto` "Kevennä tämä kerta (−10 %)" (`data-request-deload data-id
+aria-pressed="false"`), päällä "**Kevennys pyydetty** — tekemättömät
+sarjat −10 %. Kerta ei vaikuta seuraavan kerran ehdotukseen eikä
+1RM-arvioon." ja "Peru kevennys" (`aria-pressed="true"`). Kun
+`canFlagDeload`: "Merkintä on kevennys." tai "Merkintä ei ole kevennys."
+(`state.deloadFlag[id]`, muuten tallennettu `deload`), painike "Poista
+kevennysmerkintä" tai "Merkitse kevennykseksi" (`data-flag-deload
+data-id`) ja lisärivi "Muutos tallentuu Tallenna merkintä
+-painikkeesta.", kun tila poikkeaa tallennetusta. `[data-request-deload],
+[data-flag-deload]` ovat pohjalevyn sulkutarkistuksen poikkeusluettelossa:
+muuten tarkistus palaa `return`-lauseella, kun napautus osuu taustan
+sisälle, eikä käsittelijä suoritu. Käsittelijät ovat ennen
+`[data-recalc]`-käsittelijää. Pois (`requestedDeload`):
+`removeRequestedDeload(workRows(id))`, pyyntö pois, `requestedDeload =
+false`, `weight = weightBeforeDeload` ja lopuksi `applyWarmupAdjustment(id)`.
+Päälle (`canRequestDeload`): lämmittelysäätö puretaan ensin (`adjusted`-
+rivit takaisin `base`-arvoon ja `adjusted` pois kaikilta riveiltä,
+`warmupAdjust` pois), koska säädetyillä riveillä `weight !== base` ja ne
+jäisivät keventämättä; sitten pyyntö, `applyRequestedDeload`,
+`weightBeforeDeload` ja kevennetty `weight`. Molemmissa `dirtySets` ja
+`render()`; luonnosta ei rakenneta uudelleen, koska se pyyhkisi tehdyt
+sarjat. `[data-flag-deload]` kääntää `state.deloadFlag[id]`-arvon
+(lähtöarvona tallennettu `deload`).
+
+**Lämmittely.** `applyWarmupAdjustment` palaa alkuehdon jälkeen heti
+(`warmupAdjust` pois), kun pyyntö on päällä: kumpikaan haara
+(työsarjatasoinen lämmittely tai vertailudata) ei säädä työsarjoja, koska
+kevyeltä tuntunut tai kevennettyä työsarjaa raskaampi lämmittely nostaisi
+kevennetyt painot takaisin. Lämmittelyehdotus lasketaan kevennetystä
+`base`-arvosta (L1 35 × 8, ilman pyyntöä 40 × 8).
+
+**Tallennus.** `deloadForSave(logged, calcInfo, id, ex)` → `{ deload,
+deloadKind }`. Tallennettu merkintä: sen `deload` ja laji (laji vain
+kevennyksellä), paitsi kun `state.deloadFlag[id]` on asetettu ja
+`canFlagDeload(ex)`: silloin `deload` on lippu ja laji pyydetty tai null.
+Uusi kirjaus: `deload = plateau || requestedDeload` ja laji pyydetty vain,
+kun `requestedDeload` ilman `plateau`-tietoa. `saveExerciseLog` kirjoittaa
+merkintään `deloadKind`-kentän, kun se on asetettu, välittää sen
+`pushLastSet`-kutsun kuudentena argumenttina ja poistaa onnistuneen
+tallennuksen jälkeen `state.deloadRequest[id]` ja `state.deloadFlag[id]`.
+`plan.suggestedWeight` on kevennetty paino, koska `buildPlanForExercise`
+lukee `calcInfo.weight`-arvon (funktioon ei koskettu).
+`pushLastSet(norm, sets, date, deload, warmups, deloadKind)` kirjoittaa
+lajin uudelle kerralle (`deload && deloadKind`) ja aiemman kerran kopioon
+(`old.deload && old.deloadKind`). `rebuildTrackersForName` kantaa lajin
+`found`-alkioon (vain `data.deload`-merkinnällä), päällimmäiseen kertaan ja
+prior-kertoihin, jottei korjaus, Historian siirto tai varmuuskopion
+palautus muuta pyydettyä kevennystä automaattiseksi (se kelpaisi taas
+viitekerraksi).
+
+**Nollaus.** `state.deloadRequest = {}; state.deloadFlag = {};` lisättiin
+jokaiseen `state.draftSets = {}` -kohtaan. Koodista tarkistettu, että
+kohtia on viisi: `applyImportedProgram` (ohjelman vaihto),
+`changeLogDate` (päivämäärän vaihto), `applyBackupRestore`-funktion
+ohjelman vaihto, `importEntriesData` (varmuuskopion palautus ja
+merkintöjen tuonti) ja `resetAll` (tyhjennys). Kehotteen luettelossa
+mainittu simulointi ei nollaa luonnoksia (`runSimulation` ja
+`stopSimulation` eivät sisällä `state.draftSets = {}` -kohtaa), joten
+pyyntö säilyy simuloinnin yli kuten luonnoskin. Lisäksi
+`performExerciseSwap` (vanhan id:n kohdalla samassa kohdassa kuin
+`draftSets`, `dirtySets` ja `autoCalcInfo`) ja `[data-recalc]` (ennen
+luonnoksen uudelleenrakennusta) poistavat liikkeen pyynnön ja merkinnän.
+
+**Tekstit.** `suggestionDeltaText`: `plateau || requestedDeload` →
+"kevennys −10 kg" (vertailukohta viitekerran suurin paino
+`perSet.prevWeight`). `autoCalcHint` kaavateksti: perusteiden perään "
+Pyydetty kevennys 6.10. ohitettu viitekertana.", kun `skippedDeloadDate`;
+selitteen päivä on jo viitekerran päivä. Ohjeen kohta 3 sai kappaleen
+"Pyydetty kevennys" (mistä pyydetään, −10 % tekemättömistä ja
+muokkaamattomista sarjoista, ei MAX-, prosentti- eikä cluster-liikkeille,
+ohitetaan viitekertana, estää jumikevennyksen kolmeksi kerraksi,
+lämmittelysäätö ei toimi kevennyksen aikana, jälkikäteinen merkintä).
+CHANGELOGin esimerkkiin lisättiin "kevyt" (90 kg × 10 kevyt), koska 95 kg
+syntyy vain Kevyt-tuntumalla (ilman tuntumaa 92,5 kg). README:n
+Sarjapainojen laskenta -osio sai kappaleen "Pyydetty kevennys". Kehityksen
+käsittely (1RM-arvio, toteutuminen, viikkopylväät) tehtiin 0.4.31:ssä (ks.
+Pyydetty kevennys Kehityksessä).
+
+**Testi.** `tests/test_kevennys_3.js` (kehotteen tapaukset 1–14 sekä Ohje
+ja Muutokset; tapauksen 3 kevennyskerta kirjattiin tuntumalla Kevyt kuten
+taustan esimerkissä). `test_kevennys_1.js`:n `deloadForSave`-tarkistukset
+odottavat nyt paluuarvoa `{ deload, deloadKind }`.
+
+## Pyydetty kevennys Kehityksessä (toteutettu, 0.4.31, kevennys-sarja 4/4)
+
+Käyttäjän kehote 6.10.2026. Pyydetty kevennys (`deloadKind`
+`DELOAD_KIND_REQUESTED`, ks. edellinen osio) on tehtyä työtä mutta ei
+suorituskyvyn mittaus: volyymi lasketaan kaikkialla ennallaan, mutta
+1RM-arvio, ennätykset ja progressio jättävät kerran pois, 1RM-käyrä näyttää
+päivän kevennysmerkillä, eikä pyydetty kevennys tee viikosta
+kevennysviikkoa. Tausta: Kevyt lasketaan neljäksi varatoistoksi, vaikka se
+tarkoittaa "neljä tai enemmän", joten kevennyskerran RIR-korjattu
+Epley-arvio on järjestelmällisesti liian matala (90 × 10 Kevyt → 132,5 kg,
+100 × 10 Työläs → 140 kg), eikä neljän viikon paras-sääntö suojaa tauon
+jälkeen, koska jakso päättyy viimeisimpään merkintään. Automaattisen
+kevennyksen (`deload` ilman lajia) käsittely on täsmälleen ennallaan.
+
+**Piste säilyy, mutta merkitään.** `buildAllOneRepMaxSeries` laskee
+merkinnän arvon kuten ennen ja antaa pisteelle kentän `excluded`
+(`isRequestedDeloadSession(data)`). Saman päivän toinen merkintä (esim.
+variaatio tai sama liike kahdesti ohjelmassa): kun piste on `excluded` ja
+uusi merkintä ei, uusi korvaa `value`, `raw`, `set` ja `measured` ja
+`excluded` nollautuu; samaa lajia olevista voittaa entinen parempi-sääntö;
+tavallista pistettä pyydetty kevennys ei muuta. `deload` ja `at`
+päivittyvät kuten ennen. Arvo ei riipu merkintöjen järjestyksestä
+(tavallisten merkintöjen paras, tai niiden puuttuessa kevennysten paras).
+Pistettä ei poisteta, koska käyrän kevennysmerkki (`markers`) luetaan
+pisteestä, ja liike, jolla on vain kevennyskertoja, putoaisi Kehityksen
+listalta (`computeProgress` → null) ja avoin liikenäkymä sulkeutuisi
+`loadKehitys`-kutsussa.
+
+**Apufunktiot** (`bestWithin`-funktion yläpuolella):
+`oneRepMaxPerformancePoints(points)` = pisteet ilman `excluded`-pisteitä
+(suorituskykypisteet) ja `oneRepMaxValuePoints(points)` =
+suorituskykypisteet tai, jos niitä ei ole, kaikki pisteet (sama
+taulukko-olio, jota `renderOneRepMaxChart` vertaa viittauksena). Käyttö:
+
+- arvopisteet: `computeProgress` ja `fourWeekDelta` (ensimmäinen lause
+  `points = oneRepMaxValuePoints(points)`; kortin luku, ruudukko,
+  Ennätykseen-ruutu, kortin selitteet, liikelistan arvo ja muutos sekä
+  `loadMaxEstimates`-arvio seuraavat ilman omaa muutosta), liikelistan
+  sparkline (`kehitysListRowsHtml`) ja 1RM-käyrän "paras 4 vk" -viiva
+  (`renderOneRepMaxChart`: `bestWithin(valuePts, …)`, tyhjällä jaksolla
+  viimeisin arvopiste ennen päivää, vasta sitten piste itse);
+- suorituskykypisteet: `buildAdherenceByName`-funktion progressiotavoite
+  (kevennyspäivälle ei ole pistettä, joten seuraava kerta verrataan
+  kevennystä edeltäneeseen) ja Pysähtynyt;
+- kaikki pisteet: käyrän piirrettävät pisteet, katkoviiva (päivän arvio) ja
+  kevennysmerkit (`f.points`), liikelistan päivämäärä (`lastPt` =
+  viimeinen treenipäivä) ja kortin ruudukon ehto `item.points.length < 2`.
+
+Käyrän selite: `excluded`-pisteen perään " · pyydetty kevennys" ja lisäksi
+", ei 1RM-arvioon", kun `valuePts !== points` eli liikkeellä on muitakin
+kuin pyydettyjä kevennyksiä. Seuraus: kortin "Viimeisin treeni" -selite
+kertoo viimeisimmän muun kuin pyydetyn kevennyksen (tauon jälkeisessä
+tapauksessa selitettä ei ole, koska se on sama kuin paras), mutta
+liikelistan päivämäärä kevennyspäivän.
+
+**Toteutuminen ja ennätykset.** `buildAdherenceByName`: `reqDeload =
+isRequestedDeloadSession(data)`; `lastSessionByNorm` päivitetään vain
+muulla kuin pyydetyllä kevennyksellä, joten `inferPlan` ei päättele
+seuraavan kerran ehdotusta kevennyskerrasta (merkinnät ilman
+`plan`-kenttää: ennen 0.4.0:aa kirjatut ja varmuuskopiosta palautetut;
+sama sääntö kuin painoehdotuksen `deloadReferenceSession`); ehdotettu paino
+ja progressiotavoite lasketaan vain, kun `!reqDeload`; sarjat ja
+toistotavoite lasketaan kevennyskerralle kuten ennen, ja kerta on
+Toteutumisen taulukossa (progressio "–"). Seuraus: merkinnät ilman
+`plan`-kenttää ja ohjelman liikettä, joiden ainoa ehdotettu paino tai
+progressio tuli kevennyskerrasta, himmentävät Toteutuminen-välilehden
+(kehotteen tapaus 1, odotettu; oikeilla merkinnöillä `plan.sets` pitää sen
+aktiivisena). `buildRecordsByName` ohittaa pyydetyn kevennyksen
+cluster-ohituksen vieressä ennen liikkeen alkion luontia, joten liike,
+jolla on vain kevennyksiä, on ilman ennätyksiä ja välilehti himmenee.
+
+**Viikkopylväät.** `buildWeeklySummary`: `wk.deload` vain, kun
+`data.deload === true && data.deloadKind !== DELOAD_KIND_REQUESTED`.
+Kevennysviikko tarkoittaa jumitunnistuksen kevennystä, joka koskee
+ohjelman jumittunutta kohtaa; yksittäisen liikkeen pyydetty kevennys ei
+väritä pylvästä eikä tuo "kevennys"-selitettä (`renderWeekBars`,
+`renderWeekBarsLabels` ennallaan). Historian päiväkortin merkki
+(`historyDayBadges`) on ennallaan, koska se kertoo päivän merkinnöistä eikä
+viikon luonteesta.
+
+**Rajaus.** Ennallaan: automaattisen kevennyksen käsittely,
+`ONE_REP_MAX_WINDOW_DAYS`, volyymilaskenta (`buildVolumeByName`,
+`buildTotalWeightSeries`, viikkokortin luvut), vaivalokin analyysi,
+Historia ja Toteutumisen taulukon ulkoasu. Ei tehty: kevennyskerran omaa
+vertailua edelliseen kevennykseen.
+
+**Tekstit.** CHANGELOG (kehotteen esimerkki, johon lisättiin Asetusten
+1RM-luettelon arvio ja vain kevennyksiä sisältävän liikkeen poikkeus), Ohjeen
+kohdan 4 1RM-kappale (pyydetty kevennys ei vaikuta arvioon eikä
+vertailuihin mutta näkyy käyrässä; poikkeus, volyymi ja viikkopylväät) ja
+kohdan 6 Liikkeiden 1RM -rivin poissulkemisluettelo ("pyydetyt kevennykset"
+ensimmäisenä, koska `test_max_nolla.js` lukee loppuosan sanamuodon "cluster-
+merkinnät ja nollan toiston sarjat pois lukien") sekä README (kappale
+"Pyydetty kevennys Kehityksessä" Kehitys-kortin luvun jälkeen, viittaus
+Pyydetty kevennys -kappaleessa ja viikkopylväiden kevennysviikko).
+
+**Testi.** `tests/test_kevennys_4.js`: apufunktiot ja saman päivän
+yhdistäminen suoraan kutsuen (`window.__t`), kehotteen tapaukset 1–8
+käyttöliittymän kautta kiinteällä kellolla (9.10. tai 1.10.2026) sekä Ohje
+ja Muutokset; lisäksi tapauksessa 3 ehdotettu paino 0 / 1 (päätelty
+suunnitelma kevennystä edeltäneestä kerrasta) ja liikelistan sparkline
+arvopisteistä. 0.4.30:ta vastaan testi toisti kehotteen "nyt"-arvot (25
+epäonnistumista; tapaus 4, ennätysten tapaus 1 ja volyymi kunnossa).
 
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
@@ -1652,6 +1993,10 @@ tonnage, sets, reps; yhdistelmillä tonnage 0), `buildWeeklySummary`
 (kerta = merkintä; sarjat vs. `plan.sets`, toistotavoite, ehdotettu paino,
 progressiotavoite 1RM-pisteestä ≥ edellinen × `PROGRESSION_COEFFICIENT`;
 `stalled` = vähintään neljä pistettä ja kolme viimeisintä kukin ≤ edeltävä;
+0.4.31 alkaen pyydetty kevennys ohitetaan ehdotetusta painosta,
+progressiosta, päätellystä suunnitelmasta ja ennätyksistä, ja progressio ja
+`stalled` käyttävät `oneRepMaxPerformancePoints`-pisteitä, ks. Pyydetty
+kevennys Kehityksessä;
 teho- ja yhdistelmäliikkeet ohitetaan progressiosta ja pysähtymisestä,
 teholiikkeet tunnistetaan nykyisestä ohjelmasta `programIntensityNorms()`).
 `buildAdherenceSummary` summaa `ADHERENCE_WINDOW_DAYS` (28) päivän kerrat ja
@@ -1712,7 +2057,8 @@ Liikelistan otsikko on yhä "Liikkeet" + lukumäärä erillisinä span-
 elementteinä (rivin sisältö kuuluu Kehitys-sarjan kehotteeseen 2).
 
 `buildWeeklySummary` antaa viikolle `deload: true`, kun jonkin merkinnän
-`data.deload === true` (kenttä on jo merkinnässä, `saveExerciseLog`).
+`data.deload === true` (kenttä on jo merkinnässä, `saveExerciseLog`) ja
+0.4.31 alkaen laji ei ole pyydetty (ks. Pyydetty kevennys Kehityksessä).
 `renderWeekBars(weekly, idx)` piirtää Viikko-korttiin `stat-grid`-ruudukon
 jälkeen ja ennen `[data-toggle-week-exercises]`-painiketta SVG:n
 (`viewBox 0 0 300 48`, `role="img"`, `aria-label="Viikkovolyymi 12
@@ -1735,7 +2081,9 @@ lukee aseman vasta `scrollIntoViewIfNeeded`-kutsun jälkeen).
 funktion perässä, puhdas): `current` = `bestWithin(points, latest.date, 28)`
 (sama luku kuin `progress.current`), `past` = paras jaksolta, joka päättyy
 `latest.date − 28` päivää, tai viimeisin arvo ennen sitä; `past === null` →
-ei muutosriviä. `kehitysListRowsHtml` käyttää sitä `renderDeltaValue`-
+ei muutosriviä. 0.4.31 alkaen `fourWeekDelta`, `computeProgress` ja
+sparkline lukevat arvopisteitä (pyydetyt kevennykset pois, ks. Pyydetty
+kevennys Kehityksessä). `kehitysListRowsHtml` käyttää sitä `renderDeltaValue`-
 kutsussa (aiemmin viimeisin vs. edellinen piste, jolloin kevyt päivä värjäsi
 rivin punaiseksi). `renderSparkline(points, muted)`: 8 viimeistä pistettä,
 `viewBox 0 0 64 24`, `x = 2 + i/(n−1)·60`, `y = 22 − …·20`, samat arvot →
@@ -1869,7 +2217,11 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
 - `ONE_REP_MAX_WINDOW_DAYS = 28`: Kehityksen 1RM:n liukuvan jakson pituus.
   Lyhyempi jakso reagoi nopeammin mutta pudottaa lukua pelkkien kevyiden
   viikkojen jälkeen; kahdeksan viikkoa vastaisi tavallista maksimien
-  testausväliä.
+  testausväliä. 0.4.31 alkaen jakso lasketaan arvopisteistä
+  (`oneRepMaxValuePoints`): pyydetyt kevennykset eivät ole jaksolla, ja
+  jakso päättyy viimeisimpään muuhun kuin pyydettyyn kevennykseen, joten
+  tauon jälkeinen pyydetty kevennys ei pudota lukua (ks. Pyydetty kevennys
+  Kehityksessä). Automaattinen kevennys on jaksolla kuten ennen.
 - `PROGRESSION_COEFFICIENT = 1.0125`: painoehdotuksen tavoiteltu kehitys
   per treenikerta.
 - `TUNTUMA_RIR = { kevyt: 4, sujuva: 3, tyolas: 2, raskas: 1, aarirajoilla: 0 }`
@@ -1917,11 +2269,19 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   `prior`-taulukon (enintään kaksi aiempaa kertaa, uusin ensin) sekä
   `deload: true` -lipun kevennyskerralle (`pushLastSet`,
   `rebuildTrackersForName` rakentaa saman merkinnöistä, merkinnässä
-  `deload`). Jumitunnistus `buildDraftRows`-funktiossa: kolme kertaa ilman
+  `deload`; `saveExerciseLog` saa arvon `deloadForSave`-apurilta: uusi
+  kirjaus jumitunnistuksesta, jo tallennetun merkinnän saman päivän
+  uudelleentallennus ja korjaus merkinnän omasta tiedosta, 0.4.28 alkaen,
+  ks. Kevennysmerkintä uudelleentallennuksessa). 0.4.30 alkaen kevennys
+  on myös käyttäjän pyytämä (`deloadKind` `DELOAD_KIND_REQUESTED`, ks.
+  Pyydetty kevennys): sarjakohtainen ehdotus lasketaan viitekerrasta
+  `deloadReferenceSession(last)`, joka ohittaa pyydetyt kevennykset, mutta
+  jumitunnistus käyttää koko ketjua `last` ennallaan. Jumitunnistus
+  `buildDraftRows`-funktiossa: kolme kertaa ilman
   maksimipainon nousua (`maxes[0] <= maxes[viimeinen]`) ja vaje
   viimeisimmässä (`anyShortfall`) → `autoCalcInfo.plateau` ja jokaiselle
   sarjalle kevennys perSet-tilaan `"deload"`; ei laukea, jos jokin kolmesta
-  kerrasta oli kevennys. Vaje ja kevennys noudattavat samaa tuntumasääntöä
+  kerrasta oli kevennys (automaattinen tai pyydetty, sama `flagged`-sääntö). Vaje ja kevennys noudattavat samaa tuntumasääntöä
   kuin ehdotus, sarjakohtaisesti:
   - ilman tuntumaa (perSet-tila `"near"` tai `"missed"`): vaje =
     `prevReps < targetReps`, kevennys `floorToStep(prevWeight ×

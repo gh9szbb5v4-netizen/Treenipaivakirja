@@ -340,8 +340,9 @@ async function download(page){
   await page.click('[data-settings-section="varmuuskopio"]'); await w(600);
   const backup = await download(page);
   const lines = backup.split('\n').filter(l => l.indexOf('"' + TODAY + '"') === 0);
-  ok(lines.length === 2 && lines[0] === '"' + TODAY + '","' + SQUAT + '","1","92.5","5","","plain","r1","",""' &&
-    lines[1] === '"' + TODAY + '","' + SQUAT + '","L1","42.5","8","","plain","r1","Työläs",""', '10 varmuuskopion L1-rivi: ' + JSON.stringify(lines));
+  // Sarakkeet Osasarjoihin asti; 0.4.29 alkaen viimeisenä Kevennys (tässä tyhjä).
+  ok(lines.length === 2 && lines[0] === '"' + TODAY + '","' + SQUAT + '","1","92.5","5","","plain","r1","","",""' &&
+    lines[1] === '"' + TODAY + '","' + SQUAT + '","L1","42.5","8","","plain","r1","Työläs","",""', '10 varmuuskopion L1-rivi: ' + JSON.stringify(lines));
 
   console.log('=== 11 tekstit: Ohje ja Muutokset');
   // Asetusten alinäkymässä ei ole logoriviä (?-painiketta), joten ensin Ohjelmaan.
@@ -353,7 +354,8 @@ async function download(page){
   await page.click('[data-tab="asetukset"]'); await w(450);
   await page.click('[data-settings-section="muutokset"]'); await w(500);
   const muutokset = await page.evaluate(() => document.querySelector('main').textContent);
-  ok(muutokset.indexOf('Sovelluksen versio 0.4.27') !== -1 && muutokset.indexOf('Lämmittelyehdotukset nousevat nyt aina kohti työpainoa (versio 0.4.27)') !== -1, '11 versio ja Muutokset-merkintä 0.4.27');
+  // Vain muutoskoosteen kohta: sovelluksen versionumero kasvaa myöhemmissä versioissa.
+  ok(muutokset.indexOf('Lämmittelyehdotukset nousevat nyt aina kohti työpainoa (versio 0.4.27)') !== -1, '11 Muutokset-merkintä 0.4.27');
 
   ok(errors.length === 0, 'ei sivuvirheitä: ' + JSON.stringify(errors));
   await browser.close();
