@@ -43,6 +43,7 @@ hakemistoon eivätkä kuulu versionhallintaan.
 | `test_1rm_tuntuma.js` | Kehityksen 1RM-arvio tuntuma huomioiden: laskenta funktioita suoraan kutsumalla, selitteet, 1RM-luettelon Käytä pyöristämättömästä arviosta, ennätykset ja varmuuskopion kierros (0.4.25) |
 | `test_max_nolla.js` | MAX-rivin 1RM raskaimmasta onnistuneesta nostosta, korjaus ei muuta 1RM:ää, nollan toiston sarjat pois Kehityksen 1RM-arviosta (0.4.26) |
 | `test_warmup_suggest.js` | Lämmittelyehdotuksen nouseva sarja: viime kerran lämmittelyt vain kokonaisena sarjana työpainojen suhteella 0,85–1,15, alaraja aiemmista lämmittelyriveistä, porrashaku ylöspäin, sekalähteen selite sekä regressiot (yhdistelmä- ja cluster-liike, lämmittelysäätö, tallennus, Historia, Kehitys, varmuuskopio) (0.4.27) |
+| `test_kevennys_1.js` | Kevennysmerkintä säilyy saman päivän uudelleentallennuksessa: jumikevennyksen tallennus, uudelleentallennus (merkintä, lastSet ja Historian merkki), seuraavan kerran ehdotus ilman uutta kevennystä, tavallinen liike, korjaus toiselle päivälle ja `deloadForSave` (0.4.28, kevennys-sarja 1/4) |
 
 Aiempien versioiden testit (esim. `test_cluster.js`, `test_rir.js`,
 `test_editor.js`), joihin CLAUDE.md viittaa, eivät ole repossa.

@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.27 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.28 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -849,6 +849,60 @@ varmuuskopion L-rivi; Ohje ja Muutokset). Kehitysvaiheessa testi ajettiin
 myös 0.4.26:ta vastaan ilman apufunktio-osiota: 17 epäonnistumista, mm.
 tapauksen 1 L1 120 × 5, L2 87,5 × 5 ja L3 115 × 3 kuten käyttäjän
 havainnossa.
+
+## Kevennysmerkintä uudelleentallennuksessa (toteutettu, 0.4.28, kevennys-sarja 1/4)
+
+Käyttäjän kehote 6.10.2026. Työ tehtiin haaraan `claude/kevennys-sarja`,
+joka haarautettiin 0.4.27:n haarasta `claude/warmup-ascending-set`
+(0.4.27 ei ollut vielä main-haarassa). Virhe: jumitunnistuksen kevennys
+tallentuu merkintään (`deload: true`) ja `lastSet`-ketjuun (`pushLastSet`),
+ja lippu estää uuden automaattisen kevennyksen kolmeksi kerraksi
+(`buildDraftRows`, `flagged`), mutta se katosi, kun jo tallennettu liike
+avattiin samana päivänä uudelleen ja tallennettiin. Syy: `saveExerciseLog`
+säilytti tallennetun merkinnän `deload`-tiedon vain korjauksessa
+(`correction`, toinen päivä). Saman päivän uudelleentallennus ei ole
+korjaus, ja `openExerciseForLogging` palauttaa luonnoksen tallennetusta
+merkinnästä tyypillä `autoCalcInfo = { type: "saved" }` ilman
+`plateau`-kenttää, joten `wasDeload` oli false ja kirjoittui merkintään ja
+`pushLastSet`-kutsulla `lastSet`-ketjun päällimmäiseen kertaan
+(`old.date === date` korvaa sen). Seuraava kerta ehdotti heti uutta
+kevennystä (kehotteen tilanteessa 90 → 80 kg), ja Historian
+kevennys-merkki katosi.
+
+Korjaus: `deloadForSave(logged, calcInfo)` (heti `saveExerciseLog`-funktion
+edellä, puhdas) palauttaa `{ deload }`: kun `logged && logged.data` on
+olemassa (sama päivä tai korjattava päivä), `!!logged.data.deload`, muuten
+`!!(calcInfo && calcInfo.plateau)`. Ehto on `logged` eikä `correction`,
+koska `exerciseLogIndex`-rivi on olemassa vain jo tallennetulla liikkeellä
+ja uusi kirjaus toiselle päivälle vaatii ensin "Poista merkintä ja laske
+uudelleen" (`[data-recalc]` poistaa rivin). Paluuarvo on olio, koska
+kevennys-sarjan kehote 3 lisää siihen kentän `deloadKind`.
+`saveExerciseLog` kutsuu `deloadForSave(logged, calcInfo)` ja käyttää
+`deloadInfo.deload`-arvoa kuten ennen `wasDeload`-arvoa (merkinnän
+`deload` ja `pushLastSet`-kutsun neljäs argumentti). `plan`-kentän
+säilytysehto `(correction || calcInfo.type === "saved") && existingPlan`
+ennallaan (toimi jo). Jo menetettyjä kevennyslippuja ei palauteta (tietoa
+ei ole jäljellä); varmuuskopion kevennyssarake, pyydetty kevennys ja
+Kehityksen käsittely kuuluvat sarjan kehotteisiin 2–4, eikä
+jumitunnistuksen sääntöihin koskettu. Ohjeen lause "Kevennyskerran jälkeen
+on kolme kertaa aikaa rakentaa ennen uutta kevennysehdotusta" pitää nyt
+paikkansa myös uudelleentallennuksen jälkeen, eikä Ohjetta muutettu.
+CHANGELOG-kohta lisättiin saman päivän (6.10.) ryhmän ensimmäiseksi,
+koska ryhmät ovat päiväkohtaisia.
+
+Testi: `tests/test_kevennys_1.js` (`deloadForSave` suoraan kutsuen;
+kehotteen tapaukset 1–5: lastSet 30.9. 100 × 8, 26.9. 100 × 9 ja 22.9.
+100 × 10 antaa kevennyksen 90 ja 90 sekä "kevennys −10 kg", tallennus
+90 × 9, saman päivän uudelleentallennus luonnoksesta "saved" (merkintä,
+lastSet, prior ja Historian kevennys-merkki), 9.10. uusi rivi A2 samalla
+nimellä antaa 90 ja 90 sekä "ehdotus sama paino", tavallinen liike 80 × 8
+antaa 82,5 ilman kevennystä kahdella tallennuksella ja
+`plan.suggestedWeight` 82,5, korjaus 1.10. merkintään säilyttää
+kevennyksen, `editedAt`, toistot ja `plan`). Kehitysvaiheessa testi
+ajettiin myös 0.4.27:ää vastaan ilman `deloadForSave`-osiota: 5
+epäonnistumista (uudelleentallennus false merkinnässä ja lastSet-
+ketjussa, Historian merkki puuttuu, 9.10. 80 ja 80 sekä "kevennys −10
+kg").
 
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
@@ -1917,7 +1971,11 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   `prior`-taulukon (enintään kaksi aiempaa kertaa, uusin ensin) sekä
   `deload: true` -lipun kevennyskerralle (`pushLastSet`,
   `rebuildTrackersForName` rakentaa saman merkinnöistä, merkinnässä
-  `deload`). Jumitunnistus `buildDraftRows`-funktiossa: kolme kertaa ilman
+  `deload`; `saveExerciseLog` saa arvon `deloadForSave`-apurilta: uusi
+  kirjaus jumitunnistuksesta, jo tallennetun merkinnän saman päivän
+  uudelleentallennus ja korjaus merkinnän omasta tiedosta, 0.4.28 alkaen,
+  ks. Kevennysmerkintä uudelleentallennuksessa). Jumitunnistus
+  `buildDraftRows`-funktiossa: kolme kertaa ilman
   maksimipainon nousua (`maxes[0] <= maxes[viimeinen]`) ja vaje
   viimeisimmässä (`anyShortfall`) → `autoCalcInfo.plateau` ja jokaiselle
   sarjalle kevennys perSet-tilaan `"deload"`; ei laukea, jos jokin kolmesta

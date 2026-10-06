@@ -791,13 +791,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.27";
+  var APP_VERSION = "0.4.28";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-10-06", items: [
+      "Kevennysmerkintä säilyy nyt, kun jo tallennettu liike tallennetaan samana päivänä uudelleen (versio 0.4.28). Aiemmin uudelleentallennus poisti merkinnän (myös Historian kevennys-merkin), jolloin seuraava kerta saattoi ehdottaa heti uutta 10 %:n kevennystä (esim. 90 kg → 80 kg) kevennyksen jälkeisen kolmen kerran rakennusajan sijaan.",
       "Lämmittelyehdotukset nousevat nyt aina kohti työpainoa (versio 0.4.27): jokainen uusi lämmittely on vähintään yhtä painava kuin edellinen ja kevyempi kuin työsarja. Viime kerran lämmittelyitä käytetään vain, kun työpaino on enintään 15 % eri kuin viime kerralla; suuremmalla muutoksella, esimerkiksi kun toistomäärä vaihtuu kahdeksasta yhteen, ehdotus tulee portaista 40 / 60 / 80 / 90 %. Jos muokkaat lämmittelyä painavammaksi, seuraava ehdotus jatkaa sen yläpuolelta, ja kun aiempien lämmittelyjen yläpuolella ei ole enää porrasta, uusi rivi jää tyhjäksi. Lämmittely-otsikon alla oleva selite kertoo nyt myös, kun ehdotukset tulevat osin viime kerrasta ja osin portaista.",
     ] },
     { date: "2026-09-24", items: [
@@ -5045,6 +5046,25 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return best;
   }
 
+  // Tallennettavan merkinnän kevennystieto { deload }. Jo tallennetun
+  // merkinnän uudelleentallennus — saman päivän uudelleentallennus tai toisen
+  // päivän korjaus — säilyttää merkinnän oman tiedon; vain uusi kirjaus saa
+  // sen ehdotuksen jumitunnistuksesta (calcInfo.plateau). Ennen versiota
+  // 0.4.28 vain korjaus säilytti tiedon: saman päivän uudelleentallennus ei
+  // ole korjaus, ja tallennetusta merkinnästä palautetun luonnoksen calcInfo
+  // on { type: "saved" } ilman plateau-kenttää, joten deload kirjoittui
+  // falseksi sekä merkintään että lastSet-ketjun päällimmäiseen kertaan, ja
+  // seuraava kerta saattoi ehdottaa heti uutta kevennystä. Tallennettu
+  // merkintä voittaa luonnoksen calcInfo-tiedon, koska exerciseLogIndex-rivi
+  // on olemassa vain jo tallennetulla liikkeellä ja uusi kirjaus toiselle
+  // päivälle vaatii ensin "Poista merkintä ja laske uudelleen" ([data-recalc]
+  // poistaa rivin): logged on siis aina juuri tämä merkintä. Paluuarvo on
+  // olio, jotta kevennyksen lisätiedot mahtuvat samaan paluuarvoon.
+  function deloadForSave(logged, calcInfo){
+    if(logged && logged.data) return { deload: !!logged.data.deload };
+    return { deload: !!(calcInfo && calcInfo.plateau) };
+  }
+
   async function saveExerciseLog(id){
     var ex = findExerciseById(id);
     if(!ex) return;
@@ -5071,10 +5091,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     var nowISO = new Date().toISOString();
     var prevLoggedAt = (correction && logged.data && logged.data.loggedAt) ? logged.data.loggedAt : null;
-    // Kevennystieto: uusi kirjaus saa sen ehdotuksen jumitunnistuksesta,
-    // korjaus säilyttää alkuperäisen merkinnän tiedon.
+    // Kevennystieto: uusi kirjaus saa sen ehdotuksen jumitunnistuksesta; jo
+    // tallennetun merkinnän uudelleentallennus samana päivänä ja korjaus
+    // toiselle päivälle säilyttävät merkinnän oman tiedon (deloadForSave).
     var calcInfo = state.autoCalcInfo[id];
-    var wasDeload = correction ? !!(logged.data && logged.data.deload) : !!(calcInfo && calcInfo.plateau);
+    var deloadInfo = deloadForSave(logged, calcInfo);
+    var wasDeload = deloadInfo.deload;
     // Suunnitelma: mitä ohjelma ja painoehdotus tällä kerralla edellyttivät
     // (Kehityksen toteutuminen). Jo tallennetun merkinnän suunnitelma
     // säilytetään, jottei korjaus korvaa sitä null-arvoilla.

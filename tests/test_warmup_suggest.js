@@ -353,7 +353,8 @@ async function download(page){
   await page.click('[data-tab="asetukset"]'); await w(450);
   await page.click('[data-settings-section="muutokset"]'); await w(500);
   const muutokset = await page.evaluate(() => document.querySelector('main').textContent);
-  ok(muutokset.indexOf('Sovelluksen versio 0.4.27') !== -1 && muutokset.indexOf('Lämmittelyehdotukset nousevat nyt aina kohti työpainoa (versio 0.4.27)') !== -1, '11 versio ja Muutokset-merkintä 0.4.27');
+  // Vain muutoskoosteen kohta: sovelluksen versionumero kasvaa myöhemmissä versioissa.
+  ok(muutokset.indexOf('Lämmittelyehdotukset nousevat nyt aina kohti työpainoa (versio 0.4.27)') !== -1, '11 Muutokset-merkintä 0.4.27');
 
   ok(errors.length === 0, 'ei sivuvirheitä: ' + JSON.stringify(errors));
   await browser.close();
