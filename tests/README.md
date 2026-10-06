@@ -46,6 +46,7 @@ hakemistoon eivätkä kuulu versionhallintaan.
 | `test_kevennys_1.js` | Kevennysmerkintä säilyy saman päivän uudelleentallennuksessa: jumikevennyksen tallennus, uudelleentallennus (merkintä, lastSet ja Historian merkki), seuraavan kerran ehdotus ilman uutta kevennystä, tavallinen liike, korjaus toiselle päivälle ja `deloadForSave` (0.4.28, kevennys-sarja 1/4) |
 | `test_kevennys_2.js` | Varmuuskopion Kevennys-sarake: vienti (automaattinen, pyydetty, tyhjä), palautus tyhjälle laitteelle ja vaikutus seuraavaan ehdotukseen, vanha tiedosto ilman saraketta, tuntematon arvo, Excel-muoto ja kaksoistunniste (0.4.29, kevennys-sarja 2/4) |
 | `test_kevennys_3.js` | Pyydetty kevennys: kytkin laskenta-ikkunassa, osittain tehty kerta, tallennus lajilla, seuraavan kerran viitekerta, jumikevennys ilman kytkintä, lämmittely ja työsarjatasoinen lämmittely, uudelleentallennus, jälkikäteinen merkintä, kelpaamattomat liikkeet, päivän vaihto, korjaus ja varmuuskopio (0.4.30, kevennys-sarja 3/4) |
+| `test_kevennys_4.js` | Pyydetty kevennys Kehityksessä: 1RM-sarjan `excluded`-piste ja saman päivän yhdistäminen, apufunktiot, liikelistan rivi ja kortti tauon jälkeen, käyrän selitteet ja kevennysmerkki, Pysähtynyt, progressiotavoite ja päätelty ehdotus kevennyksen jälkeen, automaattinen kevennys ennallaan, vain pyydettyjä kevennyksiä, ennätykset, volyymi, viikkopylväät ja Asetusten 1RM-luettelon arvio (0.4.31, kevennys-sarja 4/4) |
 
 Aiempien versioiden testit (esim. `test_cluster.js`, `test_rir.js`,
 `test_editor.js`), joihin CLAUDE.md viittaa, eivät ole repossa.

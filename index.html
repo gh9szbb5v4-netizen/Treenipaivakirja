@@ -791,13 +791,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.30";
+  var APP_VERSION = "0.4.31";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-10-06", items: [
+      "Pyydetty kevennys ei enää vaikuta Kehityksen 1RM-arvioon (versio 0.4.31): kevennyskerta näkyy 1RM-käyrässä kevennysmerkillä, mutta sitä ei käytetä kortin luvussa, muutoksessa, vertailuissa, ennätyksissä, Pysähtynyt-tunnisteessa, progressiotavoitteessa eikä Asetusten 1RM-luettelon arviossa, ja seuraava kerta verrataan kevennystä edeltäneeseen. Jos liikkeellä on vain pyydettyjä kevennyksiä, luku lasketaan niistä, jottei liike katoa listalta. Volyymiin kevennys lasketaan mukaan. Viikkopylväät merkitsevät kevennysviikoksi vain jumitunnistuksen kevennykset, eivät yksittäisen liikkeen pyydettyä kevennystä. Jumitunnistuksen kevennysten käsittely ei muutu.",
       "Liikkeelle voi nyt pyytää kevennyksen (versio 0.4.30): Painojen laskenta -ikkunan (ⓘ) Kevennä tämä kerta -painike keventää tekemättömät sarjat 10 %. Pyydetty kevennys ei ole seuraavan kerran ehdotuksen pohja, vaan ehdotus lasketaan kevennystä edeltäneestä kerrasta (esim. viimeksi 100 kg × 10 työläs, kevennyksenä 90 kg × 10 kevyt → seuraavaksi 102,5 kg eikä 95 kg). Kevennyksen jälkeen jumitunnistus antaa kolme kertaa aikaa kuten automaattisen kevennyksen jälkeenkin. Jo tallennetun merkinnän voi merkitä kevennykseksi jälkikäteen samasta ikkunasta.",
       "Varmuuskopio sisältää nyt kevennystiedon (versio 0.4.29): merkintäosion uusi viimeinen sarake Kevennys kertoo, oliko kerta automaattinen kevennys vai itse pyydetty. Palautus palauttaa tiedon, joten jumitunnistus ei ehdota uutta kevennystä heti palautetun kevennyksen perään. Vanhat varmuuskopiot tuodaan ennallaan.",
       "Kevennysmerkintä säilyy nyt, kun jo tallennettu liike tallennetaan samana päivänä uudelleen (versio 0.4.28). Aiemmin uudelleentallennus poisti merkinnän (myös Historian kevennys-merkin), jolloin seuraava kerta saattoi ehdottaa heti uutta 10 %:n kevennystä (esim. 90 kg → 80 kg) kevennyksen jälkeisen kolmen kerran rakennusajan sijaan.",
@@ -5460,16 +5461,29 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             }
           }
           if(value === null) continue;
+          // Pyydetty kevennys on tehtyä työtä mutta ei suorituskyvyn mittaus:
+          // piste säilyy (käyrän kevennysmerkki, ja liike, jolla on vain
+          // kevennyskertoja, ei katoa listalta), mutta se merkitään
+          // excluded-kentällä, jonka oneRepMaxPerformancePoints ja
+          // oneRepMaxValuePoints jättävät pois.
+          var excl = isRequestedDeloadSession(data);
           if(!seriesByName[norm]) seriesByName[norm] = { displayName: name, points: [], byDate: {}, variants: {} };
           var store = seriesByName[norm];
           store.variants[variantLabel] = true;
           var at = data.loggedAt || date;
           if(store.byDate[date] === undefined){
             store.byDate[date] = store.points.length;
-            store.points.push({ date: date, value: value, raw: raw, at: at, set: bestSet, measured: measured, deload: !!data.deload });
+            store.points.push({ date: date, value: value, raw: raw, at: at, set: bestSet, measured: measured, deload: !!data.deload, excluded: excl });
           } else {
+            // Saman päivän toinen merkintä (esim. variaatio): tavallinen
+            // merkintä korvaa pyydetyn kevennyksen arvon, kevennys ei korvaa
+            // tavallisen merkinnän arvoa, ja samaa lajia olevista voittaa parempi.
             var pt = store.points[store.byDate[date]];
-            if(value > pt.value || (value === pt.value && raw > pt.raw)){ pt.value = value; pt.raw = raw; pt.set = bestSet; pt.measured = measured; }
+            if(pt.excluded && !excl){
+              pt.value = value; pt.raw = raw; pt.set = bestSet; pt.measured = measured; pt.excluded = false;
+            } else if(pt.excluded === excl && (value > pt.value || (value === pt.value && raw > pt.raw))){
+              pt.value = value; pt.raw = raw; pt.set = bestSet; pt.measured = measured;
+            }
             if(at > pt.at){ pt.at = at; }
             pt.deload = pt.deload || !!data.deload;
           }
@@ -5525,6 +5539,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           // Cluster-merkinnät ohitetaan kuten 1RM-sarjassa (osasarja ei ole
           // vertailukelpoinen sarjaennätys).
           if(data.kind === "cluster") return;
+          // Pyydetty kevennys on tarkoituksella submaksimaalinen kerta, ei
+          // ennätysyritys (sama sääntö kuin 1RM-arviossa).
+          if(isRequestedDeloadSession(data)) return;
           var key = kehitysKeyFor(fullName);
           if(!out[key.norm]) out[key.norm] = { name: key.name, heaviest: null, bestSet: null, byRepRange: REP_RANGE_BINS.map(function(){ return null; }) };
           var rec = out[key.norm];
@@ -5612,8 +5629,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         if(!wk.dayMap[date]){ wk.dayMap[date] = true; wk.days++; }
         exKeys.forEach(function(ek){
           var data = exs[ek];
-          // Kevennysviikko: jokin viikon merkintä on tallennettu kevennyksenä.
-          if(data.deload === true) wk.deload = true;
+          // Kevennysviikko: jokin viikon merkintä on jumitunnistuksen
+          // kevennys. Yksittäisen liikkeen pyydetty kevennys (deloadKind)
+          // ei tee viikosta kevennysviikkoa.
+          if(data.deload === true && data.deloadKind !== DELOAD_KIND_REQUESTED) wk.deload = true;
           var fullName = String(data.name || "").trim();
           if(!fullName) return;
           var combo = isCombo(fullName);
@@ -5684,6 +5703,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // PROGRESSION_COEFFICIENT (pyöristetty nykyarvo, pyöristämätön tavoite).
   // Pysähtynyt: vähintään neljä 1RM-pistettä ja kolme viimeisintä kukin <=
   // edeltävä. Teho- ja yhdistelmäliikkeille progressio ja pysähtyminen ohitetaan.
+  // Pyydetty kevennys on kerta (sarjat ja toistotavoite kuten muillakin),
+  // mutta sille ei lasketa ehdotetun painon eikä progressiotavoitteen
+  // toteutumista, se ei ole seuraavan kerran päätellyn suunnitelman pohja
+  // (inferPlan), ja progressio ja Pysähtynyt käyttävät suorituskykypisteitä
+  // (oneRepMaxPerformancePoints), joten kevennystä seuraava kerta verrataan
+  // kevennystä edeltäneeseen.
   function buildAdherenceByName(entries, seriesByName){
     var out = {};
     var lastSessionByNorm = {};
@@ -5697,8 +5722,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           if(!fullName) return;
           var combo = isCombo(fullName);
           var key = kehitysKeyFor(fullName);
+          var reqDeload = isRequestedDeloadSession(data);
           var plan = (data.plan && typeof data.plan === "object") ? data.plan : inferPlan(ek, data, lastSessionByNorm[key.norm] || null);
-          lastSessionByNorm[key.norm] = data;
+          // Sama sääntö kuin painoehdotuksessa (deloadReferenceSession):
+          // pyydetystä kevennyksestä ei päätellä seuraavan kerran ehdotusta.
+          if(!reqDeload) lastSessionByNorm[key.norm] = data;
           if(!out[key.norm]){
             out[key.norm] = { name: key.name, combo: combo, sessions: 0, setsDone: 0, setsPlanned: 0, setsSessions: 0,
               repsHit: 0, repsSessions: 0, suggestedHit: 0, suggestedSessions: 0, progressionHit: 0, progressionSessions: 0,
@@ -5727,15 +5755,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             a.repsSessions++; if(session.repsHit) a.repsHit++;
           }
           var sw = toNumber(plan.suggestedWeight);
-          if(!combo && isFinite(sw) && sw > 0){
+          if(!combo && !reqDeload && isFinite(sw) && sw > 0){
             session.suggestedHit = sets.some(function(s){
               var w = toNumber(s.weight), r = toNumber(s.reps);
               return isFinite(w) && w >= sw && (!isFinite(planReps) || (isFinite(r) && r >= planReps));
             });
             a.suggestedSessions++; if(session.suggestedHit) a.suggestedHit++;
           }
-          if(!combo && !tehoNorms[key.norm]){
-            var pts = seriesByName[key.norm] ? seriesByName[key.norm].points : [];
+          if(!combo && !reqDeload && !tehoNorms[key.norm]){
+            // Kevennyspäivälle ei ole suorituskykypistettä, joten kevennystä
+            // seuraava kerta verrataan kevennystä edeltäneeseen.
+            var pts = oneRepMaxPerformancePoints(seriesByName[key.norm] ? seriesByName[key.norm].points : []);
             var idx = -1;
             for(var p=0;p<pts.length;p++){ if(pts[p].date === date){ idx = p; break; } }
             if(idx > 0){
@@ -5748,7 +5778,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       });
       Object.keys(out).forEach(function(norm){
         var a = out[norm];
-        var pts = seriesByName[norm] ? seriesByName[norm].points : [];
+        // Pyydetty kevennys ei laukaise Pysähtynyt-tunnistetta.
+        var pts = oneRepMaxPerformancePoints(seriesByName[norm] ? seriesByName[norm].points : []);
         if(!a.combo && !tehoNorms[norm] && pts.length >= 4){
           var n = pts.length;
           a.stalled = pts[n-1].value <= pts[n-2].value && pts[n-2].value <= pts[n-3].value && pts[n-3].value <= pts[n-4].value;
@@ -5870,6 +5901,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     d.setDate(d.getDate() + delta);
     return toLocalISO(d);
   }
+  // Suorituskykypisteet: ilman pyydettyjä kevennyksiä. Progressio ja
+  // Pysähtynyt käyttävät tätä sellaisenaan.
+  function oneRepMaxPerformancePoints(points){ return (points || []).filter(function(p){ return !p.excluded; }); }
+  // Arvopisteet: suorituskykypisteet, tai kaikki pisteet, jos liikkeellä on
+  // vain pyydettyjä kevennyksiä (liike ei katoa Kehityksestä).
+  function oneRepMaxValuePoints(points){ var pp = oneRepMaxPerformancePoints(points); return pp.length ? pp : (points || []); }
   // Paras piste jaksolta, joka päättyy endISO-päivään ja kattaa days päivää.
   // Saman arvon pisteistä voittaa suurempi pyöristämätön arvo (raw), jotta
   // 1RM-luettelon Käytä-painike vastaa jakson parasta arviota.
@@ -5888,7 +5925,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // laskee vasta, kun vastaava suoritus jää toistamatta koko jakson ajan.
   // Vertailukohdat lasketaan samalla säännöllä kunkin ajankohdan jaksolta;
   // jos jaksolla ei ole merkintöjä, käytetään viimeisintä arvoa ennen sitä.
+  // Pyydetyt kevennykset jäävät pois (arvopisteet), joten viimeisin piste
+  // (latest) on viimeisin muu kuin pyydetty kevennys; liike, jolla on vain
+  // pyydettyjä kevennyksiä, lasketaan niistä.
   function computeProgress(points){
+    points = oneRepMaxValuePoints(points);
     if(!points || points.length === 0) return null;
     var latest = points[points.length - 1];
     var best = bestWithin(points, latest.date, ONE_REP_MAX_WINDOW_DAYS) || latest;
@@ -5926,7 +5967,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // computeProgress.current) verrattuna parhaaseen sitä edeltävältä
   // jaksolta; jos edeltävällä jaksolla ei ole merkintöjä, viimeisin arvo
   // ennen sitä. past === null → ei vertailua. Puhdas funktio ilman tilaa.
+  // Samat arvopisteet kuin computeProgress (pyydetyt kevennykset pois).
   function fourWeekDelta(points){
+    points = oneRepMaxValuePoints(points);
     if(!points || !points.length) return null;
     var W = ONE_REP_MAX_WINDOW_DAYS;
     var latest = points[points.length - 1];
@@ -7964,7 +8007,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Kehitys</b> avautuu etusivuun, jossa on kolme osiota: Yhteenveto vastaa kysymykseen ”miten menee”, Liikkeet listaa liikkeet ja Vaivat kokoaa vaivalokin. Viikko-kortti näyttää kuluvan (tai viimeisimmän) treeniviikon kokonaispainon, sarjat, toistot ja treenipäivät sekä erot edelliseen viikkoon; ”Näytä liikkeet” avaa viikon liikkeet. Kortin pylväät näyttävät kahdentoista viikon volyymin. Nostettu kokonaispaino -kortissa karkeuden voi vaihtaa viikon ja päivän välillä. Ohjelman toteutuminen -kortti kertoo viimeiseltä 28 päivältä tehdyt sarjat suhteessa ohjelmoituihin, kuinka usein tavoitetoistot täyttyivät ja kuinka usein 1,25 %:n progressiotavoite toteutui, sekä pysähtyneet liikkeet. Liikkeet-osiossa on liikelista: liikkeen rivillä on paras 1RM viimeiseltä neljältä viikolta, muutos sitä edeltävään neljään viikkoon ja pieni käyrä viimeisistä merkinnöistä; yli kahdeksan liikkeen listaa voi suodattaa hakukentällä. Liike näkyy heti ensimmäisestä merkinnästä lähtien. Tabletilla liikelista ja liikenäkymä ovat rinnakkain."
     ) + ohjeP(
-      "Liikkeen rivi avaa liikenäkymän neljällä välilehdellä. <b style=\"color:var(--chalk);\">1RM</b> näyttää suurena parhaan arvon viimeiseltä neljältä viikolta, muutoksen sitä edeltävään neljään viikkoon ja ruudukossa vertailut kuukauteen, puoleen vuoteen, vuoteen ja ennätykseen. Käyrän aikavälin voi valita (4 vk, 3 kk, 1 v, kaikki), pisteen napautus näyttää sen päivän arvon, ja kevennyskerrat on merkitty pystyviivalla. Arvo lasketaan Epley-kaavalla päivän raskaimmasta sarjasta. Kun sarjalle on kirjattu tuntuma, varaan jääneet toistot lisätään tehtyihin (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0), joten tarkoituksella kevyemmin tehty sarja ei aliarvioi maksimia: esim. 100 kg × 3 Työläs lasketaan kuin äärirajoilla tehty viiden toiston sarja (117,5 kg; ilman tuntumaa 110 kg). Yhden toiston sarja on mittaus (arvo on paino), kun se on tehty äärirajoilla tai ilman tuntumaa; muulla tuntumalla se on laskennallinen arvio. Sarjat, joissa on alle yksi toisto (epäonnistuneet ja tekemättä jääneet yritykset), eivät kuulu arvioon, eikä päivä, jolla on vain niitä, näy käyrässä. Selite kertoo sarjan ja tuntuman, kun tuntuma vaikutti arvoon. Ohjelmoitu kevyempi päivä ei pudota lukua, koska se ei ole maksimisuoritus — luku laskee vasta, kun vastaava suoritus jää toistamatta neljään viikkoon. Saman liikkeen eri variaatiot (eri tanko tai kahva) lasketaan yhteen liikkeen nimen alle. <b style=\"color:var(--chalk);\">Ennätykset</b> kertoo raskaimman painon, parhaan sarjan (paino × toistot) ja toistoaluekohtaiset ennätykset alueille 1–3, 4–6, 7–10, 11–15 ja 16+. <b style=\"color:var(--chalk);\">Volyymi</b> näyttää viimeisimmän kerran kokonaispainon, sarjat ja toistot erojen kanssa sekä käyrän. <b style=\"color:var(--chalk);\">Toteutuminen</b> vertaa kertoja siihen, mitä ohjelma ja painoehdotus edellyttivät: sarjat, toistotavoite, ehdotettu paino ja progressiotavoite, sekä viisi viimeisintä kertaa taulukkona. Pysähtynyt-tunniste tarkoittaa, että 1RM ei ole noussut kolmeen viimeisimpään kertaan."
+      "Liikkeen rivi avaa liikenäkymän neljällä välilehdellä. <b style=\"color:var(--chalk);\">1RM</b> näyttää suurena parhaan arvon viimeiseltä neljältä viikolta, muutoksen sitä edeltävään neljään viikkoon ja ruudukossa vertailut kuukauteen, puoleen vuoteen, vuoteen ja ennätykseen. Käyrän aikavälin voi valita (4 vk, 3 kk, 1 v, kaikki), pisteen napautus näyttää sen päivän arvon, ja kevennyskerrat on merkitty pystyviivalla. Arvo lasketaan Epley-kaavalla päivän raskaimmasta sarjasta. Kun sarjalle on kirjattu tuntuma, varaan jääneet toistot lisätään tehtyihin (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0), joten tarkoituksella kevyemmin tehty sarja ei aliarvioi maksimia: esim. 100 kg × 3 Työläs lasketaan kuin äärirajoilla tehty viiden toiston sarja (117,5 kg; ilman tuntumaa 110 kg). Yhden toiston sarja on mittaus (arvo on paino), kun se on tehty äärirajoilla tai ilman tuntumaa; muulla tuntumalla se on laskennallinen arvio. Sarjat, joissa on alle yksi toisto (epäonnistuneet ja tekemättä jääneet yritykset), eivät kuulu arvioon, eikä päivä, jolla on vain niitä, näy käyrässä. Selite kertoo sarjan ja tuntuman, kun tuntuma vaikutti arvoon. Ohjelmoitu kevyempi päivä ei pudota lukua, koska se ei ole maksimisuoritus — luku laskee vasta, kun vastaava suoritus jää toistamatta neljään viikkoon. Pyydetty kevennys (Kevennä tämä kerta) ei vaikuta arvioon eikä vertailuihin: kerta näkyy käyrässä kevennysmerkillä ja selitteessä, mutta luku, muutos, vertailut, ennätykset, progressiotavoite ja Pysähtynyt-tunniste lasketaan muista kerroista, ja kevennystä seuraava kerta verrataan kevennystä edeltäneeseen. Jos liikkeellä on vain pyydettyjä kevennyksiä, luku lasketaan niistä. Volyymiin kevennys lasketaan mukaan, mutta viikkopylväät merkitsevät kevennysviikoksi vain jumitunnistuksen kevennykset. Saman liikkeen eri variaatiot (eri tanko tai kahva) lasketaan yhteen liikkeen nimen alle. <b style=\"color:var(--chalk);\">Ennätykset</b> kertoo raskaimman painon, parhaan sarjan (paino × toistot) ja toistoaluekohtaiset ennätykset alueille 1–3, 4–6, 7–10, 11–15 ja 16+. <b style=\"color:var(--chalk);\">Volyymi</b> näyttää viimeisimmän kerran kokonaispainon, sarjat ja toistot erojen kanssa sekä käyrän. <b style=\"color:var(--chalk);\">Toteutuminen</b> vertaa kertoja siihen, mitä ohjelma ja painoehdotus edellyttivät: sarjat, toistotavoite, ehdotettu paino ja progressiotavoite, sekä viisi viimeisintä kertaa taulukkona. Pysähtynyt-tunniste tarkoittaa, että 1RM ei ole noussut kolmeen viimeisimpään kertaan."
     ) + ohjeP(
       "Ohjelman toteutuminen lasketaan täsmällisesti merkinnöistä, jotka on kirjattu versiosta 0.4.0 alkaen: merkintään tallentuu, mitä ohjelma ja painoehdotus edellyttivät. Aiemmille ja varmuuskopiosta palautetuille merkinnöille toteutuminen on arvio, joka päätellään nykyisestä ohjelmasta ja edellisestä kerrasta; se ei tiedä takautuvista kirjauksista eikä muutetuista tavoitetoistoista. Yhdistelmäliikkeet (nimessä kauttaviiva) näkyvät vain viikon sarja- ja toistomäärissä."    ));
 
@@ -7988,7 +8031,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       "Asetukset on luettelo, jonka jokainen rivi avaa oman näkymänsä. Takaisin luetteloon pääsee vasemman yläkulman nuolesta."
     ) + ohjeList([
       "<b style=\"color:var(--chalk);\">Ohjelma</b> — muokkaa nykyistä ohjelmaa, tuo uusi tiedostosta (CSV tai PDF) tai rakenna se sovelluksessa. Ohjelmakirjastossa voi olla useita ohjelmia, mutta vain yksi on käytössä kerrallaan: vaihda, nimeä tai poista ohjelmia. Uusi ohjelma ei koskaan korvaa nykyistä ilman hyväksyntääsi, ja merkinnät säilyvät Historiassa aina.",
-      "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — luettelossa ovat ohjelman teholiikkeet (MAX ja prosentti) ja 1RM-pohjana käytetyt liikkeet. Arvon voi asettaa ja poistaa käsin; 1RM-pohjaa käyttävä liike kertoo, minkä liikkeen arvoa se käyttää. Kun Kehityksen arvio (paras 1RM neljän viikon jaksolta kirjattu tuntuma huomioiden, cluster-merkinnät ja nollan toiston sarjat pois lukien) poikkeaa tallennetusta arvosta, se näkyy rivillä päivämäärineen lähimpään 2,5 kg:aan pyöristettynä, ja Käytä-painike ottaa käyttöön pyöristämättömän arvion alaspäin 2,5 kg:n tarkkuuteen pyöristettynä (esim. 116,67 kg näkyy arviona 117,5 kg ja otetaan käyttöön 115 kg:na) — arvo ei vaihdu itsestään.",
+      "<b style=\"color:var(--chalk);\">Liikkeiden 1RM</b> — luettelossa ovat ohjelman teholiikkeet (MAX ja prosentti) ja 1RM-pohjana käytetyt liikkeet. Arvon voi asettaa ja poistaa käsin; 1RM-pohjaa käyttävä liike kertoo, minkä liikkeen arvoa se käyttää. Kun Kehityksen arvio (paras 1RM neljän viikon jaksolta kirjattu tuntuma huomioiden, pyydetyt kevennykset, cluster-merkinnät ja nollan toiston sarjat pois lukien) poikkeaa tallennetusta arvosta, se näkyy rivillä päivämäärineen lähimpään 2,5 kg:aan pyöristettynä, ja Käytä-painike ottaa käyttöön pyöristämättömän arvion alaspäin 2,5 kg:n tarkkuuteen pyöristettynä (esim. 116,67 kg näkyy arviona 117,5 kg ja otetaan käyttöön 115 kg:na) — arvo ei vaihdu itsestään.",
       "<b style=\"color:var(--chalk);\">Lepoajastin</b> — muuta sarjojen välissä ehdotettavaa lepoaikaa sekunteina.",
       "<b style=\"color:var(--chalk);\">Vie varmuuskopio CSV:nä</b> — yksi tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Ota se säännöllisesti talteen, sillä data on vain tässä selaimessa; sovellus muistuttaa, jos edellisestä on yli " + EXPORT_REMINDER_DAYS + " päivää.",
       "<b style=\"color:var(--chalk);\">Palauta varmuuskopio</b> — tuo ohjelma, omat liikkeet, 1RM-arvot ja merkinnät toiselle laitteelle tai takaisin tälle. Sovellus näyttää ensin, mitä tiedosto sisältää, ja palauttaa vasta vahvistuksesta, koska varmuuskopion ohjelma korvaa nykyisen. Muu yhdistetään olemassa olevaan niin, että jo tallennettu voittaa — eikä mitään poisteta. Poikkeus on 1RM-arvo: varmuuskopion arvo korvaa laitteen arvon, jos se on päivätty myöhemmäksi (Päivitetty-sarake), joten vanhempi varmuuskopio ei koskaan laske tuoreempaa arvoa; ilmoitus kertoo lisätyt, päivitetyt ja ohitetut 1RM-arvot. Ohjelman 1RM-pohjat kulkevat varmuuskopion mukana. Tiedoston voi avata Excelissä katsottavaksi; myös Excelin tallentama versio tunnistetaan palautuksessa.",
@@ -10106,16 +10149,27 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // Viiva on liukuva paras (sama luku kuin kortissa), päiväkohtaiset arviot
     // katkoviivana sen alla, jotta submaksimaaliset päivät näkyvät mutta
     // eivät hallitse käyrää. Aikaväli suodatetaan täällä (prefiltered), jotta
-    // selitteet ja kevennysmerkit osuvat samoihin indekseihin.
+    // selitteet ja kevennysmerkit osuvat samoihin indekseihin. Piirrettävät
+    // pisteet ja kevennysmerkit ovat kaikista pisteistä, mutta "paras 4 vk"
+    // lasketaan arvopisteistä (pyydetyt kevennykset pois): jos jaksolla ei
+    // ole arvopisteitä, viimeisin arvopiste ennen päivää, vasta sitten piste.
     var f = filterByRange(points, points.map(function(v){ return v.value; }));
+    var valuePts = oneRepMaxValuePoints(points);
     var bestPoints = f.points.map(function(p){
-      var b = bestWithin(points, p.date, ONE_REP_MAX_WINDOW_DAYS) || p;
+      var b = bestWithin(valuePts, p.date, ONE_REP_MAX_WINDOW_DAYS);
+      if(!b){
+        for(var k=0;k<valuePts.length;k++){ if(valuePts[k].date < p.date) b = valuePts[k]; else break; }
+      }
+      b = b || p;
       return { date: p.date, value: b.value };
     });
     function fv(v){ return String(v).replace(".", ","); }
     var captions = f.points.map(function(p, i){
       var setTxt = p.set ? " (" + fmtOneRepMaxSet(p.set) + ")" : "";
-      return formatDateShortFI(p.date) + " · " + fv(p.value) + " kg " + (p.measured ? "mitattu" : "laskennallinen") + setTxt + " · paras 4 vk " + fv(bestPoints[i].value) + " kg";
+      // Pyydetty kevennys: ", ei 1RM-arvioon" vain, kun arvio lasketaan
+      // muista pisteistä (liikkeellä on muitakin kuin pyydettyjä kevennyksiä).
+      var exclTxt = p.excluded ? " · pyydetty kevennys" + (valuePts !== points ? ", ei 1RM-arvioon" : "") : "";
+      return formatDateShortFI(p.date) + " · " + fv(p.value) + " kg " + (p.measured ? "mitattu" : "laskennallinen") + setTxt + " · paras 4 vk " + fv(bestPoints[i].value) + " kg" + exclTxt;
     });
     var markers = [];
     f.points.forEach(function(p, i){ if(p.deload) markers.push({ x: i, label: "kevennys" }); });
@@ -10540,7 +10594,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         '<div class="kehitys-row-body"><div class="kehitys-row-name">' + escapeHtml(it.name) + '</div>' +
         '<div class="kehitys-row-sub"><span>' + escapeHtml(formatDateShortFI(lastPt.date)) + '</span>' +
         (stalled ? '<span class="chip chip-danger">Pysähtynyt</span>' : '') + '</div></div>' +
-        renderSparkline(pts, stalled) +
+        // Päivämäärä (lastPt) on kaikista pisteistä eli viimeinen treenipäivä,
+        // sparkline arvopisteistä kuten luku ja muutos.
+        renderSparkline(oneRepMaxValuePoints(pts), stalled) +
         '<div class="kehitys-row-right"><div class="kehitys-row-value">' + fmtKg(it.progress.current) + '</div>' + deltaHtml + '</div>' +
         '<span class="choice-chevron" aria-hidden="true">' + icon("nuoli", 20) + '</span>' +
         '</div>';

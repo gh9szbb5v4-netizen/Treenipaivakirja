@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.30 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.31 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -1079,12 +1079,117 @@ lämmittelysäätö ei toimi kevennyksen aikana, jälkikäteinen merkintä).
 CHANGELOGin esimerkkiin lisättiin "kevyt" (90 kg × 10 kevyt), koska 95 kg
 syntyy vain Kevyt-tuntumalla (ilman tuntumaa 92,5 kg). README:n
 Sarjapainojen laskenta -osio sai kappaleen "Pyydetty kevennys". Kehityksen
-käsittely (1RM-arvio, toteutuminen, viikkopylväät) on kehotteessa 4.
+käsittely (1RM-arvio, toteutuminen, viikkopylväät) tehtiin 0.4.31:ssä (ks.
+Pyydetty kevennys Kehityksessä).
 
 **Testi.** `tests/test_kevennys_3.js` (kehotteen tapaukset 1–14 sekä Ohje
 ja Muutokset; tapauksen 3 kevennyskerta kirjattiin tuntumalla Kevyt kuten
 taustan esimerkissä). `test_kevennys_1.js`:n `deloadForSave`-tarkistukset
 odottavat nyt paluuarvoa `{ deload, deloadKind }`.
+
+## Pyydetty kevennys Kehityksessä (toteutettu, 0.4.31, kevennys-sarja 4/4)
+
+Käyttäjän kehote 6.10.2026. Pyydetty kevennys (`deloadKind`
+`DELOAD_KIND_REQUESTED`, ks. edellinen osio) on tehtyä työtä mutta ei
+suorituskyvyn mittaus: volyymi lasketaan kaikkialla ennallaan, mutta
+1RM-arvio, ennätykset ja progressio jättävät kerran pois, 1RM-käyrä näyttää
+päivän kevennysmerkillä, eikä pyydetty kevennys tee viikosta
+kevennysviikkoa. Tausta: Kevyt lasketaan neljäksi varatoistoksi, vaikka se
+tarkoittaa "neljä tai enemmän", joten kevennyskerran RIR-korjattu
+Epley-arvio on järjestelmällisesti liian matala (90 × 10 Kevyt → 132,5 kg,
+100 × 10 Työläs → 140 kg), eikä neljän viikon paras-sääntö suojaa tauon
+jälkeen, koska jakso päättyy viimeisimpään merkintään. Automaattisen
+kevennyksen (`deload` ilman lajia) käsittely on täsmälleen ennallaan.
+
+**Piste säilyy, mutta merkitään.** `buildAllOneRepMaxSeries` laskee
+merkinnän arvon kuten ennen ja antaa pisteelle kentän `excluded`
+(`isRequestedDeloadSession(data)`). Saman päivän toinen merkintä (esim.
+variaatio tai sama liike kahdesti ohjelmassa): kun piste on `excluded` ja
+uusi merkintä ei, uusi korvaa `value`, `raw`, `set` ja `measured` ja
+`excluded` nollautuu; samaa lajia olevista voittaa entinen parempi-sääntö;
+tavallista pistettä pyydetty kevennys ei muuta. `deload` ja `at`
+päivittyvät kuten ennen. Arvo ei riipu merkintöjen järjestyksestä
+(tavallisten merkintöjen paras, tai niiden puuttuessa kevennysten paras).
+Pistettä ei poisteta, koska käyrän kevennysmerkki (`markers`) luetaan
+pisteestä, ja liike, jolla on vain kevennyskertoja, putoaisi Kehityksen
+listalta (`computeProgress` → null) ja avoin liikenäkymä sulkeutuisi
+`loadKehitys`-kutsussa.
+
+**Apufunktiot** (`bestWithin`-funktion yläpuolella):
+`oneRepMaxPerformancePoints(points)` = pisteet ilman `excluded`-pisteitä
+(suorituskykypisteet) ja `oneRepMaxValuePoints(points)` =
+suorituskykypisteet tai, jos niitä ei ole, kaikki pisteet (sama
+taulukko-olio, jota `renderOneRepMaxChart` vertaa viittauksena). Käyttö:
+
+- arvopisteet: `computeProgress` ja `fourWeekDelta` (ensimmäinen lause
+  `points = oneRepMaxValuePoints(points)`; kortin luku, ruudukko,
+  Ennätykseen-ruutu, kortin selitteet, liikelistan arvo ja muutos sekä
+  `loadMaxEstimates`-arvio seuraavat ilman omaa muutosta), liikelistan
+  sparkline (`kehitysListRowsHtml`) ja 1RM-käyrän "paras 4 vk" -viiva
+  (`renderOneRepMaxChart`: `bestWithin(valuePts, …)`, tyhjällä jaksolla
+  viimeisin arvopiste ennen päivää, vasta sitten piste itse);
+- suorituskykypisteet: `buildAdherenceByName`-funktion progressiotavoite
+  (kevennyspäivälle ei ole pistettä, joten seuraava kerta verrataan
+  kevennystä edeltäneeseen) ja Pysähtynyt;
+- kaikki pisteet: käyrän piirrettävät pisteet, katkoviiva (päivän arvio) ja
+  kevennysmerkit (`f.points`), liikelistan päivämäärä (`lastPt` =
+  viimeinen treenipäivä) ja kortin ruudukon ehto `item.points.length < 2`.
+
+Käyrän selite: `excluded`-pisteen perään " · pyydetty kevennys" ja lisäksi
+", ei 1RM-arvioon", kun `valuePts !== points` eli liikkeellä on muitakin
+kuin pyydettyjä kevennyksiä. Seuraus: kortin "Viimeisin treeni" -selite
+kertoo viimeisimmän muun kuin pyydetyn kevennyksen (tauon jälkeisessä
+tapauksessa selitettä ei ole, koska se on sama kuin paras), mutta
+liikelistan päivämäärä kevennyspäivän.
+
+**Toteutuminen ja ennätykset.** `buildAdherenceByName`: `reqDeload =
+isRequestedDeloadSession(data)`; `lastSessionByNorm` päivitetään vain
+muulla kuin pyydetyllä kevennyksellä, joten `inferPlan` ei päättele
+seuraavan kerran ehdotusta kevennyskerrasta (merkinnät ilman
+`plan`-kenttää: ennen 0.4.0:aa kirjatut ja varmuuskopiosta palautetut;
+sama sääntö kuin painoehdotuksen `deloadReferenceSession`); ehdotettu paino
+ja progressiotavoite lasketaan vain, kun `!reqDeload`; sarjat ja
+toistotavoite lasketaan kevennyskerralle kuten ennen, ja kerta on
+Toteutumisen taulukossa (progressio "–"). Seuraus: merkinnät ilman
+`plan`-kenttää ja ohjelman liikettä, joiden ainoa ehdotettu paino tai
+progressio tuli kevennyskerrasta, himmentävät Toteutuminen-välilehden
+(kehotteen tapaus 1, odotettu; oikeilla merkinnöillä `plan.sets` pitää sen
+aktiivisena). `buildRecordsByName` ohittaa pyydetyn kevennyksen
+cluster-ohituksen vieressä ennen liikkeen alkion luontia, joten liike,
+jolla on vain kevennyksiä, on ilman ennätyksiä ja välilehti himmenee.
+
+**Viikkopylväät.** `buildWeeklySummary`: `wk.deload` vain, kun
+`data.deload === true && data.deloadKind !== DELOAD_KIND_REQUESTED`.
+Kevennysviikko tarkoittaa jumitunnistuksen kevennystä, joka koskee
+ohjelman jumittunutta kohtaa; yksittäisen liikkeen pyydetty kevennys ei
+väritä pylvästä eikä tuo "kevennys"-selitettä (`renderWeekBars`,
+`renderWeekBarsLabels` ennallaan). Historian päiväkortin merkki
+(`historyDayBadges`) on ennallaan, koska se kertoo päivän merkinnöistä eikä
+viikon luonteesta.
+
+**Rajaus.** Ennallaan: automaattisen kevennyksen käsittely,
+`ONE_REP_MAX_WINDOW_DAYS`, volyymilaskenta (`buildVolumeByName`,
+`buildTotalWeightSeries`, viikkokortin luvut), vaivalokin analyysi,
+Historia ja Toteutumisen taulukon ulkoasu. Ei tehty: kevennyskerran omaa
+vertailua edelliseen kevennykseen.
+
+**Tekstit.** CHANGELOG (kehotteen esimerkki, johon lisättiin Asetusten
+1RM-luettelon arvio ja vain kevennyksiä sisältävän liikkeen poikkeus), Ohjeen
+kohdan 4 1RM-kappale (pyydetty kevennys ei vaikuta arvioon eikä
+vertailuihin mutta näkyy käyrässä; poikkeus, volyymi ja viikkopylväät) ja
+kohdan 6 Liikkeiden 1RM -rivin poissulkemisluettelo ("pyydetyt kevennykset"
+ensimmäisenä, koska `test_max_nolla.js` lukee loppuosan sanamuodon "cluster-
+merkinnät ja nollan toiston sarjat pois lukien") sekä README (kappale
+"Pyydetty kevennys Kehityksessä" Kehitys-kortin luvun jälkeen, viittaus
+Pyydetty kevennys -kappaleessa ja viikkopylväiden kevennysviikko).
+
+**Testi.** `tests/test_kevennys_4.js`: apufunktiot ja saman päivän
+yhdistäminen suoraan kutsuen (`window.__t`), kehotteen tapaukset 1–8
+käyttöliittymän kautta kiinteällä kellolla (9.10. tai 1.10.2026) sekä Ohje
+ja Muutokset; lisäksi tapauksessa 3 ehdotettu paino 0 / 1 (päätelty
+suunnitelma kevennystä edeltäneestä kerrasta) ja liikelistan sparkline
+arvopisteistä. 0.4.30:ta vastaan testi toisti kehotteen "nyt"-arvot (25
+epäonnistumista; tapaus 4, ennätysten tapaus 1 ja volyymi kunnossa).
 
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
@@ -1888,6 +1993,10 @@ tonnage, sets, reps; yhdistelmillä tonnage 0), `buildWeeklySummary`
 (kerta = merkintä; sarjat vs. `plan.sets`, toistotavoite, ehdotettu paino,
 progressiotavoite 1RM-pisteestä ≥ edellinen × `PROGRESSION_COEFFICIENT`;
 `stalled` = vähintään neljä pistettä ja kolme viimeisintä kukin ≤ edeltävä;
+0.4.31 alkaen pyydetty kevennys ohitetaan ehdotetusta painosta,
+progressiosta, päätellystä suunnitelmasta ja ennätyksistä, ja progressio ja
+`stalled` käyttävät `oneRepMaxPerformancePoints`-pisteitä, ks. Pyydetty
+kevennys Kehityksessä;
 teho- ja yhdistelmäliikkeet ohitetaan progressiosta ja pysähtymisestä,
 teholiikkeet tunnistetaan nykyisestä ohjelmasta `programIntensityNorms()`).
 `buildAdherenceSummary` summaa `ADHERENCE_WINDOW_DAYS` (28) päivän kerrat ja
@@ -1948,7 +2057,8 @@ Liikelistan otsikko on yhä "Liikkeet" + lukumäärä erillisinä span-
 elementteinä (rivin sisältö kuuluu Kehitys-sarjan kehotteeseen 2).
 
 `buildWeeklySummary` antaa viikolle `deload: true`, kun jonkin merkinnän
-`data.deload === true` (kenttä on jo merkinnässä, `saveExerciseLog`).
+`data.deload === true` (kenttä on jo merkinnässä, `saveExerciseLog`) ja
+0.4.31 alkaen laji ei ole pyydetty (ks. Pyydetty kevennys Kehityksessä).
 `renderWeekBars(weekly, idx)` piirtää Viikko-korttiin `stat-grid`-ruudukon
 jälkeen ja ennen `[data-toggle-week-exercises]`-painiketta SVG:n
 (`viewBox 0 0 300 48`, `role="img"`, `aria-label="Viikkovolyymi 12
@@ -1971,7 +2081,9 @@ lukee aseman vasta `scrollIntoViewIfNeeded`-kutsun jälkeen).
 funktion perässä, puhdas): `current` = `bestWithin(points, latest.date, 28)`
 (sama luku kuin `progress.current`), `past` = paras jaksolta, joka päättyy
 `latest.date − 28` päivää, tai viimeisin arvo ennen sitä; `past === null` →
-ei muutosriviä. `kehitysListRowsHtml` käyttää sitä `renderDeltaValue`-
+ei muutosriviä. 0.4.31 alkaen `fourWeekDelta`, `computeProgress` ja
+sparkline lukevat arvopisteitä (pyydetyt kevennykset pois, ks. Pyydetty
+kevennys Kehityksessä). `kehitysListRowsHtml` käyttää sitä `renderDeltaValue`-
 kutsussa (aiemmin viimeisin vs. edellinen piste, jolloin kevyt päivä värjäsi
 rivin punaiseksi). `renderSparkline(points, muted)`: 8 viimeistä pistettä,
 `viewBox 0 0 64 24`, `x = 2 + i/(n−1)·60`, `y = 22 − …·20`, samat arvot →
@@ -2105,7 +2217,11 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
 - `ONE_REP_MAX_WINDOW_DAYS = 28`: Kehityksen 1RM:n liukuvan jakson pituus.
   Lyhyempi jakso reagoi nopeammin mutta pudottaa lukua pelkkien kevyiden
   viikkojen jälkeen; kahdeksan viikkoa vastaisi tavallista maksimien
-  testausväliä.
+  testausväliä. 0.4.31 alkaen jakso lasketaan arvopisteistä
+  (`oneRepMaxValuePoints`): pyydetyt kevennykset eivät ole jaksolla, ja
+  jakso päättyy viimeisimpään muuhun kuin pyydettyyn kevennykseen, joten
+  tauon jälkeinen pyydetty kevennys ei pudota lukua (ks. Pyydetty kevennys
+  Kehityksessä). Automaattinen kevennys on jaksolla kuten ennen.
 - `PROGRESSION_COEFFICIENT = 1.0125`: painoehdotuksen tavoiteltu kehitys
   per treenikerta.
 - `TUNTUMA_RIR = { kevyt: 4, sujuva: 3, tyolas: 2, raskas: 1, aarirajoilla: 0 }`
