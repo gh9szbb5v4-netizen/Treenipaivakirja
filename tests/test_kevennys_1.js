@@ -100,20 +100,25 @@ const stored = (page, date, name) => page.evaluate(a => {
 
   console.log('=== 0 deloadForSave suoraan');
   await seed(page, { program: prog([pex('A', ROW, '2', '10')]), last: LAST_ROW });
+  // 0.4.30 alkaen paluuarvossa on myös deloadKind (pyydetty kevennys, kevennys-sarja 3/4).
   const u = await page.evaluate(() => {
     const f = window.__t.deloadForSave;
     const j = x => JSON.stringify(x);
     return {
       newPlateau: j(f(undefined, { type: 'formula', plateau: true })), newPlain: j(f(undefined, { type: 'formula' })), newNone: j(f(undefined, undefined)),
+      newRequested: j(f(undefined, { type: 'formula', requestedDeload: true })), newBoth: j(f(undefined, { type: 'formula', plateau: true, requestedDeload: true })),
       savedTrue: j(f({ date: '2026-10-06', data: { deload: true } }, { type: 'saved' })),
+      savedKind: j(f({ date: '2026-10-06', data: { deload: true, deloadKind: 'pyydetty' } }, { type: 'saved' })),
+      savedKindNoDeload: j(f({ date: '2026-10-06', data: { deload: false, deloadKind: 'pyydetty' } }, { type: 'saved' })),
       savedFalseWins: j(f({ date: '2026-10-06', data: { deload: false } }, { type: 'formula', plateau: true })),
       oldNoField: j(f({ date: '2026-10-01', data: {} }, { plateau: true })),
       correctionTrue: j(f({ date: '2026-10-01', data: { deload: true } }, { type: 'saved' }))
     };
   });
-  ok(u.newPlateau === '{"deload":true}' && u.newPlain === '{"deload":false}' && u.newNone === '{"deload":false}', '0 uusi kirjaus: kevennys jumitunnistuksesta (plateau), muuten false');
-  ok(u.savedTrue === '{"deload":true}' && u.correctionTrue === '{"deload":true}', '0 tallennettu merkintä deload: true säilyy (sama päivä ja korjaus)');
-  ok(u.savedFalseWins === '{"deload":false}' && u.oldNoField === '{"deload":false}', '0 tallennettu merkintä voittaa luonnoksen plateau-tiedon; vanha merkintä ilman kenttää → false');
+  ok(u.newPlateau === '{"deload":true,"deloadKind":null}' && u.newPlain === '{"deload":false,"deloadKind":null}' && u.newNone === '{"deload":false,"deloadKind":null}', '0 uusi kirjaus: kevennys jumitunnistuksesta (plateau), muuten false');
+  ok(u.newRequested === '{"deload":true,"deloadKind":"pyydetty"}' && u.newBoth === '{"deload":true,"deloadKind":null}', '0 uusi kirjaus: pyydetty kevennys lajilla, jumikevennyksen kanssa ilman lajia');
+  ok(u.savedTrue === '{"deload":true,"deloadKind":null}' && u.correctionTrue === '{"deload":true,"deloadKind":null}' && u.savedKind === '{"deload":true,"deloadKind":"pyydetty"}', '0 tallennettu merkintä deload: true ja laji säilyvät (sama päivä ja korjaus)');
+  ok(u.savedFalseWins === '{"deload":false,"deloadKind":null}' && u.oldNoField === '{"deload":false,"deloadKind":null}' && u.savedKindNoDeload === '{"deload":false,"deloadKind":null}', '0 tallennettu merkintä voittaa luonnoksen plateau-tiedon; vanha merkintä ilman kenttää → false; laji vain kevennyksellä');
 
   console.log('=== 1 jumikevennys ja ensimmäinen tallennus (6.10.)');
   await openEx(page, 'A');

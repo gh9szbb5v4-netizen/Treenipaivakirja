@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.29 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.30 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -560,8 +560,9 @@ merkintään `deload: true` ja `deloadKind` vain, kun lohkolla on lippu,
 joten tiedosto ilman saraketta tuottaa saman olion kuin ennen.
 Kaksoistunniste ei sisällä kevennystä, joten laitteella jo olevaa
 merkintää ei muuteta. `rebuildTrackersForName` kantaa `deload`-lipun
-`lastSet`-ketjuun; `deloadKind`-kentän kantaminen kuuluu kevennys-sarjan
-kehotteeseen 3. `unwrapExcelBackupText` purkaa Excelin yhteen soluun
+`lastSet`-ketjuun ja 0.4.30 alkaen myös `deloadKind`-kentän (ks. Pyydetty
+kevennys). `test_warmup_suggest.js` vertaa varmuuskopion merkintärivit
+0.4.29 alkaen Kevennys-sarakkeen kanssa. `unwrapExcelBackupText` purkaa Excelin yhteen soluun
 tallentaman rivin kenttiin osion otsikkorivin kenttämäärän mukaan eikä
 oleta kiinteää sarakemäärää, joten uusi sarake ei vaatinut siihen
 muutoksia (testattu). Vanha sovellusversio ohittaa tuntemattoman
@@ -911,7 +912,8 @@ olemassa (sama päivä tai korjattava päivä), `!!logged.data.deload`, muuten
 koska `exerciseLogIndex`-rivi on olemassa vain jo tallennetulla liikkeellä
 ja uusi kirjaus toiselle päivälle vaatii ensin "Poista merkintä ja laske
 uudelleen" (`[data-recalc]` poistaa rivin). Paluuarvo on olio, koska
-kevennys-sarjan kehote 3 lisää siihen kentän `deloadKind`.
+kevennys-sarjan kehote 3 lisää siihen kentän `deloadKind` (lisätty 0.4.30,
+ks. Pyydetty kevennys).
 `saveExerciseLog` kutsuu `deloadForSave(logged, calcInfo)` ja käyttää
 `deloadInfo.deload`-arvoa kuten ennen `wasDeload`-arvoa (merkinnän
 `deload` ja `pushLastSet`-kutsun neljäs argumentti). `plan`-kentän
@@ -938,6 +940,151 @@ ajettiin myös 0.4.27:ää vastaan ilman `deloadForSave`-osiota: 5
 epäonnistumista (uudelleentallennus false merkinnässä ja lastSet-
 ketjussa, Historian merkki puuttuu, 9.10. 80 ja 80 sekä "kevennys −10
 kg").
+
+## Pyydetty kevennys (toteutettu, 0.4.30, kevennys-sarja 3/4)
+
+Käyttäjän kehote 6.10.2026. Kevennys oli aiemmin vain reaktiivinen
+(jumitunnistus); nyt käyttäjä voi pyytää kevennyksen yksittäiselle
+liikkeelle. Pyydetty kevennys on palautumiskerta: sen jälkeen palataan
+kevennystä edeltäneelle tasolle, eikä sitä käytetä seuraavan ehdotuksen
+viitekertana (100 × 10 Työläs, pyydetty kevennys 90 × 10 Kevyt →
+seuraavaksi 102,5 kg eikä 95 kg). Jumikevennyksen kerta on sen sijaan
+tarkoituksella seuraavan ehdotuksen viitekerta (nollaus).
+
+**Tietomalli.** `DELOAD_KIND_REQUESTED = "pyydetty"` (`DELOAD_FACTOR`-
+vakion vieressä). Merkintä ja `lastSet`-kerta (päällimmäinen ja prior)
+saavat valinnaisen `deloadKind`-kentän vain, kun `deload === true` ja laji
+on pyydetty; puuttuva laji tarkoittaa jumitunnistuksen kevennystä. Kehotteen
+2 `deloadBackupText` ja `deloadFromBackupText` käyttävät vakiota
+(sarakearvo pysyy merkkijonona "pyydetty"). Työsarjarivi saa luonnoksessa
+apukentän `deloadFrom` (alkuperäinen `base`); rivin oliot tallentuvat
+merkintään sellaisinaan kuten `base` ja `adjusted`. Tila
+`state.deloadRequest` (liikkeen id → true) ja `state.deloadFlag`
+(tallennetun merkinnän id → true/false, jälkikäteinen merkintä) ei
+tallennu.
+
+**Apufunktiot** (`nonClusterSession`-funktion edellä):
+`isRequestedDeloadSession(sess)` (lastSet-kerta tai merkintä),
+`deloadReferenceSession(last)` (ensimmäinen kerta ketjusta `[last,
+...prior]`, joka ei ole pyydetty kevennys; kaikki pyydettyjä → `last`,
+jolloin ehdotus ei jää tyhjäksi; ilman `last`-arvoa null),
+`applyRequestedDeload(rows)` (rivi, jolla `done === false`, `base` > 0, ei
+`deloadFrom`-kenttää ja `weight === base`: `deloadFrom = base`, `base =
+weight = floorToStep(base × DELOAD_FACTOR)`, vähintään `WEIGHT_STEP`;
+`base` muuttuu tarkoituksella, jotta `suggestWarmup` sovittaa lämmittelyt
+kevennettyyn painoon), `removeRequestedDeload(rows)` (tekemätön rivi:
+`weight === base` → `weight = deloadFrom`, aina `base = deloadFrom`; tehty
+rivi pitää painonsa; `deloadFrom` poistetaan), `deloadEligibleExercise(ex)`
+(ei yhdistelmä-, teho- eikä cluster-liike, `autoCalc !== false`),
+`canRequestDeload(ex)` (kelpoinen, tallentamaton ja `autoCalcInfo`
+tyyppiä "formula" ilman `plateau`-tietoa: historiattomalla liikkeellä
+ehdotusta ei ole, ja jumikevennyksen kanssa kevennys kertautuisi 81 %:iin)
+ja `canFlagDeload(ex)` (kelpoinen, tallennettu, luonnos "saved" eikä
+merkintä ole automaattinen kevennys, koska jumitunnistus nojaa sen
+lippuun).
+
+**Viitekerta ja jumitunnistuksen ketju.** `buildDraftRows`-kaavahaarassa
+`last = nonClusterSession(...)` säilyy jumitunnistuksen ketjuna
+sellaisenaan, ja sarjakohtainen silmukka käyttää `ref =
+deloadReferenceSession(last)` (`ref.sets`; tyhjä → `last`). Jumitunnistuksen
+koodi (`last.prior`, `sessions`, `flagged`, `maxes`) ja `HISTORY_DEPTH`
+ovat ennallaan: jumitunnistus käyttää koko ketjua, joten syvyyden muutos
+pidentäisi sen ikkunaa, ja pyydetty kevennys ketjussa asettaa
+`flagged`-arvon, joten jumikevennystä ei voi syntyä, kun `ref !== last`, ja
+kevennystä seuraavat kolme kertaa ovat suojassa kuten automaattisen
+kevennyksen jälkeen. `autoCalcInfo` "formula": `date: ref.date` (selitteen
+viitekerta) ja `skippedDeloadDate: last.date`, kun `ref !== last`. Kun
+`state.deloadRequest[id]` on päällä, funktio kutsuu ennen paluuta
+`applyRequestedDeload(formulaRows)` ja asettaa `requestedDeload: true`,
+`weightBeforeDeload` ja `weight = floorToStep(suggestedMax ×
+DELOAD_FACTOR)`; jumikevennyksen kanssa pyyntö poistetaan. Näin jokainen
+uudelleenrakennus (avaus, liikkeen vaihto, 1RM-muutos) tuottaa saman
+kevennetyn tuloksen.
+
+**Kytkin ja jälkikäteinen merkintä.** `renderDeloadControl(ex)` (heti
+`renderCalcInfo`-funktion edellä; kutsutaan `autoCalcHint`-funktion
+jälkeen). Kun `canRequestDeload`: `.calc-hint` ja `btn-secondary btn-sm
+btn-auto` "Kevennä tämä kerta (−10 %)" (`data-request-deload data-id
+aria-pressed="false"`), päällä "**Kevennys pyydetty** — tekemättömät
+sarjat −10 %. Kerta ei vaikuta seuraavan kerran ehdotukseen eikä
+1RM-arvioon." ja "Peru kevennys" (`aria-pressed="true"`). Kun
+`canFlagDeload`: "Merkintä on kevennys." tai "Merkintä ei ole kevennys."
+(`state.deloadFlag[id]`, muuten tallennettu `deload`), painike "Poista
+kevennysmerkintä" tai "Merkitse kevennykseksi" (`data-flag-deload
+data-id`) ja lisärivi "Muutos tallentuu Tallenna merkintä
+-painikkeesta.", kun tila poikkeaa tallennetusta. `[data-request-deload],
+[data-flag-deload]` ovat pohjalevyn sulkutarkistuksen poikkeusluettelossa:
+muuten tarkistus palaa `return`-lauseella, kun napautus osuu taustan
+sisälle, eikä käsittelijä suoritu. Käsittelijät ovat ennen
+`[data-recalc]`-käsittelijää. Pois (`requestedDeload`):
+`removeRequestedDeload(workRows(id))`, pyyntö pois, `requestedDeload =
+false`, `weight = weightBeforeDeload` ja lopuksi `applyWarmupAdjustment(id)`.
+Päälle (`canRequestDeload`): lämmittelysäätö puretaan ensin (`adjusted`-
+rivit takaisin `base`-arvoon ja `adjusted` pois kaikilta riveiltä,
+`warmupAdjust` pois), koska säädetyillä riveillä `weight !== base` ja ne
+jäisivät keventämättä; sitten pyyntö, `applyRequestedDeload`,
+`weightBeforeDeload` ja kevennetty `weight`. Molemmissa `dirtySets` ja
+`render()`; luonnosta ei rakenneta uudelleen, koska se pyyhkisi tehdyt
+sarjat. `[data-flag-deload]` kääntää `state.deloadFlag[id]`-arvon
+(lähtöarvona tallennettu `deload`).
+
+**Lämmittely.** `applyWarmupAdjustment` palaa alkuehdon jälkeen heti
+(`warmupAdjust` pois), kun pyyntö on päällä: kumpikaan haara
+(työsarjatasoinen lämmittely tai vertailudata) ei säädä työsarjoja, koska
+kevyeltä tuntunut tai kevennettyä työsarjaa raskaampi lämmittely nostaisi
+kevennetyt painot takaisin. Lämmittelyehdotus lasketaan kevennetystä
+`base`-arvosta (L1 35 × 8, ilman pyyntöä 40 × 8).
+
+**Tallennus.** `deloadForSave(logged, calcInfo, id, ex)` → `{ deload,
+deloadKind }`. Tallennettu merkintä: sen `deload` ja laji (laji vain
+kevennyksellä), paitsi kun `state.deloadFlag[id]` on asetettu ja
+`canFlagDeload(ex)`: silloin `deload` on lippu ja laji pyydetty tai null.
+Uusi kirjaus: `deload = plateau || requestedDeload` ja laji pyydetty vain,
+kun `requestedDeload` ilman `plateau`-tietoa. `saveExerciseLog` kirjoittaa
+merkintään `deloadKind`-kentän, kun se on asetettu, välittää sen
+`pushLastSet`-kutsun kuudentena argumenttina ja poistaa onnistuneen
+tallennuksen jälkeen `state.deloadRequest[id]` ja `state.deloadFlag[id]`.
+`plan.suggestedWeight` on kevennetty paino, koska `buildPlanForExercise`
+lukee `calcInfo.weight`-arvon (funktioon ei koskettu).
+`pushLastSet(norm, sets, date, deload, warmups, deloadKind)` kirjoittaa
+lajin uudelle kerralle (`deload && deloadKind`) ja aiemman kerran kopioon
+(`old.deload && old.deloadKind`). `rebuildTrackersForName` kantaa lajin
+`found`-alkioon (vain `data.deload`-merkinnällä), päällimmäiseen kertaan ja
+prior-kertoihin, jottei korjaus, Historian siirto tai varmuuskopion
+palautus muuta pyydettyä kevennystä automaattiseksi (se kelpaisi taas
+viitekerraksi).
+
+**Nollaus.** `state.deloadRequest = {}; state.deloadFlag = {};` lisättiin
+jokaiseen `state.draftSets = {}` -kohtaan. Koodista tarkistettu, että
+kohtia on viisi: `applyImportedProgram` (ohjelman vaihto),
+`changeLogDate` (päivämäärän vaihto), `applyBackupRestore`-funktion
+ohjelman vaihto, `importEntriesData` (varmuuskopion palautus ja
+merkintöjen tuonti) ja `resetAll` (tyhjennys). Kehotteen luettelossa
+mainittu simulointi ei nollaa luonnoksia (`runSimulation` ja
+`stopSimulation` eivät sisällä `state.draftSets = {}` -kohtaa), joten
+pyyntö säilyy simuloinnin yli kuten luonnoskin. Lisäksi
+`performExerciseSwap` (vanhan id:n kohdalla samassa kohdassa kuin
+`draftSets`, `dirtySets` ja `autoCalcInfo`) ja `[data-recalc]` (ennen
+luonnoksen uudelleenrakennusta) poistavat liikkeen pyynnön ja merkinnän.
+
+**Tekstit.** `suggestionDeltaText`: `plateau || requestedDeload` →
+"kevennys −10 kg" (vertailukohta viitekerran suurin paino
+`perSet.prevWeight`). `autoCalcHint` kaavateksti: perusteiden perään "
+Pyydetty kevennys 6.10. ohitettu viitekertana.", kun `skippedDeloadDate`;
+selitteen päivä on jo viitekerran päivä. Ohjeen kohta 3 sai kappaleen
+"Pyydetty kevennys" (mistä pyydetään, −10 % tekemättömistä ja
+muokkaamattomista sarjoista, ei MAX-, prosentti- eikä cluster-liikkeille,
+ohitetaan viitekertana, estää jumikevennyksen kolmeksi kerraksi,
+lämmittelysäätö ei toimi kevennyksen aikana, jälkikäteinen merkintä).
+CHANGELOGin esimerkkiin lisättiin "kevyt" (90 kg × 10 kevyt), koska 95 kg
+syntyy vain Kevyt-tuntumalla (ilman tuntumaa 92,5 kg). README:n
+Sarjapainojen laskenta -osio sai kappaleen "Pyydetty kevennys". Kehityksen
+käsittely (1RM-arvio, toteutuminen, viikkopylväät) on kehotteessa 4.
+
+**Testi.** `tests/test_kevennys_3.js` (kehotteen tapaukset 1–14 sekä Ohje
+ja Muutokset; tapauksen 3 kevennyskerta kirjattiin tuntumalla Kevyt kuten
+taustan esimerkissä). `test_kevennys_1.js`:n `deloadForSave`-tarkistukset
+odottavat nyt paluuarvoa `{ deload, deloadKind }`.
 
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
@@ -2009,12 +2156,16 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   `deload`; `saveExerciseLog` saa arvon `deloadForSave`-apurilta: uusi
   kirjaus jumitunnistuksesta, jo tallennetun merkinnän saman päivän
   uudelleentallennus ja korjaus merkinnän omasta tiedosta, 0.4.28 alkaen,
-  ks. Kevennysmerkintä uudelleentallennuksessa). Jumitunnistus
+  ks. Kevennysmerkintä uudelleentallennuksessa). 0.4.30 alkaen kevennys
+  on myös käyttäjän pyytämä (`deloadKind` `DELOAD_KIND_REQUESTED`, ks.
+  Pyydetty kevennys): sarjakohtainen ehdotus lasketaan viitekerrasta
+  `deloadReferenceSession(last)`, joka ohittaa pyydetyt kevennykset, mutta
+  jumitunnistus käyttää koko ketjua `last` ennallaan. Jumitunnistus
   `buildDraftRows`-funktiossa: kolme kertaa ilman
   maksimipainon nousua (`maxes[0] <= maxes[viimeinen]`) ja vaje
   viimeisimmässä (`anyShortfall`) → `autoCalcInfo.plateau` ja jokaiselle
   sarjalle kevennys perSet-tilaan `"deload"`; ei laukea, jos jokin kolmesta
-  kerrasta oli kevennys. Vaje ja kevennys noudattavat samaa tuntumasääntöä
+  kerrasta oli kevennys (automaattinen tai pyydetty, sama `flagged`-sääntö). Vaje ja kevennys noudattavat samaa tuntumasääntöä
   kuin ehdotus, sarjakohtaisesti:
   - ilman tuntumaa (perSet-tila `"near"` tai `"missed"`): vaje =
     `prevReps < targetReps`, kevennys `floorToStep(prevWeight ×

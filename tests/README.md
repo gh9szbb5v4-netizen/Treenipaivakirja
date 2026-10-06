@@ -45,6 +45,7 @@ hakemistoon eivätkä kuulu versionhallintaan.
 | `test_warmup_suggest.js` | Lämmittelyehdotuksen nouseva sarja: viime kerran lämmittelyt vain kokonaisena sarjana työpainojen suhteella 0,85–1,15, alaraja aiemmista lämmittelyriveistä, porrashaku ylöspäin, sekalähteen selite sekä regressiot (yhdistelmä- ja cluster-liike, lämmittelysäätö, tallennus, Historia, Kehitys, varmuuskopio) (0.4.27) |
 | `test_kevennys_1.js` | Kevennysmerkintä säilyy saman päivän uudelleentallennuksessa: jumikevennyksen tallennus, uudelleentallennus (merkintä, lastSet ja Historian merkki), seuraavan kerran ehdotus ilman uutta kevennystä, tavallinen liike, korjaus toiselle päivälle ja `deloadForSave` (0.4.28, kevennys-sarja 1/4) |
 | `test_kevennys_2.js` | Varmuuskopion Kevennys-sarake: vienti (automaattinen, pyydetty, tyhjä), palautus tyhjälle laitteelle ja vaikutus seuraavaan ehdotukseen, vanha tiedosto ilman saraketta, tuntematon arvo, Excel-muoto ja kaksoistunniste (0.4.29, kevennys-sarja 2/4) |
+| `test_kevennys_3.js` | Pyydetty kevennys: kytkin laskenta-ikkunassa, osittain tehty kerta, tallennus lajilla, seuraavan kerran viitekerta, jumikevennys ilman kytkintä, lämmittely ja työsarjatasoinen lämmittely, uudelleentallennus, jälkikäteinen merkintä, kelpaamattomat liikkeet, päivän vaihto, korjaus ja varmuuskopio (0.4.30, kevennys-sarja 3/4) |
 
 Aiempien versioiden testit (esim. `test_cluster.js`, `test_rir.js`,
 `test_editor.js`), joihin CLAUDE.md viittaa, eivät ole repossa.
