@@ -57,7 +57,7 @@ const snap = page => page.evaluate(() => {
 const bars = page => page.evaluate(() => {
   const svg = document.querySelector('svg.week-bars');
   if(!svg) return null;
-  const rects = [...svg.querySelectorAll('rect')].map(r => ({ x: +r.getAttribute('x'), h: +r.getAttribute('height'), fill: r.getAttribute('fill') }));
+  const rects = [...svg.querySelectorAll('rect')].map(r => ({ x: +r.getAttribute('x'), h: +r.getAttribute('height'), fill: r.getAttribute('fill'), stroke: r.getAttribute('stroke') }));
   const labels = [...document.querySelectorAll('.week-bars-labels span')].map(s => s.textContent);
   const title = document.querySelector('.week-bars-title');
   const btn = document.querySelector('[data-toggle-week-exercises]');
@@ -84,10 +84,12 @@ const bars = page => page.evaluate(() => {
   let b = await bars(page);
   ok(b && b.role === 'img' && b.label === 'Viikkovolyymi 12 viikolta, 29.6.–14.9.', 'svg aria: ' + (b && b.label));
   ok(b.rects.length === 12 && b.rects[0].h === 21 && b.rects[0].x === 0, 'ensimmäinen pylväs 29.6. h=21: ' + JSON.stringify(b.rects[0]));
-  ok(b.rects[3].h === 2 && b.rects[3].fill === 'var(--line)', '20.7. tyhjä h=2 line: ' + JSON.stringify(b.rects[3]));
-  ok(b.rects[4].h === 14 && b.rects[4].fill === 'var(--line-strong)', '27.7. kevennys h=14: ' + JSON.stringify(b.rects[4]));
+  // 0.4.32: pylväät erottuvat korttia vasten (--line-strong 3,7:1), kevennysviikko
+  // on ääriviiva (ei täyttöä), tyhjä viikko 2 px:n --line-strong-viiva.
+  ok(b.rects[3].h === 2 && b.rects[3].fill === 'var(--line-strong)', '20.7. tyhjä h=2 line-strong: ' + JSON.stringify(b.rects[3]));
+  ok(b.rects[4].x === 100.75 && b.rects[4].h === 12.5 && b.rects[4].fill === 'none' && b.rects[4].stroke === 'var(--mist)', '27.7. kevennys ääriviivana (h=14, viiva 1,5 sisään): ' + JSON.stringify(b.rects[4]));
   ok(b.rects[11].h === 44 && b.rects[11].fill === 'var(--brass)' && b.rects[11].x === 275, '14.9. brass h=44: ' + JSON.stringify(b.rects[11]));
-  ok(b.rects[5].fill === 'var(--surface-2)', 'tavallinen viikko surface-2');
+  ok(b.rects[5].fill === 'var(--line-strong)', 'tavallinen viikko line-strong');
   ok(b.labels[0] === '29.6.' && b.labels[1] === 'kevennys' && b.labels[2] === '14.9.' && b.title === 'Viikkovolyymi, 12 viikkoa', 'selitteet ' + JSON.stringify(b.labels) + ' ' + b.title);
   console.log('11 Näytä liikkeet');
   ok(b.buttonAfterBars === true, 'painike pylväiden alla');

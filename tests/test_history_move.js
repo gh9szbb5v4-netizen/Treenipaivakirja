@@ -45,7 +45,7 @@ const toast = page => page.evaluate(() => (document.getElementById('toast') || {
   await seed(page, PROGRAM, E); await historia(page);
   await openDay(page, '2026-09-14');
   let ex = await dayEx(page);
-  ok(ex[0] === '2026-09-14=Penkkipunnerrus[Kehityksessä ›,Korjaa,Siirrä päivälle];Kulmasoutu[Kehityksessä ›,Korjaa,Siirrä päivälle]', '1 Siirrä päivälle molemmilla liikkeillä: ' + ex[0]);
+  ok(ex[0] === '2026-09-14=Penkkipunnerrus[Kehitys,Korjaa,Siirrä päivälle];Kulmasoutu[Kehitys,Korjaa,Siirrä päivälle]', '1 Siirrä päivälle molemmilla liikkeillä: ' + ex[0]);
   await page.click('[data-open-sheet="siirto"][data-id="ex-2"]'); await w(400);
   const sheet = await page.evaluate(() => { const s = document.querySelector('.sheet'); const i = document.getElementById('move-date'); return s ? { title: s.getAttribute('aria-label'), q: s.querySelector('.rpe-sheet-q').textContent, val: i.value, max: i.max, buttons: [...s.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean), focus: document.activeElement && document.activeElement.getAttribute('aria-label') } : null; });
   ok(sheet && sheet.title === 'Siirrä toiselle päivälle' && sheet.q.indexOf('Kulmasoutu') === 0 && sheet.q.indexOf('14. syyskuuta') !== -1 && sheet.val === '2026-09-14' && sheet.buttons.join('|') === 'Peruuta|Siirrä', '1 pohjalevy: ' + JSON.stringify(sheet));
@@ -64,7 +64,7 @@ const toast = page => page.evaluate(() => (document.getElementById('toast') || {
   let d = await days(page);
   ok(d.join(';') === '2026-09-14:;2026-09-12:korjattu;2026-09-10:', '4 päivälista: 12.9. lisätty korjattu-merkillä: ' + d.join(';'));
   ex = await dayEx(page);
-  ok(ex.join('|') === '2026-09-12=Kulmasoutu[Kehityssä ›,Korjaa,Siirrä päivälle]'.replace('Kehityssä','Kehityksessä'), '4 kohdepäivä avattu, Korjaa siirtyi mukana (exerciseLogIndex): ' + ex.join('|'));
+  ok(ex.join('|') === '2026-09-12=Kulmasoutu[Kehitys,Korjaa,Siirrä päivälle]', '4 kohdepäivä avattu, Korjaa siirtyi mukana (exerciseLogIndex): ' + ex.join('|'));
   const e12 = await entry(page, '2026-09-12'), e14 = await entry(page, '2026-09-14');
   ok(e12 && e12.date === '2026-09-12' && Object.keys(e12.exercises).join() === 'ex-2' && e12.exercises['ex-2'].loggedAt === '2026-09-12T10:40:00.000Z' && !!e12.exercises['ex-2'].editedAt && e12.exercises['ex-2'].warmups.length === 1 && e12.exercises['ex-2'].sets.length === 2, '4 kohdemerkintä: loggedAt uusi päivä, kellonaika säilyy, editedAt, sarjat ja lämmittelyt mukana: ' + JSON.stringify(e12));
   ok(e14 && Object.keys(e14.exercises).join() === 'ex-1', '4 lähdepäivällä vain ex-1');
