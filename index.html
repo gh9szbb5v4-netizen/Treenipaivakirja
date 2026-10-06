@@ -791,12 +791,15 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.26";
+  var APP_VERSION = "0.4.27";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-10-06", items: [
+      "Lämmittelyehdotukset nousevat nyt aina kohti työpainoa (versio 0.4.27): jokainen uusi lämmittely on vähintään yhtä painava kuin edellinen ja kevyempi kuin työsarja. Viime kerran lämmittelyitä käytetään vain, kun työpaino on enintään 15 % eri kuin viime kerralla; suuremmalla muutoksella, esimerkiksi kun toistomäärä vaihtuu kahdeksasta yhteen, ehdotus tulee portaista 40 / 60 / 80 / 90 %. Jos muokkaat lämmittelyä painavammaksi, seuraava ehdotus jatkaa sen yläpuolelta, ja kun aiempien lämmittelyjen yläpuolella ei ole enää porrasta, uusi rivi jää tyhjäksi. Lämmittely-otsikon alla oleva selite kertoo nyt myös, kun ehdotukset tulevat osin viime kerrasta ja osin portaista.",
+    ] },
     { date: "2026-09-24", items: [
       "MAX-rivin 1RM tallentuu nyt raskaimmasta onnistuneesta nostosta (versio 0.4.26): 1RM:ksi tulee raskain valmiiksi merkitty sarja, jossa on vähintään yksi toisto, joten nollalla toistolla kirjattu epäonnistunut yritys (esim. 185 kg × 0) ei enää muutu 1RM:ksi, ja samalle riville voi kirjata useamman yrityksen lisäämällä sarjoja. Jos onnistunutta nostoa ei ole, 1RM pysyy ennallaan ja ilmoitus kertoo sen. Jo tallennetun merkinnän korjaus ei muuta 1RM:ää. Nollan toiston sarjat poistuvat myös Kehityksen 1RM-arvioista (kortti, käyrä, liikelistan muutos, Pysähtynyt-tunniste ja 1RM-luettelon arvio), eikä päivä, jolla on vain nollan toiston sarjoja, näy 1RM-käyrässä. Jo tallennetut 1RM-arvot ja merkinnät pysyvät ennallaan.",
       "Kehityksen 1RM-arvio huomioi nyt sarjan tuntuman (versio 0.4.25): varaan jääneet toistot lisätään tehtyihin (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0), joten tarkoituksella kevyemmin tehty sarja ei enää aliarvioi maksimia — esim. 100 kg × 3 Työläs antaa 117,5 kg entisen 110 kg:n sijaan. Yhden toiston sarja on mittaus vain äärirajoilla tai ilman tuntumaa. Tuntumalla kirjattujen sarjojen aiemmat 1RM-arviot muuttuvat (nousevat; Äärirajoilla ei muuta arvoa) kaikkialla Kehityksessä, myös liikelistan muutoksessa ja Pysähtynyt-tunnisteessa, sekä 1RM-luettelossa; ilman tuntumaa kirjattujen sarjojen arviot pysyvät ennallaan. Kortin ja käyrän selite kertoo tuntuman, kun se vaikutti arvoon (esim. 90 kg × 1, Sujuva). 1RM-luettelon Käytä-painike pyöristää alaspäin pyöristämättömästä arviosta, joten esim. 116,67 kg:n arvio näkyy 117,5 kg:na mutta otetaan käyttöön 115 kg:na.",
@@ -967,14 +970,22 @@
   var WARMUP_FACTOR_VERY_HEAVY = 0.90; // Tuntui ≥2 RPE raskaammalta
   var WARMUP_FACTOR_LIGHT = 1.025;   // Tuntui ≥1 RPE kevyemmältä
   // Lämmittelyehdotus: portaat prosentteina ensimmäisen työsarjan ehdotuksesta
-  // ja toistot porrasta kohti. Portaan järjestysnumero on lämmittelyn numero
-  // (L1 = ensimmäinen alkio); numeroa suuremmat käyttävät viimeistä alkiota.
+  // ja toistot porrasta kohti. Haku alkaa lämmittelyn numeroa vastaavasta
+  // portaasta (L1 = ensimmäinen alkio; numeroa suuremmat viimeisestä) ja
+  // nousee, kunnes paino ylittää aiemmat lämmittelyrivit (ladderSuggestion).
   var WARMUP_LADDER = [
     { pct: 0.40, reps: 8 },
     { pct: 0.60, reps: 5 },
     { pct: 0.80, reps: 3 },
     { pct: 0.90, reps: 1 }
   ];
+  // Viime kerran lämmittelyt skaalataan tämän kerran työpainoon vain, kun
+  // työpainojen suhde (base / viime kerran ensimmäinen työsarja) on tällä
+  // välillä (rajat mukaan lukien). Kattaa tavallisen progression ja
+  // kevennyksen (DELOAD_FACTOR 0,90); suurempi muutos tarkoittaa yleensä eri
+  // toistomallia (esim. 72,5 × 8 → 145 × 1), jolloin käytetään portaita.
+  var WARMUP_LAST_RATIO_MIN = 0.85;
+  var WARMUP_LAST_RATIO_MAX = 1.15;
   // Kevyt työpaino (alle tämän, kg): prosenttiportaat eivät ole mielekkäitä
   // (esim. 12 kg:n käsipainokääntö), joten ehdotetaan vain yksi lämmittely
   // WARMUP_LIGHT_PCT:llä työpainosta ja tavoitetoistoilla.
@@ -4794,7 +4805,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // ehdotus (rivin base ennen lämmittelysäätöä, kuten applyWarmupAdjustment-
   // funktion startWeight) tai käsin kirjoitettu paino, jos ehdotusta ei ole.
   // Viitekerta on sama kuin Viime-sarakkeessa: lastSet, tai sen prior[0], kun
-  // päällimmäinen kerta on tämän liikkeen jo tallennettu merkintä.
+  // päällimmäinen kerta on tämän liikkeen jo tallennettu merkintä. lastScaled
+  // on viitekerran lämmittelyt tämän kerran työpainoon skaalattuina
+  // (scaleLastWarmups) tai null, kun niitä ei käytetä.
   function warmupSuggestionContext(ex, id){
     var firstWork = workRows(id)[0];
     var base = firstWork ? toNumber(firstWork.base !== undefined ? firstWork.base : firstWork.weight) : NaN;
@@ -4804,53 +4817,111 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(lastSession && logged && logged.date === lastSession.date) lastSession = (lastSession.prior && lastSession.prior[0]) || null;
     var lastWork = (lastSession && lastSession.sets && lastSession.sets[0]) ? toNumber(lastSession.sets[0].weight) : NaN;
     var ratio = (isFinite(lastWork) && lastWork > 0) ? base / lastWork : 1;
-    return { base: base, lastSession: lastSession, ratio: ratio };
+    return { base: base, lastSession: lastSession, ratio: ratio, lastScaled: scaleLastWarmups(lastSession, ratio, base) };
+  }
+  // Viitekerran lämmittelyt skaalattuina työpainojen suhteella: taulukko
+  // [{ weight: luku, reps: merkkijono }] viime kerran järjestyksessä tai null.
+  // Sarjaa käytetään vain kokonaisena: null, kun lämmittelyjä ei ole, suhde
+  // on WARMUP_LAST_RATIO_MIN–MAX-välin ulkopuolella (yleensä eri toistomalli)
+  // tai jokin lämmittely ei kelpaa — paino tai toistot puuttuvat, skaalattu
+  // paino on alle WARMUP_MIN_WEIGHT, vähintään työpaino tai kevyempi kuin
+  // edellinen. Sama paino peräkkäin kelpaa, koska se on käyttäjän oma kaava
+  // (esim. tanko 20 × 10 kahdesti).
+  function scaleLastWarmups(lastSession, ratio, base){
+    var warmups = lastSession ? lastSession.warmups : null;
+    if(!warmups || !warmups.length) return null;
+    if(ratio < WARMUP_LAST_RATIO_MIN || ratio > WARMUP_LAST_RATIO_MAX) return null;
+    var scaled = [];
+    for(var i=0;i<warmups.length;i++){
+      var lastWarm = warmups[i];
+      var lw = lastWarm ? toNumber(lastWarm.weight) : NaN, lr = lastWarm ? toNumber(lastWarm.reps) : NaN;
+      if(!isFinite(lw) || lw <= 0 || !isFinite(lr) || lr <= 0) return null;
+      var weight = roundToStep(lw * ratio, WEIGHT_STEP);
+      if(weight < WARMUP_MIN_WEIGHT || weight >= base) return null;
+      if(scaled.length && weight < scaled[scaled.length - 1].weight) return null;
+      scaled.push({ weight: weight, reps: String(lastWarm.reps) });
+    }
+    return scaled;
+  }
+  // Uuden lämmittelyn alaraja: raskain kelvollinen (äärellinen, > 0) paino
+  // taulukon nykyisistä lämmittelyriveistä — valmiit ja keskeneräiset, auto-
+  // ja käsin kirjoitetut; 0, kun kelvollista painoa ei ole. [data-add-warmup]
+  // kutsuu suggestWarmup-funktiota ennen uuden rivin lisäystä, joten rivit
+  // ovat juuri aiemmat lämmittelyt.
+  function warmupLowerBound(id){
+    var lowerBound = 0;
+    warmupRows(id).forEach(function(w){
+      var v = toNumber(w.weight);
+      if(isFinite(v) && v > lowerBound) lowerBound = v;
+    });
+    return lowerBound;
+  }
+  // Porrasehdotus lämmittelylle n alarajan lowerBound yläpuolelta tai null
+  // (tyhjä rivi). Kevyellä työpainolla (alle WARMUP_LIGHT_LIMIT) vain L1
+  // WARMUP_LIGHT_PCT:llä ja tavoitetoistoilla. Muuten haku alkaa lämmittelyn
+  // numeroa vastaavasta portaasta (numeroa suuremmat viimeisestä) ja etenee
+  // ylöspäin ensimmäiseen portaaseen, jonka paino on alarajaa painavampi,
+  // vähintään WARMUP_MIN_WEIGHT ja kevyempi kuin työpaino; samaa porraspainoa
+  // ei siksi ehdoteta kahdesti.
+  function ladderSuggestion(ex, base, n, lowerBound){
+    var weight;
+    if(base < WARMUP_LIGHT_LIMIT){
+      if(n > 1) return null;
+      weight = roundToStep(base * WARMUP_LIGHT_PCT, WEIGHT_STEP);
+      if(weight <= lowerBound || weight < WARMUP_MIN_WEIGHT || weight >= base) return null;
+      var targetReps = toNumber(ex.reps);
+      return { weight: String(weight), reps: isFinite(targetReps) ? String(targetReps) : "5", source: "ladder" };
+    }
+    for(var i = Math.min(n, WARMUP_LADDER.length) - 1; i < WARMUP_LADDER.length; i++){
+      var rung = WARMUP_LADDER[i];
+      weight = roundToStep(base * rung.pct, WEIGHT_STEP);
+      if(weight > lowerBound && weight >= WARMUP_MIN_WEIGHT && weight < base) return { weight: String(weight), reps: String(rung.reps), source: "ladder" };
+    }
+    return null;
   }
   // Ehdotus lämmittelylle n (1 = L1): { weight, reps, source: "last" | "ladder" }
-  // tai null (tyhjä rivi). Lähde 1 on viime kerran sama lämmittely (L1 → L1)
-  // skaalattuna työpainojen suhteella; lähde 2 prosenttiportaat WARMUP_LADDER
-  // tai kevyellä työpainolla yksi lämmittely WARMUP_LIGHT_PCT:llä. Ehdotus ei
-  // opi eikä vaikuta mihinkään ennen kuin rivi merkitään valmiiksi. Ei
-  // yhdistelmä- eikä menetelmäliikkeille (kind muu kuin plain); teholiikkeet
-  // saavat ehdotuksen, koska niilläkin on työpaino.
+  // tai null (tyhjä rivi). Sarja nousee aina kohti työpainoa: ehdotus on
+  // vähintään taulukon aiempien lämmittelyrivien raskaimman painon
+  // (warmupLowerBound) painoinen ja aina kevyempi kuin työpaino. Lähde 1 on
+  // viime kerran sama lämmittely (L1 → L1) skaalattuna (lastScaled: vain
+  // kokonainen, kelvollinen sarja), kun se on alarajaa painavampi tai sama
+  // paino, jota viime kerran oma kaava toistaa. Muuten lähde 2 on
+  // prosenttiportaat alarajan yläpuolelta (ladderSuggestion): niin myös, kun
+  // viime kerran lämmittelyt loppuvat tai käyttäjä on muokannut aiemman rivin
+  // painavammaksi. Ehdotus ei opi eikä vaikuta mihinkään ennen kuin rivi
+  // merkitään valmiiksi. Ei yhdistelmä- eikä menetelmäliikkeille (kind muu
+  // kuin plain); teholiikkeet saavat ehdotuksen, koska niilläkin on työpaino.
   function suggestWarmup(ex, id, n){
     if(!ex || isCombo(ex.name) || (ex.kind && ex.kind !== "plain")) return null;
     var ctx = warmupSuggestionContext(ex, id);
     if(!ctx) return null;
-    var base = ctx.base;
-    var lastWarm = (ctx.lastSession && ctx.lastSession.warmups) ? ctx.lastSession.warmups[n - 1] : null;
-    if(lastWarm){
-      var lw = toNumber(lastWarm.weight), lr = toNumber(lastWarm.reps);
-      if(isFinite(lw) && lw > 0 && isFinite(lr) && lr > 0){
-        var scaled = roundToStep(lw * ctx.ratio, WEIGHT_STEP);
-        // Viime kerran lämmittely ei sovi nykyiseen työpainoon → portaat.
-        if(scaled < base && scaled >= WARMUP_MIN_WEIGHT) return { weight: String(scaled), reps: String(lastWarm.reps), source: "last" };
-      }
+    var lb = warmupLowerBound(id);
+    if(ctx.lastScaled){
+      var c = ctx.lastScaled[n - 1];
+      // Sama paino kuin alaraja kelpaa vain, kun viime kerran oma kaava toistaa
+      // juuri tätä painoa (edellinen skaalattu lämmittely on sama paino).
+      var repeatOk = c && n >= 2 && ctx.lastScaled[n - 2].weight === c.weight;
+      if(c && (c.weight > lb || (c.weight === lb && repeatOk))) return { weight: String(c.weight), reps: c.reps, source: "last" };
     }
-    var weight, reps;
-    if(base < WARMUP_LIGHT_LIMIT){
-      if(n > 1) return null;
-      weight = roundToStep(base * WARMUP_LIGHT_PCT, WEIGHT_STEP);
-      var targetReps = toNumber(ex.reps);
-      reps = isFinite(targetReps) ? String(targetReps) : "5";
-    } else {
-      var rung = WARMUP_LADDER[Math.min(n, WARMUP_LADDER.length) - 1];
-      weight = roundToStep(base * rung.pct, WEIGHT_STEP);
-      reps = String(rung.reps);
-    }
-    if(weight < WARMUP_MIN_WEIGHT || weight >= base) return null;
-    return { weight: String(weight), reps: reps, source: "ladder" };
+    return ladderSuggestion(ex, ctx.base, n, lb);
   }
   // Selite Lämmittely-otsikon alle, kun vähintään yksi lämmittelyrivi on
   // esitäytetty (auto) eikä vielä valmis. Katoaa, kun auto-rivit on merkitty
-  // valmiiksi tai muokattu. Prosenttilista tulee WARMUP_LADDER-vakiosta.
+  // valmiiksi tai muokattu. Teksti kertoo keskeneräisten auto-rivien
+  // todellisen perusteen: viime kerran mukaan (skaalattuna, kun suhde ei ole
+  // 1), portaittain (prosenttilista WARMUP_LADDER-vakiosta) tai molemmat.
   function warmupAutoNote(ex, id){
     var autoRows = warmupRows(id).filter(function(w){ return w.auto && !w.done; });
     if(!autoRows.length) return "";
     var ctx = warmupSuggestionContext(ex, id);
     if(!ctx) return "";
     var baseStr = String(ctx.base).replace(".", ",");
-    if(autoRows.every(function(w){ return w.auto === "last"; })){
+    var hasLast = autoRows.some(function(w){ return w.auto === "last"; });
+    var hasLadder = autoRows.some(function(w){ return w.auto === "ladder"; });
+    if(hasLast && hasLadder){
+      return "Lämmittelyt viime kerran mukaan ja portaittain työpainosta " + baseStr + " kg — muokattavissa.";
+    }
+    if(hasLast){
       return ctx.ratio === 1
         ? "Lämmittelyt viime kerran mukaan — muokattavissa."
         : "Lämmittelyt viime kerran mukaan, skaalattu työpainoon " + baseStr + " kg — muokattavissa.";
@@ -7655,7 +7726,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ]) + ohjeP(
       "Jos lämmittely on tosiasiassa työsarjan tasoinen — paino vähintään ensimmäisen työsarjan ehdotus ja toistot vähintään tavoite — sovellus säätää heti jäljellä olevat työsarjat sen perusteella: tuntuma tulkitaan varastoon jääneiksi toistoiksi (Kevyt 4, Sujuva 3, Työläs 2, Raskas 1, Äärirajoilla 0), ja paino lasketaan niin, että tavoitetoistot tuntuisivat Työläältä. Työläs pitää painon, kevyempi nostaa ja raskaampi keventää; valmiiksi merkittyjä ja käsin muokattuja sarjoja ei kosketa, ja tuntuman vaihto lasketaan aina alkuperäisestä ehdotuksesta. Lämmittelyrivi säilyy lämmittelynä."
     ) + ohjeP(
-      "Muuten, kun sama lämmittely (samat toistot, paino 2,5 kg:n sisällä) on kirjattu aiemmin, sovellus vertaa vastausta siihen, miltä se on tavallisesti tuntunut: yhtä pykälää raskaampi keventää saman treenin työsarjojen painoehdotusta 5 %, kahta pykälää 10 % ja yhtä pykälää kevyempi nostaa 2,5 %. Vain saman treenin painavin lämmittely vaikuttaa, käsin muokattuja sarjoja ei säädetä, ja ensimmäisellä kerralla vertailudataa ei vielä ole. Tuntuman voi jättää myös antamatta, jolloin lämmittely tallentuu ilman vaikutusta. Lisää lämmittelysarja täyttää rivin valmiiksi: ensisijaisesti viime kerran samalla lämmittelyllä skaalattuna tämän kerran työpainoon, muuten portaittain työpainosta (40, 60, 80 ja 90 %; alle 20 kg:n työpainolla yksi lämmittely 60 %:lla). Arvot ovat ehdotuksia ja muokattavissa; lämmittely vaikuttaa työsarjoihin vasta valmiiksi merkittynä."
+      "Muuten, kun sama lämmittely (samat toistot, paino 2,5 kg:n sisällä) on kirjattu aiemmin, sovellus vertaa vastausta siihen, miltä se on tavallisesti tuntunut: yhtä pykälää raskaampi keventää saman treenin työsarjojen painoehdotusta 5 %, kahta pykälää 10 % ja yhtä pykälää kevyempi nostaa 2,5 %. Vain saman treenin painavin lämmittely vaikuttaa, käsin muokattuja sarjoja ei säädetä, ja ensimmäisellä kerralla vertailudataa ei vielä ole. Tuntuman voi jättää myös antamatta, jolloin lämmittely tallentuu ilman vaikutusta. Lisää lämmittelysarja täyttää rivin valmiiksi: ensisijaisesti viime kerran samalla lämmittelyllä skaalattuna tämän kerran työpainoon, muuten portaittain työpainosta (40, 60, 80 ja 90 %; alle 20 kg:n työpainolla yksi lämmittely 60 %:lla). Viime kerran lämmittelyitä käytetään vain kokonaisena sarjana: kun työpaino on enintään 15 % eri kuin viime kerralla ja jokainen skaalattu lämmittely on edellistä vähintään yhtä painava mutta työpainoa kevyempi; muuten kaikki ehdotukset tulevat portaista. Ehdotukset nousevat aiempien lämmittelyrivien yläpuolelle ja jäävät työpainon alle, myös kun olet muokannut lämmittelyn painavammaksi; sama paino toistuu vain, kun viime kerran lämmittelyissäkin oli sama paino peräkkäin. Kun viime kerran lämmittelyt loppuvat, jatko tulee portaista, ja kun aiempien lämmittelyjen yläpuolella ei ole enää porrasta, rivi jää tyhjäksi. Arvot ovat ehdotuksia ja muokattavissa; lämmittely vaikuttaa työsarjoihin vasta valmiiksi merkittynä."
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Cluster-sarjat</b> kirjataan yhtenä rivinä clusteria kohti: paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittaman toistomäärän), toistot ovat osasarjan toistot, ja rivin alla oleva laskuri kertoo osasarjat. Napauta + jokaisen osasarjan jälkeen — se käynnistää 15 sekunnin osasarjatauon ajastimen alusta — ja merkitse cluster valmiiksi ✓:llä, kun osasarjoja ei enää tule. Kehityksen mittari on osasarjojen määrä samalla kuormalla: tietopainikkeen ikkuna näyttää edellisen kerran osasarjat tavoitteeksi. Cluster-merkintä ei vaikuta liikkeen 1RM-arvioon, mutta sen volyymi (paino × toistot × osasarjat) lasketaan Kehitykseen."
     ) + ohjeP(
