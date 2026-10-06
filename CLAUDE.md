@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.28 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.29 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -536,6 +536,41 @@ aloita uutta lohkoa eikä vaikuta duplikaattitunnisteeseen) ja
 `importEntriesData()` kirjoittaa ne merkintään `warmups`-kenttään, josta
 `rebuildTrackersForName()` rakentaa `lastSet`-lämmittelyt. Vanha tiedosto
 ilman L-rivejä tuodaan ennallaan.
+
+Merkintäosion sarakkeet ovat Päivämäärä, Liike, Sarja, Paino (kg), Toistot,
+Huomiot, Tyyppi, Tunniste, Tuntuma, Osasarjat ja 0.4.29 alkaen viimeisenä
+**Kevennys** (kevennys-sarja 2/4). `deloadBackupText(data)` kirjoittaa
+merkinnän jokaiselle riville (myös L-riveille) tyhjän (ei kevennystä),
+`automaattinen` (`deload: true` ilman lajia tai muulla lajilla) tai
+`pyydetty` (`deloadKind: "pyydetty"`), ja `deloadFromBackupText(raw)`
+lukee arvon takaisin (`{ deload: true }`, `{ deload: true, deloadKind:
+"pyydetty" }` tai `null` tyhjälle ja tuntemattomalle arvolle, kirjainkoosta
+riippumatta). Molemmat ovat heti `exportAllCSV`-funktion edellä.
+`parseEntriesCSV` hakee sarakkeen `findCol(["kevennys"])`; `findCol`
+täsmää myös osamerkkijonoon, ja tarkistuksen tulos: yksikään muu hakusana
+("päivämäärä", "paivamaara", "date", "pvm", "liike", "exercise",
+"harjoitus", "sarja", "set", "paino", "weight", "kg", "toistot",
+"toistoa", "reps", "huomiot", "huomio", "notes", "kommentti", "tyyppi",
+"kind", "tunniste", "tuntuma", "osasarjat", "subsets") ei sisälly sanaan
+"kevennys", eikä "kevennys" sisälly muihin otsikoihin. Lohko saa lipun
+(`deload`, `deloadKind`) ensimmäiseltä tunnistetulta riviltä
+`startsNew`-käsittelyn jälkeen ja ennen L-rivin `return`-lausetta;
+sarake ei vaikuta lohkon rajaan. `importEntriesData` kirjoittaa uuteen
+merkintään `deload: true` ja `deloadKind` vain, kun lohkolla on lippu,
+joten tiedosto ilman saraketta tuottaa saman olion kuin ennen.
+Kaksoistunniste ei sisällä kevennystä, joten laitteella jo olevaa
+merkintää ei muuteta. `rebuildTrackersForName` kantaa `deload`-lipun
+`lastSet`-ketjuun; `deloadKind`-kentän kantaminen kuuluu kevennys-sarjan
+kehotteeseen 3. `unwrapExcelBackupText` purkaa Excelin yhteen soluun
+tallentaman rivin kenttiin osion otsikkorivin kenttämäärän mukaan eikä
+oleta kiinteää sarakemäärää, joten uusi sarake ei vaatinut siihen
+muutoksia (testattu). Vanha sovellusversio ohittaa tuntemattoman
+sarakkeen. Testi: `tests/test_kevennys_2.js` (vienti, palautus tyhjälle
+laitteelle, palautetun kevennyksen vaikutus A2:n ehdotukseen 90 ja 90,
+vanha tiedosto ilman saraketta → 80 ja 80 kuten ennen, tuntematon arvo
+"kyllä", Excel-muoto, kaksoistunniste "(ohitettu 4 jo olemassa
+olevaa)" ja Muutokset; kehitysvaiheessa ajettu myös 0.4.28:aa vastaan:
+15 epäonnistumista, mm. palautuksen jälkeen 80 ja 80).
 
 `intensityToText()` kirjoittaa tehon takaisin samaan muotoon, josta
 `parseIntensity()` sen lukee, jotta `intensity`-olio syntyy uudelleen samana.

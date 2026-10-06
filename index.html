@@ -791,13 +791,14 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.4.28";
+  var APP_VERSION = "0.4.29";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
     { date: "2026-10-06", items: [
+      "Varmuuskopio sisältää nyt kevennystiedon (versio 0.4.29): merkintäosion uusi viimeinen sarake Kevennys kertoo, oliko kerta automaattinen kevennys vai itse pyydetty. Palautus palauttaa tiedon, joten jumitunnistus ei ehdota uutta kevennystä heti palautetun kevennyksen perään. Vanhat varmuuskopiot tuodaan ennallaan.",
       "Kevennysmerkintä säilyy nyt, kun jo tallennettu liike tallennetaan samana päivänä uudelleen (versio 0.4.28). Aiemmin uudelleentallennus poisti merkinnän (myös Historian kevennys-merkin), jolloin seuraava kerta saattoi ehdottaa heti uutta 10 %:n kevennystä (esim. 90 kg → 80 kg) kevennyksen jälkeisen kolmen kerran rakennusajan sijaan.",
       "Lämmittelyehdotukset nousevat nyt aina kohti työpainoa (versio 0.4.27): jokainen uusi lämmittely on vähintään yhtä painava kuin edellinen ja kevyempi kuin työsarja. Viime kerran lämmittelyitä käytetään vain, kun työpaino on enintään 15 % eri kuin viime kerralla; suuremmalla muutoksella, esimerkiksi kun toistomäärä vaihtuu kahdeksasta yhteen, ehdotus tulee portaista 40 / 60 / 80 / 90 %. Jos muokkaat lämmittelyä painavammaksi, seuraava ehdotus jatkaa sen yläpuolelta, ja kun aiempien lämmittelyjen yläpuolella ei ole enää porrasta, uusi rivi jää tyhjäksi. Lämmittely-otsikon alla oleva selite kertoo nyt myös, kun ehdotukset tulevat osin viime kerrasta ja osin portaista.",
     ] },
@@ -6319,6 +6320,21 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     URL.revokeObjectURL(url);
     showToast("Vaivaloki tallennettu");
   }
+  // Varmuuskopion Kevennys-sarake: "" | "automaattinen" | "pyydetty".
+  // deloadKind "pyydetty" on käyttäjän pyytämä kevennys (kevennys-sarja 3);
+  // muu deload: true on jumitunnistuksen kevennys.
+  function deloadBackupText(data){
+    if(!data || data.deload !== true) return "";
+    return data.deloadKind === "pyydetty" ? "pyydetty" : "automaattinen";
+  }
+  // Sarakkeen arvo takaisin: null (ei kevennystä tai tuntematon arvo) tai
+  // { deload: true } / { deload: true, deloadKind: "pyydetty" }.
+  function deloadFromBackupText(raw){
+    var t = String(raw == null ? "" : raw).trim().toLowerCase();
+    if(t === "automaattinen") return { deload: true };
+    if(t === "pyydetty") return { deload: true, deloadKind: "pyydetty" };
+    return null;
+  }
   async function exportAllCSV(){
     // Lämmittelysarjat viedään työsarjojen jälkeen Sarja-arvolla L1, L2, …
     // (paino, toistot ja tuntuma), jotta RPE-tiedot ovat varmuuskopiossa
@@ -6326,10 +6342,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     try{
       var res = await storeList("entries:");
       var keys = (res && res.keys) || [];
-      // Tuntuma on viimeisenä sarakkeena asteikon sanana (Kevyt … Äärirajoilla);
-      // vanhat tiedostot ilman saraketta tuodaan yhä ennallaan.
-      // Osasarjat on viimeisenä: cluster-rivillä subsets, muilla tyhjä.
-      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste","Tuntuma","Osasarjat"]];
+      // Sarakkeet Tunnisteen jälkeen: Tuntuma asteikon sanana (Kevyt …
+      // Äärirajoilla), Osasarjat (cluster-rivillä subsets, muilla tyhjä) ja
+      // viimeisenä Kevennys (0.4.29; deloadBackupText, sama arvo merkinnän
+      // jokaisella rivillä L-rivit mukaan lukien). Vanhat tiedostot ilman
+      // näitä sarakkeita tuodaan yhä ennallaan, ja vanhat sovellusversiot
+      // ohittavat tuntemattoman sarakkeen.
+      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste","Tuntuma","Osasarjat","Kevennys"]];
       for(var i=0;i<keys.length;i++){
         var date = keys[i].replace("entries:", "");
         var entry = await loadEntry(date);
@@ -6337,17 +6356,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var data = entry.exercises[exKey];
           var exName = data.name || exKey;
           var kind = data.kind || "plain";
+          var dlText = deloadBackupText(data);
           (data.sets || []).forEach(function(s, idx){
             // Tunniste on merkinnän liike-id. Sen avulla tuonti sitoo merkinnän
             // täsmälleen samaan ohjelman liikkeeseen kuin viennin hetkellä,
             // ilman nimien varaan jäävää arvausta.
             var feel = (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? warmupScaleStep(s.rpe).label : "";
             var subsets = (kind === "cluster" && isFinite(toNumber(s.subsets)) && toNumber(s.subsets) > 0) ? String(toNumber(s.subsets)) : "";
-            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", s.notes || "", kind, exKey, feel, subsets]);
+            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", s.notes || "", kind, exKey, feel, subsets, dlText]);
           });
           (data.warmups || []).forEach(function(w, wi){
             var wFeel = (w.rpe !== null && w.rpe !== undefined && isFinite(toNumber(w.rpe))) ? warmupScaleStep(w.rpe).label : "";
-            rows.push([date, exName, "L" + (wi+1), w.weight || "", w.reps || "", "", kind, exKey, wFeel, ""]);
+            rows.push([date, exName, "L" + (wi+1), w.weight || "", w.reps || "", "", kind, exKey, wFeel, "", dlText]);
           });
         });
       }
@@ -6636,6 +6656,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var cId   = findCol(["tunniste"]);
     var cFeel = findCol(["tuntuma"]);
     var cSub  = findCol(["osasarjat","subsets"]);
+    // findCol täsmää myös osamerkkijonoon: yksikään yllä oleva hakusana ei
+    // sisälly sanaan "kevennys", eikä "kevennys" sisälly muihin otsikoihin.
+    var cDeload = findCol(["kevennys"]);
     if(!cDate || !cName) throw new Error("Tiedostosta puuttuu päivämäärä- tai liikesarake. Käytä tällä sovelluksella tehtyä vientitiedostoa.");
 
     var byDate = {};
@@ -6665,6 +6688,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(startsNew){
         lastBlock = { name: name, kind: kind, id: exId, sets: [] };
         blocks.push(lastBlock);
+      }
+      // Kevennys on merkinnän jokaisella rivillä (myös L-riveillä); lohko saa
+      // sen ensimmäiseltä tunnistetulta riviltä. Sarake ei vaikuta lohkon
+      // rajaan, ja tuntematon arvo ohitetaan.
+      var dlInfo = cDeload ? deloadFromBackupText(row[cDeload]) : null;
+      if(dlInfo && !lastBlock.deload){
+        lastBlock.deload = true;
+        if(dlInfo.deloadKind) lastBlock.deloadKind = dlInfo.deloadKind;
       }
       if(isWarm){
         if(!lastBlock.warmups) lastBlock.warmups = [];
@@ -6912,6 +6943,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           loggedAt: date + "T12:00:00.000Z"
         };
         if(block.warmups && block.warmups.length) entry.exercises[newId].warmups = block.warmups;
+        // Kevennystieto vain, kun varmuuskopiossa oli kevennys: tiedosto ilman
+        // Kevennys-saraketta tuottaa täsmälleen saman olion kuin ennen.
+        // Kaksoistunniste ei sisällä kevennystä, joten laitteella jo olevaa
+        // merkintää ei muuteta.
+        if(block.deload){
+          entry.exercises[newId].deload = true;
+          if(block.deloadKind) entry.exercises[newId].deloadKind = block.deloadKind;
+        }
         signatures[sig] = true;
         touchedNames[block.name.trim().toLowerCase()] = block.name;
         addedBlocks++;
