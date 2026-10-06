@@ -60,13 +60,16 @@ const exInfo = (page, name) => page.evaluate((name) => {
   ok(k.kind === 'cluster' && nb(k.rows[0].val) === '70 kg × 6 × 4 osasarjaa' && k.rows[0].rpe === 'RPE 8' && nb(k.rows[1].val) === '70 kg × 6 × 3 osasarjaa' && k.rows[1].rpeCls === 'history-rpe none' && k.rows[1].rpe === '–' && k.rows[1].rpeHidden === 'true', '2 cluster-rivit: ' + JSON.stringify(k.rows));
   ok(k.notes.length === 1 && k.notes[0] === 'Huomio: kahva vaihdettu' && k.rows[1].aria === 'Sarja 2: 70 kg × 6 × 3 osasarjaa', '2/11 huomiorivi ja aria ilman RPE:tä: ' + JSON.stringify([k.notes, k.rows[1].aria]));
   const c = await exInfo(page, 'Cardiolaite');
-  ok(p.actions.join(';') === 'Kehityksessä ›|keh;Korjaa|fix' && k.actions.join(';') === 'Kehityksessä ›|keh' && c.actions.join(';') === 'Korjaa|fix', '3 toiminnot (combo: ei Kehityksessä; Korjaa, koska canFix on tosi): ' + JSON.stringify([p.actions, k.actions, c.actions]));
+  // 0.4.32: liikkeen toiminnot ovat tonaalisia pillereitä, ja Kehityksen
+  // painikkeen teksti on "Kehitys" (mahtuu yhdelle riville Korjaa- ja Siirrä
+  // päivälle -painikkeiden kanssa).
+  ok(p.actions.join(';') === 'Kehitys|keh;Korjaa|fix' && k.actions.join(';') === 'Kehitys|keh' && c.actions.join(';') === 'Korjaa|fix', '3 toiminnot (combo: ei Kehitystä; Korjaa, koska canFix on tosi): ' + JSON.stringify([p.actions, k.actions, c.actions]));
   ok(!!(await page.$('.history-delete [data-delete-history]')) && !!(await page.$('.history-date-head.open')), '13 poistolohko ja avattu otsikkorivi');
   // 10 vanha merkintä ilman warmups
   await page.click('.history-date-head[data-date="2026-09-14"]'); await page.waitForTimeout(300);
   await page.click('.history-date-head[data-date="2026-09-16"]'); await page.waitForTimeout(400);
   k = await exInfo(page, 'Kulmasoutu');
-  ok(k.rows.length === 1 && !k.rows[0].warm && k.actions.join(';') === 'Kehityksessä ›|keh;Korjaa|fix', '10 ilman lämmittelyjä; 16.9. viimeisin → Korjaa: ' + JSON.stringify(k.actions));
+  ok(k.rows.length === 1 && !k.rows[0].warm && k.actions.join(';') === 'Kehitys|keh;Korjaa|fix', '10 ilman lämmittelyjä; 16.9. viimeisin → Korjaa: ' + JSON.stringify(k.actions));
   await page.click('.history-date-head[data-date="2026-09-16"]'); await page.waitForTimeout(300);
   // 5 Kehitys laskettu, liikettä ei ole (Soutu vain ilman painoa)
   await page.click('.tab[data-tab="kehitys"]'); await page.waitForSelector('main .segmented'); await page.waitForTimeout(400);

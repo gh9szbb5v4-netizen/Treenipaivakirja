@@ -302,8 +302,8 @@ const maxRow = (page, key) => page.evaluate(k => {
   await page.click('[data-tab="asetukset"]'); await w(450);
   await page.click('[data-settings-section="muutokset"]'); await w(450);
   const muut = await page.evaluate(() => document.querySelector('main').textContent.replace(/\s+/g, ' '));
-  const ver = await page.evaluate(() => window.__t.APP_VERSION);
-  ok(muut.indexOf('Pyydetty kevennys ei enää vaikuta Kehityksen 1RM-arvioon (versio ' + ver + ')') !== -1, '9 Muutokset kertoo muutoksesta (versio ' + ver + ')');
+  // Muutos tehtiin versiossa 0.4.31 (myöhemmät versiot lisäävät omia kohtiaan).
+  ok(muut.indexOf('Pyydetty kevennys ei enää vaikuta Kehityksen 1RM-arvioon (versio 0.4.31)') !== -1, '9 Muutokset kertoo muutoksesta (versio 0.4.31)');
 
   ok(errors.length === 0, 'ei sivuvirheitä: ' + JSON.stringify(errors));
   await browser.close();

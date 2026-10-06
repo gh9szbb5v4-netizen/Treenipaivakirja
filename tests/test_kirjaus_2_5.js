@@ -45,7 +45,7 @@ const head = page => page.evaluate(() => {
   const info = sh ? sh.querySelector('.screen-head-right .info-btn') : null;
   const r = info ? info.getBoundingClientRect() : null;
   const firstRow = m.querySelector('.ledger-row:not(.ledger-head)');
-  return { logo: !!h.querySelector('.app-logo'), ohje: !!h.querySelector('[data-tab="ohje"]'), nav: !!h.querySelector('nav.bottom-nav'), firstIsHead: first === sh,
+  return { logo: !!h.querySelector('.app-logo'), view: (h.querySelector('h1.view-heading') || {}).textContent || null, ohje: !!h.querySelector('[data-tab="ohje"]'), nav: !!h.querySelector('nav.bottom-nav'), firstIsHead: first === sh,
     back: back ? { attrs: [...back.attributes].map(a => a.name).filter(n => n.startsWith('data-')).join(','), label: back.getAttribute('aria-label') } : null,
     kicker: sh ? (sh.querySelector('.screen-kicker') || {}).textContent || null : null, titleTag: title ? title.tagName : null, titleId: title ? title.id : null, titleText: title ? title.textContent : null,
     info: !!info, infoSize: r ? [Math.round(r.width), Math.round(r.height)] : null, chip: title ? !!title.querySelector('.chip') : null,
@@ -89,7 +89,9 @@ const rows = page => page.evaluate(() => [...document.querySelectorAll('.ledger 
   const decl = [['2026-07-01',60],['2026-07-15',58],['2026-08-01',56],['2026-08-20',54],['2026-09-10',52]].map(p => ({ date: p[0], exercises: { F: { name: 'Pystypunnerrus', sets: [{ weight: p[1], reps: 1, done: true }], kind: 'plain' } } }));
   await load(page, { entries: decl });
   await page.click('.tab[data-tab="kehitys"]'); await page.waitForSelector('main .segmented'); await page.waitForTimeout(400);
-  h = await head(page); ok(h.logo && h.ohje, '7 Kehitys-etusivu logoineen');
+  // 0.4.32 alkaen logo on vain Ohjelma-näkymässä; muilla välilehdillä
+  // otsikkorivillä on näkymän nimi (h1.view-heading).
+  h = await head(page); ok(!h.logo && h.view === 'Kehitys' && h.ohje, '7 Kehitys-etusivu otsikkorivillä ' + JSON.stringify([h.logo, h.view]));
   await page.click('[data-kehitys-front-tab="liikkeet"]'); await page.waitForTimeout(300);
   await page.click('.kehitys-row'); await page.waitForTimeout(700);
   h = await head(page);
@@ -98,14 +100,14 @@ const rows = page => page.evaluate(() => [...document.querySelectorAll('.ledger 
   await page.click('.screen-head [data-close-kehitys]'); await page.waitForTimeout(800);
   // 6 Asetukset
   await page.click('.tab[data-tab="asetukset"]'); await page.waitForTimeout(800);
-  h = await head(page); ok(h.logo && h.ohje, '6 Asetusten luettelo logoineen');
+  h = await head(page); ok(!h.logo && h.view === 'Asetukset' && h.ohje, '6 Asetusten luettelo otsikkorivillä');
   await page.click('[data-settings-section="lepo"]'); await page.waitForTimeout(500);
   h = await head(page);
   ok(!h.logo && h.firstIsHead && h.back.attrs === 'data-settings-back' && h.back.label === 'Takaisin asetuksiin' && h.kicker === 'Asetukset' && h.titleTag === 'H1' && h.titleText === 'Lepoajastin' && h.h1s === 1, '6 alinäkymä: ' + JSON.stringify([h.back, h.kicker, h.titleText, h.h1s]));
   await page.click('.screen-head [data-settings-back]'); await page.waitForTimeout(500);
-  ok((await head(page)).logo, '6 takaisin luetteloon: logo');
+  ok((await head(page)).view === 'Asetukset', '6 takaisin luetteloon: otsikkorivi');
   await page.click('.tab[data-tab="historia"]'); await page.waitForTimeout(800);
-  h = await head(page); ok(h.logo && h.ohje, '7 Historia logoineen');
+  h = await head(page); ok(!h.logo && h.view === 'Historia' && h.ohje, '7 Historia otsikkorivillä');
   await page.click('.tab[data-tab="ohjelma"]'); await page.waitForTimeout(800);
   // 8 muokkaustila
   await page.click('[data-edit-program]'); await page.waitForTimeout(600);
@@ -121,8 +123,8 @@ const rows = page => page.evaluate(() => [...document.querySelectorAll('.ledger 
   await wide.click('.tab[data-tab="kehitys"]'); await wide.waitForSelector('main .kehitys-cols'); await wide.waitForTimeout(400);
   await wide.click('[data-kehitys-front-tab="liikkeet"]'); await wide.waitForTimeout(300);
   await wide.click('.kehitys-row'); await wide.waitForTimeout(500);
-  const wp = await wide.evaluate(() => { const p = document.querySelector('.kehitys-pane .screen-head'); return { logo: !!document.querySelector('header .app-logo'), head: !!p, back: p ? !!p.querySelector('button') : null, tag: p ? p.querySelector('.screen-title').tagName : null, h1s: document.querySelectorAll('h1').length }; });
-  ok(wp.logo && wp.head && !wp.back && wp.tag === 'H2' && wp.h1s === 1, '5 leveä: logo, paneelin otsikkorivi ilman painiketta ' + JSON.stringify(wp));
+  const wp = await wide.evaluate(() => { const p = document.querySelector('.kehitys-pane .screen-head'); return { logo: !!document.querySelector('header .app-logo'), view: (document.querySelector('header h1.view-heading') || {}).textContent || null, head: !!p, back: p ? !!p.querySelector('button') : null, tag: p ? p.querySelector('.screen-title').tagName : null, h1s: document.querySelectorAll('h1').length }; });
+  ok(!wp.logo && wp.view === 'Kehitys' && wp.head && !wp.back && wp.tag === 'H2' && wp.h1s === 1, '5 leveä: otsikkorivi, paneelin otsikkorivi ilman painiketta ' + JSON.stringify(wp));
 
   console.log('=== Kehote 3: tavoiterivi');
   await load(page, { last: LAST }); await open(page, 'A');

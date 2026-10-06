@@ -68,10 +68,11 @@ const NB = ' ';
   await load(page, merge([c1,c2,c3,c4,c5,c6,c7,c8,c9]));
   await kehitys(page); await liikkeet(page);
   let r = await rowInfo(page, 'Penkkipunnerrus');
-  ok(r.value === '103,5' + NB + 'kg' && r.delta === '+3,5 kg (+3,5 %)' && r.color === 'var(--brass)', '1: ' + JSON.stringify([r.value, r.delta, r.color]));
+  // 0.4.32: nousu vihreällä (vihreä = tehty/edistys), messinki jää toiminnoille.
+  ok(r.value === '103,5' + NB + 'kg' && r.delta === '+3,5 kg (+3,5 %)' && r.color === 'var(--success)', '1: ' + JSON.stringify([r.value, r.delta, r.color]));
   ok(r.order.join(',') === 'kehitys-row-body,kehitys-spark,kehitys-row-right,choice-chevron', 'rakenne: ' + r.order.join(','));
   r = await rowInfo(page, 'Kyykky');
-  ok(r.value === '103,5' + NB + 'kg' && r.delta === '+3,5 kg (+3,5 %)' && r.color === 'var(--brass)', '2 kevyt päivä: ' + JSON.stringify([r.value, r.delta]));
+  ok(r.value === '103,5' + NB + 'kg' && r.delta === '+3,5 kg (+3,5 %)' && r.color === 'var(--success)', '2 kevyt päivä: ' + JSON.stringify([r.value, r.delta]));
   r = await rowInfo(page, 'Maastaveto');
   ok(r.value === '102' + NB + 'kg' && r.delta === null, '3 ei vertailua: ' + JSON.stringify([r.value, r.delta]));
   r = await rowInfo(page, 'Soutu');
@@ -120,7 +121,8 @@ const NB = ' ';
   });
   let ch = await chart();
   ok(ch.hits === 6 && ch.x.join('|') === '15.6.|29.7.|12.9.', '1 kaikki: ' + JSON.stringify([ch.hits, ch.x]));
-  ok(ch.gridVals.join(',') === '106,101,96' && ch.lines === 3, '1 apuviivat: ' + JSON.stringify([ch.gridVals, ch.lines]));
+  // 0.4.32: apuviivat tasaluvuissa (askel 1, 2, 2,5 tai 5 × 10^n), 96–106 → 95–110.
+  ok(ch.gridVals.join(',') === '110,105,100,95' && ch.lines === 4, '1 apuviivat: ' + JSON.stringify([ch.gridVals, ch.lines]));
   ok(ch.markers.length === 1 && ch.markerText.join() === 'kevennys', '5 kevennysmerkki: ' + JSON.stringify([ch.markers, ch.markerText]));
   ok(ch.caption === '12.9. · 106 kg mitattu (106' + NB + 'kg × 1) · paras 4 vk 106 kg', '6 oletusselite: ' + ch.caption);
   ok(ch.role === 'img' && ch.label.indexOf('15.6.–12.9.') !== -1 && ch.capRole === 'status' && ch.capLive === 'polite' && ch.hitsHidden && ch.legend, '13 ruudunlukija ja legenda');
@@ -146,7 +148,8 @@ const NB = ' ';
   await page.click('[data-kehitys-front-tab="yhteenveto"]'); await page.waitForTimeout(400);
   const vol = await page.evaluate(() => ({ on: [...document.querySelectorAll('[data-kehitys-range]')].filter(b => b.classList.contains('on')).map(b => b.dataset.kehitysRange), caption: (document.querySelector('.chart-caption')||{}).textContent, legend: !!document.querySelector('.chart-legend'), scale: !!document.querySelector('[data-volume-scale]') }));
   ok(vol.on.join() === '4vk' && vol.scale, '9 etusivun käyrä samalla aikavälillä: ' + JSON.stringify(vol));
-  ok(/^\d+\.\d+\. · \d+ kg$/.test(vol.caption) && !vol.legend, '10 volyymiselite ilman legendaa: ' + vol.caption);
+  // 0.4.32: luku tuhaterottimella (fmtNumberFI) ja kesken olevalla viikolla " · viikko kesken".
+  ok(/^\d+\.\d+\. · [\d\u00a0]+ kg( · viikko kesken)?$/.test(vol.caption) && !vol.legend, '10 volyymiselite ilman legendaa: ' + vol.caption);
   await page.click('[data-volume-scale="paiva"]'); await page.waitForTimeout(300);
   ok((await page.evaluate(() => document.querySelectorAll('.chart rect.chart-hit').length)) > 0, '9 Viikko|Päivä toimii aikavälin sisällä');
   await page.click('[data-kehitys-range="1v"]'); await page.waitForTimeout(300);
@@ -161,7 +164,7 @@ const NB = ' ';
   // 11 yksi piste
   await page.click('[data-close-kehitys]'); await page.waitForTimeout(800); await openRow('Maastaveto');
   ch = await chart();
-  ok(ch.single && ch.x.length === 1 && ch.lines === 1 && ch.hits === 1 && ch.hit0.x === '40' && ch.hit0.w === '270', '11 yksi piste: ' + JSON.stringify([ch.single, ch.x, ch.lines, ch.hit0]));
+  ok(ch.single && ch.x.length === 1 && ch.lines === 3 && ch.hits === 1 && ch.hit0.x === '40' && ch.hit0.w === '270', '11 yksi piste (kolme apuviivaa arvon ympärillä): ' + JSON.stringify([ch.single, ch.x, ch.lines, ch.hit0]));
   // 12 20 pistettä
   await page.click('[data-close-kehitys]'); await page.waitForTimeout(800); await openRow('Soutu');
   ch = await chart();
@@ -187,7 +190,8 @@ const NB = ' ';
   ok(!k.title && k.hero === '106kg' && k.unit === 'kg', '1 hero ilman nimeä: ' + k.hero);
   ok(k.chip === '+5 kg · 4 vk' && k.chipCls === 'kehitys-delta-chip up', '1 chip: ' + k.chip + ' ' + k.chipCls);
   ok(k.stats.length === 4 && k.stats[0].label === 'Kuukausi' && k.stats[0].value === '+6 kg' && k.stats[0].cls === 'up' && k.stats[0].sub === '+6 %', '2 Kuukausi: ' + JSON.stringify(k.stats[0]));
-  ok(k.stats[1].value === 'Ei dataa' && k.stats[2].value === 'Ei dataa', '2 Puoli vuotta/Vuosi Ei dataa: ' + JSON.stringify([k.stats[1], k.stats[2]]));
+  // 0.4.32: tyhjä vertailu on viiva ja selite "ei vertailukohtaa".
+  ok(k.stats[1].value === '–' && k.stats[1].sub === 'ei vertailukohtaa' && k.stats[2].value === '–' && k.stats[2].sub === 'ei vertailukohtaa', '2 Puoli vuotta/Vuosi ilman vertailukohtaa: ' + JSON.stringify([k.stats[1], k.stats[2]]));
   ok(k.stats[3].label === 'Ennätykseen' && k.stats[3].value === '0 kg' && k.stats[3].cls === '' && k.stats[3].sub === 'ennätys nyt', '2 Ennätykseen: ' + JSON.stringify(k.stats[3]));
   ok(k.notes[0] === 'Mitattu 106' + NB + 'kg × 1, Lauantai 12. syyskuuta' && k.notes[1] === 'Viimeisin treeni 103' + NB + 'kg (103' + NB + 'kg × 1), Maanantai 14. syyskuuta', '3/5 selitteet: ' + JSON.stringify(k.notes));
   ok(k.variants.join(';') === 'ilman variaatiota|null;Suora tanko|null', '6/12 variaatiot: ' + k.variants.join(';'));

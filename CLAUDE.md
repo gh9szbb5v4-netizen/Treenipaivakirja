@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.31 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.32 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -250,8 +250,8 @@ vihje "Kopioi päivät ja liikkeet; painot ehdotetaan kirjauksessa" ja
 edit-tilassa). CSS `.builder-*` kehotteen arvoilla `.editor-title`-
 sääntöjen perässä; lisäksi `.builder-days{display:flex}`, jotta
 segmentti täyttää kortin leveyden (`.segmented` on inline-flex). Huomio:
-`.builder-hint`-väri `--line-strong` on kehotteen arvo ja axe ilmoittaa
-sen kontrastista. Testi: `test_rakentaja_1.js` (kehotteen tapaukset
+`.builder-hint`-väri `--line-strong` oli kehotteen arvo ja axe ilmoitti
+sen kontrastista; 0.4.32 alkaen väri on `--mist`. Testi: `test_rakentaja_1.js` (kehotteen tapaukset
 1–16; ei repossa).
 
 ### Liikkeen lisäyssilmukka ja lomakkeen tiivistys (toteutettu, 0.4.20, Rakentaja-sarja 2/3)
@@ -1191,6 +1191,172 @@ suunnitelma kevennystä edeltäneestä kerrasta) ja liikelistan sparkline
 arvopisteistä. 0.4.30:ta vastaan testi toisti kehotteen "nyt"-arvot (25
 epäonnistumista; tapaus 4, ennätysten tapaus 1 ja volyymi kunnossa).
 
+## Kiillotettu ulkoasu "Messinki ja muste" (toteutettu, 0.4.32)
+
+Käyttäjän pyynnöt 6.10.2026: ehdotus kiillotetusta ulkoasusta (Design-
+artefakti, 9 puhelinnäkymää ja tyylitaulu), sen mittaava arvio
+(design-analysis) ja "Toteutetaan uudistus". Käyttäjä valitsi kaikki neljä
+rakennemuutosta (otsikko logon tilalle, RPE-ikkuna riveiksi, kesken oleva
+viikko, tavoiterivi kolmena lukuna) sekä "Haara ja push": työ on haarassa
+`claude/kiillotettu-ulkoasu` ilman PR:ää. Arvion löydökset korjattiin
+toteutuksessa: messingin läpikuultava sävy viileän harmaan päällä näkyy
+oliivina (valinnan pohja on siksi neutraali), Seuraava-näppäimen teksti
+ylitti näppäimen, SARJA-otsikko ylitti 40 px:n sarakkeen, pitkä päivämäärä
+rivitti päiväkortin ja menneiden viikkojen pylväät jäivät alle 3:1:n.
+
+**Säännöt ja tunnukset.** Täytetty messinki = toiminto (`.btn-primary`,
+näppäimistön Seuraava, clusterin +, lepoajastimen palkki), messinkiviiva
+neutraalilla `--surface-3`-pohjalla = valinta (`.segmented button.on`,
+`.tab.active`, `.icon-btn.active`, `.rpe-pick-btn[aria-pressed=true]`,
+`.weight-step-btn[aria-pressed=true]`, `.toggle-switch.on`,
+`.kehitys-row.on`), vihreä = tehty. `:root` sai `--surface-3` (#313a47;
+harmaa teksti sitä vasten 4,41:1, joten pohjalla on aina liitu),
+`--hairline` (rgba(255,255,255,.06), erottimet katkoviivojen tilalla),
+`--track` (#3a4452, koristeellinen renkaan ura), `--radius-xs` 8,
+`--radius-sm` 12 (oli 8), `--radius` 16 (oli 14), `--radius-lg` 20,
+`--card-light` (kortin 1 px:n valo), `--float-line` ja `--float-shadow`
+(kelluvat pinnat). Tekstiasteikko 12/14/16/18/22: `--fs-sm` on 14 (oli 13),
+15 px → 16, 11 px → 12; komponenttikoot 20 (sarjakenttä), 24 (näppäin), 34
+(näppäimistön lukema), 40 (1RM:n näyttöluku). `button, input, select,
+textarea{font-family:inherit}` (lomake-elementit näkyivät Arialina).
+`.btn-secondary` on tonaalinen (`--surface-2`, läpinäkyvä reuna), painallus
+`scale(.97)` 120 ms. Messingin läpikuultavat pohjat poistettiin: banneri
+(kortin pinta + messinkireuna), tarkistettava editoririvi ja vuorossa oleva
+sarjarivi (`rgba(255,255,255,.04)` + `inset 3px 0 0 var(--brass)`),
+menetelmäselite (`--surface-2`), käyrän aluetäyttö. Ilmoitus on
+`--surface-3` + hiusviiva + varjo (ei messinkiä). Alavalikko ja `.edit-bar`
+ilman messinkireunaa (hiusviiva ja pehmeä varjo). `.builder-hint` on nyt
+`--mist` (kehotteen `--line-strong` jäi alle 4,5:1, ks. Runkokysely).
+
+**Otsikkorivi.** `renderHeader`: logo (47 × 32) vain, kun `VIEW_HEADINGS`-
+oliossa ei ole näkymää tai ohjelmaa ei ole (Ohjelma, aloitusruutu ja
+ohjelmaton Ohje); Historia, Kehitys,
+Asetukset ja Ohje saavat `h1.view-heading`-otsikon logon paikalle, ja
+`renderSettingsList` ei enää piirrä omaa `h2.view-title`-otsikkoa.
+Muokkaustilan juuressa otsikkorivi on `h1.view-heading` `editorTitle()`
+(logo pois). Kuvakepainikkeet (`.icon-btn`) ovat kehyksettömiä
+(`.header-actions`). `renderScreenHead` sai valinnan `split` (luokka
+`.screen-head.split`: takaisin ja oikean reunan toiminto ylärivillä, kicker
+ja otsikko koko leveydellä; vain kirjausruutu). `.screen-kicker` on 14 px
+ilman versaalia.
+
+**Ohjelma.** Seuraavaksi-kortti: `nextProgressAttrs(n)` antaa palkille
+luokan `segments` ja `--n` (2–12 lohkoa; CSS-maski, jonka raot osuvat
+kohtiin k / n, joten täyttö kattaa tallennettujen liikkeiden lohkot
+tarkasti), Jatka/Aloita-painikkeessa nuoli (`ICONS.eteen`), alarivin teksti
+ennallaan ja "Seuraavana " CSS:n `::before`-sisältönä (testi lukee
+`.next-card-sub`-tekstin). Päiväkortti: luokka `day-card`, peräkkäiset
+kortit ryhmittyvät yhdeksi CSS:llä (`:not(.day-card + .day-card)` ja
+`:not(:has(+ .day-card))`, hiusviiva `::before` tekstin kohdalta),
+avattu päivä päättää ryhmän; rengas `dayRingSvg(osuus)` (ura ja
+messinkikaari, r 14, `stroke-dasharray`), tehty = vihreä täyttö ja
+`ICONS.valmis`; alarivi `.day-card-status` "Tehty · ma 5.10. · 4 665 kg"
+(`formatDateCompactFI` pienellä), "Kesken · 1 / 4 liikettä · …"
+(`.status-open` messinki), kilot `fmtKg`. Viikon laskuri "Viikko 4 / 4"
+(isolla) omalla nimellä. Nuolet `.chevron` ovat SVG-kuvakkeita
+(`ICONS.nuoli`), avattuna `.chevron.on` (käännetty, messinki).
+
+**Kirjausruutu.** Kicker `.kirjaus-kicker`: päivä vasemmalla, oikealla
+`.kirjaus-dots` (enintään 8 liikettä; `done`/`cur`, aria-hidden) ja
+"2 / 4"; teksti ruudunlukijalle ennallaan ("… · liike 2 / 4", väli
+`.sr-only`). Tarkenne `.kirjaus-detail`. Tavoite kolmena lukuna:
+`exerciseHeadParts` palauttaa `spec` (`goal` "3 × 6", `rpe`, `suggestion`
+= `suggestionDelta()` { label "Ehdotus"|"Kevennys", value }, `extra` =
+paino, huomautus, menetelmä), `renderKirjausSpec` piirtää kortin yläosaan
+`.kirjaus-spec` (aria-hidden) ja `.kirjaus-spec-note`; sama lause on
+`.exercise-target.kirjaus-target.sr-only`-elementissä täsmälleen entisellä
+sisällöllä (myös `.accent`), koska testit lukevat sen. `suggestionDeltaText`
+on `suggestionDelta`-funktion tekstimuoto (ennallaan). Tallennusselite on
+näkyvä `p.ledger-save-hint` "Tallenna aukeaa, kun kaikki sarjat on
+merkitty." footerin alla (sama `save-hint-<id>` ja aria-describedby).
+Volyymirivin luvut `fmtKgHtml` (yksikkö `.unit`, tekstisisältö sama kuin
+`fmtKg`; `syncVolumeDom` asettaa innerHTML:n). Sarjarivin korkeus ja
+sarakkeet ennallaan; kenttä `--ink`-pohjalla 20 px, numero 16 px,
+sarakeotsikko .04em (SARJA mahtuu). Näppäimistö: otsake `.keypad-readout`
+(`.keypad-label` 12 px lukeman yläpuolella, `#keypad-value` 34 px), levy
+noin 350 px (oli 340): `body.keypad-open`-ilmoitus 362 px ja leveän
+paneelin `max-height:calc(100vh - 470px)`; näppäimet `--surface-2` 24 px,
+±2,5 ja ✓ `--surface-3`; Seuraava 14 px + 16 px:n nuoli, nuoli piiloon alle
+380 px:n (`@media (max-width: 379px)`).
+
+**RPE-ikkuna riveinä.** `WARMUP_SCALE` sai kentän `reserve` ("2 toistoa
+varastossa"), `RPE_SHEET_PROMPT` = "Montako toistoa olisi vielä tullut?"
+(`WARMUP_FEEL_PROMPT` poistettiin). `renderSheet` "rpe": `.rpe-sheet-q`
+(katalogin liikenimi · paino × toistot), `.rpe-sheet-prompt`, viisi riviä
+`.rpe-pick-btn` (`data-warmup-rpe`, `aria-pressed` ja aria-label ennallaan +
+" (tavoite)"; `.rpe-pick-num` laatassa, `.rpe-pick-word`, `.rpe-pick-desc`,
+työsarjan RPE 10 − `TARGET_RIR` -rivillä `.rpe-target` "tavoite"),
+`.rpe-hint` (valinta sulkee, lepoajastin), `details.rpe-more` (selitys) ja
+`.rpe-sheet-actions`. Ilman kohderiviä asteikko `.rpe-guide` ja selitys.
+Sulkupainike on 44 px:n kuvakepainike. Pohjalevyn kulma 20 px.
+
+**Historia.** Saman kuukauden päivät yhtenä korttina (sama CSS-ryhmittely,
+`.history-date`), otsikkorivi 68 px ja päivämäärä 18 px; ensimmäisen liikkeen
+yläviiva pois (`.history-date-head + .history-ex`; aiemmin kaksoisviiva).
+Nimi: `catalogPartsFor` → liike + `.history-ex-variant` (teksti ennallaan).
+Työsarjan arvo: yksikkö `.unit` (teksti ennallaan). RPE-merkki neutraali
+`--surface-3`-pilleri, RPE 10 vaaravärin ääriviiva. Toiminnot `btn-secondary
+btn-sm btn-auto`: "Kehitys" (oli "Kehityksessä ›"; aria-label "Kehitys:
+<nimi>"), Korjaa, "Siirrä päivälle" ilman kuvaketta (aria-label "Siirrä
+päivälle: <nimi>", näkyvä teksti alussa) — yhdellä rivillä 390 px:ssä.
+Hakukenttä `.search-field` hakukuvakkeella (myös Kehityksen liikelista).
+
+**Asetukset.** `SETTINGS_SECTIONS` sai kentän `group`; `renderSettingsList`
+piirtää ryhmät "Harjoittelu" ja "Tiedot ja sovellus" (`h2.day-heading` +
+oma `.settings-list`), Muutokset-rivin otsikkoon `.chip.chip-new` "Uutta"
+(`changelogHasNew()`) ja alaotsikko "Uusin ti 6.10." (ilman " · uutta").
+
+**Kehitys.** Välilehdet `.segmented.kehitys-tabs` ovat alleviivattuja
+(luokat ja roolit ennallaan; liikenäkymässä lisäksi `detail`, 14 px ja
+väli 16, jotta neljä mahtuu 360 px:ään). Viikko-kortti: otsikko
+`.kehitys-card-title.week`, kuluvalla viikolla `.week-open-chip` "kesken",
+alarivi "Muutos verrattuna viikkoon 28.9.–4.10." (vertailuviikko on
+edellinen merkintäviikko; muulla kuin kuluvalla "Viimeisin treeniviikko ·
+muutos …"), kokonaispaino `fmtKgHtml`, erot harmaalla (`neutralDelta` →
+`.neutral-delta`), `tonnageDeltaText` = "−9 894 kg · −59,9 %" ja
+`fmtSignedKg` tuhaterottimella (`fmtNumberFI`; välilyönti ennen kg:ta
+tavallinen kuten ennen). Pylväät: kortin viikko `--brass`, muut ja tyhjät
+`--line-strong` (3,67:1), kevennysviikko ääriviivana (`fill none`,
+`stroke --mist` 1,5, 0,75 sisään) — muoto eikä vain väri. Selite
+"kevennys" `--mist` (oli `--line-strong`, alle 4,5:1). "Näytä viikon
+liikkeet" + nuoli. Volyymikortti: otsikko, `.kehitys-card-row` (arvo 22 px
+ja alarivi "viikko 5.–11.10. · kesken" / "treenipäivä ma 5.10." sekä
+Viikko|Päivä), aikaväli koko leveydeltä. `renderProgressChart`: asteikko
+`chartTicks(vMin, vMax)` (askel 1, 2, 2,5 tai 5 × 10^n noin puolet
+vaihteluvälistä, vähintään 0,5, jotta yhden desimaalin `fmtNumberFI` ei
+pyöristä arvoa väärin; 2–5 viivaa, yksi arvo → kolme viivaa, ei
+negatiivisia),
+arvot `fmtNumberFI`, arvosarake 40 → 52 yksikköä, kun jokin arvo on yli 5
+merkkiä (`X0`; päivämäärärivin vasen täyte samassa suhteessa), ei
+aluetäyttöä, yhtenäiset apuviivat; `opts.openLastDate` +
+`opts.openLastLabel`: viimeinen jakso katkoviivana (`stroke-dasharray`
+"4 4"), avoin piste (`fill var(--surface)`), selitteen ja aria-labelin
+loppuun "viikko kesken" (vain viikkokarkeudella kuluvalle viikolle).
+Oletusselitteiden luku `fmtNumberFI` (oli ilman tuhaterotinta). 1RM-kortti:
+näyttöluku 40 px, ruudukon otsikko "Vertailu" samassa kortissa (testit
+lukevat ensimmäisen `.kehitys-card`-kortin ruudut ja selitteet), tyhjä ruutu
+"–" + "ei vertailukohtaa" (oli "Ei dataa"), nousu `--success` (`.stat-value
+.up`, `renderDeltaValue`, "ennätys nyt"). Listan rivin luku liitu, nimi 14 px.
+
+**Testit.** Uusi `tests/test_ulkoasu.js` (otsikkorivit, valinnan sääntö
+laskettuina väreinä, päiväkorttiryhmä ja renkaat, kirjausruudun kicker,
+pisteet, tavoite kolmena lukuna ja sr-only-lause, tallennusselite,
+näppäimistö 390 ja 360 px, RPE-rivit ja tavoite, Historian ryhmittely ja
+toiminnot yhdellä rivillä, Kehityksen välilehdet, kesken oleva viikko,
+pylväät, tasalukuasteikko, tyhjät vertailut, Asetusten ryhmät ja Uutta,
+Ohje ja muokkaustila, fontin periytyminen, axe ilman alavalikkoa myös
+kontrastin osalta ja 360 px). Tarkoitukselliset muutokset vanhoihin
+testeihin: `test_kirjaus_2_5.js` (otsikkorivi logon sijaan Historiassa,
+Kehityksessä ja Asetuksissa), `test_history_2_3.js` ja
+`test_history_move.js` (painike "Kehitys"), `test_kehitys_2_5.js`
+(apuviivat 110/105/100/95, yhden pisteen kolme viivaa, "–" ja "ei
+vertailukohtaa", nousun väri `--success`, volyymiselitteen tuhaterotin) ja
+`test_kehitys_seg.js` (pylväiden värit ja kevennyksen ääriviiva) sekä
+`test_kevennys_4.js` (Muutokset-tarkistus sidottu versioon 0.4.31, ei
+`APP_VERSION`-arvoon, koska uusi versio lisää oman kohtansa). Volyymirivin
+välit tiivistettiin niin, että `test_volume_row.js`-raja (sarjojen
+alapuolinen osa ≤ 180 px) täyttyy edelleen (178 px).
+
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
 Yhteinen komponentti- ja tokenjärjestelmä, jonka päälle näkymät rakennetaan.
@@ -1198,7 +1364,7 @@ Uusi koodi käyttää näitä; vanhoja inline-tyylejä siirretään niihin sitä
 kun näkymiä käsitellään.
 
 Painikkeet: `.btn-primary` (täytetty messinki, ruudun päätoiminto),
-`.btn-secondary` (ääriviiva), `.btn-tertiary` (pelkkä teksti),
+`.btn-secondary` (0.4.32 alkaen tonaalinen ilman reunaa; aiemmin ääriviiva), `.btn-tertiary` (pelkkä teksti),
 `.btn-danger` (tuhoava); koot `.btn-sm`, leveys `.btn-auto`. Vanha
 `.save-btn`-alias on poistettu; kaikki kutsupaikat käyttävät `.btn-primary`-
 luokkaa. Merkit `.chip` + `.chip-brass/-muted/-success`. Banneri
@@ -1263,7 +1429,7 @@ värit ovat luokissa, ei inline-tyyleissä.
 Viikon otsikko on `renderWeekStepper()` (`.week-head`): nuolet
 `[data-week-nav]` ovat `.icon-btn`-painikkeita aria-labelein, viikon nimi on
 `h2.view-title` (rivittyy, ei katkea) ja laskuri `.week-head-count`
-("1 / 4"; omalla viikon nimellä "viikko 1 / 4", jottei se lukisi kuin
+("1 / 4"; omalla viikon nimellä "Viikko 1 / 4" (0.4.32 alkaen isolla), jottei se lukisi kuin
 päiväkortin tehtyjen liikkeiden osuus). Kaikki-tilassa
 otsikko on "Koko ohjelma" ja laskurin tilalla viikkojen ja treenipäivien
 määrä ilman nuolia. Viikko/kaikki-valinta on `renderWeekModeSwitch()`
@@ -1469,8 +1635,9 @@ ilman `render()`-kutsua (viime kerta ei muutu). `ledgerTotal`,
 `.ledger-save` on poistettu. Sarjojen alapuolinen osa on kehotteen CSS-
 arvoilla noin 170 px (kehotteen "noin 150 px" ei toteudu sen omilla
 arvoilla; arvot pidettiin). Tallenna on `disabled` kunnes kaikki
-sarjat on merkitty; sen selite on `.sr-only`-elementti, johon painike
-viittaa `aria-describedby`-attribuutilla, ja `.btn-primary:disabled` on
+sarjat on merkitty; sen selite (0.4.32 alkaen näkyvä `p.ledger-save-hint`
+"Tallenna aukeaa, kun kaikki sarjat on merkitty.", aiemmin `.sr-only`) on
+elementti, johon painike viittaa `aria-describedby`-attribuutilla, ja `.btn-primary:disabled` on
 haamutyylinen (läpinäkyvä, yhtenäinen line-strong-reunus). Testi:
 `test_volume_row.js` (kehotteen tapaukset 1–16 paitsi käsin lisätty liike,
 jolle ei ole syöttöpolkua; lepoajastin kytketään testissä pois
@@ -1623,7 +1790,8 @@ näppäimistöllä kirjoitettu "52.5" säilyy kentässä seuraavaan piirtoon.
 rivi ilman `done`, lämmittelyt ennen työsarjoja) ja antaa riville luokan
 `next` ja `aria-current="step"`; CSS `.ledger-row.next` (tausta
 `rgba(201,162,39,.06)` kortin reunasta reunaan negatiivisilla 16 px:n
-marginaaleilla = `.ledger`-täyte, numero messinkinen). Ei uutta tilaa.
+marginaaleilla = `.ledger`-täyte, numero messinkinen; 0.4.32 alkaen
+neutraali vaalennus ja messinkinen reunaviiva, ks. Kiillotettu ulkoasu). Ei uutta tilaa.
 Testi: `test_kirjaus_2_5.js` (kehotteiden 2–5 tapaukset; viime kerta 50 kg,
 jotta ehdotus on 52,5; `TARGET_RIR`-koeajoa ja tallennusvaroitusta ei
 testattu, koska vakio on sulkeuman sisällä eikä varatallennustilaa voi
@@ -1643,7 +1811,8 @@ piirtää `afterRender(focusSheetClose)`-kutsulla; rivin RPE-painike
 `state.keypad`-tilan (ikkuna nousee näppäimistön päälle). Sisältö
 (`renderSheet`): otsikko "RPE · Sarja 2" / "RPE · Lämmittely 1"
 (`rpeRowLabel`), kysymysrivi liikkeen nimellä ja rivin arvoilla
-(`.rpe-sheet-q`), viisi `.rpe-pick-btn`-painiketta (`[data-warmup-rpe]`
+(`.rpe-sheet-q`), viisi `.rpe-pick-btn`-painiketta (0.4.32 alkaen allekkaiset
+rivit varastoineen ja tavoite-merkkeineen, ks. Kiillotettu ulkoasu; `[data-warmup-rpe]`
 kuten ennen, `aria-pressed`, luku `.rpe-pick-num` ja sana `.rpe-pick-word`;
 "Ääri&shy;rajoilla" rivittyy kapealla), asteikon ohje `.rpe-guide` yhdellä
 rivillä per pykälä, käyttövihje (mainitsee lepoajastimen vain, kun
@@ -1742,7 +1911,8 @@ työpöytä; kehotteen kohdat 1–8, 10 ja 13).
 
 ## Asetukset, Historia ja Kehitys (toteutettu, UX-vaihe 4)
 
-Asetukset on riviluettelo (`SETTINGS_SECTIONS`, `renderSettingsList()`), jonka
+Asetukset on riviluettelo (`SETTINGS_SECTIONS`, `renderSettingsList()`; 0.4.32
+alkaen kahtena ryhmänä ja otsikko otsikkorivillä), jonka
 rivi avaa alinäkymän `state.settingsSection`-tilaan; alinäkymän otsikossa on
 takaisin-painike (`renderSubviewHeader()`). Välilehden vaihto nollaa
 `settingsSection`-tilan, joten Asetukset avautuu aina luetteloon. Osioiden
@@ -1859,7 +2029,7 @@ actionsHtml, compact)` (`.empty-state`): Historia ja Kehitys ilman merkintöjä
 liikepaneeli ilman avattua liikettä. `.empty` jää lataustilojen tekstille.
 
 Painallustila on CSS:ssä: kaikilla kosketuskohteilla on lyhyt siirtymä ja
-`:active{transform:scale(.94)}` (otsikkoriveillä pelkkä himmennys), hover
+`:active{transform:scale(.97)}` (0.4.32 alkaen; aiemmin .94; otsikkoriveillä pelkkä himmennys), hover
 vain `@media (hover:hover)`. Valmis-merkin animaatio (`@keyframes pop`,
 luokka `.pop`) asetetaan vain juuri muuttuneelle merkille: `state.justDone`
 (`{id, idx}`, asetetaan `[data-toggle-done]`-käsittelijässä),
@@ -2066,7 +2236,8 @@ viikolta, 29.6.–14.9."`): kaksitoista viikkoa kortin viikkoon päättyen
 (`isoAddDays(weekStart, -7k)`), pylväs `x = k*25`, leveys 18, `h =
 max(4, round(tonnage/max*44))` tai 2 ilman merkintöjä; täyttö kortin
 viikko `--brass`, kevennys `--line-strong`, muu `--surface-2`, tyhjä
-`--line`. Tyhjä merkkijono, kun suurin tonnage on 0 (vain yhdistelmä-
+`--line` (0.4.32 alkaen muut ja tyhjät `--line-strong` ja kevennys
+ääriviivana, ks. Kiillotettu ulkoasu). Tyhjä merkkijono, kun suurin tonnage on 0 (vain yhdistelmä-
 liikkeitä), jolloin otsikko `.week-bars-title` "Viikkovolyymi, 12 viikkoa"
 ja `renderWeekBarsLabels` (ensimmäinen viikko, keskellä "kevennys"
 `--line-strong`-värillä jos jokin jakson viikko oli kevennys, kortin
@@ -2101,7 +2272,7 @@ unit, secondary, opts)` suodattaa itse, ellei `opts.prefiltered`
 osuvat indekseihin), ja tyhjä sarja antaa `.chart-empty`-lauseen (myös
 prefiltered-tyhjä). SVG `viewBox 0 0 320 118`: kolme apuviivaa `vMax`,
 `round1((vMax+vMin)/2)`, `vMin` arvoineen (`font-size="11"`, samat arvot →
-yksi viiva), päivämäärät HTML-rivinä `.chart-x` (alku, kalenterin keskipiste
+yksi viiva; 0.4.32 alkaen tasaluvut `chartTicks` ja ilman aluetäyttöä), päivämäärät HTML-rivinä `.chart-x` (alku, kalenterin keskipiste
 `isoAddDays(alku, floor(päiviä/2))`, loppu; yksi piste `.chart-x.single`),
 näkymätön `rect.chart-hit[data-chart-point][data-caption][data-x][data-y]`
 per piste puoliväliin naapureihin (ensimmäinen 40:stä, viimeinen 310:een),
@@ -2113,9 +2284,9 @@ ympyrän suoraan DOM:iin ilman `render()`-kutsua. `buildAllOneRepMaxSeries`
 antaa pisteelle `deload` (`data.deload`, saman päivän merkinnöistä OR);
 1RM-käyrän selite on "12.9. · 106 kg mitattu (106 kg × 1) · paras 4 vk
 106 kg" ja legenda `.chart-legend` (paras 4 viikolta / päivän arvio).
-Volyymiselite on `päivä · fmtValue kg` ilman tuhaterotinta (kehotteen
-pseudokoodin ja testin mukaan; UI-tekstiesimerkki "2 640 kg" jäi
-toteuttamatta tietoisesti).
+Volyymiselite oli `päivä · fmtValue kg` ilman tuhaterotinta (kehotteen
+pseudokoodin ja testin mukaan); 0.4.32 alkaen luku on `fmtNumberFI`
+("2 640 kg") ja testin lauseke sallii tuhaterottimen.
 
 **1RM-kortti (0.4.9).** `renderKehitysCard`: ei liikkeen nimeä; hero
 `.kehitys-hero` (label "Paras 1RM · 4 viikkoa", `fmtNumberFI(current)` +
@@ -2123,7 +2294,8 @@ yksikkö) ja `.kehitys-delta-chip` up/down/flat (`fourWeekDelta`, "+5 kg · 4
 vk" tai "ei vertailua"); aikavälivalitsin + käyrä; `stat-grid` neljällä
 ruudulla (Kuukausi, Puoli vuotta, Vuosi, Ennätykseen; arvo `fmtSignedKg`
 luokalla `.up`/`.down`, alarivi `fmtPctPlain` — uusi apuri ilman sulkeita,
-`fmtSignedPct` ennallaan — tai "Ei dataa" / "ennätys nyt"); alle 2
+`fmtSignedPct` ennallaan — tai "Ei dataa" / "ennätys nyt"; 0.4.32 alkaen
+"–" ja "ei vertailukohtaa"); alle 2
 pistettä → `.kehitys-note`-lause; variaatiot `.kehitys-variants`-chippeinä;
 kaksi `.kehitys-note`-selitettä ("Mitattu/Laskennallinen 90 kg × 5, pvm" ja
 "Viimeisin treeni …" vain, kun päivät eroavat). Inline-tyylit korvattu
