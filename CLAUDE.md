@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.26 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.4.27 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -790,6 +790,65 @@ merkitsemätön sarja, korjaus; siirto `moveHistoryExercise`-kutsulla;
 Kehityksen tilanteet 150 × 0, 150 × 0 + 140 × 3, Työläs 117,5; ennätykset;
 käyttöliittymän kirjaus, ohjetekstit, käyrä ja 1RM-luettelo);
 `test_1rm_tuntuma.js` odottaa nyt, ettei nollan toiston sarja tuota pistettä.
+
+## Lämmittelyehdotuksen nouseva sarja (toteutettu, 0.4.27)
+
+Käyttäjän kehote 6.10.2026. Havaittu virhe: liikkeen ensimmäisen työsarjan
+ehdotus (base) oli 145 kg × 1, viime kerralla liike tehtiin 72,5 kg × 8
+(RPE 6) yhdellä lämmittelyllä 60 kg × 5, ja "+ Lämmittely" ehdotti L1
+120 × 5, L2 87,5 × 5 ja L3 115 × 3 selitteellä "(40 / 60 / 80 / 90 %)":
+painot eivät nousseet, L1 oli 83 % työpainosta viidellä toistolla, eikä
+selite vastannut rivejä. Syyt (0.4.26): viime kerran lämmittely
+skaalattiin suhteella base / viime kerran ensimmäinen työsarja ilman rajaa
+(2,0, kun toistomalli vaihtui 8 → 1), lähde valittiin rivikohtaisesti (L1
+viime kerrasta, L2 ja L3 portaista, koska viime kerralla oli vain yksi
+lämmittely), uutta ehdotusta ei verrattu taulukon aiempiin
+lämmittelyriveihin, ja selite tulosti porrasprosentit aina, kun kaikki
+auto-rivit eivät olleet `"last"`.
+
+Korjaus (funktiot `buildDraftRows`-funktion jäljessä; säännöt tarkemmin
+Tarkistettavat laskentaparametrit -osion `WARMUP_LADDER`-kohdassa): viime
+kerran lämmittelyt skaalataan vain suhteella `WARMUP_LAST_RATIO_MIN`–
+`WARMUP_LAST_RATIO_MAX` (0,85–1,15, rajat mukaan lukien; kattaa tavallisen
+progression ja kevennyksen `DELOAD_FACTOR` 0,90) ja vain kokonaisena,
+kelvollisena sarjana (`scaleLastWarmups` →
+`warmupSuggestionContext().lastScaled`); uusi ehdotus on aina vähintään
+aiempien lämmittelyrivien raskaimman painon painoinen (`warmupLowerBound`)
+ja alle base; viime kerran lämmittelyn sama paino kuin alaraja kelpaa vain,
+kun viime kerran oma kaava toistaa sitä (`repeatOk`); muuten
+`ladderSuggestion` etsii portaista ylöspäin ensimmäisen alarajan
+ylittävän; ja `warmupAutoNote` sai sekalähteen tekstin "Lämmittelyt viime
+kerran mukaan ja portaittain työpainosta X kg — muokattavissa.".
+Seuraukset: kehotteen tapauksen 1 lämmittelyt ovat 57,5 × 8, 87,5 × 5,
+115 × 3 ja 130 × 1, ja viides jää tyhjäksi; aiemmin portaiden määrää
+suuremmat lämmittelyt toistivat viimeisen portaan (L5 = L4), nyt sama
+porraspaino ei toistu. Kun viime kerran lämmittelyt loppuvat tai käyttäjä
+on muokannut aiemman rivin painavammaksi kuin viime kerran seuraava
+lämmittely, jatko tulee portaista alarajan yläpuolelta; tyhjennetty paino
+ei nosta alarajaa.
+
+Ennallaan (kehotteen rajaus): `WARMUP_LADDER`-prosentit ja -toistot,
+`applyWarmupAdjustment` ja työsarjan base-ehdotuksen muodostus (miksi base
+oli 145, ei selvitetty; testissä tilanne siemennetään MAX-rivillä, jonka
+1RM on 145). Ei tehty: lämmittelyjen toistojen sovitusta työsarjan
+toistoihin, jo lisättyjen auto-rivien uudelleenlaskentaa työpainon
+muuttuessa eikä kaikkien lämmittelyjen lisäystä yhdellä painalluksella.
+`syncWarmupNoteDom`, auto-lipun poisto ja tallennusmuoto ennallaan.
+
+Tekstit: CHANGELOG, Ohjeen kohdan 2 lämmittelykappale (15 %:n raja,
+kokonainen sarja ja nouseva sarja) ja README:n Lämmittelyehdotus-kappale.
+Testi: `tests/test_warmup_suggest.js` (apufunktiot suoraan kutsuen
+rajatapauksineen; kehotteen tapaukset 1–10 käyttöliittymän kautta:
+"+ Lämmittely" yksi kerrallaan, kenttien arvot, `auto`-lähde ja selite;
+base siemennetään MAX-rivin 1RM:llä, viime kerran sarjan tuntumalla
+(100 × 5 Sujuva → 105, 100 × 5 Äärirajoilla → 100) tai kirjoittamalla
+työpaino ilman historiaa; regressiona yhdistelmä- ja cluster-liike,
+lämmittelysäätö (40 × 8 Kevyt → 42,5 × 8 Työläs: −10 %, 105 → 92,5),
+tuntuma, tallennus ilman `auto`-lippua, Historia, Kehityksen 1RM ja
+varmuuskopion L-rivi; Ohje ja Muutokset). Kehitysvaiheessa testi ajettiin
+myös 0.4.26:ta vastaan ilman apufunktio-osiota: 17 epäonnistumista, mm.
+tapauksen 1 L1 120 × 5, L2 87,5 × 5 ja L3 115 × 3 kuten käyttäjän
+havainnossa.
 
 ## Käyttöliittymän komponentit (toteutettu, vaiheet 1–2)
 
@@ -1912,35 +1971,56 @@ muuttaa myös sen aikana. Tarkasteltavat arvot:
   näppäimistön `idx` siirtyy vastaavasti. Testit: `test_feel.js`,
   `test_warmup.js`.
 - `WARMUP_LADDER = [{0.40, 8}, {0.60, 5}, {0.80, 3}, {0.90, 1}]`,
-  `WARMUP_LIGHT_LIMIT = 20`, `WARMUP_LIGHT_PCT = 0.60` ja
-  `WARMUP_MIN_WEIGHT = 5`: lämmittelyehdotus (`suggestWarmup(ex, id, n)`,
-  n = lämmittelyn numero). "Lisää lämmittelysarja" täyttää rivin: lähde 1
-  on viime kerran sama lämmittely (`warmups[n-1]`, sama viitekerta kuin
-  Viime-sarakkeessa: `lastSet` tai `prior[0]`, kun päällimmäinen on tämän
-  liikkeen tallennettu merkintä) skaalattuna suhteella `base /
-  lastSession.sets[0].weight` (`warmupSuggestionContext`), lähde 2
-  portaat `WARMUP_LADDER` (numeroa suuremmat viimeinen porras) tai kevyellä
-  työpainolla (`base < WARMUP_LIGHT_LIMIT`) vain L1 `WARMUP_LIGHT_PCT`:llä
-  ja tavoitetoistoilla. `base` on ensimmäisen työsarjan `base` (ehdotus
-  ennen lämmittelysäätöä, kuten `applyWarmupAdjustment`-funktion
-  `startWeight`) tai sen puuttuessa kirjoitettu paino; ehdotus hylätään,
-  kun paino ≥ base tai < `WARMUP_MIN_WEIGHT`; ei yhdistelmäliikkeille eikä
-  muille kuin `kind` plain (cluster ym.), mutta teholiikkeille kyllä.
-  Kaikki pyöristykset `roundToStep(x, WEIGHT_STEP)`. Rivi saa tilapäisen
-  `auto`-lipun (`"last"` | `"ladder"`), joka poistuu painon tai toistojen
-  muokkauksessa (`[data-set-field]`-input-käsittelijä, jonka kautta myös
+  `WARMUP_LIGHT_LIMIT = 20`, `WARMUP_LIGHT_PCT = 0.60`,
+  `WARMUP_MIN_WEIGHT = 5` sekä 0.4.27 alkaen `WARMUP_LAST_RATIO_MIN =
+  0.85` ja `WARMUP_LAST_RATIO_MAX = 1.15`: lämmittelyehdotus
+  (`suggestWarmup(ex, id, n)`, n = lämmittelyn numero; virhe ja korjaus
+  osiossa Lämmittelyehdotuksen nouseva sarja). "Lisää lämmittelysarja"
+  täyttää rivin, ja sarja nousee aina: alaraja `warmupLowerBound(id)` on
+  taulukon nykyisten lämmittelyrivien suurin äärellinen, > 0 paino
+  (valmiit ja keskeneräiset, auto- ja käsin kirjoitetut; muuten 0), ja
+  `[data-add-warmup]` kutsuu ehdotusta ennen rivin lisäystä.
+  `warmupSuggestionContext` palauttaa `base`, `lastSession` (sama
+  viitekerta kuin Viime-sarakkeessa: `lastSet` tai `prior[0]`, kun
+  päällimmäinen on tämän liikkeen tallennettu merkintä), `ratio` (`base /
+  lastSession.sets[0].weight`, ilman viitekertaa 1) ja `lastScaled =
+  scaleLastWarmups(lastSession, ratio, base)`: viime kerran lämmittelyt
+  skaalattuina `[{ weight: luku, reps: merkkijono }]` tai null, kun
+  lämmittelyjä ei ole, suhde on rajojen ulkopuolella (rajat mukaan
+  lukien kelpaavat) tai jokin lämmittely ei kelpaa (paino ja toistot
+  äärellisiä ja > 0, skaalattu paino vähintään `WARMUP_MIN_WEIGHT`, alle
+  base ja vähintään edellinen skaalattu; sama paino peräkkäin kelpaa) —
+  sarjaa käytetään kokonaan tai ei lainkaan. Lähde 1 on `lastScaled[n-1]`,
+  kun sen paino on alarajaa suurempi tai yhtä suuri ja viime kerran
+  edellinen skaalattu lämmittely on sama paino (`repeatOk`). Muuten lähde
+  2 `ladderSuggestion(ex, base, n, lowerBound)`: kevyellä työpainolla
+  (`base < WARMUP_LIGHT_LIMIT`) vain L1 `WARMUP_LIGHT_PCT`:llä ja
+  tavoitetoistoilla (tai "5"; hylätään, kun paino ≤ alaraja), muuten haku
+  portaasta `min(n, WARMUP_LADDER.length) − 1` ylöspäin ensimmäiseen,
+  jonka paino on alarajaa suurempi, vähintään `WARMUP_MIN_WEIGHT` ja alle
+  base; ei sellaista → null (tyhjä rivi; sama porraspaino ei toistu).
+  `base` on ensimmäisen työsarjan `base` (ehdotus ennen lämmittelysäätöä,
+  kuten `applyWarmupAdjustment`-funktion `startWeight`) tai sen
+  puuttuessa kirjoitettu paino (MAX-rivillä 1RM, koska rivillä ei ole
+  `base`-kenttää); ei yhdistelmäliikkeille eikä muille kuin `kind` plain
+  (cluster ym.), mutta teholiikkeille kyllä. Kaikki pyöristykset
+  `roundToStep(x, WEIGHT_STEP)`. Rivi saa tilapäisen `auto`-lipun
+  (`"last"` | `"ladder"`), joka poistuu painon tai toistojen muokkauksessa
+  (`[data-set-field]`-input-käsittelijä, jonka kautta myös
   `keypadSetValue` kulkee, ja `[data-weight-step]`) eikä tallennu
   (`saveExerciseLog` poimii vain weight/reps/rpe). Selite
   `.warmup-auto-note` (`warmupAutoNote`) Lämmittely-otsikon alla vain, kun
-  jokin auto-rivi on kesken: "Lämmittelyt viime kerran mukaan[, skaalattu
-  työpainoon 105 kg] — muokattavissa." tai "Lämmittelyt ehdotettu
-  työpainosta 100 kg (40 / 60 / 80 / 90 %) — muokattavissa." (prosentit
-  vakiosta; kevyellä "(60 %)"); `syncWarmupNoteDom` päivittää sen ilman
+  jokin auto-rivi on kesken, keskeneräisten auto-rivien lähteen mukaan:
+  kaikki `"last"` "Lämmittelyt viime kerran mukaan[, skaalattu työpainoon
+  105 kg] — muokattavissa." (skaalaus mainitaan, kun suhde ei ole 1),
+  kaikki `"ladder"` "Lämmittelyt ehdotettu työpainosta 100 kg (40 / 60 /
+  80 / 90 %) — muokattavissa." (prosentit vakiosta; kevyellä "(60 %)") ja
+  molemmat "Lämmittelyt viime kerran mukaan ja portaittain työpainosta
+  105 kg — muokattavissa."; `syncWarmupNoteDom` päivittää sen ilman
   render()-kutsua. Historia, Kehitys, simulointi, varmuuskopio ja
-  `applyWarmupAdjustment` ovat ennallaan. Testi: `test_warmup_suggest.js`
-  (fixture `prog_warm.csv`; kehotteen tapaukset 1–10: base 100 ilman
-  historiaa kirjoittamalla paino, base 100 viime kerran 100×4:stä (near),
-  base 105 viime kerran 100×5 sujuvasta).
+  `applyWarmupAdjustment` ovat ennallaan. Testi:
+  `tests/test_warmup_suggest.js` (0.4.27; aiempi samanniminen testi
+  fixtureineen `prog_warm.csv` ei ollut repossa).
 - `PAIN_WINDOW_DAYS = 7`, `PAIN_VOLUME_RATIO = 1.2`, `PAIN_MIN_EPISODES = 3`
   ja `PAIN_MIN_SHARE = 0.6`: vaivalokin analyysin ikkuna, poikkeaman raja,
   kirjausten vähimmäismäärä ja löydöksen osuusraja (`buildPainAnalysis`).
