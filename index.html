@@ -968,7 +968,7 @@
   var CHANGELOG = [
     { date: "2026-10-19", items: [
       "Uusi liikekirjasto (versio 0.5.0): 448 liikettä yhtenäisillä nimillä, ja jokaisella liikkeellä on pysyvä tunniste. Merkinnät, ohjelmat, painoehdotukset ja 1RM-arvot on sidottu tunnisteeseen, joten liikkeen nimen muutos ei enää katkaise historiaa. Liikkeen löytää valitsimesta myös vanhalla, muulla tai englanninkielisellä nimellä (esim. \"sivunosto\" tai \"bench press\").",
-      "Tallennetut liikkeet siirrettiin uusiin nimiin ensimmäisellä avauksella (esim. Penkkipunnerrus tangolla, Suora tanko → Penkkipunnerrus tangolla; Sivunosto taljassa → Vipunosto sivulle taljassa). Painot, toistot, päivämäärät, tuntumat ja huomiot ovat ennallaan, ja painoehdotukset, 1RM-arvot ja Kehitys jatkuvat uusilla nimillä. Nimet, joita kohdistustaulukossa ei ollut, jäivät ennalleen.",
+      "Tallennetut liikkeet siirrettiin uusiin nimiin ensimmäisellä avauksella (esim. Penkkipunnerrus tangolla, Suora tanko → Penkkipunnerrus tangolla; Sivunosto taljassa → Vipunosto sivulle taljassa; Takavipunosto laitteessa istuen → Reverse pec deck). Painot, toistot, päivämäärät, tuntumat ja huomiot ovat ennallaan, ja painoehdotukset, 1RM-arvot ja Kehitys jatkuvat uusilla nimillä. Power Cardio -kiertoharjoitukset jäivät ennalleen, koska ne eivät ole yksittäisiä liikkeitä, ja samoin jää nimi, jota kohdistustaulukossa ei ole.",
       "Asetusten uusi Liikekirjasto-osio näyttää siirron yhteenvedon liikkeittäin, tulkitut kohdistukset ja ennalleen jääneet nimet. Sovellus otti ennen siirtoa automaattisen varmuuskopion, jonka voi ladata tiedostona ja josta siirtoa edeltävän tilan voi palauttaa.",
       "CSV-varmuuskopiossa on uudet sarakkeet Liiketunniste ja Alkuperäinen nimi (sekä ohjelmaosiossa 1RM-pohjan liiketunniste). Vanhat varmuuskopiot palautuvat yhä, ja niiden vanhat nimet kohdistetaan uusiin liikkeisiin, joten jo olemassa olevia merkintöjä ei tuoda kahteen kertaan."
     ] },
@@ -2957,9 +2957,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     { id:"ylatalja-lapiokahva", nimi:"Ylätalja, Lapiokahva", liike:"Ylätalja", variaatio:"Lapiokahva", lisavariaatio:null, lihasryhma:"Selkä", avustavat:"Hauis, Olkapäät (takaosa), Kyynärvarret", liikeperhe:"Ylätalja", liikemalli:"Pystyveto", valine:"Talja", harjoitustyyppi:"Voima", kirjaustapa:"Paino ja toistot", toispuolinen:false, englanti:"Lat pulldown (D-handle)", muutNimet:"Ylätaljaveto, Lat pulldown", huomio:"" },
     { id:"ylatalja-v-kahva", nimi:"Ylätalja, V-kahva", liike:"Ylätalja", variaatio:"V-kahva", lisavariaatio:null, lihasryhma:"Selkä", avustavat:"Hauis, Olkapäät (takaosa), Kyynärvarret", liikeperhe:"Ylätalja", liikemalli:"Pystyveto", valine:"Talja", harjoitustyyppi:"Voima", kirjaustapa:"Paino ja toistot", toispuolinen:false, englanti:"Lat pulldown (V-handle)", muutNimet:"Ylätaljaveto, Lat pulldown", huomio:"" }
   ];
-  // Sovelluksen datassa 23.9.2026 olleet nimet uusiin tunnisteisiin
-  // (nimimuunnosten lähde "Treenipäiväkirja ja -ohjelmat 23.9.2026"). id null =
-  // Ei kohdistettu: nimi jää vapaatekstiksi.
+  // Sovelluksen datan vanhat nimet uusiin tunnisteisiin. id null = Ei
+  // kohdistettu: nimi jää vapaatekstiksi. Nimimuunnosten lähteet:
+  //   Treenipäiväkirja ja -ohjelmat 23.9.2026
+  //   Treenipäiväkirja ja -ohjelmat 19.10.2026
   var NIMIMUUNNOKSET = [
     { vanha:"Maastaveto tangolla, Suora tanko", id:"maastaveto-tangolla", toimenpide:"Nimetty uudelleen" },
     { vanha:"Kulmasoutu tangolla, Suora tanko", id:"kulmasoutu-tangolla-suora-tanko", toimenpide:"Ennallaan" },
@@ -3005,8 +3006,21 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     { vanha:"Ojentajaojennus pään yli", id:"ojentajapunnerrus-paan-yli-taljassa-koysi", toimenpide:"Tulkittu – tarkista" },
     { vanha:"Vastaotesoutu tangolla, Suora tanko", id:"kulmasoutu-tangolla-vastaotteella-suora-tanko", toimenpide:"Nimetty uudelleen" },
     { vanha:"Rintatuettu soutu laitteessa", id:"rintatuettu-soutu-laitteessa", toimenpide:"Ennallaan" },
-    { vanha:"Vatsarutistus taljassa, Hihnat", id:"vatsarutistus-taljassa-hihnat", toimenpide:"Ennallaan" }
+    { vanha:"Vatsarutistus taljassa, Hihnat", id:"vatsarutistus-taljassa-hihnat", toimenpide:"Ennallaan" },
+    { vanha:"Ojentajapunnerrus taljassa köydellä", id:"ojentajapunnerrus-taljassa-koysi", toimenpide:"Nimetty uudelleen" },
+    { vanha:"Takavipunosto laitteessa istuen", id:"reverse-pec-deck", toimenpide:"Tulkittu – tarkista" },
+    { vanha:"Pystysoutu tangolla, Suora tanko", id:"pystysoutu-tangolla-suora-tanko", toimenpide:"Ennallaan" },
+    { vanha:"Pystysoutu taljassa", id:"pystysoutu-taljassa-suora-tanko", toimenpide:"Tulkittu – tarkista" },
+    { vanha:"Romanialainen maastaveto, Suora tanko", id:"romanialainen-maastaveto-tangolla", toimenpide:"Nimetty uudelleen" },
+    { vanha:"Face pull, Köysi", id:"face-pull-taljassa-koysi", toimenpide:"Nimetty uudelleen" },
+    { vanha:"Bulgarialainen askelkyykky käsipainoilla", id:"bulgarialainen-askelkyykky-kasipainoilla", toimenpide:"Ennallaan" },
+    { vanha:"Pysäytyspenkkipunnerrus tangolla, Suora tanko", id:"penkkipunnerrus-tangolla-pysaytyksin", toimenpide:"Nimetty uudelleen" },
+    { vanha:"Kyykky tangolla 2 s pysäytyksellä, Suora tanko", id:"takakyykky-tangolla-pysaytyksin", toimenpide:"Tulkittu – tarkista" },
+    { vanha:"Pystypunnerrus käsipainoilla istuen", id:"pystypunnerrus-kasipainoilla-istuen", toimenpide:"Ennallaan" }
   ];
+  // Sovellusrivien versio (rivimäärä ja tiiviste); siirron merkintä
+  // tallentaa sen, ja muuttunut taulukko ajaa siirron uudelleen.
+  var NIMIMUUNNOKSET_VERSIO = "55-fd981b34";
   // LIIKEKIRJASTO-LOPPU
 
   // ---------------------------------------------------------------------------
@@ -6360,13 +6374,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // painoehdotukset (state.lastSet) ja 1RM-arvot (state.manualMax) uuden
   // liikekirjaston tunnisteisiin NIMIMUUNNOKSET-taulukon mukaan. Ajetaan
   // käynnistyksessä, kun siirron merkintä (STORAGE_LIIKESIIRTO_KEY) puuttuu tai
-  // on vanhemmalle kirjastoversiolle. Ennen ensimmäistäkään muutosta kaikki
-  // liikkeisiin liittyvät tallennusavaimet kopioidaan sellaisinaan
-  // varmuuskopioksi (STORAGE_LIIKESIIRTO_BACKUP_KEY), josta tilan voi palauttaa
-  // Asetusten Liikekirjasto-osiossa; jos kopiota ei saada tallennettua, siirto
-  // keskeytyy eikä mitään muuteta. Taulukon ulkopuolinen nimi jää ennalleen
-  // ja luetellaan raportissa. Painoja, toistoja, päivämääriä, sarjoja,
-  // tuntumia, huomioita eikä ex-/day-/prog-tunnisteita muuteta.
+  // on toiselle kirjasto- tai taulukkoversiolle (NIMIMUUNNOKSET_VERSIO: kun
+  // taulukkoon lisätään nimiä, ne siirretään myös laitteella, jolla siirto on
+  // jo tehty). Ennen ensimmäistäkään muutosta kaikki liikkeisiin liittyvät
+  // tallennusavaimet kopioidaan sellaisinaan varmuuskopioksi
+  // (STORAGE_LIIKESIIRTO_BACKUP_KEY), josta tilan voi palauttaa Asetusten
+  // Liikekirjasto-osiossa; jos kopiota ei saada tallennettua, siirto
+  // keskeytyy eikä mitään muuteta. Jo tehdyn siirron jälkeinen uudelleenajo
+  // säilyttää ensimmäistä siirtoa edeltävän kopion. Taulukon ulkopuolinen
+  // nimi jää ennalleen ja luetellaan raportissa. Painoja, toistoja,
+  // päivämääriä, sarjoja, tuntumia, huomioita eikä ex-/day-/prog-tunnisteita
+  // muuteta.
   var STORAGE_LIIKESIIRTO_KEY = "liike-siirto";
   var STORAGE_LIIKESIIRTO_BACKUP_KEY = "liike-siirto-varmuuskopio";
   var LIIKESIIRTO_BACKUP_TYPE = "treenipaivakirja-liikesiirto-varmuuskopio";
@@ -6484,6 +6502,24 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return { report: report, changed: changed, rebuildKeys: Object.keys(rebuildKeys) };
   }
 
+  // Laajentuneen taulukon uudelleenajo: aiemmin siirretyt säilyvät ja uudet
+  // lisätään (sama vanha nimi: luvut yhteen). Ennalleen jääneet ja
+  // kohdistamattomat ovat uuden ajon mukaiset, koska ne kuvaavat nykytilaa.
+  function mergeLiikeReports(prev, next){
+    var out = { siirretyt: {}, ennallaan: next.ennallaan || {}, eiKohdistettu: next.eiKohdistettu || {},
+      nimiPaivitykset: (prev.nimiPaivitykset || 0) + (next.nimiPaivitykset || 0),
+      tormaykset: (prev.tormaykset || []).concat(next.tormaykset || []) };
+    [prev.siirretyt || {}, next.siirretyt || {}].forEach(function(src){
+      Object.keys(src).forEach(function(k){
+        var s = src[k], cur = out.siirretyt[k];
+        if(!cur){ out.siirretyt[k] = JSON.parse(JSON.stringify(s)); return; }
+        ["ohjelmarivit", "merkinnat", "sarjat", "lammittelyt", "maxPohjat"].forEach(function(f){ cur[f] = (cur[f] || 0) + (s[f] || 0); });
+        cur.painoehdotus = cur.painoehdotus || s.painoehdotus;
+        cur.max = cur.max || s.max;
+      });
+    });
+    return out;
+  }
   async function readLiikeSiirtoMarker(){
     try{
       var res = await storeGet(STORAGE_LIIKESIIRTO_KEY);
@@ -6549,7 +6585,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // peruttu tai jo tehty. Palauttaa siirron merkinnän.
   async function runLiikeMigration(manual){
     var marker = await readLiikeSiirtoMarker();
-    if(!manual && marker && (marker.tila === "palautettu" || (marker.tila === "valmis" && marker.versio === LIIKEKIRJASTO_VERSIO))){
+    if(!manual && marker && (marker.tila === "palautettu" ||
+        (marker.tila === "valmis" && marker.versio === LIIKEKIRJASTO_VERSIO && marker.taulukko === NIMIMUUNNOKSET_VERSIO))){
       state.liikeSiirto = marker;
       return marker;
     }
@@ -6570,10 +6607,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     Object.keys(entries).forEach(function(d){ if(!entries[d]) delete entries[d]; });
     var result = migrateLiikeData({ programs: (program ? [program] : []).concat(programs), entries: entries, lastSet: lastSet, manualMax: manualMax });
     var snapshotAt = (marker && marker.varmuuskopioLuotu) || null;
+    // Kun siirto on jo tehty (laajentunut taulukko), laitteen kopio on
+    // ensimmäistä siirtoa edeltävä tila, eikä sitä korvata siirretyllä
+    // tilalla; palautus vie silloin molempia siirtoja edeltävään tilaan.
+    var keepSnap = (marker && marker.tila === "valmis") ? await readLiikeSnapshot() : null;
     if(result.changed.any){
-      var snap = { tyyppi: LIIKESIIRTO_BACKUP_TYPE, versio: LIIKEKIRJASTO_VERSIO, luotu: new Date().toISOString(),
+      var snap = keepSnap || { tyyppi: LIIKESIIRTO_BACKUP_TYPE, versio: LIIKEKIRJASTO_VERSIO, luotu: new Date().toISOString(),
         sovellusversio: state.storedAppVersion || "", avaimet: raw };
-      var ok = await storeSetChecked(STORAGE_LIIKESIIRTO_BACKUP_KEY, JSON.stringify(snap));
+      var ok = keepSnap ? true : await storeSetChecked(STORAGE_LIIKESIIRTO_BACKUP_KEY, JSON.stringify(snap));
       if(!ok){
         state.liikeSiirto = { versio: LIIKEKIRJASTO_VERSIO, tila: "keskeytetty", aika: new Date().toISOString(),
           virhe: "Varmuuskopiota ei voitu tallentaa (tallennustila voi olla täynnä). Tietoihin ei koskettu." };
@@ -6597,10 +6638,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       catalogPartsCache = {};
     }
     var hadChanges = result.changed.any;
-    var prevReport = (marker && marker.raportti) || null;
-    var out = { versio: LIIKEKIRJASTO_VERSIO, tila: "valmis", aika: new Date().toISOString(),
-      // Uudelleenajo ilman muutoksia ei korvaa ensimmäisen siirron raporttia.
-      raportti: (hadChanges || !prevReport) ? result.report : prevReport,
+    var prevReport = (marker && marker.tila === "valmis" && marker.raportti) || null;
+    var out = { versio: LIIKEKIRJASTO_VERSIO, taulukko: NIMIMUUNNOKSET_VERSIO, tila: "valmis", aika: new Date().toISOString(),
+      // Uudelleenajo ilman muutoksia ei korvaa ensimmäisen siirron raporttia;
+      // muutosten kanssa raportit yhdistetään.
+      raportti: !prevReport ? result.report : (hadChanges ? mergeLiikeReports(prevReport, result.report) : prevReport),
       varmuuskopioLuotu: snapshotAt };
     await saveLiikeSiirtoMarker(out);
     if(hadChanges) state.liikeSiirtoJuuriTehty = true;

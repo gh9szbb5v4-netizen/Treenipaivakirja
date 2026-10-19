@@ -372,14 +372,42 @@ täsmälleen saman näyttönimen, ja Kehitys ryhmittelee otsikon (liikkeen nimi
 (448 liikettä, 16 saraketta) ja `nimimuunnokset_v19.10.2026.csv` ovat
 repossa; `node data/liikekirjasto/generoi.js` kirjoittaa `index.html`:n
 merkkirivien `// LIIKEKIRJASTO-ALKU` … `// LIIKEKIRJASTO-LOPPU` väliin vakiot
-`LIIKEKIRJASTO_VERSIO` ("2026-10-19"), `LIIKEKIRJASTO` ja `NIMIMUUNNOKSET`
-(vain lähteen "Treenipäiväkirja ja -ohjelmat 23.9.2026" 45 riviä: `{ vanha,
-id, toimenpide }`, id null = Ei kohdistettu). `--tarkista` pelkkä tarkistus,
-`--kohde polku` muu tiedosto. Skripti tarkistaa: tunnisteet yksilöllisiä ja
-`[a-z0-9-]`, näyttönimet yksilöllisiä ja muotoa "otsikko[, Variaatio]"
-(otsikossa ei pilkkua), kirjaustapa ja Toispuolinen tunnettuja arvoja,
-jokainen nimimuunnoksen kohde kirjastossa ja näyttönimi täsmää. Älä muokkaa
-generoitua lohkoa käsin. Rivin kentät: `id` (Tunniste), `nimi`
+`LIIKEKIRJASTO_VERSIO` ("2026-10-19"), `LIIKEKIRJASTO`, `NIMIMUUNNOKSET`
+(vain sovelluksen lähteiden `LAHTEET_SOVELLUS` rivit, `{ vanha, id,
+toimenpide }`, id null = Ei kohdistettu: "Treenipäiväkirja ja -ohjelmat
+23.9.2026" 45 riviä ja "Treenipäiväkirja ja -ohjelmat 19.10.2026" 10 riviä,
+yhteensä 55, joista 53 kohdistettu) ja `NIMIMUUNNOKSET_VERSIO` (sovellusrivien
+määrä ja FNV-1a-tiiviste riveistä vanha|id|toimenpide, esim. "55-fd981b34";
+muuttuu automaattisesti, kun rivi lisätään tai muutetaan). `--tarkista`
+pelkkä tarkistus, `--kohde polku` muu tiedosto. Skripti tarkistaa:
+tunnisteet yksilöllisiä ja `[a-z0-9-]`, näyttönimet yksilöllisiä ja muotoa
+"otsikko[, Variaatio]" (otsikossa ei pilkkua), kirjaustapa ja Toispuolinen
+tunnettuja arvoja, jokainen nimimuunnoksen kohde kirjastossa ja näyttönimi
+täsmää, sovelluksen vanha nimi ei toistu ja Ennallaan-rivin vanha nimi on
+sama kuin uusi. Älä muokkaa generoitua lohkoa käsin.
+
+**Taulukkoon lisätyt nimet (käyttäjän pyyntö 19.10.2026 "Lisää nimet
+kohdistustaulukkoon").** Kuivaharjoituksessa taulukon ulkopuolelle jääneet
+kymmenen nimeä lisättiin `nimimuunnokset_v19.10.2026.csv`:n loppuun lähteellä
+"Treenipäiväkirja ja -ohjelmat 19.10.2026" (Vanha rivi ja Vanha lihasryhmä
+tyhjiä kuten 23.9.-riveillä). Ennallaan (nimi on jo kirjaston näyttönimi,
+mutta siirto käyttää vain taulukkoa): Pystysoutu tangolla, Suora tanko;
+Bulgarialainen askelkyykky käsipainoilla; Pystypunnerrus käsipainoilla
+istuen. Nimetty uudelleen: Ojentajapunnerrus taljassa köydellä →
+Ojentajapunnerrus taljassa, Köysi; Romanialainen maastaveto, Suora tanko →
+Romanialainen maastaveto tangolla; Face pull, Köysi → Face pull taljassa,
+Köysi; Pysäytyspenkkipunnerrus tangolla, Suora tanko → Penkkipunnerrus
+tangolla pysäytyksin. Tulkittu – tarkista: Takavipunosto laitteessa istuen →
+Reverse pec deck (muut nimet Takaolkapäälaite, Takaolkapääkone); Pystysoutu
+taljassa → Pystysoutu taljassa, Suora tanko (kahva puuttui; suora tanko on
+taulukon oletus tangolle, vaihtoehto Scott-tanko); Kyykky tangolla 2 s
+pysäytyksellä, Suora tanko → Takakyykky tangolla pysäytyksin (kirjastossa
+takakyykyn muu nimi on Kyykky; pysäytyksen kesto ei näy nimessä). Kehityksen
+ryhmittely: ainoa uusi yhdistyminen on Ojentajapunnerrus taljassa köydellä,
+joka liittyy otsikkoon Ojentajapunnerrus taljassa (Suora tanko, Scott-kahva);
+vanhassa katalogissa se oli oma liikkeensä (tarkistettu skriptillä main-haaran
+`EXERCISE_VARIANTS`-katalogia vasten). Face pull köysi ja hihnat olivat jo
+ennen samaa liikettä. Rivin kentät: `id` (Tunniste), `nimi`
 (Näyttönimi), `liike`, `variaatio` (varuste, null), `lisavariaatio` (ote,
 asento, suoritustapa; null), `lihasryhma`, `avustavat`, `liikeperhe`,
 `liikemalli`, `valine`, `harjoitustyyppi`, `kirjaustapa`, `toispuolinen`
@@ -405,7 +433,8 @@ varusteet yhdistyvät (Hauiskääntö taljassa, Hihnat / Scott-kahva) mutta ote
 ja suunta eivät (Ristikkäistalja keskeltä / alhaalta ylös; Kulmasoutu
 tangolla / vastaotteella). Käyttäjän 45 nimen ryhmät säilyivät täsmälleen
 (tarkistettu skriptillä vanhaa katalogia vasten); ainoa uusi yhdistyminen on
-taulukon oma: V-jalkojen nosto ja PC: V-jalkojen nosto → Linkkuveitsi.
+taulukon oma: V-jalkojen nosto ja PC: V-jalkojen nosto → Linkkuveitsi
+(19.10. lisätyistä nimistä ks. Taulukkoon lisätyt nimet).
 
 **Liikkeen avain.** Ohjelmarivi ja merkintä saavat valinnaisen `liikeId`-
 kentän (kirjaston tunniste) ja taulukon mukaan kohdistettu
@@ -430,8 +459,9 @@ Simuloinnin merkintä saa `liikeId`:n.
 taulukon vanha nimi (`mapped`) tai, kun `exactOk`, täsmälleen sama
 näyttönimi; ei kumpaakaan, kun `unlinkedNameInUse(name)` (nimiavaimella
 painoehdotus tai 1RM tai jonkin ohjelman rivi ilman liikeId:tä), jottei
-saman liikkeen historia jakaudu kahdelle avaimelle (esim. käyttäjän
-"Bulgarialainen askelkyykky käsipainoilla", joka jäi siirrossa ennalleen).
+saman liikkeen historia jakaudu kahdelle avaimelle (esim. ohjelmaan ennen
+0.5.0:aa kirjoitettu kirjaston näyttönimi, jota taulukossa ei ole ja joka jäi
+siirrossa ennalleen).
 `linkExerciseToLibrary(obj, exactOk)` asettaa liikeId:n, nimen ja
 alkuperäisen nimen sekä maxRefId:n; liitetyn rivin nimi päivitetään kirjaston
 nimeen. Kutsupaikat: `parseProgramCSV` (exactOk), `startProgramImport`
@@ -454,9 +484,13 @@ nimi; tunniste ratkaistaan tallennuksessa.
 
 **Siirto** (`runLiikeMigration(manual)`, `migrateLiikeData(data)` puhdas
 ydin; ennen `// ---------- Varmuuskopion muoto ----------`). Ajetaan initissä
-heti version luvun jälkeen. Merkintä `liike-siirto` = `{ versio, tila
-("valmis" | "palautettu"), aika, raportti, varmuuskopioLuotu }`; ohitetaan,
-kun tila on palautettu tai valmis samalle versiolle (manual ohittaa).
+heti version luvun jälkeen. Merkintä `liike-siirto` = `{ versio, taulukko,
+tila ("valmis" | "palautettu"), aika, raportti, varmuuskopioLuotu }`;
+ohitetaan, kun tila on palautettu tai valmis samalle kirjastoversiolle ja
+samalle taulukon versiolle (`taulukko === NIMIMUUNNOKSET_VERSIO`; manual
+ohittaa). 0.5.0:n ensimmäisen koosteen (c7d4fc1) merkinnässä `taulukko`-
+kenttää ei ole, joten laajentunut taulukko ajaa siirron myös laitteella,
+jolla se on jo tehty.
 Siirto tehdään kopioihin: `collectLiikeRawValues()` lukee raaka-arvot
 (`LIIKESIIRTO_KEYS` = workout-program, programs, last-set-log, manual-1rm,
 user-exercises ja kaikki entries:-avaimet; puuttuva = null), ydin muuttaa
@@ -477,6 +511,18 @@ toimenpide, ohjelmarivit, merkinnat, sarjat, lammittelyt, maxPohjat,
 painoehdotus, max), `ennallaan` ja `eiKohdistettu` (nimiavaimella; nimi,
 ohjelmarivit, merkinnat, sarjat, painoehdotus, max), `tormaykset`.
 Uudelleenajo ilman muutoksia ei korvaa ensimmäisen siirron raporttia.
+Laajentuneen taulukon uudelleenajo tilasta "valmis": laitteella oleva
+kelvollinen varmuuskopio säilytetään (`keepSnap`; se on ensimmäistä siirtoa
+edeltävä tila, joten palautus vie molempia siirtoja edeltävään tilaan ja
+poistaa siirron jälkeen tehdyt merkinnät kuten ennenkin), ja ilman kopiota
+(ensimmäisellä kerralla ei ollut siirrettävää) kopio luodaan kuten
+ensimmäisellä kerralla. Raportit yhdistetään `mergeLiikeReports`-funktiolla:
+siirretyt kertyvät (sama vanha nimi: luvut yhteen, painoehdotus ja max OR),
+`ennallaan` ja `eiKohdistettu` ovat uuden ajon (nykytila), törmäykset
+peräkkäin ja nimipäivitykset yhteen. Palautetun tilan (`palautettu`) raportti
+ei ole yhdistämisen pohja. Saman lopputuloksen avainjärjestys voi poiketa
+suorasta siirrosta (esim. `maxRefId` ennen `liikeId`-kenttää, kun 1RM-pohja
+siirtyi ensimmäisessä ja nimi toisessa ajossa); sisältö on sama.
 Ensimmäisen siirron jälkeen ilmoitus "Liikkeet siirrettiin uuteen
 liikekirjastoon. Yhteenveto: Asetukset › Liikekirjasto." initin lopussa.
 
@@ -515,19 +561,33 @@ vanhan varmuuskopion palautus siirron jälkeen ohittaa jo olemassa olevat.
 **Käyttäjän data (varmuuskopio 19.10.2026, kuivaharjoitus).** Palautettu
 vanhaan versioon (main) ja avattu uudella: 194 merkintää / 530 sarjaa / 60
 lämmittelyä, 466 ohjelmariviä (kaksi ohjelmaa), 35 painoehdotusta, 3
-1RM-arvoa ennen ja jälkeen; 32 vanhaa nimeä siirtyi (189 merkintää, 518
-sarjaa, 60 lämmittelyä, 409 ohjelmariviä, 30 painoehdotusta, 3 1RM:ää, 16
-1RM-pohjaa; painoehdotuksista 3 jäi ennalleen ja 2 kohdistamattomina
-Power Cardio -nimille); uudelleenlataus ei muuttanut mitään. Taulukon ulkopuolelle jäi 10 nimeä
-(merkinnöissä Ojentajapunnerrus taljassa köydellä, Takavipunosto laitteessa
-istuen, Pystysoutu tangolla, Suora tanko; ohjelmissa lisäksi Pystysoutu
-taljassa, Romanialainen maastaveto, Suora tanko, Face pull, Köysi,
-Bulgarialainen askelkyykky käsipainoilla, Pysäytyspenkkipunnerrus tangolla,
-Suora tanko, Kyykky tangolla 2 s pysäytyksellä, Suora tanko, Pystypunnerrus
-käsipainoilla istuen). Varmuuskopiota ei ole repossa (henkilökohtaista
-dataa).
+1RM-arvoa ennen ja jälkeen. 45 rivin taulukolla 32 vanhaa nimeä siirtyi
+(189 merkintää, 518 sarjaa, 60 lämmittelyä, 409 ohjelmariviä, 30
+painoehdotusta, 3 1RM:ää, 16 1RM-pohjaa) ja 10 nimeä jäi taulukon
+ulkopuolelle (ks. Taulukkoon lisätyt nimet). 55 rivin taulukolla 42 nimeä
+siirtyy: 192 merkintää, 526 sarjaa, 60 lämmittelyä, kaikki 466 ohjelmariviä,
+33 painoehdotusta, 3 1RM:ää ja 16 1RM-pohjaa; ennalleen ei jää mitään, ja
+kohdistamatta jäävät vain kaksi Power Cardio -kiertoharjoitusta (2 merkintää,
+4 sarjaa, 2 painoehdotusta). Uudelleenlataus ei muuta mitään, vienti näyttää
+uudet nimet (esim. Reverse pec deck, alkuperäisenä nimenä Takavipunosto
+laitteessa istuen), ja päivityspolku (ensin siirto 45 rivin taulukolla,
+merkinnästä `taulukko` poistettuna, sitten 55 rivin taulukko) tuottaa saman
+sisällön kuin suora siirto ja säilyttää ensimmäistä siirtoa edeltävän
+varmuuskopion. Varmuuskopiota ei ole repossa (henkilökohtaista dataa).
 
-**Testi.** `tests/test_liikekirjasto.js` (osat A–G, ks. tests/README).
+**Testi.** `tests/test_liikekirjasto.js` (osat A–H, ks. tests/README).
+Testiaineiston taulukon ulkopuoliset esimerkit ovat 19.10.2026 alkaen "Oma
+pysäytyspenkki" ja "Oma laitevipunosto" sekä kirjaston näyttönimi
+"Pystysoutu käsipainoilla", jota taulukossa ei ole (aiemmat esimerkit
+lisättiin taulukkoon). Osa H tarjoilee ensin `firstTableHtml()`-sivun
+(19.10.-rivit poistettuina, taulukon versio "45-ensimmainen"), poistaa
+merkinnästä `taulukko`-kentän ja lataa sitten nykyisen sivun: lisätyt nimet
+siirtyvät, varmuuskopio ja sen aika säilyvät, raportit yhdistyvät ja palautus
+vie ensimmäistä siirtoa edeltävään tilaan. Osa H epäonnistuu, jos
+taulukon versiota ei tarkisteta (8 kohtaa) tai varmuuskopio korvataan (2
+kohtaa). `test_1rm_pohja.js`:n prosenttiliike on 19.10.2026 alkaen
+"Pysäytyspenkki tangolla" (aiempi "Pysäytyspenkkipunnerrus tangolla, Suora
+tanko" on nyt taulukossa, joten CSV-tuonti liittäisi sen kirjastoon).
 Tarkoitukselliset muutokset vanhoihin testeihin: `test_1rm_pohja.js`,
 `test_1rm_tuntuma.js` ja `test_max_nolla.js` käyttävät nyt kirjaston nimiä
 "Penkkipunnerrus tangolla" ja "Takakyykky tangolla" (vanhat nimet

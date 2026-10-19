@@ -6,7 +6,10 @@ let fails = 0;
 function ok(cond, msg){ if(cond){ console.log('  ok   ' + msg); } else { fails++; console.log('  FAIL ' + msg); } }
 const w = ms => new Promise(r => setTimeout(r, ms));
 const BENCH = 'Penkkipunnerrus tangolla';
-const PAUSE = 'Pysäytyspenkkipunnerrus tangolla, Suora tanko';
+// Kirjaston ja nimimuunnosten ulkopuolinen nimi, jotta CSV-tuonti ei liitä
+// sitä kirjastoon (Pysäytyspenkkipunnerrus tangolla, Suora tanko lisättiin
+// taulukkoon 19.10.2026).
+const PAUSE = 'Pysäytyspenkki tangolla';
 const SQUAT = 'Takakyykky tangolla';
 const kb = n => n.trim().toLowerCase();
 function intensity(t){

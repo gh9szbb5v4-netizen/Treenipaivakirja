@@ -2,7 +2,8 @@
 // sovellusta; ei riippuvuuksia). Lukee tämän hakemiston CSV-tiedostot ja
 // kirjoittaa index.html:n merkkirivien
 //   // LIIKEKIRJASTO-ALKU ... // LIIKEKIRJASTO-LOPPU
-// väliin vakiot LIIKEKIRJASTO_VERSIO, LIIKEKIRJASTO ja NIMIMUUNNOKSET.
+// väliin vakiot LIIKEKIRJASTO_VERSIO, LIIKEKIRJASTO, NIMIMUUNNOKSET ja
+// NIMIMUUNNOKSET_VERSIO.
 //
 // Käyttö (repon juuresta):
 //   node data/liikekirjasto/generoi.js            kirjoittaa index.html:n
@@ -12,9 +13,13 @@
 // Tarkistukset: tunnisteet yksilöllisiä ja muotoa [a-z0-9-], näyttönimet
 // yksilöllisiä, näyttönimi on muotoa "otsikko[, Variaatio]", kirjaustapa ja
 // toispuolisuus tunnettuja arvoja, ja jokainen nimimuunnoksen kohde on
-// kirjastossa ja sen näyttönimi täsmää. Sovellukseen otetaan nimimuunnoksista
-// vain rivit, joiden lähde on sovelluksen data (LAHDE_SOVELLUS); vanhan
-// Excel-listan rivit ovat CSV:ssä jäljitettävyyden vuoksi.
+// kirjastossa ja sen näyttönimi täsmää (Ennallaan-rivillä myös vanha nimi).
+// Sovellukseen otetaan nimimuunnoksista vain rivit, joiden lähde on
+// sovelluksen data (LAHTEET_SOVELLUS); vanhan Excel-listan rivit ovat
+// CSV:ssä jäljitettävyyden vuoksi. NIMIMUUNNOKSET_VERSIO lasketaan
+// sovellusriveistä (rivimäärä ja tiiviste), joten jokainen lisätty tai
+// muutettu rivi ajaa käynnistyksen siirron uudelleen myös laitteella, jolla
+// siirto on jo tehty.
 var fs = require("fs");
 var path = require("path");
 
@@ -23,7 +28,10 @@ var KIRJASTO_CSV = path.join(__dirname, "liikekirjasto_v19.10.2026.csv");
 var MUUNNOS_CSV = path.join(__dirname, "nimimuunnokset_v19.10.2026.csv");
 var kohdeArg = process.argv.indexOf("--kohde");
 var INDEX = kohdeArg !== -1 ? path.resolve(process.argv[kohdeArg + 1]) : path.join(__dirname, "..", "..", "index.html");
-var LAHDE_SOVELLUS = "Treenipäiväkirja ja -ohjelmat 23.9.2026";
+// 23.9.2026: sovelluksen ja ohjelmien nimet kohdistustaulukon laadinnan
+// aikaan; 19.10.2026: käyttäjän varmuuskopion nimet, jotka jäivät
+// ensimmäisestä taulukosta pois.
+var LAHTEET_SOVELLUS = ["Treenipäiväkirja ja -ohjelmat 23.9.2026", "Treenipäiväkirja ja -ohjelmat 19.10.2026"];
 var KIRJAUSTAVAT = ["Paino ja toistot", "Lisäpaino ja toistot", "Avustus ja toistot", "Toistot", "Aika", "Lisäpaino ja aika", "Paino ja matka", "Matka ja aika"];
 
 function parseCSV(text){
@@ -97,7 +105,7 @@ kirjasto.forEach(function(r, i){
 });
 
 var muunnokset = parseCSV(fs.readFileSync(MUUNNOS_CSV, "utf8"));
-var sovellus = muunnokset.filter(function(r){ return r["Lähde"] === LAHDE_SOVELLUS; }).map(function(r){
+var sovellus = muunnokset.filter(function(r){ return LAHTEET_SOVELLUS.indexOf(r["Lähde"]) !== -1; }).map(function(r){
   var id = r["Uusi tunniste"];
   if(id === "–" || id === "-") id = "";
   return { vanha: r["Vanha nimi (nimi | variaatio | lisävariaatio)"], id: id || null, toimenpide: r["Toimenpide"], uusiNimi: r["Uusi näyttönimi"] };
@@ -115,10 +123,18 @@ sovellus.forEach(function(m){
   vaadi(!vanhat[k], "sovelluksen vanha nimi toistuu: " + m.vanha);
   vanhat[k] = true;
   vaadi(m.id || m.toimenpide === "Ei kohdistettu", "kohdistamaton rivi ilman toimenpidettä Ei kohdistettu: " + m.vanha);
+  vaadi(m.toimenpide !== "Ennallaan" || m.vanha === m.uusiNimi, "Ennallaan-rivin vanha ja uusi nimi eroavat: " + m.vanha);
 });
+// FNV-1a (32 bittiä): muuttuu, kun mikä tahansa sovellusrivin kenttä muuttuu.
+function tiiviste(s){
+  var h = 0x811c9dc5;
+  for(var i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return ("0000000" + h.toString(16)).slice(-8);
+}
+var MUUNNOS_VERSIO = sovellus.length + "-" + tiiviste(JSON.stringify(sovellus.map(function(m){ return [m.vanha, m.id, m.toimenpide]; })));
 
 console.log("Kirjasto: " + kirjasto.length + " liikettä; sovelluksen nimimuunnoksia " + sovellus.length +
-  " (kohdistettu " + sovellus.filter(function(m){ return m.id; }).length + ").");
+  " (kohdistettu " + sovellus.filter(function(m){ return m.id; }).length + "), taulukon versio " + MUUNNOS_VERSIO + ".");
 if(virheet.length){
   console.error("Virheitä " + virheet.length + ":\n  " + virheet.join("\n  "));
   process.exit(1);
@@ -138,14 +154,17 @@ kirjasto.forEach(function(r, i){
   lohko.push("    { " + KENTAT.map(function(k){ return k + ":" + js(r[k]); }).join(", ") + " }" + (i < kirjasto.length - 1 ? "," : ""));
 });
 lohko.push("  ];");
-lohko.push("  // Sovelluksen datassa 23.9.2026 olleet nimet uusiin tunnisteisiin");
-lohko.push("  // (nimimuunnosten lähde \"" + LAHDE_SOVELLUS + "\"). id null =");
-lohko.push("  // Ei kohdistettu: nimi jää vapaatekstiksi.");
+lohko.push("  // Sovelluksen datan vanhat nimet uusiin tunnisteisiin. id null = Ei");
+lohko.push("  // kohdistettu: nimi jää vapaatekstiksi. Nimimuunnosten lähteet:");
+LAHTEET_SOVELLUS.forEach(function(l){ lohko.push("  //   " + l); });
 lohko.push("  var NIMIMUUNNOKSET = [");
 sovellus.forEach(function(m, i){
   lohko.push("    { vanha:" + js(m.vanha) + ", id:" + js(m.id) + ", toimenpide:" + js(m.toimenpide) + " }" + (i < sovellus.length - 1 ? "," : ""));
 });
 lohko.push("  ];");
+lohko.push("  // Sovellusrivien versio (rivimäärä ja tiiviste); siirron merkintä");
+lohko.push("  // tallentaa sen, ja muuttunut taulukko ajaa siirron uudelleen.");
+lohko.push("  var NIMIMUUNNOKSET_VERSIO = " + js(MUUNNOS_VERSIO) + ";");
 lohko.push("  // LIIKEKIRJASTO-LOPPU");
 
 var html = fs.readFileSync(INDEX, "utf8");
