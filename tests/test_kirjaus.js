@@ -170,10 +170,10 @@ async function jatka(page){ await page.click('.next-card [data-start-day]'); awa
   await load(page, program(), []);
   await jatka(page);
   await page.click('[data-swap-open][data-id="A"]'); await page.waitForTimeout(400);
-  await page.selectOption('[data-variant-liike]', 'Alasoutu levypainokoneessa'); await page.waitForTimeout(400);
+  await page.selectOption('[data-variant-liike]', 'Rintatuettu soutu laitteessa'); await page.waitForTimeout(400);
   await page.click('[data-swap-confirm]'); await page.waitForTimeout(600);
   s = await screen(page); h = await hs(page);
-  ok(s.head && s.title === 'Alasoutu levypainokoneessa' && h.depth === 2 && h.detail && h.detail !== 'A', 'X ruudulla ' + JSON.stringify([s.title, h]));
+  ok(s.head && s.title === 'Rintatuettu soutu laitteessa' && h.depth === 2 && h.detail && h.detail !== 'A', 'X ruudulla ' + JSON.stringify([s.title, h]));
   await page.goBack(); await page.waitForTimeout(500);
   ok(!(await screen(page)).head && (await hs(page)).depth === 0, 'paluu listaan');
 

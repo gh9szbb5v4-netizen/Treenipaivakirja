@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.4.32 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.5.0 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -357,58 +357,195 @@ käynnistää testissä ilman PDF:ää, joten tapaus 9 tarkistaa
 `test_rakentaja_2.js` sovitettiin tasoihin (päivä avataan viikkotasolta,
 liikkeen poisto lomakkeessa).
 
-## Liikepankki (toteutettu, versio 4.9.2026)
+## Liikekirjasto ja tunnisteet (toteutettu, 0.5.0)
 
-`EXERCISE_VARIANTS` on generoitu tiedostosta
-`Kuntosaliliikkeet_ja_lihasryhmat_v4_9_2026.xlsx` (taulukko
-"Kuntosaliliikkeet", sarakkeet Liikkeen nimi, Väline, Variaatio, Lihasryhmä;
-ei Lisävariaatio-saraketta): 905 riviä / 354 liikettä lähteen järjestyksessä,
-rivin muoto `{ liike, valine, variaatio, lisavariaatio:null, lihasryhma }`.
-Lähdetaulukko ja generointiskripti eivät ole repossa; katalogin
-otsikkokommentti kertoo tuonnissa tehdyt tarkistukset (ei kaksoisrivejä,
-yksi väline ja yksi lihasryhmä per liike) sekä variaatiosäännön: vain talja-
-(9 kahvaa) ja tankoliikkeillä (6 tankoa) on variaatiot, aina koko sarja, ja
-27 talja-/tankoliikettä on tarkoituksella ilman. `lisavariaatio` säilyy
-kentässä, koska CSV-tuonti ja `state.userExercises` käyttävät sitä.
+Käyttäjän kehote 19.10.2026 (vaiheet 1–5; vaihe 6 "kirjaustapa ja
+toispuolisuus" tehdään vasta erillisestä hyväksynnästä). Työ on haarassa
+`claude/liikekirjasto-tunnisteet`. Käyttäjä hyväksyi vaiheen 1 ehdotukset
+sellaisinaan: siirto käynnistyy automaattisesti, siirto käyttää vain
+nimimuunnostaulukkoa (taulukon ulkopuolinen nimi jää ennalleen, vaikka se
+olisi täsmälleen kirjaston näyttönimi), tuonti ja rakentaja liittävät myös
+täsmälleen saman näyttönimen, ja Kehitys ryhmittelee otsikon (liikkeen nimi
++ lisävariaatio) mukaan.
 
-`valine` on käytössä kolmessa paikassa: `exercisePickEntries()` lisää sen
-hakusanoihin (`renderExercisePickList` osuu nimeen, lihasryhmään ja
-välineeseen), `catalogPartsFor()` liittää sen Ohjelma-näkymän
-tarkenneriville (`equipmentForLiike()` samalla ensimmäisen rivin säännöllä
-kuin `muscleGroupForLiike()`) ja `renderVariantPicker()` liittää sen
-esikatseluun. Käyttäjän omilla liikkeillä ei ole välinettä (lomake ja
-varmuuskopion `#OMAT LIIKKEET` ennallaan), jolloin sitä ei näytetä.
+**Lähde ja generointi.** `data/liikekirjasto/liikekirjasto_v19.10.2026.csv`
+(448 liikettä, 16 saraketta) ja `nimimuunnokset_v19.10.2026.csv` ovat
+repossa; `node data/liikekirjasto/generoi.js` kirjoittaa `index.html`:n
+merkkirivien `// LIIKEKIRJASTO-ALKU` … `// LIIKEKIRJASTO-LOPPU` väliin vakiot
+`LIIKEKIRJASTO_VERSIO` ("2026-10-19"), `LIIKEKIRJASTO` ja `NIMIMUUNNOKSET`
+(vain lähteen "Treenipäiväkirja ja -ohjelmat 23.9.2026" 45 riviä: `{ vanha,
+id, toimenpide }`, id null = Ei kohdistettu). `--tarkista` pelkkä tarkistus,
+`--kohde polku` muu tiedosto. Skripti tarkistaa: tunnisteet yksilöllisiä ja
+`[a-z0-9-]`, näyttönimet yksilöllisiä ja muotoa "otsikko[, Variaatio]"
+(otsikossa ei pilkkua), kirjaustapa ja Toispuolinen tunnettuja arvoja,
+jokainen nimimuunnoksen kohde kirjastossa ja näyttönimi täsmää. Älä muokkaa
+generoitua lohkoa käsin. Rivin kentät: `id` (Tunniste), `nimi`
+(Näyttönimi), `liike`, `variaatio` (varuste, null), `lisavariaatio` (ote,
+asento, suoritustapa; null), `lihasryhma`, `avustavat`, `liikeperhe`,
+`liikemalli`, `valine`, `harjoitustyyppi`, `kirjaustapa`, `toispuolinen`
+(boolean), `englanti`, `muutNimet`, `huomio`. Edellinen katalogi
+(`EXERCISE_VARIANTS`, 905 riviä / 354 liikettä v4.9.2026) on poistettu
+kokonaan; vanhat katalogin nimet, joita taulukossa ei ole, eivät enää
+tunnistu katalogista (näkyvät otsikkona kokonaan, ilman tarkenneriviä).
 
-`catalogPartsFor(name)` jakaa liikkeen nimen katalogin mukaan: pisin
-pilkuilla rajattu alkuosa, joka osuu `resolveCatalogMatch()`-funktioon
-(koostettu rivi tai pelkkä liikenimi), on `liike`; loput ovat
-`variantText` (variaatio, lisävariaatio ja muu häntä) ja `details` on
-`[valine, variantText, lihasryhma]` ilman tyhjiä. Katalogin ulkopuolinen
-nimi palauttaa null. Tulos muistetaan `catalogPartsCache`-oliossa avaimella
-`nimi|omien liikkeiden määrä`, joten omien liikkeiden lisäys ei vaadi
-tyhjennystä. `baseExerciseName(name)` palauttaa `liike`-osan tai koko
-nimen. Käyttöpaikat: `renderExercise()` (otsikkona `liike`, alla
-`.exercise-detail`-rivi `details.join(" · ")`; aiempi "Tunnetut
-variaatiot" -rivi (`renderVariantInfo`) on poistettu käyttäjän pyynnöstä),
-`buildAllOneRepMaxSeries()` ja
-`buildPainAnalysis()` (sarjan avain on `baseExerciseName`, joten eri tangolla
-tai kahvalla kirjatut merkinnät ovat yksi liike; 1RM-sarja kerää
-`variants`-joukon ja kortti näyttää rivin "Variaatiot: …", kun niitä on
-useampi). Historia, painoehdotus (`state.lastSet`) ja 1RM-arvot
-(`state.manualMax`) käyttävät edelleen koko nimeä, koska eri tanko voi
-vaatia eri painon. Testi: `test_variant_merge.js` (fixture
-`prog_variants.csv`).
+**Hakufunktiot.** `allExerciseVariants()` = `LIIKEKIRJASTO` + omat liikkeet
+(`state.userExercises`, muoto ennallaan, ei tunnistetta). `rowDisplayName(row)`
+= `row.nimi` tai omalla liikkeellä `composeVariantName`. `liikeOtsikko(row)`
+= näyttönimi ilman ", Variaatio" (omalla liikkeellä `liike`).
+`liikeIndexes()` (välimuisti) → `liikeById`, `liikeByName` (normalizeName),
+`nimimuunnosFor`. `variantDisplayName(liike, variaatio, lisavariaatio)` =
+kirjaston rivin näyttönimi, kun osat vastaavat riviä (CSV-tuonnin Variaatio-
+ja Lisävariaatio-sarakkeet, vaihdon variaatiovalitsimen esikatselu ja
+vahvistus), muuten osista koottu. `resolveCatalogMatch` palauttaa `{ row,
+plain }` (koko näyttönimi tai pelkkä otsikko). `catalogPartsFor`: `liike` =
+otsikko, kirjaston rivillä `variantText` = varuste + häntä (lisävariaatio on
+jo otsikossa), omalla liikkeellä kuten ennen; uusi kenttä `id`.
+`baseExerciseName` (Kehityksen ja vaivalokin avain) = otsikko, joten
+varusteet yhdistyvät (Hauiskääntö taljassa, Hihnat / Scott-kahva) mutta ote
+ja suunta eivät (Ristikkäistalja keskeltä / alhaalta ylös; Kulmasoutu
+tangolla / vastaotteella). Käyttäjän 45 nimen ryhmät säilyivät täsmälleen
+(tarkistettu skriptillä vanhaa katalogia vasten); ainoa uusi yhdistyminen on
+taulukon oma: V-jalkojen nosto ja PC: V-jalkojen nosto → Linkkuveitsi.
 
-Edellinen katalogi (97 liikettä, 10 lihasryhmää, mm. "Jalat", "Ojentajat",
-"Olkapäät") korvattiin kokonaan; vain 14 nimeä säilyi. Ohjelmien ja
-merkintöjen nimiin ei koskettu, koska katalogi on vain valitsimien
-viitetaulukko; vanhalla nimellä oleva liike näkyy liikevalitsimessa ryhmässä
-"Ohjelmassa ja historiassa" (`knownExerciseNames()`, luetaan tallennetusta
-ohjelmasta, ei muokkaustilan luonnoksesta). Testien fixture `prog_swap.csv`
-käyttää katalogin nimiä; testit `test_catalog.js`, `test_swap_regression.js`.
-Huomio: kiinteä alavalikko on läpikuultava, joten axe voi ilmoittaa
-välilehden tekstin kontrastista, kun messinkinen painike osuu sen alle —
-riippuu vierityskohdasta eikä katalogista.
+**Liikkeen avain.** Ohjelmarivi ja merkintä saavat valinnaisen `liikeId`-
+kentän (kirjaston tunniste) ja taulukon mukaan kohdistettu
+`alkuperainenNimi`-kentän; ohjelmarivin 1RM-pohja `maxRefId`-kentän. Kentät
+ovat oliossa viimeisinä (liikeId, alkuperainenNimi, maxRefId). `name` on yhä
+näyttönimi kaikkia lukupaikkoja varten. `exerciseKeyOf(obj)` = `liikeId` tai
+`nameKey(name)` (trim + toLowerCase, sama kuin ennen) on painoehdotuksen
+(`state.lastSet`), 1RM:n (`state.manualMax`), clusterin viitekuorman
+(`findClusterRefWeight(key, …)`, `state.clusterRef`) ja korjausten
+uudelleenlaskennan (`rebuildTrackersForKey`, `rebuildManualMaxForKey`;
+entiset `…ForName`) ainoa avain; merkinnät haetaan
+`exerciseKeyOf(data) === key`. `maxRefKeyOf(ex)` = `maxRefId` tai
+nimiavain, `oneRepMaxKeyFor` ja `maxRefOf` käyttävät avaimia.
+`displayNameForKey(key)` (kirjaston nimi tai iso alkukirjain) korvaa
+`capitalize(norm)`-kutsut (`knownExerciseNames`, `historyExerciseNames`,
+1RM-luettelo, #1RM-vienti). `oneRepMaxRows` rakentuu avaimilla (`refs` =
+`{ key, name }`), ja luettelo järjestetään nimen mukaan. Saman päivän
+uudelleentallennus säilyttää merkinnän `alkuperainenNimi`-kentän.
+Simuloinnin merkintä saa `liikeId`:n.
+
+**Liittäminen uusille riveille.** `resolveLiikeForName(name, exactOk)`:
+taulukon vanha nimi (`mapped`) tai, kun `exactOk`, täsmälleen sama
+näyttönimi; ei kumpaakaan, kun `unlinkedNameInUse(name)` (nimiavaimella
+painoehdotus tai 1RM tai jonkin ohjelman rivi ilman liikeId:tä), jottei
+saman liikkeen historia jakaudu kahdelle avaimelle (esim. käyttäjän
+"Bulgarialainen askelkyykky käsipainoilla", joka jäi siirrossa ennalleen).
+`linkExerciseToLibrary(obj, exactOk)` asettaa liikeId:n, nimen ja
+alkuperäisen nimen sekä maxRefId:n; liitetyn rivin nimi päivitetään kirjaston
+nimeen. Kutsupaikat: `parseProgramCSV` (exactOk), `startProgramImport`
+(PDF; `linkProgramToLibrary`), `editorSaveForm` (uusi ja muokattu liike,
+1RM-pohjan vaihto poistaa vanhan maxRefId:n), `applyExerciseSwap` (liitos
+lasketaan ennen rivin muutosta, koska muuten nimetty rivi itse näyttäisi
+liittämättömältä samannimiseltä), `parseBackupProgram` ja
+`importEntriesData` (exactOk false: palautus vain sarakkeen tai taulukon
+mukaan), `parseBackupManualMax`. Asetusten käsin tallennettu 1RM käyttää
+`keyForName`. `exerciseRecognition(name, liikeId)` lukee historian sekä
+tunnisteella että nimiavaimella; tunnisteet "liikekirjastossa" ja
+`RECOGNITION_NOTE` puhuvat nyt liikekirjastosta.
+
+**Liikevalitsin.** `exercisePickEntries` → `{ name, group, valine, aliases }`
+(aliases = englanninkielinen nimi ja muut nimet); `renderExercisePickList`
+hakee nimestä, ryhmästä, välineestä ja aliaksista, ja kun osuma tuli vain
+aliaksista, rivillä on `.pick-alias` (osuneet nimet " · "-erottimella, esim.
+"Barbell bench press" tai vanha nimi "Sivunosto"). `data-pick-exercise` on yhä
+nimi; tunniste ratkaistaan tallennuksessa.
+
+**Siirto** (`runLiikeMigration(manual)`, `migrateLiikeData(data)` puhdas
+ydin; ennen `// ---------- Varmuuskopion muoto ----------`). Ajetaan initissä
+heti version luvun jälkeen. Merkintä `liike-siirto` = `{ versio, tila
+("valmis" | "palautettu"), aika, raportti, varmuuskopioLuotu }`; ohitetaan,
+kun tila on palautettu tai valmis samalle versiolle (manual ohittaa).
+Siirto tehdään kopioihin: `collectLiikeRawValues()` lukee raaka-arvot
+(`LIIKESIIRTO_KEYS` = workout-program, programs, last-set-log, manual-1rm,
+user-exercises ja kaikki entries:-avaimet; puuttuva = null), ydin muuttaa
+kopioita, ja vasta kun `storeSetChecked` (ei vaihda tallennustilaa muistiin
+kuten `storeSet` virheessä, vaan palauttaa false; lukee kirjoitetun takaisin)
+on tallentanut varmuuskopion `liike-siirto-varmuuskopio` = `{ tyyppi:
+"treenipaivakirja-liikesiirto-varmuuskopio", versio, luotu, sovellusversio,
+avaimet }`, muuttuneet päivät ja osat kirjoitetaan. Epäonnistuminen:
+`state.liikeSiirto.tila "keskeytetty"` (ei tallenneta, joten yritetään
+seuraavalla käynnistyksellä), ilmoitus, dataan ei kosketa. Ydin: liitetty
+rivi ohitetaan (vain nimen päivitys kirjaston nimeen, `nimiPaivitykset`),
+taulukon nimi → `name` = näyttönimi, `liikeId`, `alkuperainenNimi` (myös
+Ennallaan-riveillä); 1RM-pohja samoin; painoehdotus ja 1RM avaimelta
+tunnisteelle (avain, joka on jo tunniste, esim. "lankku", ohitetaan);
+törmäyksessä painoehdotus rakennetaan merkinnöistä (`rebuildKeys`) ja 1RM:stä
+voittaa myöhäisempi päivä. Raportti: `siirretyt[vanha]` (id, nimi,
+toimenpide, ohjelmarivit, merkinnat, sarjat, lammittelyt, maxPohjat,
+painoehdotus, max), `ennallaan` ja `eiKohdistettu` (nimiavaimella; nimi,
+ohjelmarivit, merkinnat, sarjat, painoehdotus, max), `tormaykset`.
+Uudelleenajo ilman muutoksia ei korvaa ensimmäisen siirron raporttia.
+Ensimmäisen siirron jälkeen ilmoitus "Liikkeet siirrettiin uuteen
+liikekirjastoon. Yhteenveto: Asetukset › Liikekirjasto." initin lopussa.
+
+**Palautus.** `restoreLiikeSnapshot(snap)`: poistaa entries:-avaimet, joita
+kopiossa ei ole, kirjoittaa kopion avaimet (null = poisto), tallentaa kopion
+myös laitteen kopioksi, asettaa merkinnän tilaan "palautettu" ja lataa sivun
+uudelleen. `validLiikeSnapshot` hyväksyy vain tunnetut avaimet
+(`isLiikeSnapshotKey`) ja merkkijono- tai null-arvot, joten tiedostosta ei voi
+kirjoittaa muita avaimia. `downloadLiikeSnapshot` (JSON,
+`treenipaivakirja_ennen-liikesiirtoa_<pvm>.json`), `readLiikeSnapshotFile`
+(`#liike-snapshot-input`, `state.pendingLiikeSnapshot`,
+`renderLiikeSnapshotConfirm`).
+
+**Asetukset › Liikekirjasto** (`SETTINGS_SECTIONS`-avain `liikekirjasto`,
+ryhmä Tiedot ja sovellus, alaotsikko "448 liikettä · siirto tehty 19.10.";
+`renderSettingsLiikekirjasto`): kirjaston kuvaus, siirron yhteenveto
+(`renderLiikeSiirtoReport`: summarivi ja `details.rpe-more`-osiot Siirretyt
+liikkeet, Tulkitut kohdistukset, Ennalleen jääneet nimet, Ei kohdistettu,
+Yhdistyneet tiedot), perutulla `[data-liike-migrate]` "Siirrä tiedot uusiin
+nimiin" (keskeytyneellä "Yritä uudelleen"), varmuuskopion kortti
+(`[data-liike-snapshot-download]`, kaksivaiheinen
+`[data-liike-snapshot-restore]` / `state.confirmingLiikeRestore`, tiedoston
+valitsin). Vahvistukset nollataan `resetScreenState`-, `[data-settings-section]`-
+ja `[data-settings-back]`-poluilla.
+
+**Varmuuskopio.** `#MERKINNÄT`: Kevennyksen perään `Liiketunniste` ja
+`Alkuperäinen nimi` (L-riveillä samat). `parseEntriesCSV` hakee ne tarkalla
+otsikolla, ja liike-id:n sarakkeeksi valitaan tarkka "tunniste", koska
+`findCol(["tunniste"])` osuisi osamerkkijonona myös "liiketunniste"-otsikkoon.
+`#OHJELMA`: 1RM-pohjan perään `Liiketunniste`, `Alkuperäinen nimi`,
+`1RM-pohjan liiketunniste`. `#1RM`: `Liiketunniste`. `importEntriesData`
+liittää lohkot ennen päiväkohdistusta (`importMatchKey` = liikeId tai
+normalizeName), ja kaksoistunniste on `exerciseKeyOf|tyyppi|sarjat`, joten
+vanhan varmuuskopion palautus siirron jälkeen ohittaa jo olemassa olevat.
+
+**Käyttäjän data (varmuuskopio 19.10.2026, kuivaharjoitus).** Palautettu
+vanhaan versioon (main) ja avattu uudella: 194 merkintää / 530 sarjaa / 60
+lämmittelyä, 466 ohjelmariviä (kaksi ohjelmaa), 35 painoehdotusta, 3
+1RM-arvoa ennen ja jälkeen; 32 vanhaa nimeä siirtyi (189 merkintää, 518
+sarjaa, 60 lämmittelyä, 409 ohjelmariviä, 30 painoehdotusta, 3 1RM:ää, 16
+1RM-pohjaa; painoehdotuksista 3 jäi ennalleen ja 2 kohdistamattomina
+Power Cardio -nimille); uudelleenlataus ei muuttanut mitään. Taulukon ulkopuolelle jäi 10 nimeä
+(merkinnöissä Ojentajapunnerrus taljassa köydellä, Takavipunosto laitteessa
+istuen, Pystysoutu tangolla, Suora tanko; ohjelmissa lisäksi Pystysoutu
+taljassa, Romanialainen maastaveto, Suora tanko, Face pull, Köysi,
+Bulgarialainen askelkyykky käsipainoilla, Pysäytyspenkkipunnerrus tangolla,
+Suora tanko, Kyykky tangolla 2 s pysäytyksellä, Suora tanko, Pystypunnerrus
+käsipainoilla istuen). Varmuuskopiota ei ole repossa (henkilökohtaista
+dataa).
+
+**Testi.** `tests/test_liikekirjasto.js` (osat A–G, ks. tests/README).
+Tarkoitukselliset muutokset vanhoihin testeihin: `test_1rm_pohja.js`,
+`test_1rm_tuntuma.js` ja `test_max_nolla.js` käyttävät nyt kirjaston nimiä
+"Penkkipunnerrus tangolla" ja "Takakyykky tangolla" (vanhat nimet
+siirtyisivät tunnisteille), `test_1rm_pohja.js` odottaa CSV-tuonnin
+1RM-pohjalle `maxRefId`-kentän ja varmuuskopioon kirjaston sarakkeet,
+`test_kevennys_2.js` ja `test_warmup_suggest.js` merkintäosioon kaksi uutta
+saraketta, `test_kirjaus.js` ja `test_swap_done.js` vaihtavat liikkeeksi
+"Rintatuettu soutu laitteessa" (vanhan katalogin "Alasoutu
+levypainokoneessa" poistui) ja `test_ulkoasu.js` odottaa Historiaan siirretyn
+nimen "Maastaveto tangolla" ilman varusteosaa (varusteosan esitys
+tarkistetaan nyt `test_liikekirjasto.js`:n kohdassa A15).
+
+## Liikepankki (korvattu 0.5.0:ssa)
+
+Edellinen katalogi `EXERCISE_VARIANTS` (v4.9.2026, `Kuntosaliliikkeet_ja_
+lihasryhmat_v4_9_2026.xlsx`, 905 riviä / 354 liikettä, kentät liike, valine,
+variaatio, lisavariaatio, lihasryhma) on poistettu; ks. edellinen osio. Alla
+olevat kuvaukset ovat historiaa siltä osin kuin ne viittaavat siihen.
 
 ## Ohjelman muokkaustila (toteutettu)
 
@@ -616,7 +753,7 @@ vahvistetaan erikseen (`state.pendingRestore` + `renderRestoreConfirm()`);
 ilman ohjelmaosiota oleva tiedosto tuodaan suoraan. Vanha tiedosto ilman
 ohjelmasarakkeita luetaan yhdeksi ohjelmaksi.
 
-`state.manualMax` on avaimenaan liikkeen nimi muodossa `nimi.trim().toLowerCase()`
+`state.manualMax` on avaimenaan 0.5.0 alkaen `exerciseKeyOf` (kirjaston tunniste tai, liittämättömällä liikkeellä, liikkeen nimi muodossa `nimi.trim().toLowerCase()`; ks. Liikekirjasto ja tunnisteet)
 — sama sääntö kaikissa lukupaikoissa. Vienti kirjoittaa nimen ohjelman
 kirjoitusasussa (`maxExerciseNames()`), tuonti lukee sen takaisin samalla
 trim+toLowerCase-säännöllä, joten kierros on tarkka kirjoitusasusta riippumatta.
