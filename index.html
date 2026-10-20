@@ -319,31 +319,41 @@
   .metric-bar{height:6px; background:var(--surface-2); border-radius:3px; margin-top:6px; overflow:hidden;}
   .metric-fill{height:100%; border-radius:3px; background:var(--brass);}
   .metric-fill.full{background:var(--success);}
-  .kehitys-row{position:relative; display:flex; align-items:center; gap:12px; min-height:64px; padding:10px 12px 10px 16px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  /* Rivi on kaksirivinen ruudukko: ylärivillä nimi ja luku, alarivillä
+     päivämäärä, sparkline ja muutos kiinteissä sarakkeissa, jotta nimi saa
+     leveyden ja sparklinet osuvat samaan sarakkeeseen muutoksen pituudesta
+     riippumatta. Body- ja right-kääreet ovat display:contents, joten DOM-
+     järjestys (body, sparkline, right, nuoli) on ennallaan. */
+  .kehitys-row{position:relative; display:grid; grid-template-columns:minmax(0,1fr) 64px 120px 20px; grid-template-areas:"name name value chev" "meta spark delta chev"; column-gap:8px; row-gap:2px; align-items:center; min-height:64px; padding:10px 12px 10px 16px; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .kehitys-row + .kehitys-row::before{content:""; position:absolute; top:0; left:16px; right:0; height:1px; background:var(--hairline);}
   .kehitys-row:active{background:var(--surface-2);}
   .kehitys-row:focus-visible{outline:2px solid var(--brass); outline-offset:-2px;}
-  .kehitys-row-body{flex:1; min-width:0;}
-  .kehitys-row-name{font-weight:600; font-size:var(--fs-md); line-height:20px;}
-  .kehitys-row-sub{font-size:var(--fs-xs); line-height:16px; color:var(--mist); margin-top:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-variant-numeric:tabular-nums;}
-  /* Vähimmäisleveys asettaa sparklinet samaan sarakkeeseen luvun pituudesta
-     riippumatta ("22,5 kg" / "170 kg"). */
-  .kehitys-row-right{text-align:right; font-variant-numeric:tabular-nums; flex-shrink:0; min-width:80px;}
-  .kehitys-row-value{font-weight:700; color:var(--chalk); font-size:var(--fs-lg); line-height:22px;}
-  .kehitys-row-delta{font-size:var(--fs-xs); line-height:16px;}
-  .kehitys-row.on{background:var(--surface-3); box-shadow:inset 3px 0 0 var(--brass);}
-  .kehitys-row.on .kehitys-row-sub{color:var(--chalk);}
+  .kehitys-row-body, .kehitys-row-right{display:contents;}
+  .kehitys-row-name{grid-area:name; align-self:start; font-weight:600; font-size:var(--fs-md); line-height:20px; min-width:0;}
+  .kehitys-row-sub{grid-area:meta; min-width:0; font-size:var(--fs-xs); line-height:16px; color:var(--mist); display:flex; align-items:center; gap:4px 6px; flex-wrap:wrap; font-variant-numeric:tabular-nums;}
+  .kehitys-row-value{grid-area:value; align-self:start; justify-self:end; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; font-weight:700; color:var(--chalk); font-size:var(--fs-lg); line-height:22px;}
+  .kehitys-row-delta{grid-area:delta; justify-self:end; text-align:right; white-space:nowrap; font-size:var(--fs-xs); line-height:16px;}
+  .kehitys-row > .choice-chevron{grid-area:chev; justify-self:end;}
+  /* Valittu rivi (tabletti): --surface-2 eikä --surface-3, koska rivin
+     merkitysvärit (muutos, Pysähtynyt, harmaa päivämäärä) jäisivät
+     --surface-3:a vasten alle 4,5:1:n; valinnan kertoo messinkiviiva. */
+  .kehitys-row.on{background:var(--surface-2); box-shadow:inset 3px 0 0 var(--brass);}
   /* Liikelistan sparkline: 8 viimeistä pistettä; piilossa alle 375 px:n
      näytöillä kuten Viime-sarake. */
-  .kehitys-spark{flex:0 0 64px; width:64px; height:24px; display:block;}
-  @media (max-width: 374px){ .kehitys-spark{display:none;} }
+  .kehitys-spark{grid-area:spark; width:64px; height:24px; display:block;}
+  @media (max-width: 374px){
+    .kehitys-spark{display:none;}
+    .kehitys-row{grid-template-columns:minmax(0,1fr) auto 20px; grid-template-areas:"name value chev" "meta delta chev";}
+  }
   .kehitys-table{width:100%; border-collapse:collapse; font-size:var(--fs-sm); font-variant-numeric:tabular-nums;}
   .kehitys-table th{text-align:left; color:var(--mist); font-weight:600; font-size:var(--fs-xs); padding:6px 4px; border-bottom:1px solid var(--hairline);}
   .kehitys-table td{padding:8px 4px; border-bottom:1px solid var(--hairline);}
   .kehitys-table tr:last-child td{border-bottom:0;}
   .kehitys-table td.num, .kehitys-table th.num{text-align:right; white-space:nowrap;}
-  .chip-danger{color:var(--danger-text); border-color:var(--danger-text); background:transparent;}
-  .chip-btn{font:inherit; font-size:var(--fs-sm); font-weight:700; cursor:pointer; min-height:44px; padding:0 14px;}
+  /* .chip-säännön jälkeen tuleva yleinen reuna ja täyte eivät saa ohittaa
+     näitä, joten valitsimissa on molemmat luokat. */
+  .chip.chip-danger{color:var(--danger-text); border-color:var(--danger-text); background:transparent;}
+  .chip.chip-btn{font:inherit; font-size:var(--fs-sm); font-weight:700; cursor:pointer; min-height:44px; padding:0 14px;}
   /* Näkymän osiot (Kehityksen etusivu ja liikenäkymä): alleviivatut
      välilehdet hiusviivan päällä, ei valitsinpilleriä — osio on paikka,
      ei suodatin. Valittu: liitu ja 2 px messinkiviiva. */
@@ -983,7 +993,7 @@
       "Kirjaustapa koskee vain uusia merkintöjä: vanhat merkinnät näkyvät Historiassa ja Viime-sarakkeessa ja viedään varmuuskopioon ennallaan (esim. lankku toistoina, 1 = 1 minuutti), ja vanhan merkinnän korjaus tehdään samalla tavalla kuin se kirjattiin. Varmuuskopiossa on uudet sarakkeet Kirjaustapa, Toispuolinen, Aika (s), Matka (m) ja Avustus (kg).",
       "Painoehdotus, lämmittelyt ja volyymi koskevat edelleen paino ja toistot -liikkeitä (myös lisäpainolla); muilla kirjaustavoilla kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta. Kehitys ei vielä seuraa aikaa eikä matkaa.",
       "Kirjausruudulla pitkä liikkeen nimi jakautuu kahdelle riville tasaisesti, eikä yksittäinen sana jää yksin toiselle riville, ja lämmittelyselitteen porrasprosentit pysyvät samalla rivillä.",
-      "Kehityksen liikelistan pikkukäyrät ovat samassa sarakkeessa, ja selitteiden päivämäärä on lauseen sisällä pienellä alkukirjaimella (esim. Viimeisin kerta maanantai 5. lokakuuta)."
+      "Kehityksen liikelistan rivi on kaksirivinen: ylärivillä liikkeen nimi ja 1RM, alarivillä päivämäärä, pikkukäyrä ja muutos. Pitkä nimi mahtuu useimmiten yhdelle riville, pikkukäyrät ovat samassa sarakkeessa ja Pysähtynyt-merkki näkyy kehystettynä päivämäärän vieressä. Selitteiden päivämäärä on lauseen sisällä pienellä alkukirjaimella (esim. Viimeisin kerta maanantai 5. lokakuuta)."
     ] },
     { date: "2026-10-19", items: [
       "Uusi liikekirjasto (versio 0.5.0): 448 liikettä yhtenäisillä nimillä, ja jokaisella liikkeellä on pysyvä tunniste. Merkinnät, ohjelmat, painoehdotukset ja 1RM-arvot on sidottu tunnisteeseen, joten liikkeen nimen muutos ei enää katkaise historiaa. Liikkeen löytää valitsimesta myös vanhalla, muulla tai englanninkielisellä nimellä (esim. \"sivunosto\" tai \"bench press\").",

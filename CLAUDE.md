@@ -1691,8 +1691,9 @@ rivitti päiväkortin ja menneiden viikkojen pylväät jäivät alle 3:1:n.
 näppäimistön Seuraava, clusterin +, lepoajastimen palkki), messinkiviiva
 neutraalilla `--surface-3`-pohjalla = valinta (`.segmented button.on`,
 `.tab.active`, `.icon-btn.active`, `.rpe-pick-btn[aria-pressed=true]`,
-`.weight-step-btn[aria-pressed=true]`, `.toggle-switch.on`,
-`.kehitys-row.on`), vihreä = tehty. `:root` sai `--surface-3` (#313a47;
+`.weight-step-btn[aria-pressed=true]`, `.toggle-switch.on`), vihreä = tehty. Poikkeus: `.kehitys-row.on` on
+20.10.2026 alkaen `--surface-2` + messinkiviiva, koska rivin merkitysvärit
+(muutos, Pysähtynyt) jäivät `--surface-3`:a vasten alle 4,5:1:n. `:root` sai `--surface-3` (#313a47;
 harmaa teksti sitä vasten 4,41:1, joten pohjalla on aina liitu),
 `--hairline` (rgba(255,255,255,.06), erottimet katkoviivojen tilalla),
 `--track` (#3a4452, koristeellinen renkaan ura), `--radius-xs` 8,
@@ -2742,7 +2743,14 @@ kutsussa (aiemmin viimeisin vs. edellinen piste, jolloin kevyt päivä värjäsi
 rivin punaiseksi). `renderSparkline(points, muted)`: 8 viimeistä pistettä,
 `viewBox 0 0 64 24`, `x = 2 + i/(n−1)·60`, `y = 22 − …·20`, samat arvot →
 ±1; alle 2 pistettä → tyhjä; pysähtynyt liike mist-värillä. Rivin rakenne
-body → sparkline → right → nuoli; `.kehitys-spark` piilossa alle 375 px.
+body → sparkline → right → nuoli; `.kehitys-spark` piilossa alle 375 px. 20.10.2026 alkaen (Impeccable
+polish) rivi on CSS-ruudukko `"name name value chev" / "meta spark delta
+chev"` (sarakkeet `1fr 64px 120px 20px`; body ja right `display:contents`,
+joten DOM-järjestys on ennallaan): nimi saa leveyden ja sparklinet osuvat
+samaan sarakkeeseen muutoksen pituudesta riippumatta; alle 375 px
+`1fr auto 20px` ilman sparklinea. `.chip-danger` ja `.chip-btn` ovat
+valitsimina `.chip.chip-…`, koska myöhempi `.chip`-sääntö pyyhki
+reunan ja täytteen.
 
 **Käyrä (0.4.8).** `state.kehitysRange` (`KEHITYS_RANGES`: 4vk 28, 3kk 91,
 1v 365, kaikki; ei tallenneta) on yksi tila kaikille käyrille;
