@@ -170,7 +170,9 @@ async function jatka(page){ await page.click('.next-card [data-start-day]'); awa
   await load(page, program(), []);
   await jatka(page);
   await page.click('[data-swap-open][data-id="A"]'); await page.waitForTimeout(400);
-  await page.selectOption('[data-variant-liike]', 'Rintatuettu soutu laitteessa'); await page.waitForTimeout(400);
+  // 0.5.2: korvaaja valitaan haettavasta liikelistasta.
+  await page.fill('#liike-haku', 'Rintatuettu soutu laitteessa'); await page.waitForTimeout(300);
+  await page.click('#liike-lista [data-pick-exercise="Rintatuettu soutu laitteessa"]'); await page.waitForTimeout(500);
   await page.click('[data-swap-confirm]'); await page.waitForTimeout(600);
   s = await screen(page); h = await hs(page);
   ok(s.head && s.title === 'Rintatuettu soutu laitteessa' && h.depth === 2 && h.detail && h.detail !== 'A', 'X ruudulla ' + JSON.stringify([s.title, h]));
