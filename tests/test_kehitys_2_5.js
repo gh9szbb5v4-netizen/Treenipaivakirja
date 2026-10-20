@@ -193,7 +193,7 @@ const NB = ' ';
   // 0.4.32: tyhjä vertailu on viiva ja selite "ei vertailukohtaa".
   ok(k.stats[1].value === '–' && k.stats[1].sub === 'ei vertailukohtaa' && k.stats[2].value === '–' && k.stats[2].sub === 'ei vertailukohtaa', '2 Puoli vuotta/Vuosi ilman vertailukohtaa: ' + JSON.stringify([k.stats[1], k.stats[2]]));
   ok(k.stats[3].label === 'Ennätykseen' && k.stats[3].value === '0 kg' && k.stats[3].cls === '' && k.stats[3].sub === 'ennätys nyt', '2 Ennätykseen: ' + JSON.stringify(k.stats[3]));
-  ok(k.notes[0] === 'Mitattu 106' + NB + 'kg × 1, Lauantai 12. syyskuuta' && k.notes[1] === 'Viimeisin treeni 103' + NB + 'kg (103' + NB + 'kg × 1), Maanantai 14. syyskuuta', '3/5 selitteet: ' + JSON.stringify(k.notes));
+  ok(k.notes[0] === 'Mitattu 106' + NB + 'kg × 1, lauantai 12. syyskuuta' && k.notes[1] === 'Viimeisin treeni 103' + NB + 'kg (103' + NB + 'kg × 1), maanantai 14. syyskuuta', '3/5 selitteet: ' + JSON.stringify(k.notes));
   ok(k.variants.join(';') === 'ilman variaatiota|null;Suora tanko|null', '6/12 variaatiot: ' + k.variants.join(';'));
   ok(k.chart && k.range, 'käyrä ja aikavälivalitsin kortissa');
   await page.click('[data-close-kehitys]'); await page.waitForTimeout(800); await openRow('Kyykky');

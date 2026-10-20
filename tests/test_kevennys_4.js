@@ -191,7 +191,7 @@ const maxRow = (page, key) => page.evaluate(k => {
   ok(nb(c.hero) === '140kg' && c.chip === 'ei vertailua', '1 kortin luku 140 kg ja "ei vertailua": ' + JSON.stringify([c.hero, c.chip]));
   ok(c.month && nb(c.month.value) === '0 kg' && c.record && nb(c.record.value) === '0 kg' && c.record.sub === 'ennätys nyt',
     '1 ruudukko: Kuukausi 0 kg, Ennätykseen "ennätys nyt": ' + JSON.stringify([c.month, c.record]));
-  ok(c.notes.length === 1 && nb(c.notes[0]) === 'Laskennallinen 100 kg × 10, Työläs, Torstai 20. elokuuta',
+  ok(c.notes.length === 1 && nb(c.notes[0]) === 'Laskennallinen 100 kg × 10, Työläs, torstai 20. elokuuta',
     '1 viimeisimmän treenin selite kevennystä edeltävästä kerrasta: ' + JSON.stringify(c.notes));
   ok(c.captions.length === 2 && nb(c.captions[0]) === '20.8. · 140 kg laskennallinen (100 kg × 10, Työläs) · paras 4 vk 140 kg'
     && nb(c.captions[1]) === '6.10. · 132,5 kg laskennallinen (90 kg × 10, Kevyt) · paras 4 vk 140 kg · pyydetty kevennys, ei 1RM-arvioon',

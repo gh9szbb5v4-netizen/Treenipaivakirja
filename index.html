@@ -326,10 +326,13 @@
   .kehitys-row-body{flex:1; min-width:0;}
   .kehitys-row-name{font-weight:600; font-size:var(--fs-md); line-height:20px;}
   .kehitys-row-sub{font-size:var(--fs-xs); line-height:16px; color:var(--mist); margin-top:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-variant-numeric:tabular-nums;}
-  .kehitys-row-right{text-align:right; font-variant-numeric:tabular-nums; flex-shrink:0;}
+  /* Vähimmäisleveys asettaa sparklinet samaan sarakkeeseen luvun pituudesta
+     riippumatta ("22,5 kg" / "170 kg"). */
+  .kehitys-row-right{text-align:right; font-variant-numeric:tabular-nums; flex-shrink:0; min-width:80px;}
   .kehitys-row-value{font-weight:700; color:var(--chalk); font-size:var(--fs-lg); line-height:22px;}
   .kehitys-row-delta{font-size:var(--fs-xs); line-height:16px;}
   .kehitys-row.on{background:var(--surface-3); box-shadow:inset 3px 0 0 var(--brass);}
+  .kehitys-row.on .kehitys-row-sub{color:var(--chalk);}
   /* Liikelistan sparkline: 8 viimeistä pistettä; piilossa alle 375 px:n
      näytöillä kuten Viime-sarake. */
   .kehitys-spark{flex:0 0 64px; width:64px; height:24px; display:block;}
@@ -426,7 +429,7 @@
   .week-bars-title{font-size:var(--fs-xs); line-height:16px; font-weight:600; color:var(--mist); margin:16px 0 8px;}
   .week-bars{display:block; width:100%; height:48px;}
   .week-bars-labels{display:flex; justify-content:space-between; font-size:var(--fs-xs); line-height:16px; color:var(--mist); font-variant-numeric:tabular-nums; margin:6px 0 4px;}
-  .week-ex-toggle{padding-left:2px; padding-right:2px; margin-top:4px; gap:4px;}
+  .btn-tertiary.week-ex-toggle{padding-left:2px; padding-right:2px; margin-top:4px; gap:4px;}
   .week-ex-name{display:block; color:var(--chalk); overflow-wrap:anywhere;}
   .week-ex-stats{display:block; color:var(--mist); font-size:var(--fs-xs); font-variant-numeric:tabular-nums; margin-top:2px;}
   /* Nuoli (SVG): harmaa; avattuna käännetty ja messinkinen. */
@@ -979,7 +982,8 @@
       "Toispuolisen liikkeen (esim. yhden käden kulmasoutu) toistot kirjataan puolta kohden, ja yksikkö näkyy muodossa toistoa/puoli.",
       "Kirjaustapa koskee vain uusia merkintöjä: vanhat merkinnät näkyvät Historiassa ja Viime-sarakkeessa ja viedään varmuuskopioon ennallaan (esim. lankku toistoina, 1 = 1 minuutti), ja vanhan merkinnän korjaus tehdään samalla tavalla kuin se kirjattiin. Varmuuskopiossa on uudet sarakkeet Kirjaustapa, Toispuolinen, Aika (s), Matka (m) ja Avustus (kg).",
       "Painoehdotus, lämmittelyt ja volyymi koskevat edelleen paino ja toistot -liikkeitä (myös lisäpainolla); muilla kirjaustavoilla kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta. Kehitys ei vielä seuraa aikaa eikä matkaa.",
-      "Kirjausruudulla pitkä liikkeen nimi jakautuu kahdelle riville tasaisesti, eikä yksittäinen sana jää yksin toiselle riville, ja lämmittelyselitteen porrasprosentit pysyvät samalla rivillä."
+      "Kirjausruudulla pitkä liikkeen nimi jakautuu kahdelle riville tasaisesti, eikä yksittäinen sana jää yksin toiselle riville, ja lämmittelyselitteen porrasprosentit pysyvät samalla rivillä.",
+      "Kehityksen liikelistan pikkukäyrät ovat samassa sarakkeessa, ja selitteiden päivämäärä on lauseen sisällä pienellä alkukirjaimella (esim. Viimeisin kerta maanantai 5. lokakuuta)."
     ] },
     { date: "2026-10-19", items: [
       "Uusi liikekirjasto (versio 0.5.0): 448 liikettä yhtenäisillä nimillä, ja jokaisella liikkeellä on pysyvä tunniste. Merkinnät, ohjelmat, painoehdotukset ja 1RM-arvot on sidottu tunnisteeseen, joten liikkeen nimen muutos ei enää katkaise historiaa. Liikkeen löytää valitsimesta myös vanhalla, muulla tai englanninkielisellä nimellä (esim. \"sivunosto\" tai \"bench press\").",
@@ -11326,9 +11330,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       variants = '<div class="kehitys-variants"><span>Variaatiot</span>' +
         item.variants.map(function(v){ return '<span class="chip chip-muted">' + escapeHtml(v || "ilman variaatiota") + '</span>'; }).join("") + '</div>';
     }
-    var note1 = (p.currentMeasured ? "Mitattu " : "Laskennallinen ") + (p.currentSet ? fmtOneRepMaxSet(p.currentSet) : fmtKg(p.current)) + ", " + capitalize(formatDateFI(p.currentDate));
+    var note1 = (p.currentMeasured ? "Mitattu " : "Laskennallinen ") + (p.currentSet ? fmtOneRepMaxSet(p.currentSet) : fmtKg(p.current)) + ", " + formatDateFI(p.currentDate);
     var note2 = p.latestDate !== p.currentDate
-      ? "Viimeisin treeni " + fmtKg(p.latest) + (p.latestSet ? " (" + fmtOneRepMaxSet(p.latestSet) + ")" : "") + ", " + capitalize(formatDateFI(p.latestDate))
+      ? "Viimeisin treeni " + fmtKg(p.latest) + (p.latestSet ? " (" + fmtOneRepMaxSet(p.latestSet) + ")" : "") + ", " + formatDateFI(p.latestDate)
       : "";
     return '<div class="exercise kehitys-card">' + hero + chart + grid + variants +
       '<div class="kehitys-note">' + escapeHtml(note1) + '</div>' +
@@ -11640,7 +11644,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var last = pts[pts.length - 1];
     var prev = pts.length > 1 ? pts[pts.length - 2] : null;
     return '<div class="exercise kehitys-card">' +
-      '<div class="kehitys-card-sub">Viimeisin kerta ' + escapeHtml(capitalize(formatDateFI(last.date))) + '</div>' +
+      '<div class="kehitys-card-sub">Viimeisin kerta ' + escapeHtml(formatDateFI(last.date)) + '</div>' +
       '<div class="stat-grid">' +
       renderStat("Kokonaispaino", fmtKg(last.tonnage), prev ? neutralDelta(tonnageDeltaText(last.tonnage, prev.tonnage)) : "") +
       renderStat("Sarjat", fmtInt(last.sets), prev ? neutralDelta(fmtSignedInt(last.sets - prev.sets)) : "") +
