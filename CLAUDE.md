@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.5.1 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.5.2 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -859,7 +859,11 @@ koskee nyt myös teholiikettä. `[data-swap-confirm]`: uusi liike
 `equipmentForLiike` (`catalogPartsFor`), `renderExerciseNameDatalist`
 (Asetusten 1RM-kenttä), `renderVariantPickerAddNew`, `renderVariantNameHint`,
 `knownMuscleGroups` ja `data-variant-new-*`-käsittelijät. `render()`-
-funktion paluuarvokommentti viittaa nyt `afterRender`-funktioon.
+funktion paluuarvokommentti viittaa nyt `afterRender`-funktioon. Samalla
+poistettiin kuollut CSS-sääntö `.ledger-input optgroup` (optgroup-
+elementtejä tuotti vain `exerciseOptionsByGroup`) ja `parseProgramCSV`-
+funktion kommentti puhuu vaihdon ehdotusryhmistä, ei ohjatusta
+variaatiovalinnasta.
 `state.variantPicker = null` lisättiin jokaiseen `state.swapExercise =
 null` -kohtaan: `performExerciseSwap` (sama nimi, tehty liike, onnistunut
 vaihto), `changeLogDate`, `applyBackupRestore`, `importEntriesData` ja

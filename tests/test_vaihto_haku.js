@@ -167,7 +167,7 @@ const names = p => p.days.map(d => d.exercises.map(e => e.name).join(', ')).join
   ok(JSON.stringify(g.groups[2].items) === JSON.stringify([OMA, 'Oma soutulaite', PENKKI]), '1 ohjelmassa ja historiassa: ' + g.groups[2].items.join(', '));
   ok(!g.groups.some(x => x.title === 'Selkä') && !g.groups.some(x => x.items.indexOf(YLA) !== -1) && !g.free, '1 ei ryhmää Selkä, korvattava ei listalla, ei vapaata riviä');
   let pn = await panel(page);
-  ok(pn.panel && pn.pickEmpty === true && pn.pickText === 'Valitse korvaava liike' && pn.confirmDisabled === true && !pn.old, '1 paneeli levyn alla: tyhjä valinta, Vaihda disabled, ei vanhoja valikoita: ' + JSON.stringify([pn.pickText, pn.confirmDisabled, pn.old]));
+  ok(pn.panel && pn.pickEmpty === true && pn.pickText === 'Valitse korvaava liike' && pn.pickAria === 'Valitse korvaava liike liikelistasta' && pn.confirmDisabled === true && !pn.old, '1 paneeli levyn alla: tyhjä valinta, Vaihda disabled, ei vanhoja valikoita: ' + JSON.stringify([pn.pickText, pn.pickAria, pn.confirmDisabled, pn.old]));
 
   console.log('=== 2 haku');
   await search(page, 'leuan');
@@ -192,7 +192,7 @@ const names = p => p.days.map(d => d.exercises.map(e => e.name).join(', ')).join
   console.log('=== 4 uudelleenavaus');
   await page.click('[data-swap-pick]'); await w(500);
   sh = await sheet(page); g = await groups(page);
-  ok(sh.open && sh.query === '' && g.groups[0].title === 'Vastaavat liikkeet', '4 valintapainike avaa levyn tyhjällä haulla');
+  ok(sh.open && sh.query === '' && sh.focusClose && g.groups[0].title === 'Vastaavat liikkeet', '4 valintapainike avaa levyn tyhjällä haulla, fokus sulkupainikkeessa: ' + JSON.stringify([sh.query, sh.focusClose]));
   await page.keyboard.press('Escape'); await w(500);
   pn = await panel(page);
   ok(!pn.sheet && pn.pickText === 'Leuanveto' && pn.focusConfirm, '4 Escape säilyttää valinnan, fokus Vaihda: ' + JSON.stringify([pn.pickText, pn.focusConfirm]));
@@ -231,7 +231,7 @@ const names = p => p.days.map(d => d.exercises.map(e => e.name).join(', ')).join
   await swapOpen(page, 'y2');
   await page.click('.sheet-backdrop', { position: { x: 10, y: 10 } }); await w(500);
   pn = await panel(page); st = await swapState(page);
-  ok(!pn.sheet && !pn.panel && st.swap === null && pn.focusOpen === 'y2', '6 taustan napautus toimii samoin: ' + JSON.stringify([pn.sheet, pn.panel, st.swap, pn.focusOpen]));
+  ok(!pn.sheet && !pn.panel && st.swap === null && st.picker === null && pn.focusOpen === 'y2', '6 taustan napautus toimii samoin: ' + JSON.stringify([pn.sheet, pn.panel, st.swap, st.picker, pn.focusOpen]));
 
   console.log('=== 7 uusi liike');
   await swapOpen(page, 'y2');
@@ -245,7 +245,7 @@ const names = p => p.days.map(d => d.exercises.map(e => e.name).join(', ')).join
   await page.click('[data-swap-confirm]'); await w(800);
   p = await saved(page);
   const y7 = p.days.map(d => d.exercises[0]);
-  ok(y7[1].name === 'Kaapelisoutu polvillaan' && !('liikeId' in y7[1]) && y7[1].id !== 'y2' && y7[2].id === 'y3' && y7[2].name === YLA, '7 vain y2 nimettiin ilman liikeId:tä: ' + names(p));
+  ok(y7[1].name === 'Kaapelisoutu polvillaan' && !('liikeId' in y7[1]) && y7[1].id !== 'y2' && y7[2].id === 'y3' && y7[2].name === YLA && y7[2].liikeId === YLA_ID, '7 vain y2 nimettiin ilman liikeId:tä, y3 ennallaan: ' + names(p));
   const ue = await userEx(page);
   ok(ue.length === 2 && JSON.stringify(ue[1]) === JSON.stringify({ liike: 'Kaapelisoutu polvillaan', variaatio: null, lisavariaatio: null, lihasryhma: 'Selkä' }), '7 oma liike tallennettu: ' + JSON.stringify(ue[1]));
   ok((await toast(page)) === 'Liike vaihdettu', '7 ilmoitus: ' + await toast(page));
@@ -259,7 +259,7 @@ const names = p => p.days.map(d => d.exercises.map(e => e.name).join(', ')).join
   ok(!!(await page.$('[data-variant-cancel-new]')), '8 lomake auki');
   await page.click('[data-variant-cancel-new]'); await w(500);
   sh = await sheet(page); g = await groups(page);
-  ok(sh.open && sh.query === '' && g.groups[0].title === 'Vastaavat liikkeet' && g.groups[0].items.length === 25, '8 levy avautuu tyhjällä haulla, vastaavat (25)');
+  ok(sh.open && sh.query === '' && sh.focusClose && g.groups[0].title === 'Vastaavat liikkeet' && g.groups[0].items.length === 25, '8 levy avautuu tyhjällä haulla, fokus sulkupainikkeessa, vastaavat (25)');
   await page.keyboard.press('Escape'); await w(500);
   pn = await panel(page); st = await swapState(page);
   ok(!pn.sheet && !pn.panel && st.swap === null, '8 Escape perii vaihdon');
@@ -270,7 +270,8 @@ const names = p => p.days.map(d => d.exercises.map(e => e.name).join(', ')).join
   g = await groups(page);
   const t9 = g.groups.map(x => x.title + ' (' + x.items.length + ')');
   ok(t9[0] === 'Vastaavat liikkeet (33)' && t9[1] === 'Samaa lihasryhmää · Rinta (8)' && t9[2] === 'Ohjelmassa ja historiassa (5)', '9 ryhmät: ' + t9.slice(0, 3).join(' · '));
-  ok(!(await page.$('#swap-name-input')), '9 ei tekstikenttää');
+  pn = await panel(page);
+  ok(!(await page.$('#swap-name-input')) && pn.pickEmpty === true && pn.confirmDisabled === true, '9 ei tekstikenttää, Vaihda disabled ennen valintaa myös teholiikkeellä: ' + JSON.stringify([pn.pickEmpty, pn.confirmDisabled]));
   await pick(page, 'Penkkipunnerrus käsipainoilla');
   pn = await panel(page);
   ok(pn.detail === 'Käsipainot · Rinta' && pn.confirmDisabled === false, '9 tarkenne: ' + pn.detail);
@@ -343,10 +344,12 @@ const names = p => p.days.map(d => d.exercises.map(e => e.name).join(', ')).join
   await pick(p360, 'Avustettu leuanveto laitteessa vastaotteella');
   const m14 = await p360.evaluate(() => {
     const b = document.querySelector('[data-swap-pick]'); const t = b.querySelector('.pick-field-text');
-    return { ws: getComputedStyle(t).whiteSpace, fits: b.scrollWidth <= b.clientWidth, docW: document.documentElement.scrollWidth, text: t.textContent.trim(),
+    const cs = getComputedStyle(t); const lh = cs.lineHeight === 'normal' ? parseFloat(cs.fontSize) * 1.2 : parseFloat(cs.lineHeight);
+    // Nimi näkyy kokonaan: span ei vuoda vaakasuunnassa eikä katkea, ja se on vähintään kahdella rivillä.
+    return { ws: cs.whiteSpace, fits: b.scrollWidth <= b.clientWidth && t.scrollWidth <= t.clientWidth, lines: Math.round(t.getBoundingClientRect().height / lh), docW: document.documentElement.scrollWidth, text: t.textContent.trim(),
       detail: (document.querySelector('[data-swap-detail]') || {}).textContent || null };
   });
-  ok(m14.ws === 'normal' && m14.fits && m14.text === 'Avustettu leuanveto laitteessa vastaotteella', '14 nimi rivittyy painikkeessa: ' + JSON.stringify(m14));
+  ok(m14.ws === 'normal' && m14.fits && m14.lines >= 2 && m14.text === 'Avustettu leuanveto laitteessa vastaotteella', '14 nimi rivittyy painikkeessa kahdelle riville: ' + JSON.stringify(m14));
   ok(m14.docW <= 360, '14 sivun leveys enintään 360: ' + m14.docW);
   ok(m14.detail === 'Laite · Selkä · Kirjaustapa: avustus ja toistot', '14 tarkenne: ' + m14.detail);
   await p360.close();
@@ -382,6 +385,10 @@ const names = p => p.days.map(d => d.exercises.map(e => e.name).join(', ')).join
   sh = await sheet(page); g = await groups(page);
   ok(sh.open && sh.title === 'Valitse liike' && sh.focusHaku, '16 otsikko Valitse liike, fokus hakukentässä: ' + JSON.stringify([sh.title, sh.focusHaku]));
   ok(g.groups[0].title === 'Ohjelmassa ja historiassa' && g.groups[0].items.length === 6 && !g.groups.some(x => x.title === 'Vastaavat liikkeet'), '16 ensimmäinen ryhmä historia (6), ei vastaavia: ' + g.groups[0].title + ' ' + g.groups[0].items.length);
+  await search(page, 'Kaapelisoutu polvillaan');
+  g = await groups(page);
+  ok(g.free === 'Käytä nimeä ”Kaapelisoutu polvillaan”', '16 rakentajan vapaa rivi on yhä Käytä nimeä: ' + g.free);
+  await search(page, '');
   await page.keyboard.press('Escape'); await w(300);
   await page.click('[data-edit-cancel]').catch(() => null); await w(300);
 

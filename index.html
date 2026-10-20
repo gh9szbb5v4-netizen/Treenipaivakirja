@@ -570,7 +570,6 @@
   /* Ilman näitä pudotusvalikon sisältö renderöityy useassa selaimessa
      järjestelmän vaalealla oletusvärillä tumman teeman päälle. */
   .ledger-input option{background:var(--surface-2); color:var(--chalk);}
-  .ledger-input optgroup{color:var(--brass); font-weight:700;}
   .ledger-input::placeholder, .date-picker-row input[type=date]::placeholder{color:var(--mist); opacity:1;}
   .ledger-input::-webkit-input-placeholder, .date-picker-row input[type=date]::-webkit-input-placeholder{color:var(--mist); opacity:1;}
   .remove-set{background:none; border:none; color:var(--mist); font-size:18px; cursor:pointer; padding:0; line-height:1; width:100%; min-height:44px; display:flex; align-items:center; justify-content:center;}
@@ -1843,7 +1842,7 @@
       // Variaatio ja lisävariaatio ovat omissa sarakkeissaan. Kun osat vastaavat
       // kirjaston riviä, nimeksi tulee rivin näyttönimi (variantDisplayName),
       // muuten osat yhdistetään pilkuilla — silloin myös tietopalkki ja
-      // ohjattu variaatiovalinta tunnistavat liikkeen.
+      // liikkeen vaihdon ehdotusryhmät tunnistavat liikkeen.
       var baseName = (row[map.exercise] || "").trim();
       var variantVal = map.variant ? (row[map.variant] || "").trim() : "";
       var subVariantVal = map.subvariant ? (row[map.subvariant] || "").trim() : "";
