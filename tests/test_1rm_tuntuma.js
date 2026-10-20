@@ -193,8 +193,8 @@ const seriesSummary = page => page.evaluate(async () => {
   await openKehitysRow(page, 'Penkkipunnerrus tangolla');
   let k = await card(page);
   ok(k.hero === '117,5', '2 paras 4 vk 117,5 (100 × 3 Työläs): ' + k.hero);
-  ok(k.notes[0] === 'Laskennallinen 100' + NB + 'kg × 3, Työläs, Torstai 17. syyskuuta', '2 paras-selite tuntumineen: ' + k.notes[0]);
-  ok(k.notes[1] === 'Viimeisin treeni 102,5' + NB + 'kg (90' + NB + 'kg × 1, Sujuva), Sunnuntai 20. syyskuuta', '2 viimeisin treeni tuntumineen: ' + k.notes[1]);
+  ok(k.notes[0] === 'Laskennallinen 100' + NB + 'kg × 3, Työläs, torstai 17. syyskuuta', '2 paras-selite tuntumineen: ' + k.notes[0]);
+  ok(k.notes[1] === 'Viimeisin treeni 102,5' + NB + 'kg (90' + NB + 'kg × 1, Sujuva), sunnuntai 20. syyskuuta', '2 viimeisin treeni tuntumineen: ' + k.notes[1]);
   ok(k.caption === '20.9. · 102,5 kg laskennallinen (90' + NB + 'kg × 1, Sujuva) · paras 4 vk 117,5 kg', '2 käyrän oletusselite: ' + k.caption);
   await page.click('.kehitys-card rect.chart-hit >> nth=0'); await w(200);
   k = await card(page);
@@ -207,7 +207,7 @@ const seriesSummary = page => page.evaluate(async () => {
   await seed(page, { entries: entries(false) });
   await openKehitysRow(page, 'Penkkipunnerrus tangolla');
   k = await card(page);
-  ok(k.hero === '110' && k.notes[0] === 'Laskennallinen 100' + NB + 'kg × 3, Torstai 17. syyskuuta' && k.notes[1] === 'Viimeisin treeni 90' + NB + 'kg (90' + NB + 'kg × 1), Sunnuntai 20. syyskuuta', '2 ilman tuntumaa entiset arvot ja selitteet: ' + JSON.stringify(k));
+  ok(k.hero === '110' && k.notes[0] === 'Laskennallinen 100' + NB + 'kg × 3, torstai 17. syyskuuta' && k.notes[1] === 'Viimeisin treeni 90' + NB + 'kg (90' + NB + 'kg × 1), sunnuntai 20. syyskuuta', '2 ilman tuntumaa entiset arvot ja selitteet: ' + JSON.stringify(k));
   await page.click('[data-kehitys-tab="ennatykset"]'); await w(400);
   const recWithout = await page.$eval('.kehitys-card', el => el.innerHTML);
   ok(recWith === recWithout && recWith.indexOf('Raskain paino') !== -1, '2 Ennätykset-välilehti sama tuntumalla ja ilman');
