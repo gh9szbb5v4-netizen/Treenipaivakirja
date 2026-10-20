@@ -104,7 +104,9 @@ const formInfo = page => page.evaluate(() => {
   await page.click('[data-swap-open][data-id="b2"]'); await w(400);
   const lab = await page.evaluate(() => { const l = [...document.querySelectorAll('label')].find(x => x.querySelector('#swap-all-weeks')); return l ? l.textContent.trim() + '|' + l.querySelector('input').checked : null; });
   ok(lab === 'Vaihda kaikissa tekemättömissä kohdissa (2 kohtaa) — 1 tehty säilyy ennallaan|true', '4 valinnan selite: ' + lab);
-  await page.selectOption('[data-variant-liike]', 'Rintatuettu soutu laitteessa'); await w(400);
+  // 0.5.2: korvaaja valitaan haettavasta liikelistasta.
+  await page.fill('#liike-haku', 'Rintatuettu soutu laitteessa'); await w(300);
+  await page.click('#liike-lista [data-pick-exercise="Rintatuettu soutu laitteessa"]'); await w(500);
   await page.click('[data-swap-confirm]'); await w(700);
   const t4 = await toast(page);
   p = await saved(page);

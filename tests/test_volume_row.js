@@ -123,8 +123,10 @@ const vol = page => page.evaluate(() => {
   v = await vol(page);
   const swapPos = await page.evaluate(() => { const f = document.querySelector('.ledger-footer'); const c = document.querySelector('[data-swap-confirm]'); return (f.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0; });
   ok(v.swapOpen && swapPos && v.foot.length === 2, 'paneeli alarivin alla');
-  await page.click('[data-swap-cancel]'); await page.waitForTimeout(400);
-  ok(!(await vol(page)).swapOpen, 'Peruuta sulkee');
+  // 0.5.2: Vaihda avaa liikelistan levyn, ja Peruuta jää taustan alle, kunnes
+  // liike on valittu; levyn sulkeminen ilman valintaa perii vaihdon.
+  await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+  ok(!(await vol(page)).swapOpen && !(await page.$('.sheet')), 'Escape sulkee levyn ja paneelin');
 
   console.log('9 lämmittelyt eivät vaikuta');
   await page.click('[data-add-warmup][data-id="A"]'); await page.waitForTimeout(400);

@@ -195,8 +195,8 @@ kirjoittaa nimen hakukenttään suoraan DOM:iin (kirjoitusvirheen korjaus
 tai vapaa nimi). Nimi kirjoitetaan `state.editor.form.name`-kenttään vain
 `[data-pick-exercise]`-valinnasta. Testit: `test_picker.js`. Liikelistaa ei koodattu erillisenä `EXERCISE_LIBRARY`-
 vakiona: `EXERCISE_VARIANTS` sisältää jo `lihasryhma`-kentän, joten toinen
-lista olisi ollut sama tieto kahdesti. `exerciseOptionsByGroup()` on yhä
-liikkeen vaihdon käytössä.
+lista olisi ollut sama tieto kahdesti. Liikkeen vaihto kirjausruudulla käyttää
+0.5.2 alkaen samaa pohjalevyä (ks. Liikkeen vaihto liikelistasta).
 
 **Ratkaistu kysymys:** rakentaja luo aina uuden ohjelman tyhjästä. Olemassa
 olevan ohjelman muokkaus on sama muokkaustila tilassa `"edit"`, ei erillinen
@@ -424,8 +424,8 @@ tunnistu katalogista (näkyvät otsikkona kokonaan, ilman tarkenneriviä).
 `liikeIndexes()` (välimuisti) → `liikeById`, `liikeByName` (normalizeName),
 `nimimuunnosFor`. `variantDisplayName(liike, variaatio, lisavariaatio)` =
 kirjaston rivin näyttönimi, kun osat vastaavat riviä (CSV-tuonnin Variaatio-
-ja Lisävariaatio-sarakkeet, vaihdon variaatiovalitsimen esikatselu ja
-vahvistus), muuten osista koottu. `resolveCatalogMatch` palauttaa `{ row,
+ja Lisävariaatio-sarakkeet, uuden oman liikkeen nimi vaihdossa), muuten
+osista koottu. `resolveCatalogMatch` palauttaa `{ row,
 plain }` (koko näyttönimi tai pelkkä otsikko). `catalogPartsFor`: `liike` =
 otsikko, kirjaston rivillä `variantText` = varuste + häntä (lisävariaatio on
 jo otsikossa), omalla liikkeellä kuten ennen; uusi kenttä `id`.
@@ -476,8 +476,9 @@ mukaan), `parseBackupManualMax`. Asetusten käsin tallennettu 1RM käyttää
 tunnisteella että nimiavaimella; tunnisteet "liikekirjastossa" ja
 `RECOGNITION_NOTE` puhuvat nyt liikekirjastosta.
 
-**Liikevalitsin.** `exercisePickEntries` → `{ name, group, valine, aliases }`
-(aliases = englanninkielinen nimi ja muut nimet); `renderExercisePickList`
+**Liikevalitsin.** `exercisePickEntries` → `{ name, group, valine, aliases, row }`
+(aliases = englanninkielinen nimi ja muut nimet; row = kirjaston tai oman
+liikkeen rivi, kirjaston ulkopuolisella nimellä null); `renderExercisePickList`
 hakee nimestä, ryhmästä, välineestä ja aliaksista, ja kun osuma tuli vain
 aliaksista, rivillä on `.pick-alias` (osuneet nimet " · "-erottimella, esim.
 "Barbell bench press" tai vanha nimi "Sivunosto"). `data-pick-exercise` on yhä
@@ -734,6 +735,156 @@ varmuuskopion kuivaharjoitus 0.5.1:llä: siirron tulos (merkinnät, ohjelmat,
 painoehdotukset, 1RM) täsmälleen sama kuin 0.5.0:lla, ja kirjausruudun
 katselu ei muuta merkintöjä; yhden käden kulmasoutu näyttää "Toistot/puoli",
 dippi "Lisä kg" (Viime "0×5").
+
+## Liikkeen vaihto liikelistasta (toteutettu, 0.5.2)
+
+Käyttäjän kehote 20.10.2026: "Korvaava liike pitää pystyä etsimään helpommin
+ja käytännöllisemmin." Tausta: kirjausruudun Vaihda-paneeli valitsi
+korvaajan natiiveilla `<select>`-valikoilla (liike 285 perusnimestä 25
+lihasryhmän optgroup-ryhmistä, sitten variaatio ja lisävariaatio), jotka
+iPhonessa avautuvat rullaksi ilman hakua; esivalinta oli rikki 0.5.0:sta
+alkaen (`[data-swap-open]` luki `match.liike`, mutta `resolveCatalogMatch`
+palauttaa `{ row, plain }`); teholiikkeen nimi oli kirjoitettava vapaaseen
+tekstikenttään, jonka `<datalist>`-ehdotuksia iOS Safari ei näytä.
+Rakentajassa oli jo haettava liikelista, joten vaihto käyttää nyt samaa
+pohjalevyä `state.sheet === "liike"`. Ratkaisu ja testien odotusarvot tulivat
+kehotteen prototyypistä (0.5.1:tä vastaan).
+
+**Ehdotusryhmät.** `PICK_GROUP_SIMILAR` = "Vastaavat liikkeet" ja
+`PICK_GROUP_SAME_MUSCLE` = "Samaa lihasryhmää · " (perään lihasryhmän nimi)
+`PICK_GROUP_KNOWN`-vakion vieressä. `swapTier(row, src)` (src = korvattavan
+rivi): 1 = sama `liikeperhe` tai sama `liikemalli` samalle lihasryhmälle, 2 =
+sama lihasryhmä, 0 = ei ehdotus. Omalla liikkeellä ei ole liikeperhettä eikä
+liikemallia, joten se on vain tasolla 2 (listan rivinä tai korvattavana).
+Esim. ylätaljalla (Ylätalja, Pystyveto, Selkä) vastaavia on 25 (17 muuta
+Ylätalja-perheen liikettä, 7 leuanvetoa ja Muscle-up).
+
+**Lista.** `exercisePickEntries` antaa riville kentän `row` (kirjaston tai
+oman liikkeen rivi, kirjaston ulkopuolisella nimellä null; ohjelman ja
+historian nimet samalla `rowByNorm`-haulla kuin ennen).
+`renderExercisePickList(query, swapCtx)`: valinnainen `swapCtx = { name,
+row }` on korvattava liike; ilman sitä (rakentaja, 1RM-pohja) tulos on
+merkilleen sama kuin ennen. Vaihdossa `exact` lasketaan ennen korvattavan
+poistoa (korvattavan koko nimi hakuna ei tuota vapaata riviä), sitten rivit
+`normalizeName(e.name) === normalizeName(swapCtx.name)` poistetaan; vapaa
+rivi on "Lisää uusi liike ”q”" (ilman swapCtx yhä "Käytä nimeä"); `tiered =
+!!(swapCtx && swapCtx.row && !tokens.length)`, jolloin tason 1 rivi menee
+ryhmään `PICK_GROUP_SIMILAR` ja tason 2 rivi ryhmään `PICK_GROUP_SAME_MUSCLE
++ lihasryhma` — taso ohittaa myös ryhmän "Ohjelmassa ja historiassa"
+(historian Leuanveto näkyy ylätaljan vastaavissa). Järjestys `groupRank`:
+Vastaavat, saman lihasryhmän ryhmä, Ohjelmassa ja historiassa, muut
+lihasryhmät aakkosissa; ryhmän sisällä aakkoset kuten ennen; korvattavan oma
+lihasryhmä ei näy erillisenä ryhmänä. Hakusanoilla ryhmittely on entinen
+(korvattava puuttuu ja vapaan rivin teksti vaihtui).
+
+**Tila.** `state.variantPicker` on muu kuin null vain, kun
+`state.swapExercise` on asetettu (ei tallennu): `{ name, addNew: false,
+allWeeks }` (name = valittu nimi tai null, allWeeks oletus true) tai uusi
+liike `{ name: null, addNew: true, allWeeks, newLiike, newVariaatio,
+newLisavariaatio, newLihasryhma, nameHint }`. Kentät `liike`, `variaatio`,
+`lisavariaatio`, `variaatioTouched` ja `lisavariaatioTouched` poistuivat.
+
+**Pohjalevy.** Apurit (`// ---------- liikkeen vaihto liikelistasta (0.5.2)
+----------`, poistetun `exerciseOptionsByGroup`/`renderVariantPicker`-lohkon
+paikalla): `swapPickActive()` = sheet "liike" ilman muokkaustilaa ja
+molemmat tilat asetettu; `swapSourceRow(ex)` = `liikeById(ex.liikeId)` tai
+`resolveCatalogMatch(ex.name).row` tai null; `swapPickContext()` = `{ name,
+row }` tai null (rakentajassa aina null); `openSwapPicker()` asettaa sheetin,
+nollaa `rpeSheet`, `keypad` ja `editor.pickerQuery` ja kutsuu
+`afterRender(focusSheetClose)` — fokus sulkupainikkeeseen eikä hakukenttään,
+jotta laitteen näppäimistö ei peitä ehdotuksia (sama käytäntö kuin muilla
+pohjalevyillä). `renderSheet`: haara `state.sheet === "liike" &&
+!state.editMode && state.swapExercise` ennen rakentajan haaraa (`else if`).
+Vartija sulkee levyn ja nollaa `sheet`, `swapExercise` ja `variantPicker`,
+kun liikettä ei löydy, `variantPicker` puuttuu, `state.openExercise !==
+swapEx.id` (esim. laitteen paluuele sulki kirjausruudun, muttei levyä) tai
+liike on tehty — kuten laskenta-ikkunan vartija. Otsikko "Vaihda liike",
+runko `.pick-current` "Korvattava: nimi" ilman "Muokkaa nimeä" -painiketta,
+sama `#liike-haku` ja `#liike-lista` kuin rakentajassa
+(`renderExercisePickList(query, swapPickContext())`; hakukentän `input`-
+käsittelijä välittää saman kontekstin). Enter-käsittely ennallaan
+(napauttaa ensimmäistä `[data-pick-exercise]`-riviä).
+
+**Valinta ja sulkeminen.** `[data-pick-exercise]`-käsittelijän alussa
+`swapPickActive()`-haara: listan rivi → `{ name, addNew: false, allWeeks }`;
+vapaa rivi → `addNew` -olio, `newLiike` = kirjoitettu, `newLihasryhma` =
+korvattavan rivin lihasryhmä, kun se on `knownMuscleGroups()`-listassa,
+`nameHint = findSimilarName(nimi, knownBaseExerciseNames())`; sitten
+`closeSheet()`. `closeSheet()`: `swapId = (opener === "liike" &&
+!state.editMode) ? state.swapExercise : null`; ilman valintaa
+(`!variantPicker || (!name && !addNew)`) `swapExercise` ja `variantPicker`
+nollataan (Escape, tausta ja sulkupainike perivät koko vaihdon).
+`afterRender`-fokus ennen entisiä sääntöjä: vaihto kesken ja
+`[data-swap-confirm]` käytössä → Vaihda-painike ilman `preventScroll`-
+valintaa (vierittyy näkyviin); kesken mutta painike disabled →
+`[data-swap-pick]` tai `[data-variant-new-liike]`; peruttu →
+`[data-swap-open][data-id]`.
+
+**Paneeli.** `[data-swap-open]`: jos `swapExercise !== id ||
+!variantPicker`, tila `{ name: null, addNew: false, allWeeks: true }`;
+aina `openSwapPicker()` (saman liikkeen jo tehty valinta säilyy, kun
+alarivin Vaihda napautetaan uudelleen; entinen esivalinta ja
+`#swap-name-input`-fokusointi poistuivat). `[data-swap-pick]` avaa listan
+uudelleen; `[data-variant-cancel-new]` palauttaa `{ name: null, addNew:
+false, allWeeks }` ja avaa listan. `renderSwapExercise(ex)` palauttaa tyhjän
+myös ilman `variantPicker`-tilaa; selitekappaleen alla `addNew` →
+`renderVariantPickerAddNew()` ennallaan, muuten
+`button.ledger-input.pick-field.swap-pick-field[data-swap-pick]` (`.empty`
+ilman valintaa, teksti "Valitse korvaava liike", aria-label "Valitse
+korvaava liike liikelistasta" / "Korvaava liike: X. Vaihda valintaa
+liikelistasta", kuvake `haku`) ja valinnalla `.swap-pick-detail[data-swap-
+detail]` = `swapPickDetail(ex, name)`: `resolveCatalogMatch(name)`-rivin
+`valine` ja `lihasryhma` " · "-erottimella sekä "Kirjaustapa: <tapa
+pienellä>[, puolta kohden]" vain, kun `exerciseMode({ name, liikeId:
+resolveLiikeForName(name, true).row.id, intensity: ex.intensity, kind:
+ex.kind })` poikkeaa tavaltaan tai toispuolisuudeltaan `exerciseMode(ex)`-
+tavasta (teho ja tyyppi siirtyvät vaihdossa; liitos sama kuin
+vahvistuksessa); ilman riviä tyhjä. Esim. Leuanveto ylätaljan tilalle →
+"Kehonpaino · Selkä · Kirjaustapa: lisäpaino ja toistot", Ylätalja, V-kahva
+→ "Talja · Selkä". Kaikkien viikkojen `checked` luetaan aina tilasta
+(`allWeeks !== false`). Vaihda on `disabled`, kun `!variantPickerValid()`
+(uudella liikkeellä `newLiike` epätyhjä, muuten `name` epätyhjä) — sääntö
+koskee nyt myös teholiikettä. `[data-swap-confirm]`: uusi liike
+`addUserExerciseVariant` + `variantDisplayName`, muuten `p.name`; `allWeeks
+= !!#swap-all-weeks && p.allWeeks !== false`; `variantPicker = null` ja
+`performExerciseSwap(id, nimi, allWeeks)` — sama polku kaikilla liikkeillä,
+`applyExerciseSwap` säilyttää tehon. `[data-swap-cancel]` ennallaan.
+
+**Poistettu.** `swapProgramExercise`, `VARIANT_ADD_NEW`, `VARIANT_PLAIN`,
+`variaatioOptionsFor`, `lisavariaatioOptionsFor`, `variantSelectOptions`,
+`exerciseOptionsByGroup`, `renderVariantPicker`, `change`-käsittelijän
+`data-variant-liike/-variaatio/-lisavariaatio`-haarat ja teholiikkeen
+`#swap-name-input`. Säilytetty muun käytön takia: `findVariantRow`
+(`variantDisplayName`), `variantRowsForLiike`, `muscleGroupForLiike`,
+`equipmentForLiike` (`catalogPartsFor`), `renderExerciseNameDatalist`
+(Asetusten 1RM-kenttä), `renderVariantPickerAddNew`, `renderVariantNameHint`,
+`knownMuscleGroups` ja `data-variant-new-*`-käsittelijät. `render()`-
+funktion paluuarvokommentti viittaa nyt `afterRender`-funktioon.
+`state.variantPicker = null` lisättiin jokaiseen `state.swapExercise =
+null` -kohtaan: `performExerciseSwap` (sama nimi, tehty liike, onnistunut
+vaihto), `changeLogDate`, `applyBackupRestore`, `importEntriesData` ja
+`resetAll`; `enterEditor` ja `[data-swap-cancel]` nollasivat jo molemmat,
+`closeSheet` ja `renderSheet`-vartija ovat uusia kohtia.
+
+**CSS.** `.pick-alias`-säännön perässä `.swap-pick-field .pick-field-text`
+(`white-space:normal; overflow-wrap:anywhere` — pitkä nimi rivittyy, ei
+katkaista) ja `.swap-pick-detail` (oma luokka, koska `.editor-form-hint` on
+esitäytön vihje ja `.editor-maxref-hint` on erotettu samasta syystä).
+
+**Tekstit.** CHANGELOG 20.10.2026 ensimmäiseksi kohdaksi (versio 0.5.2),
+Ohjeen kohdan 2 vaihtokappale (aiempi puhui kaikista esiintymistä, vaikka
+vaihto koskee 0.4.23:sta alkaen vain tekemättömiä), README:n Ohjelma-kohta.
+
+**Testi.** `tests/test_vaihto_haku.js` (kehotteen tapaukset 1–17; ohjelma
+`prog-v`, viikot 1–3, liikkeet y/p/k/o, `window.__t`-instrumentointi kuten
+`test_1rm_tuntuma.js`). Tarkoitukselliset muutokset vanhoihin testeihin:
+`test_kirjaus.js` (tapaus 12) ja `test_swap_done.js` (tapaus 4) valitsevat
+korvaajan `#liike-haku`-haulla ja `#liike-lista [data-pick-exercise]`-
+rivillä entisen `selectOption('[data-variant-liike]')`-kutsun sijaan, ja
+`test_volume_row.js` (tapaus 13) sulkee levyn Escapella entisen
+`[data-swap-cancel]`-napautuksen sijaan (Peruuta jää levyn taustan alle,
+kunnes liike on valittu) ja tarkistaa, ettei paneelia eikä `.sheet`-levyä
+ole.
 
 ## Liikepankki (korvattu 0.5.0:ssa)
 
