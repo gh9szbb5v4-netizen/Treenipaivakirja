@@ -24,7 +24,7 @@ riippuvuuksia" -sääntö ei muutu; `node_modules`, kuvakaappaukset ja lokit
 ovat `.gitignore`-tiedostossa. Testit siementävät tilan `localStorage`-
 avaimilla `manifest.json`-sivulla (sovellus ei ole silloin käynnissä eikä
 lepoajastin kirjoita tilaa) ja lataavat sitten `index.html`-sivun.
-Repossa ovat versioiden 0.4.4–0.5.0 testit (`tests/README.md` luettelee
+Repossa ovat versioiden 0.4.4–0.5.1 testit (`tests/README.md` luettelee
 ne); tätä vanhemmat, joihin alla viitataan nimeltä (`test_cluster.js`,
 `test_rir.js`, `test_editor.js` ym.), eivät ole repossa. Uuden kehotteen
 testi lisätään `tests/`-hakemistoon ja README-taulukkoon.
@@ -360,7 +360,8 @@ liikkeen poisto lomakkeessa).
 ## Liikekirjasto ja tunnisteet (toteutettu, 0.5.0)
 
 Käyttäjän kehote 19.10.2026 (vaiheet 1–5; vaihe 6 "kirjaustapa ja
-toispuolisuus" tehdään vasta erillisestä hyväksynnästä). Työ on haarassa
+toispuolisuus" toteutettiin erillisestä hyväksynnästä 20.10.2026, ks.
+Kirjaustapa ja toispuolisuus). Työ on haarassa
 `claude/liikekirjasto-tunnisteet`. Käyttäjä hyväksyi vaiheen 1 ehdotukset
 sellaisinaan: siirto käynnistyy automaattisesti, siirto käyttää vain
 nimimuunnostaulukkoa (taulukon ulkopuolinen nimi jää ennalleen, vaikka se
@@ -599,6 +600,140 @@ saraketta, `test_kirjaus.js` ja `test_swap_done.js` vaihtavat liikkeeksi
 levypainokoneessa" poistui) ja `test_ulkoasu.js` odottaa Historiaan siirretyn
 nimen "Maastaveto tangolla" ilman varusteosaa (varusteosan esitys
 tarkistetaan nyt `test_liikekirjasto.js`:n kohdassa A15).
+
+## Kirjaustapa ja toispuolisuus (toteutettu, 0.5.1, liikekirjaston vaihe 6)
+
+Käyttäjän kehotteen 19.10.2026 vaihe 6 ("Käytä kirjaston Kirjaustapa-saraketta
+kirjauslomakkeen kenttien valintaan … Toispuolinen = Kyllä näyttää yksikön
+muodossa toistoa/puoli … Älä muunna vanhoja merkintöjä; uusi kirjaustapa
+koskee vain uusia merkintöjä"), hyväksytty 20.10.2026 ("Toteuta vaihe 6").
+Samassa haarassa `claude/liikekirjasto-tunnisteet`.
+
+**Malli** (`// ---------- kirjaustapa (0.5.1) ----------`,
+`clusterSummaryText`-funktion perässä). `KIRJAUSTAVAT` = kirjaston kahdeksan
+arvoa → sarjarivin kentät: `weight` (paino tai lisäpaino), `assist`
+(avustus, kg), `reps`, `time` (sekunteina) ja `distance` (metreinä).
+`kirjausMode(tapa, perSide)` → `{ tapa, fields, added, perSide }`
+(tuntematon = `KIRJAUSTAPA_OLETUS` "Paino ja toistot"); `modeIsWeightReps`
+(paino ja toistot tai lisäpaino ja toistot: painoehdotus, teho,
+lämmittelyt ja volyymi kuten ennen) ja `modeIsDefault` (paino ja toistot
+ilman toispuolisuutta: kaikki entinen HTML ja teksti täsmälleen ennallaan).
+`exerciseMode(ex)` = kirjaston rivi `liikeId`:llä; kirjaston ulkopuolinen ja
+yhdistelmäliike = oletus; cluster ja teholiike (`intensity`) saavat oletuksen,
+jos tapa ei ole paino ja toistot (toispuolisuus säilyy). `storedMode(data)`
+lukee merkinnän tai lastSet-kerran kentät `kirjaustapa` ja `toispuolinen`
+(puuttuva = oletus). `draftMode(ex, id)` = tallennetusta merkinnästä
+palautetulle luonnokselle (`autoCalcInfo.type === "saved"`) merkinnän oma
+tapa, muuten `exerciseMode` — näin vanhan merkinnän korjaus tehdään painona
+ja toistoina. `applyModeFields(target, mode)` kirjoittaa `kirjaustapa`-kentän
+vain muulle kuin oletukselle ja `toispuolinen: true` vain toispuoliselle
+(merkintä `saveExerciseLog`, `pushLastSet`-kerta ja sen prior-kopiot,
+`rebuildTrackersForKey`, simulointi, varmuuskopion palautus).
+`blankModeRow(mode)` (+ Sarja, viimeisen rivin poisto).
+
+**Aika.** Rivillä ja merkinnässä sekunteina merkkijonona. `parseTimeText`
+lukee "1:30", "1:05:00" ja pelkät numerot oikealta (kaksi viimeistä
+sekunteja: "130" → 90, "90" → 90, "10000" → 3600); NaN muuten.
+`timeTextFromDigits` muotoilee näppäimistön numerosarjan ilman normalisointia
+("90" → "0:90", jotta seuraava numero jatkaa sarjaa: 9, 0, 5 → "9:05").
+`fmtTimeValue` = "1:30" / "0:45" / "1:05:00". `[data-set-field]`-input-
+käsittelijä kirjoittaa ajan riville `parseTimeText`-sekunteina (virheellinen
+= ""), kenttä näyttää `fmtTimeValue`-muodon seuraavassa piirrossa.
+
+**Esitäyttö.** `buildDraftRows`: cluster-haaran jälkeen `exerciseMode(ex)`;
+muu kuin paino ja toistot → `modeDraftRows(ex, id, mode)` (ennen
+autoCalc-, teho- ja kaavahaaroja): toistot `draftRepsFor`, muut kentät
+edellisen kerran (`nonClusterSession`) samasta sarjasta tai viimeisestä, kun
+arvo on — vanha painona ja toistoina kirjattu lankku antaa lisäpainon "0",
+ei aikaa; menetelmäliike (autoCalc false) ei esitäytä;
+`autoCalcInfo = { type: "repeat", date }`, kun jotain esitäytettiin
+(`autoCalcHint` "Kentät esitäytetty edelliseltä kerralta 12.10. —
+muokattavissa."). Lisäpaino ja toistot kulkee entistä kaavapolkua (dipin
+10 kg:n ehdotus kuten ennen; 0-painosta ei ehdotusta).
+
+**Lomake** (`renderLedger`). `defaultFields` (= `modeIsDefault`) piirtää
+entiset kentät ja otsikot merkilleen; muuten `renderSetHead` ja
+`renderSetInputs` (`SET_FIELD_META`: otsikot Kg / "Lisä kg" / Avustus /
+Toistot / Aika / Matka, paikkamerkit kg, –, m:ss, m, aria "Sarja 1
+lisäpaino kiloina", "… aika minuutteina ja sekunteina", "… matka
+metreinä", "… avustus kiloina", toispuolisella viimeiseen kenttään "…
+puolta kohden"). Yhden kentän tavalla (Toistot, Aika) kenttä ja otsikko
+`.span2` täyttävät paino- ja toistosarakkeet. Toispuolisen otsikon toinen
+rivi `.head-sub` "/puoli" (CSS `.ledger-row .span2`, `.ledger-head
+.head-sub`). "+ Lämmittely" vain `modeIsWeightReps` (käsittelijässäkin
+vartija), `renderVolumeRow` palauttaa tyhjän muulla tavalla.
+`isRowDoneEligible`: muu kuin oletus tai lisäpaino → `modeRowFilled`
+(toistoliikkeet toistot — lisäpaino ja avustus saavat puuttua —, aika > 0,
+paino ja matka molemmat, matka ja aika jompikumpi); ilmoitus
+`modeMissingText` ("Syötä aika …", "Syötä toistot …", "Syötä paino ja matka
+…", "Syötä matka tai aika …"). `targetRpeText` vain toistoliikkeille;
+`exerciseHeadParts` liittää toispuolisella "/puoli" toistoyksikköön ("10
+toistoa/puoli", tavoite "3 × 10/puoli"). `renderLastCell(last, rowName,
+sessionMode)`: oletus kuten ennen, muuten `renderModeLastCell` (tiivis
+"+10×6", "−20×8", "12", "1:30"; kahden arvon tavoilla toinen arvo toisella
+rivillä RPE:n paikalla; aria `fmtSetValue`-tekstinä). Viime-sarake lukee
+viitekerran tavan (`storedMode(lastSession)`), joten vanha lankku näkyy
+"0×1".
+
+**Näppäimistö.** `openKeypad` hyväksyy kaikki `SET_FIELD_META`-kentät;
+`keypadLabel` käyttää `setFieldTitle` ("Lisäpaino", "Toistot/puoli");
+paino ja avustus: pilkku ja ±2,5 kg (`[data-weight-step][data-field]`,
+käsittelijä yleistetty kenttään `f3`, tyhjän kentän ensimmäinen painallus
+tuo viime kerran suurimman saman kentän arvon), matka: pilkku ja yksikkö
+m, toistot ja aika: ei pilkkua eikä ±:aa. `keypadPress` aikakentässä:
+numerot `timeTextFromDigits`, askelpalautin poistaa numeron, pilkku ei tee
+mitään. `keypadShownValue` näyttää aikakentän tekstin sellaisenaan. Enter-
+oikotie koskee kaikkia `[data-set-field]`-kenttiä.
+
+**RPE-ikkuna.** Kysymysrivin arvo `fmtSetValue` muulla kuin oletuksella;
+aika- ja matkaliikkeillä (ei `reps`) kysymys `RPE_SHEET_PROMPT_EFFORT`
+"Kuinka raskas sarja oli?", kuvauksina `WARMUP_SCALE[i].effort` (uusi kenttä:
+"Paljon varaa jäljellä" … "Ei yhtään varaa jäljellä") eikä tavoite-
+merkkiä. **Painojen laskenta** -ikkuna alkaa `renderModeHint`-selitteellä
+(kirjaustapa, lisäpaino, avustus, ajan syöttö, matka, puolta kohden), ja
+muun kuin paino ja toistot -tavan varateksti kertoo esitäytöstä.
+`deloadEligibleExercise` vaatii `modeIsWeightReps`.
+
+**Historia ja vienti.** `fmtSetValue(set, mode)` → `{ text, html }`:
+"82,5 kg × 6/puoli", "+10 kg × 6" (ilman lisäpainoa "6 toistoa"),
+"avustus 20 kg × 8", "12 toistoa", "1:30", "+10 kg · 1:00", "40 kg · 20 m",
+"2 000 m · 7:30". `renderHistoryExercise` käyttää sitä muulla kuin
+oletustavalla (cluster ennallaan). `#MERKINNÄT`: viimeisinä `Kirjaustapa`
+(tyhjä oletukselle), `Toispuolinen` ("kyllä"), `Aika (s)`, `Matka (m)`,
+`Avustus (kg)`; L-riveillä tapa ja toispuolisuus, kentät tyhjinä.
+`parseEntriesCSV` hakee ne tarkalla otsikolla (`exactCol`; "avustus (kg)"
+sisältää sanan "kg", mutta painosarake löytyy `findCol`-haulla
+otsikkojärjestyksessä ensin), tapa vain tunnettuna (kirjainkoosta
+riippumatta), aika kokonaislukuna, matka ja avustus lukuna.
+`importEntriesData` kirjoittaa kentät merkintään, ja kaksoistunniste saa
+lisäosan `modeSetSignature` (t/d/a + arvo, tyhjä vanhoille), joten vanhojen
+merkintöjen tunniste on ennallaan. Simulointi: muulla tavalla toistot
+ohjelmasta, aika 60 s × kasvu (5 s:n askel), matka 1 000 m (painolla 20 m) ×
+kasvu, avustus 20, lisäpaino 0; merkintään ja lastSet-kertaan tapa.
+
+**Ennallaan.** Kehitys (1RM, ennätykset, volyymi, vaivaloki) laskee painosta
+ja toistoista, joten aika- ja matkamerkinnät eivät tuota pisteitä
+(Kehitys ei vielä seuraa aikaa eikä matkaa); toteutumisen toistotavoite
+ohittaa kerrat, joiden sarjoilla ei ole toistoja (`every(isFinite)`).
+Ohjelman muokkaustila ja ohjelman tavoite (sarjat × toistot, yksikkö)
+ennallaan: lankun "3 × 1" näkyy ohjelman mukaisena. Vanhoja merkintöjä ei
+muunneta missään.
+
+**Tekstit.** CHANGELOG 20.10.2026 (versio 0.5.1, neljä kohtaa), Ohjeen
+kohdan 2 kappale "Kirjaustapa", README (Kirjaustapa ja toispuolisuus
+-alaosio, varmuuskopion sarakkeet).
+
+**Testi.** `tests/test_kirjaustapa.js` (osat A–I: apurit, jokaisen tavan
+kentät, näppäimistö, valmis-ehdot, tallennus ja Historia, vanhan merkinnän
+korjaus, cluster, varmuuskopion kierros ja kaksoistunniste, Kehitys,
+tekstit, simulointi, 360 px ja axe). Tarkoitukselliset muutokset vanhoihin
+testeihin: `test_kevennys_2.js` (merkintäosion otsikko ja 18 saraketta;
+vanhan muodon vertailu `HEADER_050`-vakiolla) ja `test_warmup_suggest.js`
+(vientirivin perään viisi tyhjää kirjaustavan saraketta). Käyttäjän
+varmuuskopion kuivaharjoitus 0.5.1:llä: siirron tulos (merkinnät, ohjelmat,
+painoehdotukset, 1RM) täsmälleen sama kuin 0.5.0:lla, ja kirjausruudun
+katselu ei muuta merkintöjä; yhden käden kulmasoutu näyttää "Toistot/puoli",
+dippi "Lisä kg" (Viime "0×5").
 
 ## Liikepankki (korvattu 0.5.0:ssa)
 

@@ -475,6 +475,10 @@
      otsikot osuvat kenttien kohdalle. */
   .ledger-head > div{white-space:nowrap;}
   .ledger-head .head-center{text-align:center;}
+  /* Kirjaustapa (0.5.1): yhden kentän tapa (toistot, aika) täyttää paino- ja
+     toistosarakkeet; toispuolisen liikkeen otsikon toinen rivi "/puoli". */
+  .ledger-row .span2{grid-column:span 2;}
+  .ledger-head .head-sub{display:block; text-transform:none; letter-spacing:0; font-weight:500;}
   @media (max-width: 374px){
     .ledger-row{grid-template-columns:40px minmax(0,1fr) minmax(0,0.8fr) 44px 40px;}
     /* Viime-solu pois ruudukosta mutta ruudunlukijan saataville (kuten .sr-only). */
@@ -960,12 +964,18 @@
   var STORAGE_MANUAL_MAX_KEY = "manual-1rm";
   var STORAGE_SIMULATION_KEY = "simulation-state";
   var STORAGE_APP_VERSION_KEY = "app-version";
-  var APP_VERSION = "0.5.0";
+  var APP_VERSION = "0.5.1";
   // Koekäyttäjille näytettävä muutoskooste (Asetukset › Muutokset), uusin
   // ensin. Jokainen kohta kertoo ensin, miten muutos vaikuttaa käyttöön, ei
   // miten se on toteutettu. Päivitä jokaisessa käyttäjälle näkyvässä
   // muutoksessa; Asetusten rivi näyttää "uutta", kunnes uusin päivä on avattu.
   var CHANGELOG = [
+    { date: "2026-10-20", items: [
+      "Kirjausruutu kysyy liikkeen kirjaustavan mukaiset kentät liikekirjastosta (versio 0.5.1): esimerkiksi lankku kirjataan lisäpainona ja aikana, hyppynaru aikana, soutulaite matkana ja aikana, farmarikävely painona ja matkana, avustettu leuanveto avustuksena ja toistoina ja dippi lisäpainona ja toistoina, jolloin lisäpainon voi jättää tyhjäksi. Aika syötetään minuutteina ja sekunteina: näppäimistöllä 1, 3, 0 on 1:30.",
+      "Toispuolisen liikkeen (esim. yhden käden kulmasoutu) toistot kirjataan puolta kohden, ja yksikkö näkyy muodossa toistoa/puoli.",
+      "Kirjaustapa koskee vain uusia merkintöjä: vanhat merkinnät näkyvät Historiassa ja Viime-sarakkeessa ja viedään varmuuskopioon ennallaan (esim. lankku toistoina, 1 = 1 minuutti), ja vanhan merkinnän korjaus tehdään samalla tavalla kuin se kirjattiin. Varmuuskopiossa on uudet sarakkeet Kirjaustapa, Toispuolinen, Aika (s), Matka (m) ja Avustus (kg).",
+      "Painoehdotus, lämmittelyt ja volyymi koskevat edelleen paino ja toistot -liikkeitä (myös lisäpainolla); muilla kirjaustavoilla kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta. Kehitys ei vielä seuraa aikaa eikä matkaa."
+    ] },
     { date: "2026-10-19", items: [
       "Uusi liikekirjasto (versio 0.5.0): 448 liikettä yhtenäisillä nimillä, ja jokaisella liikkeellä on pysyvä tunniste. Merkinnät, ohjelmat, painoehdotukset ja 1RM-arvot on sidottu tunnisteeseen, joten liikkeen nimen muutos ei enää katkaise historiaa. Liikkeen löytää valitsimesta myös vanhalla, muulla tai englanninkielisellä nimellä (esim. \"sivunosto\" tai \"bench press\").",
       "Tallennetut liikkeet siirrettiin uusiin nimiin ensimmäisellä avauksella (esim. Penkkipunnerrus tangolla, Suora tanko → Penkkipunnerrus tangolla; Sivunosto taljassa → Vipunosto sivulle taljassa; Takavipunosto laitteessa istuen → Reverse pec deck). Painot, toistot, päivämäärät, tuntumat ja huomiot ovat ennallaan, ja painoehdotukset, 1RM-arvot ja Kehitys jatkuvat uusilla nimillä. Power Cardio -kiertoharjoitukset jäivät ennalleen, koska ne eivät ole yksittäisiä liikkeitä, ja samoin jää nimi, jota kohdistustaulukossa ei ole.",
@@ -1188,14 +1198,16 @@
   // Painikkeissa näkyy vain hymiö (käyttäjän päätös: yksi rivi); sana ja
   // kuvaus ovat painikkeen nimessä ruudunlukijalle ja selitteissä.
   var WARMUP_SCALE = [
-    { rpe: 6, key: "kevyt", label: "Kevyt", desc: "Meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän", reserve: "4 tai enemmän toistoa varastossa" },
-    { rpe: 7, key: "sujuva", label: "Sujuva", desc: "Vaati vähän voimaa, kolme toistoa olisi vielä tullut", reserve: "3 toistoa varastossa" },
-    { rpe: 8, key: "tyolas", label: "Työläs", desc: "Rasitti selvästi, kaksi toistoa olisi vielä tullut", reserve: "2 toistoa varastossa" },
-    { rpe: 9, key: "raskas", label: "Raskas", desc: "Vain yksi toisto olisi enää tullut", reserve: "1 toisto varastossa" },
-    { rpe: 10, key: "aarirajoilla", label: "Äärirajoilla", desc: "Viimeinen toisto oli kaikki mitä oli", reserve: "Ei yhtään toistoa varastossa" }
+    { rpe: 6, key: "kevyt", label: "Kevyt", desc: "Meni vaivatta, olisit jaksanut vielä neljä toistoa tai enemmän", reserve: "4 tai enemmän toistoa varastossa", effort: "Paljon varaa jäljellä" },
+    { rpe: 7, key: "sujuva", label: "Sujuva", desc: "Vaati vähän voimaa, kolme toistoa olisi vielä tullut", reserve: "3 toistoa varastossa", effort: "Selvästi varaa jäljellä" },
+    { rpe: 8, key: "tyolas", label: "Työläs", desc: "Rasitti selvästi, kaksi toistoa olisi vielä tullut", reserve: "2 toistoa varastossa", effort: "Vähän varaa jäljellä" },
+    { rpe: 9, key: "raskas", label: "Raskas", desc: "Vain yksi toisto olisi enää tullut", reserve: "1 toisto varastossa", effort: "Lähes äärirajoilla" },
+    { rpe: 10, key: "aarirajoilla", label: "Äärirajoilla", desc: "Viimeinen toisto oli kaikki mitä oli", reserve: "Ei yhtään toistoa varastossa", effort: "Ei yhtään varaa jäljellä" }
   ];
-  // RPE-ikkunan kysymys (rivien yläpuolella).
+  // RPE-ikkunan kysymys (rivien yläpuolella). Aika- ja matkaliikkeillä
+  // (kirjaustapa ilman toistoja) kysytään rasitusta ja kuvaukset ovat effort.
   var RPE_SHEET_PROMPT = "Montako toistoa olisi vielä tullut?";
+  var RPE_SHEET_PROMPT_EFFORT = "Kuinka raskas sarja oli?";
   // Lähin asteikon pykälä RPE-luvulle; keskiarvo (esim. 6,5) pyöristetään.
   function warmupScaleStep(rpe){
     var v = Math.min(10, Math.max(6, Math.round(toNumber(rpe))));
@@ -1508,6 +1520,153 @@
     if(weights.length) parts.push(weights.join(" / ") + " kg");
     if(subs.length) parts.push(subs.join(" + ") + " osasarjaa");
     return parts.join(" · ");
+  }
+  // ---------- kirjaustapa (0.5.1) ----------
+  // Liikekirjaston Kirjaustapa valitsee kirjauslomakkeen kentät. Sarjarivin
+  // kentät: weight (paino tai lisäpaino, kg), assist (avustus, kg), reps
+  // (toistot), time (aika sekunteina) ja distance (matka metreinä).
+  // Toispuolinen liike kirjataan puolta kohden ("toistoa/puoli"). Merkintä ja
+  // painoehdotuksen kerta tallentavat kirjaustapansa (kirjaustapa vain muulle
+  // kuin "Paino ja toistot", toispuolinen vain toispuoliselle), joten vanhat
+  // merkinnät näytetään ja viedään sellaisina kuin ne kirjattiin: puuttuva
+  // kenttä tarkoittaa painoa ja toistoja kuten ennen (esim. lankku toistoina,
+  // 1 = 1 minuutti). Vanhoja merkintöjä ei muunneta.
+  var KIRJAUSTAPA_OLETUS = "Paino ja toistot";
+  var KIRJAUSTAVAT = {
+    "Paino ja toistot":     ["weight", "reps"],
+    "Lisäpaino ja toistot": ["weight", "reps"],
+    "Avustus ja toistot":   ["assist", "reps"],
+    "Toistot":              ["reps"],
+    "Aika":                 ["time"],
+    "Lisäpaino ja aika":    ["weight", "time"],
+    "Paino ja matka":       ["weight", "distance"],
+    "Matka ja aika":        ["distance", "time"]
+  };
+  // Kirjaustapa olioksi: { tapa, fields, added (lisäpaino), perSide }.
+  // Tuntematon tai puuttuva tapa = "Paino ja toistot".
+  function kirjausMode(tapa, perSide){
+    var t = KIRJAUSTAVAT[tapa] ? tapa : KIRJAUSTAPA_OLETUS;
+    return { tapa: t, fields: KIRJAUSTAVAT[t], added: t.indexOf("Lisäpaino") === 0, perSide: !!perSide };
+  }
+  function modeHas(mode, field){ return mode.fields.indexOf(field) !== -1; }
+  // Paino ja toistot -kentät (myös lisäpaino): painoehdotus, teho,
+  // lämmittelyt ja volyymi toimivat kuten ennen.
+  function modeIsWeightReps(mode){ return mode.fields.length === 2 && mode.fields[0] === "weight" && mode.fields[1] === "reps"; }
+  function modeIsDefault(mode){ return mode.tapa === KIRJAUSTAPA_OLETUS && !mode.perSide; }
+  // Ohjelman liikkeen kirjaustapa liikekirjastosta. Kirjaston ulkopuolinen ja
+  // yhdistelmäliike kirjataan painona ja toistoina; cluster ja teholiike
+  // (MAX, prosentti) ovat painoliikkeitä, joten muu kuin paino ja toistot
+  // -tapa ohitetaan niillä (toispuolisuus säilyy).
+  function exerciseMode(ex){
+    var row = (ex && ex.liikeId && !isCombo(ex.name)) ? liikeById(ex.liikeId) : null;
+    if(!row) return kirjausMode(KIRJAUSTAPA_OLETUS, false);
+    var mode = kirjausMode(row.kirjaustapa, row.toispuolinen);
+    if((isClusterExercise(ex) || ex.intensity) && !modeIsWeightReps(mode)) return kirjausMode(KIRJAUSTAPA_OLETUS, row.toispuolinen);
+    return mode;
+  }
+  // Tallennetun merkinnän tai painoehdotuksen kerran kirjaustapa.
+  function storedMode(data){ return kirjausMode(data && data.kirjaustapa, !!(data && data.toispuolinen)); }
+  // Kirjauslomakkeen kirjaustapa: tallennetusta merkinnästä palautettu
+  // luonnos kirjataan merkinnän omalla tavalla (vanhan merkinnän korjaus
+  // säilyy painona ja toistoina), muuten liikekirjaston tapa.
+  function draftMode(ex, id){
+    var info = state.autoCalcInfo[id];
+    var logged = state.exerciseLogIndex[id];
+    if(info && info.type === "saved" && logged && logged.data) return storedMode(logged.data);
+    return exerciseMode(ex);
+  }
+  // Merkintään ja painoehdotuksen kertaan tallennettavat kentät.
+  function applyModeFields(target, mode){
+    if(mode && mode.tapa !== KIRJAUSTAPA_OLETUS) target.kirjaustapa = mode.tapa;
+    if(mode && mode.perSide) target.toispuolinen = true;
+    return target;
+  }
+  // Tyhjä työsarjarivi kirjaustavan kentillä (+ Sarja, viimeisen rivin poisto).
+  function blankModeRow(mode){
+    if(modeIsWeightReps(mode)) return { weight:"", reps:"", notes:"", done:false, kind:"work" };
+    var row = { notes:"", done:false, kind:"work" };
+    mode.fields.forEach(function(f){ row[f] = ""; });
+    return row;
+  }
+  // Aika on sarjarivillä ja merkinnässä sekunteina. Kenttään kirjoitettu aika
+  // luetaan muodoissa "1:30" ja "1:05:00" tai pelkkinä numeroina, joiden kaksi
+  // viimeistä ovat sekunnit ja sitä edeltävät minuutit (näppäimistöllä 1, 3,
+  // 0 → 1:30; 9, 0 → 1:30). NaN, kun aikaa ei voi lukea.
+  function parseTimeText(text){
+    var t = String(text === null || text === undefined ? "" : text).trim();
+    if(!t) return NaN;
+    if(t.indexOf(":") !== -1){
+      var parts = t.split(":");
+      if(parts.length > 3 || parts.some(function(p){ return !/^\d+$/.test(p); })) return NaN;
+      return parts.reduce(function(acc, p){ return acc * 60 + parseInt(p, 10); }, 0);
+    }
+    if(!/^\d+$/.test(t)) return NaN;
+    var sec = parseInt(t.slice(-2), 10), rest = t.slice(0, -2);
+    var min = rest ? parseInt(rest.slice(-2), 10) : 0, hours = rest.length > 2 ? parseInt(rest.slice(0, -2), 10) : 0;
+    return hours * 3600 + min * 60 + sec;
+  }
+  // Näppäimistön numerosarja aikakentän tekstiksi ilman normalisointia, jotta
+  // seuraava numero jatkaa samaa sarjaa: "9" → "0:09", "90" → "0:90", "905" →
+  // "9:05", "10000" → "1:00:00".
+  function timeTextFromDigits(digits){
+    var d = String(digits || "").replace(/\D/g, "").replace(/^0+/, "");
+    if(!d) return "";
+    while(d.length < 3) d = "0" + d;
+    var sec = d.slice(-2), rest = d.slice(0, -2);
+    if(rest.length > 2) return rest.slice(0, -2) + ":" + rest.slice(-2) + ":" + sec;
+    return String(parseInt(rest, 10)) + ":" + sec;
+  }
+  // Sekunnit muotoon "1:30" (tunnit "1:05:00"); tyhjä, kun aikaa ei ole.
+  function fmtTimeValue(sec){
+    var n = toNumber(sec);
+    if(!isFinite(n) || n < 0) return "";
+    n = Math.round(n);
+    var h = Math.floor(n / 3600), m = Math.floor((n % 3600) / 60), s = n % 60;
+    var ss = (s < 10 ? "0" : "") + s;
+    return h > 0 ? h + ":" + (m < 10 ? "0" : "") + m + ":" + ss : m + ":" + ss;
+  }
+  // Paino tai avustus tekstinä desimaalipilkulla (ei pyöristystä).
+  function fmtKgText(v){ return String(v).replace(".", ","); }
+  // Sarjan arvo kirjaustavan mukaan { text, html } Historiaan, RPE-ikkunaan
+  // ja ruudunlukijalle: "82,5 kg × 6", lisäpaino "+10 kg × 6" (ilman
+  // lisäpainoa "6 toistoa"), avustus "avustus 20 kg × 8", "12 toistoa",
+  // "1:30", "+10 kg · 1:30", "40 kg · 20 m", "2 000 m · 7:30". Toispuolisella
+  // viimeisen arvon perään "/puoli". html:ssä yksiköt .unit-elementissä.
+  function fmtSetValue(set, mode){
+    var side = mode.perSide ? "/puoli" : "";
+    var w = toNumber(set.weight), a = toNumber(set.assist), r = toNumber(set.reps);
+    var t = toNumber(set.time), d = toNumber(set.distance);
+    var text = [], html = [];
+    function add(txt, htm){ text.push(txt); html.push(htm); }
+    function kg(prefix, v){ add(prefix + fmtKgText(v) + " kg", escapeHtml(prefix + fmtKgText(v)) + '<span class="unit"> kg</span>'); }
+    function repsPart(withWeight){
+      var rr = isFinite(r) ? String(set.reps).trim() : "–";
+      if(withWeight) return { text: " × " + rr + side, html: " × " + escapeHtml(rr + side) };
+      var word = (isFinite(r) && r === 1) ? "toisto" : "toistoa";
+      return { text: rr + " " + word + side, html: escapeHtml(rr) + '<span class="unit"> ' + word + side + '</span>' };
+    }
+    if(modeIsWeightReps(mode) && !mode.added){
+      var wt = (set.weight !== "" && set.weight !== undefined && set.weight !== null) ? fmtKgText(set.weight) : "–";
+      var rp = repsPart(true);
+      return { text: wt + " kg" + rp.text, html: escapeHtml(wt) + '<span class="unit"> kg</span>' + rp.html };
+    }
+    if(modeHas(mode, "reps")){
+      var extra = mode.added ? (isFinite(w) && w > 0 ? "+" : null) : (isFinite(a) && a > 0 ? "avustus " : null);
+      if(extra !== null){
+        kg(extra, mode.added ? set.weight : set.assist);
+        var rw = repsPart(true);
+        return { text: text[0] + rw.text, html: html[0] + rw.html };
+      }
+      var ro = repsPart(false);
+      return { text: ro.text, html: ro.html };
+    }
+    if(modeHas(mode, "weight") && isFinite(w) && (w > 0 || !mode.added)) kg(mode.added ? "+" : "", set.weight);
+    if(modeHas(mode, "distance") && isFinite(d)) add(fmtNumberFI(d) + " m", escapeHtml(fmtNumberFI(d)) + '<span class="unit"> m</span>');
+    if(modeHas(mode, "time") && isFinite(t)) add(fmtTimeValue(t), escapeHtml(fmtTimeValue(t)));
+    if(!text.length) return { text: "–", html: "–" };
+    text[text.length - 1] += side;
+    html[html.length - 1] += side ? '<span class="unit">' + side + '</span>' : '';
+    return { text: text.join(" · "), html: html.join(" · ") };
   }
   function floorToStep(value, step){
     var r = Math.floor(value / step) * step;
@@ -2304,12 +2463,16 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // deloadKind (DELOAD_KIND_REQUESTED) kulkee kerran mukana vain kevennyksellä,
   // jotta pyydetty kevennys ohitetaan seuraavan ehdotuksen viitekertana
   // myös silloin, kun se on jo siirtynyt prior-ketjuun.
-  function pushLastSet(norm, sets, date, deload, warmups, deloadKind){
+  // mode (kirjaustapa, 0.5.1) tallentuu kertaan kirjaustapa- ja
+  // toispuolinen-kenttinä, jotta Viime-sarake ja esitäyttö lukevat kerran
+  // sellaisena kuin se kirjattiin; puuttuva = paino ja toistot.
+  function pushLastSet(norm, sets, date, deload, warmups, deloadKind, mode){
     var old = state.lastSet[norm];
     var entry = { sets: sets, date: date, prior: [] };
     if(deload) entry.deload = true;
     if(deload && deloadKind) entry.deloadKind = deloadKind;
     if(warmups && warmups.length) entry.warmups = warmups;
+    applyModeFields(entry, mode);
     if(old){
       if(old.date === date){
         entry.prior = old.prior || [];
@@ -2318,6 +2481,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         if(old.deload) oldCopy.deload = true;
         if(old.deload && old.deloadKind) oldCopy.deloadKind = old.deloadKind;
         if(old.warmups && old.warmups.length) oldCopy.warmups = old.warmups;
+        applyModeFields(oldCopy, storedMode(old));
         entry.prior = [oldCopy].concat(old.prior || []).slice(0, HISTORY_DEPTH - 1);
       }
     }
@@ -4211,7 +4375,28 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(isWarmupRow(row)) return !!(row.weight && row.reps);
     // Cluster: paino ja vähintään yksi osasarja.
     if(isClusterExercise(ex)) return !!row.weight && toNumber(row.subsets) >= 1;
+    var mode = draftMode(ex, ex.id);
+    if(!modeIsWeightReps(mode) || mode.added) return modeRowFilled(mode, row);
     return exerciseRequiresWeightForDone(ex) ? !!row.weight : !!(row.weight || row.reps || row.notes);
+  }
+  // Muun kuin paino ja toistot -rivin valmis-ehto: toistoliikkeillä toistot
+  // (lisäpaino ja avustus saavat puuttua), aikaliikkeillä aika, painolla ja
+  // matkalla molemmat ja matkalla ja ajalla jompikumpi.
+  function modeRowFilled(mode, row){
+    function filled(f){ return row[f] !== undefined && row[f] !== null && String(row[f]).trim() !== ""; }
+    var timeOk = toNumber(row.time) > 0;
+    if(modeHas(mode, "reps")) return filled("reps");
+    if(mode.tapa === "Matka ja aika") return filled("distance") || timeOk;
+    if(modeHas(mode, "distance")) return filled("weight") && filled("distance");
+    return timeOk;
+  }
+  // Ilmoitus, kun sarjaa ei voi merkitä valmiiksi.
+  function modeMissingText(mode){
+    if(modeIsWeightReps(mode) && !mode.added) return "Syötä paino ennen kuin merkitset sarjan valmiiksi";
+    if(modeHas(mode, "reps")) return "Syötä toistot ennen kuin merkitset sarjan valmiiksi";
+    if(mode.tapa === "Matka ja aika") return "Syötä matka tai aika ennen kuin merkitset sarjan valmiiksi";
+    if(modeHas(mode, "distance")) return "Syötä paino ja matka ennen kuin merkitset sarjan valmiiksi";
+    return "Syötä aika ennen kuin merkitset sarjan valmiiksi";
   }
   function isWarmupRow(row){ return !!row && row.kind === "warmup"; }
   // Sarjan valmis-tilan vaihto. Rivin ✓ ja kirjausnäppäimistön ✓ kulkevat
@@ -4248,7 +4433,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       opened = true;
     } else {
       if(isClusterExercise(ex) && row.weight) showToast("Tee vähintään yksi osasarja ennen kuin merkitset clusterin valmiiksi");
-      else showToast("Syötä paino ennen kuin merkitset sarjan valmiiksi");
+      else showToast(isClusterExercise(ex) || isWarmupRow(row) ? "Syötä paino ennen kuin merkitset sarjan valmiiksi" : modeMissingText(draftMode(ex, id)));
       return false;
     }
     state.dirtySets[id] = true;
@@ -4523,7 +4708,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Liike, jolle pyydetty kevennys on mahdollinen: ei yhdistelmä-, teho- eikä
   // cluster-liike, ja painoehdotusta ei ole kytketty pois (autoCalc).
   function deloadEligibleExercise(ex){
-    return !!ex && !isCombo(ex.name) && !ex.intensity && !isClusterExercise(ex) && ex.autoCalc !== false;
+    return !!ex && !isCombo(ex.name) && !ex.intensity && !isClusterExercise(ex) && ex.autoCalc !== false && modeIsWeightReps(exerciseMode(ex));
   }
   // Kevennyskytkin: tallentamaton kelpoinen liike, jolla on kaavaehdotus.
   // Historiattomalla liikkeellä ehdotusta ei ole; jumikevennyksen kanssa
@@ -4613,6 +4798,33 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(ex.perSet && ex.perSet.length) return ex.perSet.length;
     return 1;
   }
+  // Muun kuin paino ja toistot -kirjaustavan luonnos: toistot ohjelman
+  // tavoitteesta ja muut kentät edellisen kerran samasta sarjasta (tai sen
+  // viimeisestä), kun kentällä oli arvo. Painoehdotusta ei lasketa. Vanha
+  // painona ja toistoina kirjattu kerta antaa vain painon (esim. lankun
+  // lisäpaino 0), ei aikaa toistoista. Menetelmäliike (autoCalc false) ei
+  // esitäytä. autoCalcInfo "repeat" kertoo esitäytön lähteen.
+  function modeDraftRows(ex, id, mode){
+    var count = draftRowCount(ex);
+    var last = ex.autoCalc === false ? null : nonClusterSession(state.lastSet[exerciseKeyOf(ex)]);
+    var lastSets = (last && last.sets) || [];
+    var used = false;
+    var rows = [];
+    for(var i=0;i<count;i++){
+      var prev = lastSets.length ? (lastSets[i] !== undefined ? lastSets[i] : lastSets[lastSets.length - 1]) : null;
+      var row = { notes: "", done: false, kind: "work" };
+      mode.fields.forEach(function(f){
+        if(f === "reps"){ row.reps = draftRepsFor(ex, i); return; }
+        var v = (prev && prev[f] !== undefined && prev[f] !== null) ? String(prev[f]) : "";
+        if(v !== "") used = true;
+        row[f] = v;
+      });
+      rows.push(row);
+    }
+    if(used) state.autoCalcInfo[id] = { type: "repeat", date: last.date };
+    else delete state.autoCalcInfo[id];
+    return rows;
+  }
   function buildDraftRows(ex, id){
     var explicitCount = parseInt(ex.sets, 10);
 
@@ -4647,6 +4859,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       state.autoCalcInfo[id] = { type: "cluster", refWeight: cRefWeight, refReps: clusterRefRepsFor(ex), date: (cRef && cRefWeight !== null) ? cRef.date : null, lastSubsets: lastSubsets };
       return cRows;
     }
+
+    // Kirjaustapa ilman paino ja toistot -kenttiä (toistot, avustus, aika,
+    // matka): ei painoehdotusta eikä tehoa, vaan esitäyttö (modeDraftRows).
+    var draftKirjaus = exerciseMode(ex);
+    if(!modeIsWeightReps(draftKirjaus)) return modeDraftRows(ex, id, draftKirjaus);
 
     // autoCalc === false: tavoite on menetelmäkohtainen (rest-pause, cluster,
     // drop) eikä siihen voi laskea painoa kaavalla. Väärä ehdotus on pahempi
@@ -5146,7 +5363,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   async function saveExerciseLog(id){
     var ex = findExerciseById(id);
     if(!ex) return;
-    var sets = workRows(id).filter(function(s){ return s.weight || s.reps || s.notes || toNumber(s.subsets) > 0; });
+    // Kirjaustapa ennen kuin mikään tila muuttuu (draftMode lukee luonnoksen
+    // lähteen): merkintä tallentaa sen, ja vanhan merkinnän korjaus säilyy
+    // painona ja toistoina.
+    var kirjaus = draftMode(ex, id);
+    var sets = workRows(id).filter(function(s){ return s.weight || s.reps || s.notes || toNumber(s.subsets) > 0 || s.time || s.distance || s.assist; });
     if(sets.length === 0){ showToast("Lisää vähintään yksi sarja ennen tallennusta"); return; }
     // Vain valmiiksi merkityt lämmittelyt tallennetaan; RPE saa puuttua.
     var warmups = warmupRows(id).filter(function(w){ return w.done && w.weight && w.reps; })
@@ -5193,6 +5414,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // tallennetun merkinnän siirtoa edeltävä nimi säilyy uudelleentallennuksessa.
     if(ex.liikeId) record.liikeId = ex.liikeId;
     if(logged && logged.data && logged.data.alkuperainenNimi) record.alkuperainenNimi = logged.data.alkuperainenNimi;
+    // Kirjaustapa ja toispuolisuus vain muulle kuin paino ja toistot -tavalle.
+    applyModeFields(record, kirjaus);
     entry.exercises[id] = record;
     if(!isCombo(ex.name) && !correction){
       // Tuntuma (rpe) kulkee viitesarjan mukana seuraavan kerran ehdotukseen.
@@ -5202,12 +5425,15 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var ls = { weight: s.weight, reps: s.reps, done: !!s.done, rpe: (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? toNumber(s.rpe) : null };
           // Osasarjat kulkevat lastSet-kertaan seuraavan clusterin vihjettä varten.
           if(isClusterExercise(ex) && isFinite(toNumber(s.subsets))) ls.subsets = toNumber(s.subsets);
+          // Kirjaustavan muut kentät seuraavan kerran esitäyttöön ja Viime-sarakkeeseen.
+          ["time", "distance", "assist"].forEach(function(f){ if(s[f] !== undefined && s[f] !== null && s[f] !== "") ls[f] = s[f]; });
           return ls;
         }),
         state.draftDate,
         wasDeload,
         warmups,
-        deloadKind
+        deloadKind,
+        kirjaus
       );
       await saveLastSet();
     }
@@ -5990,7 +6216,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           // Kevennyksen laji kulkee mukana, jottei korjaus, siirto tai
           // palautus muuta pyydettyä kevennystä automaattiseksi (se kelpaisi
           // taas seuraavan ehdotuksen viitekerraksi).
-          found.push({ sets: data.sets, date: date, at: at, deload: !!data.deload, deloadKind: (data.deload && data.deloadKind) ? data.deloadKind : null, warmups: data.warmups || [] });
+          found.push({ sets: data.sets, date: date, at: at, deload: !!data.deload, deloadKind: (data.deload && data.deloadKind) ? data.deloadKind : null, warmups: data.warmups || [], mode: storedMode(data) });
         }
       }
       found.sort(function(a, b){ return a.at < b.at ? 1 : (a.at > b.at ? -1 : 0); });
@@ -6000,11 +6226,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         if(top.deload) entry.deload = true;
         if(top.deload && top.deloadKind) entry.deloadKind = top.deloadKind;
         entry.warmups = top.warmups || [];
+        applyModeFields(entry, top.mode);
         entry.prior = found.slice(1, HISTORY_DEPTH).map(function(f){
           var p = { sets: f.sets, date: f.date };
           if(f.deload) p.deload = true;
           if(f.deload && f.deloadKind) p.deloadKind = f.deloadKind;
           p.warmups = f.warmups || [];
+          applyModeFields(p, f.mode);
           return p;
         });
         state.lastSet[norm] = entry;
@@ -6112,7 +6340,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var repsVal = isFinite(targetReps) ? targetReps : 1;
           var sets = [];
           var simSuggested = null;
-          if(isClusterExercise(ex)){
+          // Kirjaustapa ilman paino ja toistot -kenttiä: ohjelman toistot,
+          // aika 60 s, matka 1 000 m (painolla 20 m) ja avustus 20 kg, aika ja
+          // matka kasvavat kuten painot; lisäpaino 0.
+          var simMode = exerciseMode(ex);
+          if(!modeIsWeightReps(simMode)){
+            for(var km=0;km<count;km++){
+              var ms = { notes: "" };
+              simMode.fields.forEach(function(f){
+                if(f === "reps") ms.reps = String(repsVal);
+                else if(f === "time") ms.time = String(roundToStep(60 * growth, 5));
+                else if(f === "distance") ms.distance = String(Math.round((modeHas(simMode, "weight") ? 20 : 1000) * growth));
+                else if(f === "assist") ms.assist = "20";
+                else if(f === "weight") ms.weight = simMode.added ? "0" : String(roundToStep(simulationBaseline(ex.name) * growth, 2.5));
+              });
+              sets.push(ms);
+            }
+          } else if(isClusterExercise(ex)){
             // Cluster: kuorma pysyy viitekuormana, osasarjat kasvavat 3 → 6.
             var cWeight = roundToStep(simulationBaseline(ex.name), 2.5);
             var cSubs = 3 + Math.round(3 * (total > 1 ? (i / (total - 1)) : 1));
@@ -6141,8 +6385,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           entry.exercises[ex.id] = { name: ex.name, sets: sets, loggedAt: dateISO + "T12:00:00.000Z", kind: ex.kind || "plain",
             plan: { sets: (explicitCount && explicitCount > 0) ? explicitCount : null, reps: isFinite(targetReps) ? targetReps : null, suggestedWeight: ex.intensity ? null : simSuggested } };
           if(ex.liikeId) entry.exercises[ex.id].liikeId = ex.liikeId;
+          applyModeFields(entry.exercises[ex.id], simMode);
           if(!isCombo(ex.name)){
-            pushLastSet(normName, sets.map(function(s){ var ls = { weight: s.weight, reps: s.reps }; if(s.subsets !== undefined) ls.subsets = s.subsets; return ls; }), dateISO, false);
+            pushLastSet(normName, sets.map(function(s){
+              var ls = { weight: s.weight, reps: s.reps };
+              if(s.subsets !== undefined) ls.subsets = s.subsets;
+              ["time", "distance", "assist"].forEach(function(f){ if(s[f] !== undefined) ls[f] = s[f]; });
+              return ls;
+            }), dateISO, false, null, null, simMode);
           }
           hasAny = true;
         });
@@ -6831,7 +7081,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // ohittavat tuntemattoman sarakkeen.
       // 0.5.0 alkaen viimeisinä Liiketunniste (kirjaston tunniste) ja
       // Alkuperäinen nimi (liikkeen nimi ennen liikekirjaston siirtoa).
-      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste","Tuntuma","Osasarjat","Kevennys","Liiketunniste","Alkuperäinen nimi"]];
+      // 0.5.1 alkaen viimeisinä kirjaustapa: Kirjaustapa (vain muulla kuin
+      // paino ja toistot -tavalla), Toispuolinen ("kyllä"), Aika (s), Matka (m)
+      // ja Avustus (kg); vanhat merkinnät jättävät ne tyhjiksi.
+      var rows = [["Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste","Tuntuma","Osasarjat","Kevennys","Liiketunniste","Alkuperäinen nimi","Kirjaustapa","Toispuolinen","Aika (s)","Matka (m)","Avustus (kg)"]];
       for(var i=0;i<keys.length;i++){
         var date = keys[i].replace("entries:", "");
         var entry = await loadEntry(date);
@@ -6842,17 +7095,20 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var dlText = deloadBackupText(data);
           var libId = data.liikeId || "";
           var origName = data.alkuperainenNimi || "";
+          var tapaText = (data.kirjaustapa && KIRJAUSTAVAT[data.kirjaustapa] && data.kirjaustapa !== KIRJAUSTAPA_OLETUS) ? data.kirjaustapa : "";
+          var sideText = data.toispuolinen ? "kyllä" : "";
+          function cell(v){ return (v === undefined || v === null) ? "" : String(v); }
           (data.sets || []).forEach(function(s, idx){
             // Tunniste on merkinnän liike-id. Sen avulla tuonti sitoo merkinnän
             // täsmälleen samaan ohjelman liikkeeseen kuin viennin hetkellä,
             // ilman nimien varaan jäävää arvausta.
             var feel = (s.rpe !== null && s.rpe !== undefined && isFinite(toNumber(s.rpe))) ? warmupScaleStep(s.rpe).label : "";
             var subsets = (kind === "cluster" && isFinite(toNumber(s.subsets)) && toNumber(s.subsets) > 0) ? String(toNumber(s.subsets)) : "";
-            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", s.notes || "", kind, exKey, feel, subsets, dlText, libId, origName]);
+            rows.push([date, exName, idx+1, s.weight || "", s.reps || "", s.notes || "", kind, exKey, feel, subsets, dlText, libId, origName, tapaText, sideText, cell(s.time), cell(s.distance), cell(s.assist)]);
           });
           (data.warmups || []).forEach(function(w, wi){
             var wFeel = (w.rpe !== null && w.rpe !== undefined && isFinite(toNumber(w.rpe))) ? warmupScaleStep(w.rpe).label : "";
-            rows.push([date, exName, "L" + (wi+1), w.weight || "", w.reps || "", "", kind, exKey, wFeel, "", dlText, libId, origName]);
+            rows.push([date, exName, "L" + (wi+1), w.weight || "", w.reps || "", "", kind, exKey, wFeel, "", dlText, libId, origName, tapaText, sideText, "", "", ""]);
           });
         });
       }
@@ -7166,6 +7422,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(headers.indexOf("tunniste") !== -1) cId = "tunniste";
     var cLiike = headers.indexOf("liiketunniste") !== -1 ? "liiketunniste" : null;
     var cOrig = headers.indexOf("alkuperäinen nimi") !== -1 ? "alkuperäinen nimi" : null;
+    // Kirjaustapa (0.5.1) tarkoilla otsikoilla: "avustus (kg)" sisältää sanan
+    // "kg", joten painosarake (findCol) on haettu jo yllä otsikkojärjestyksessä.
+    function exactCol(h){ return headers.indexOf(h) !== -1 ? h : null; }
+    var cTapa = exactCol("kirjaustapa"), cSide = exactCol("toispuolinen");
+    var cTime = exactCol("aika (s)"), cDist = exactCol("matka (m)"), cAssist = exactCol("avustus (kg)");
+    function knownTapa(v){
+      var t = String(v || "").trim().toLowerCase();
+      var keys = Object.keys(KIRJAUSTAVAT);
+      for(var i=0;i<keys.length;i++){ if(keys[i].toLowerCase() === t) return keys[i]; }
+      return null;
+    }
     if(!cDate || !cName) throw new Error("Tiedostosta puuttuu päivämäärä- tai liikesarake. Käytä tällä sovelluksella tehtyä vientitiedostoa.");
 
     var byDate = {};
@@ -7198,6 +7465,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         var origName = cOrig ? String(row[cOrig] || "").trim() : "";
         if(libId) lastBlock.liikeId = libId;
         if(origName) lastBlock.alkuperainenNimi = origName;
+        // Kirjaustapa ja toispuolisuus vain tunnetulla arvolla.
+        var tapa = cTapa ? knownTapa(row[cTapa]) : null;
+        if(tapa && tapa !== KIRJAUSTAPA_OLETUS) lastBlock.kirjaustapa = tapa;
+        if(cSide && /^(kyllä|kylla|true|1)$/i.test(String(row[cSide] || "").trim())) lastBlock.toispuolinen = true;
         blocks.push(lastBlock);
       }
       // Kevennys on merkinnän jokaisella rivillä (myös L-riveillä); lohko saa
@@ -7231,6 +7502,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         var subVal = parseInt(String(row[cSub] || "").trim(), 10);
         if(isFinite(subVal) && subVal > 0) setObj.subsets = subVal;
       }
+      // Aika sekunteina, matka ja avustus sellaisinaan; vain täytettyinä.
+      var timeVal = cTime ? toNumber(String(row[cTime] || "").trim()) : NaN;
+      if(isFinite(timeVal) && timeVal >= 0) setObj.time = String(Math.round(timeVal));
+      var distVal = cDist ? String(row[cDist] || "").trim() : "";
+      if(distVal && isFinite(toNumber(distVal))) setObj.distance = distVal;
+      var assistVal = cAssist ? String(row[cAssist] || "").trim() : "";
+      if(assistVal && isFinite(toNumber(assistVal))) setObj.assist = assistVal;
       lastBlock.sets.push(setObj);
     });
     return byDate;
@@ -7396,6 +7674,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Merkintöjen tuonti. Palauttaa yhteenvetotekstin; kutsuja päättää ilmoituksen,
   // koska sama polku palvelee sekä pelkkää merkintöjen tuontia että koko
   // varmuuskopion palautusta.
+  // Kaksoistunnisteen lisäosa kirjaustavan kentille (aika, matka, avustus);
+  // tyhjä vanhoilla merkinnöillä, joten niiden tunniste on ennallaan.
+  function modeSetSignature(s){
+    return (s.time ? "t" + s.time : "") + (s.distance ? "d" + s.distance : "") + (s.assist ? "a" + s.assist : "");
+  }
   async function importEntriesData(byDate){
     var dates = Object.keys(byDate);
     if(dates.length === 0) return "";
@@ -7420,14 +7703,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         // Tunniste sisältää osasarjat (puuttuva = 1), jotta sama cluster-
         // merkintä tunnistetaan, kun vain osasarjamäärä erottaa rivit.
         var sig = exerciseKeyOf(d) + "|" + (d.kind || "plain") + "|" +
-          (d.sets || []).map(function(s){ return (s.weight||"") + "x" + (s.reps||"") + "x" + setSubsets(s); }).join(";");
+          (d.sets || []).map(function(s){ return (s.weight||"") + "x" + (s.reps||"") + "x" + setSubsets(s) + modeSetSignature(s); }).join(";");
         signatures[sig] = true;
       });
 
       var counter = 0;
       byDate[date].forEach(function(block){
         var sig = exerciseKeyOf(block) + "|" + block.kind + "|" +
-          block.sets.map(function(s){ return (s.weight||"") + "x" + (s.reps||"") + "x" + setSubsets(s); }).join(";");
+          block.sets.map(function(s){ return (s.weight||"") + "x" + (s.reps||"") + "x" + setSubsets(s) + modeSetSignature(s); }).join(";");
         if(signatures[sig]){ skippedBlocks++; return; }
         var newId = null;
         // Varmuuskopiossa on liikkeen alkuperäinen id. Jos se on tällä päivällä
@@ -7475,6 +7758,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         }
         if(block.liikeId) entry.exercises[newId].liikeId = block.liikeId;
         if(block.alkuperainenNimi) entry.exercises[newId].alkuperainenNimi = block.alkuperainenNimi;
+        if(block.kirjaustapa) entry.exercises[newId].kirjaustapa = block.kirjaustapa;
+        if(block.toispuolinen) entry.exercises[newId].toispuolinen = true;
         signatures[sig] = true;
         touchedNames[exerciseKeyOf(block)] = true;
         addedBlocks++;
@@ -8325,6 +8610,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     ) + ohjeP(
       "<b style=\"color:var(--chalk);\">Cluster-sarjat</b> kirjataan yhtenä rivinä clusteria kohti: paino on valmiiksi viimeisimmän 10 toiston merkinnän kuorma (tai ohjelman ilmoittaman toistomäärän), toistot ovat osasarjan toistot, ja rivin alla oleva laskuri kertoo osasarjat. Napauta + jokaisen osasarjan jälkeen — se käynnistää 15 sekunnin osasarjatauon ajastimen alusta — ja merkitse cluster valmiiksi ✓:llä, kun osasarjoja ei enää tule. Kehityksen mittari on osasarjojen määrä samalla kuormalla: tietopainikkeen ikkuna näyttää edellisen kerran osasarjat tavoitteeksi. Cluster-merkintä ei vaikuta liikkeen 1RM-arvioon, mutta sen volyymi (paino × toistot × osasarjat) lasketaan Kehitykseen."
     ) + ohjeP(
+      "<b style=\"color:var(--chalk);\">Kirjaustapa</b> tulee liikekirjastosta ja valitsee kirjausruudun kentät: painoliikkeet kirjataan painona ja toistoina, kehonpainoliikkeet lisäpainona ja toistoina (lisäpainon voi jättää tyhjäksi), avustetut liikkeet avustuksena ja toistoina, hypyt pelkkinä toistoina, esimerkiksi hyppynaru ja venytykset aikana, lankku lisäpainona ja aikana, farmarikävely painona ja matkana sekä soutulaite matkana ja aikana. Aika syötetään minuutteina ja sekunteina: näppäimistöllä 1, 3, 0 on 1:30. Toispuolisen liikkeen toistot kirjataan puolta kohden, ja yksikkö näkyy muodossa toistoa/puoli. Kirjaustapa koskee vain uusia merkintöjä: vanhat merkinnät näkyvät ja viedään sellaisina kuin ne kirjattiin (esim. lankku toistoina), ja vanhan merkinnän korjaus tehdään samalla tavalla. Painoehdotus, lämmittelyt ja volyymi koskevat paino ja toistot -kirjaustapoja; muilla tavoilla kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta, ja aika- ja matkaliikkeiden RPE-ikkuna kysyy rasitusta toistojen sijaan. Kehitys ei vielä seuraa aikaa eikä matkaa."
+    ) + ohjeP(
       "Merkinnän voi kirjata myös takautuvasti napauttamalla yläreunan päivämääräsirpaletta. \"Viikko | Kaikki\" -valitsin näyttää joko nykyisen viikon tai koko ohjelman."
     ) + ohjeP(
       "Jos et pysty tekemään ohjelman liikettä, avaa se ja valitse \"Vaihda liike toiseksi\". Sarjat, toistot ja teho säilyvät, ja voit vaihtaa joko vain tämän kohdan tai kaikki saman liikkeen esiintymät ohjelmassa. Jo tallennetut merkinnät jäävät Historiaan vanhalla nimellä, joten CSV:tä ei tarvitse tuoda uudelleen."
@@ -8612,17 +8899,25 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var explain = 'RPE kertoo, montako toistoa olisit vielä jaksanut sarjan jälkeen. Arvioi sarjaa itseään, ei vertailua aiempaan — vertailun tekee sovellus. Lämmittelylle tavallinen vastaus on 6 tai 7; työsarjan tavoite on ' + targetRpe + ' eli kaksi toistoa varastossa. Työsarjan RPE vaikuttaa seuraavan kerran painoehdotukseen, ja lämmittelyn RPE voi säätää saman treenin työsarjoja (ks. Ohje, kohta 2).';
       if(rtRow){
         var rtParts = catalogPartsFor(rtEx.name);
-        var rtVals = rtRow.weight ? ' · ' + escapeHtml(String(rtRow.weight).replace(".", ",")) + ' kg × ' + escapeHtml(String(rtRow.reps || "–")) : '';
+        // Kirjaustapa: muu kuin paino ja toistot näyttää rivin arvon omassa
+        // muodossaan ("1:30", "+10 kg × 6"); kysymys ja kuvaukset puhuvat
+        // toistoista vain toistoliikkeillä.
+        var rtMode = rtWarm ? kirjausMode(KIRJAUSTAPA_OLETUS, false) : draftMode(rtEx, rt.id);
+        var rtValText = modeIsDefault(rtMode) ? "" : fmtSetValue(rtRow, rtMode).text;
+        var rtVals = modeIsDefault(rtMode)
+          ? (rtRow.weight ? ' · ' + escapeHtml(String(rtRow.weight).replace(".", ",")) + ' kg × ' + escapeHtml(String(rtRow.reps || "–")) : '')
+          : (rtValText !== "–" ? ' · ' + escapeHtml(rtValText) : '');
+        var rtReps = modeHas(rtMode, "reps");
         var restNote = (rt.pendingRest && state.restTimerEnabled) ? " ja käynnistää lepoajastimen pienenä palkkina näytön alareunaan" : "";
         body = '<p class="rpe-sheet-q">' + escapeHtml(rtParts ? rtParts.liike : rtEx.name) + rtVals + '</p>' +
-          '<p class="rpe-sheet-prompt">' + escapeHtml(RPE_SHEET_PROMPT) + '</p>' +
+          '<p class="rpe-sheet-prompt">' + escapeHtml(rtReps ? RPE_SHEET_PROMPT : RPE_SHEET_PROMPT_EFFORT) + '</p>' +
           '<div class="rpe-pick" role="group" aria-label="' + escapeHtml(rtLabel) + ': RPE">' +
           WARMUP_SCALE.map(function(step){
             var on = !!(rtSel && rtSel.rpe === step.rpe);
-            var isTarget = !rtWarm && step.rpe === targetRpe;
-            return '<button type="button" class="rpe-pick-btn" data-warmup-rpe data-id="' + rt.id + '" data-idx="' + rt.idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="' + step.rpe + ' ' + escapeHtml(step.label) + ' – ' + escapeHtml(step.desc) + (isTarget ? ' (tavoite)' : '') + '">' +
+            var isTarget = !rtWarm && rtReps && step.rpe === targetRpe;
+            return '<button type="button" class="rpe-pick-btn" data-warmup-rpe data-id="' + rt.id + '" data-idx="' + rt.idx + '" data-rpe="' + step.rpe + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="' + step.rpe + ' ' + escapeHtml(step.label) + ' – ' + escapeHtml(rtReps ? step.desc : step.effort) + (isTarget ? ' (tavoite)' : '') + '">' +
               '<span class="rpe-pick-num" aria-hidden="true">' + step.rpe + '</span>' +
-              '<span class="rpe-pick-text" aria-hidden="true"><span class="rpe-pick-word">' + escapeHtml(step.label) + '</span><span class="rpe-pick-desc">' + escapeHtml(step.reserve) + '</span></span>' +
+              '<span class="rpe-pick-text" aria-hidden="true"><span class="rpe-pick-word">' + escapeHtml(step.label) + '</span><span class="rpe-pick-desc">' + escapeHtml(rtReps ? step.reserve : step.effort) + '</span></span>' +
               (isTarget ? '<span class="rpe-target" aria-hidden="true">tavoite</span>' : '') +
               '</button>';
           }).join("") + '</div>' +
@@ -9093,6 +9388,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // clusterin mittari on osasarjat, yhdistelmä- ja kestoliikkeillä ei painoa.
   function targetRpeText(ex){
     if(!exerciseRequiresWeightForDone(ex) || isClusterExercise(ex)) return "";
+    // RPE-tavoite on toistoina varastossa: aika- ja matkaliikkeillä ei tavoitetta.
+    if(!modeHas(draftMode(ex, ex.id), "reps")) return "";
     return "RPE " + (10 - TARGET_RIR);
   }
   // Ehdotuksen suunta viime kertaan nähden (vain tyyppi "formula"): suurin
@@ -9132,9 +9429,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(ex.sets) parts.push(isFinite(setsNum) ? plural(setsNum, "sarja", "sarjaa") : ex.sets + " sarjaa");
     var repsNum = /^\d+$/.test(String(ex.reps || "").trim()) ? parseInt(ex.reps, 10) : NaN;
     var repsText = "";
+    // Toispuolinen liike (liikekirjasto): yksikkö puolta kohden ("10 toistoa/puoli").
+    var perSide = draftMode(ex, ex.id).perSide ? "/puoli" : "";
     if(ex.reps){
-      if(isFinite(repsNum) && (!ex.unit || ex.unit === "toistoa")){ parts.push(plural(repsNum, "toisto", "toistoa")); repsText = String(repsNum); }
-      else { parts.push(ex.reps + (ex.unit ? " " + ex.unit : "")); repsText = ex.reps + (ex.unit ? " " + ex.unit : ""); }
+      if(isFinite(repsNum) && (!ex.unit || ex.unit === "toistoa")){ parts.push(plural(repsNum, "toisto", "toistoa") + perSide); repsText = String(repsNum) + perSide; }
+      else { parts.push(ex.reps + (ex.unit ? " " + ex.unit : "") + perSide); repsText = ex.reps + (ex.unit ? " " + ex.unit : "") + perSide; }
     }
     if(ex.sets && repsText) spec.goal = String(ex.sets).trim() + " × " + repsText;
     else if(ex.sets) spec.goal = parts[0];
@@ -9321,6 +9620,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(info.lastSubsets && info.lastSubsets.length){
         text += " Viimeksi " + info.lastSubsets.join(" + ") + " osasarjaa — tavoitteena ylittää.";
       }
+    } else if(info.type === "repeat"){
+      // Muu kuin paino ja toistot -kirjaustapa (modeDraftRows).
+      text = "Kentät esitäytetty edelliseltä kerralta " + escapeHtml(formatDateShortFI(info.date)) + " — muokattavissa.";
     } else if(info.type === "saved"){
       text = "Tallennettu " + escapeHtml(formatDateFI(info.date)) + " — arvot ladattu merkinnästä.";
     } else if(info.warmupAdjust){
@@ -9376,7 +9678,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // alla toisella rivillä "RPE 8", jos viime kerran sarjalle oli merkitty
   // tuntuma (työsarjalla ja lämmittelyllä sama kenttä `rpe`). Sisältö on
   // myös ruudunlukijalle (aria-label), vaikka sarake piilotetaan kapealla.
-  function renderLastCell(last, rowName){
+  // sessionMode (0.5.1): viitekerran kirjaustapa (storedMode). Paino ja
+  // toistot ilman toispuolisuutta näytetään kuten ennen; muilla tavoilla
+  // tiivis arvo ("+10×6", "−20×8", "12", "1:30") ja kahden arvon tavoilla
+  // (lisäpaino ja aika, paino ja matka, matka ja aika) toinen arvo toisella
+  // rivillä RPE:n paikalla (RPE on silloin vain aria-labelissa).
+  function renderLastCell(last, rowName, sessionMode){
+    if(last && sessionMode && !modeIsDefault(sessionMode)) return renderModeLastCell(last, rowName, sessionMode);
     var w = last ? String(last.weight || "").replace(".", ",") : "";
     var r = last ? String(last.reps || "") : "";
     // Cluster-kerta näyttää myös osasarjat: "60×6×5" (vain kun niitä on > 1).
@@ -9388,6 +9696,35 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return '<div class="set-last" role="img" aria-label="' + escapeHtml(label) + '">' +
       '<span class="set-last-main">' + escapeHtml(text) + '</span>' +
       (rpeText ? '<span class="set-last-rpe">' + escapeHtml(rpeText) + '</span>' : '') +
+      '</div>';
+  }
+
+  function renderModeLastCell(last, rowName, mode){
+    var w = toNumber(last.weight), a = toNumber(last.assist), r = toNumber(last.reps);
+    var t = toNumber(last.time), d = toNumber(last.distance);
+    // Toispuolisuus näkyy sarakeotsikossa ja aria-labelissa, ei tiiviissä solussa.
+    var side = "";
+    var lines = [];
+    if(modeHas(mode, "reps")){
+      var rr = isFinite(r) ? String(last.reps).trim() : "–";
+      if(modeIsWeightReps(mode) && !mode.added) lines.push((isFinite(w) ? fmtKgText(last.weight) : "–") + "×" + rr + side);
+      else if(mode.added && isFinite(w) && w > 0) lines.push("+" + fmtKgText(last.weight) + "×" + rr + side);
+      else if(modeHas(mode, "assist") && isFinite(a) && a > 0) lines.push("−" + fmtKgText(last.assist) + "×" + rr + side);
+      else lines.push(rr + side);
+    } else {
+      if(modeHas(mode, "weight") && isFinite(w) && (w > 0 || !mode.added)) lines.push((mode.added ? "+" : "") + fmtKgText(last.weight));
+      if(modeHas(mode, "distance") && isFinite(d)) lines.push(fmtNumberFI(d) + " m");
+      if(modeHas(mode, "time") && isFinite(t)) lines.push(fmtTimeValue(t));
+      if(lines.length) lines[lines.length - 1] += side;
+    }
+    var rpe = (last.rpe !== null && last.rpe !== undefined && isFinite(toNumber(last.rpe))) ? toNumber(last.rpe) : null;
+    var rpeText = rpe !== null ? "RPE " + String(rpe).replace(".", ",") : "";
+    var has = lines.length > 0;
+    var label = has ? rowName + " viime kerralla " + fmtSetValue(last, mode).text + (rpeText ? ", " + rpeText + " (" + warmupFeelWord(rpe) + ")" : "") : rowName + ": ei aiempaa kertaa";
+    var second = lines.length > 1 ? lines[1] : rpeText;
+    return '<div class="set-last" role="img" aria-label="' + escapeHtml(label) + '">' +
+      '<span class="set-last-main">' + escapeHtml(has ? lines[0] : "–") + '</span>' +
+      (second ? '<span class="set-last-rpe">' + escapeHtml(second) + '</span>' : '') +
       '</div>';
   }
 
@@ -9426,7 +9763,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       for(var j=0;j<=k.idx;j++){ if(!isWarmupRow(rows[j])) w++; }
       name = "Sarja " + w;
     }
-    return name + " · " + (k.field === "weight" ? "Paino" : "Toistot");
+    // Kirjaustavan kentän nimi (Paino, Lisäpaino, Avustus, Toistot, Aika,
+    // Matka; toispuolisella "/puoli"). Lämmittely on aina paino ja toistot.
+    var ex = findExerciseById(k.id);
+    var mode = (ex && !isWarmupRow(rows[k.idx])) ? draftMode(ex, k.id) : kirjausMode(KIRJAUSTAPA_OLETUS, false);
+    return name + " · " + (SET_FIELD_META[k.field] ? setFieldTitle(mode, k.field) : (k.field === "weight" ? "Paino" : "Toistot"));
   }
   // Painokentän esitysmuoto: desimaalipilkku ("52,5") myös ehdotuksesta
   // esitäytetylle "52.5"-merkkijonolle. Pelkkä esitys: luonnokseen ja
@@ -9436,6 +9777,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     return String(v).replace(".", ",");
   }
   function keypadShownValue(row){
+    // Aika: kentän teksti sellaisenaan ("0:90" kirjoitettaessa), muuten
+    // rivin sekunnit muodossa "1:30".
+    if(state.keypad.field === "time"){
+      var inp = keypadInput();
+      return inp ? String(inp.value || "") : fmtTimeValue(row.time);
+    }
     var val = String(row[state.keypad.field] || "");
     return val ? val.replace(".", ",") : "";
   }
@@ -9444,7 +9791,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!k) return "";
     var row = keypadTargetRow();
     if(!row){ state.keypad = null; return ""; }
-    var isWeight = k.field === "weight";
+    // Paino ja avustus: desimaalipilkku ja ±2,5 kg; matka: desimaalipilkku;
+    // toistot ja aika: pelkät numerot (aika muotoutuu "1:30").
+    var isWeight = k.field === "weight" || k.field === "assist";
+    var decimal = isWeight || k.field === "distance";
+    var unitText = (SET_FIELD_META[k.field] && !k.kind) ? SET_FIELD_META[k.field].unit : "";
     var shown = keypadShownValue(row);
     var label = keypadLabel();
     function key(content, attrs, area, cls){
@@ -9458,19 +9809,19 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="keypad-readout">' +
       '<span class="keypad-label" id="keypad-label">' + escapeHtml(label) + '</span>' +
       '<div class="keypad-value-row"><span class="keypad-value' + (shown ? "" : " no-value") + '" id="keypad-value" aria-hidden="true">' + (shown ? escapeHtml(shown) : "–") + '</span>' +
-      (isWeight ? '<span class="keypad-unit" aria-hidden="true">kg</span>' : '') + '</div>' +
+      (unitText ? '<span class="keypad-unit" aria-hidden="true">' + unitText + '</span>' : '') + '</div>' +
       '</div>' +
       '<span class="sr-only" id="keypad-live" aria-live="polite"></span>' +
       '<button type="button" class="icon-btn keypad-close" data-keypad-close aria-label="Sulje näppäimistö">' + icon("alas", 20) + '</button>' +
       '</div>' +
       '<div class="keypad-grid' + (isWeight ? "" : " reps") + '">' +
       digits +
-      key(",", 'data-keypad-key=","' + (isWeight ? "" : " disabled"), "kc") +
+      key(",", 'data-keypad-key=","' + (decimal ? "" : " disabled"), "kc") +
       key("0", 'data-keypad-key="0"', "k0") +
       key(icon("poistomerkki", 24), 'data-keypad-key="back" aria-label="Poista viimeinen merkki"', "kb") +
       (isWeight
-        ? key("+2,5", 'data-weight-step data-id="' + k.id + '" data-idx="' + k.idx + '" data-step="2.5" aria-label="Lisää painoa 2,5 kg"', "up", "key-step") +
-          key("−2,5", 'data-weight-step data-id="' + k.id + '" data-idx="' + k.idx + '" data-step="-2.5" aria-label="Vähennä painoa 2,5 kg"', "dn", "key-step")
+        ? key("+2,5", 'data-weight-step data-id="' + k.id + '" data-idx="' + k.idx + '" data-field="' + k.field + '" data-step="2.5" aria-label="' + (k.field === "assist" ? "Lisää avustusta" : "Lisää painoa") + ' 2,5 kg"', "up", "key-step") +
+          key("−2,5", 'data-weight-step data-id="' + k.id + '" data-idx="' + k.idx + '" data-field="' + k.field + '" data-step="-2.5" aria-label="' + (k.field === "assist" ? "Vähennä avustusta" : "Vähennä painoa") + ' 2,5 kg"', "dn", "key-step")
         : "") +
       // ✓ vain sarjakentille (ei muokkaustilan lomakkeelle): sama toiminto
       // kuin rivin ✓, jotta sarjan voi merkitä valmiiksi näppäimistöltä.
@@ -9505,6 +9856,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   // Volyymirivi: kolme lukua ja ohut toteumapalkki. Tyhjä, kun mitään lukua
   // ei ole (yhdistelmä- tai kestoliike ilman painoa).
   function renderVolumeRow(ex, id){
+    // Volyymi on paino × toistot: muulla kirjaustavalla riviä ei näytetä.
+    if(!modeIsWeightReps(draftMode(ex, id))) return "";
     var v = ledgerVolumes(ex, id);
     if(v.planned <= 0 && v.done <= 0 && v.last === null) return "";
     var pct = volumePct(v);
@@ -9600,7 +9953,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     el.textContent = shown || "–";
     if(shown) el.classList.remove("no-value"); else el.classList.add("no-value");
     var live = document.getElementById("keypad-live");
-    if(announce && live) live.textContent = shown ? shown + (state.keypad.field === "weight" ? " kg" : "") : "tyhjä";
+    var unitA = (!state.keypad.kind && SET_FIELD_META[state.keypad.field]) ? SET_FIELD_META[state.keypad.field].unit : "";
+    if(announce && live) live.textContent = shown ? shown + (unitA ? " " + unitA : "") : "tyhjä";
   }
   // Ohjelmallinen fokuksen palautus kenttään ei saa avata näppäimistöä
   // uudelleen (focusin-kuuntelija).
@@ -9608,7 +9962,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
   function openKeypad(id, idx, field){
     // Muu kuin paino- tai toistokenttä käyttää laitteen näppäimistöä:
     // kirjausnäppäimistö suljetaan, jottei se jää osoittamaan toiseen kenttään.
-    if(field !== "weight" && field !== "reps"){ closeKeypad(); return; }
+    if(!SET_FIELD_META[field]){ closeKeypad(); return; }
     var k = state.keypad;
     if(k && k.id === id && k.idx === idx && k.field === field){ blurKeypadInputOnTouch(); return; }
     state.keypad = { id: id, idx: idx, field: field, replace: true };
@@ -9659,12 +10013,23 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var k = state.keypad, input = keypadInput();
     if(!k || !input) return;
     var current = String(input.value || "");
+    // Aika rakentuu numeroista oikealta (1, 3, 0 → 1:30): askelpalautin
+    // poistaa viimeisen numeron ja pilkkua ei ole.
+    if(!k.kind && k.field === "time"){
+      if(keyName === ",") return;
+      var digits = current.replace(/\D/g, "").replace(/^0+/, "");
+      if(keyName === "back"){ keypadSetValue(timeTextFromDigits(digits.slice(0, -1))); return; }
+      var tBase = k.replace ? "" : digits;
+      if(tBase.length >= 6) return;
+      keypadSetValue(timeTextFromDigits(tBase + keyName));
+      return;
+    }
     if(keyName === "back"){ keypadSetValue(current.slice(0, -1)); return; }
     // Ensimmäinen numero korvaa valmiin arvon kuten valitun tekstin päälle
     // kirjoittaminen; askelpalautin ja ± muokkaavat sitä.
     var base = k.replace ? "" : current;
     if(keyName === ","){
-      if(k.field !== "weight") return;
+      if(k.kind || (k.field !== "weight" && k.field !== "assist" && k.field !== "distance")) return;
       if(base.indexOf(",") !== -1 || base.indexOf(".") !== -1) return;
       keypadSetValue((base === "" ? "0" : base) + ",");
       return;
@@ -9731,8 +10096,51 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       (sel ? '<span class="rpe-btn-val" aria-hidden="true">' + sel.rpe + '</span>' : '') +
       '</button>';
   }
+  // Sarjarivin kentät kirjaustavan mukaan (0.5.1): sarakeotsikko, paikka-
+  // merkki ja ruudunlukijan nimi. Paino ja toistot -tavan kentät ovat
+  // täsmälleen entiset.
+  var SET_FIELD_META = {
+    weight:   { head: "Kg", title: "Paino", placeholder: "kg", label: "paino kiloina", unit: "kg" },
+    assist:   { head: "Avustus", title: "Avustus", placeholder: "kg", label: "avustus kiloina", unit: "kg" },
+    reps:     { head: "Toistot", title: "Toistot", placeholder: "–", label: "toistot", unit: "" },
+    time:     { head: "Aika", title: "Aika", placeholder: "m:ss", label: "aika minuutteina ja sekunteina", unit: "" },
+    distance: { head: "Matka", title: "Matka", placeholder: "m", label: "matka metreinä", unit: "m" }
+  };
+  function setFieldHead(mode, f){ return (f === "weight" && mode.added) ? "Lisä kg" : SET_FIELD_META[f].head; }
+  // Näppäimistön otsakkeen kentän nimi ("Lisäpaino", "Toistot/puoli").
+  function setFieldTitle(mode, f){
+    var t = (f === "weight" && mode.added) ? "Lisäpaino" : SET_FIELD_META[f].title;
+    return t + (mode.perSide && f === mode.fields[mode.fields.length - 1] ? "/puoli" : "");
+  }
+  function setFieldValue(row, f){
+    if(f === "time") return fmtTimeValue(row.time);
+    var v = row[f];
+    if(v === undefined || v === null) return "";
+    return f === "reps" ? String(v) : fmtFieldValue(v);
+  }
+  // Työsarjarivin kentät (data-set-field). Yhden kentän tavalla (toistot,
+  // aika) kenttä täyttää molemmat sarakkeet (.span2).
+  function renderSetInputs(ex, idx, s, mode, setNo){
+    var single = mode.fields.length === 1;
+    return mode.fields.map(function(f, i){
+      var meta = SET_FIELD_META[f];
+      var label = (f === "weight" && mode.added) ? "lisäpaino kiloina" : meta.label;
+      if(mode.perSide && i === mode.fields.length - 1) label += " puolta kohden";
+      return '<input class="ledger-input' + (single ? " span2" : "") + keypadTargetClass(ex.id, idx, f) + '" type="text" inputmode="none" placeholder="' + meta.placeholder + '" aria-label="Sarja ' + setNo + ' ' + label + '" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="' + f + '" value="' + escapeHtml(setFieldValue(s, f)) + '">';
+    }).join("");
+  }
+  function renderSetHead(mode){
+    var single = mode.fields.length === 1;
+    return mode.fields.map(function(f, i){
+      var sub = (mode.perSide && i === mode.fields.length - 1) ? '<span class="head-sub">/puoli</span>' : '';
+      return '<div class="head-center' + (single ? " span2" : "") + '">' + escapeHtml(setFieldHead(mode, f)) + sub + '</div>';
+    }).join("");
+  }
   function renderLedger(ex){
     var sets = state.draftSets[ex.id] || [{ weight:"", reps:"", notes:"", done:false }];
+    // Kirjaustapa (0.5.1): kentät, otsikot ja Viime-sarakkeen muoto.
+    var mode = draftMode(ex, ex.id);
+    var defaultFields = modeIsDefault(mode);
     // Liikkeen väline, variaatio ja lihasryhmä ovat otsikon tarkenteessa
     // (renderExercise). Painojen laskennan selitteet eivät ole enää sarjojen
     // yläpuolella vaan pohjalevyssä, jonka nimen perässä oleva tietopainike
@@ -9794,9 +10202,11 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // avaa kirjausnäppäimistön (focusin/click). Kenttä on silti muokattava.
       return '<div class="ledger-row' + (cluster ? " has-extra" : "") + (idx === nextIdx ? " next" : "") + '"' + (idx === nextIdx ? ' aria-current="step"' : '') + '>' +
         '<div class="set-num' + (s.done ? " done" : "") + (workPop ? " pop" : "") + '" aria-hidden="true">' + String(setNo) + '</div>' +
-        renderLastCell(lastWork, "Sarja " + setNo) +
-        '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(fmtFieldValue(s.weight)) + '">' +
-        '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + setNo + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">' +
+        renderLastCell(lastWork, "Sarja " + setNo, lastSession ? storedMode(lastSession) : null) +
+        (defaultFields
+          ? '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "weight") + '" type="text" inputmode="none" placeholder="kg" aria-label="Sarja ' + setNo + ' paino kiloina" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="weight" value="' + escapeHtml(fmtFieldValue(s.weight)) + '">' +
+            '<input class="ledger-input' + keypadTargetClass(ex.id, idx, "reps") + '" type="text" inputmode="none" placeholder="–" aria-label="Sarja ' + setNo + ' toistot" data-set-field data-id="' + ex.id + '" data-idx="' + idx + '" data-field="reps" value="' + escapeHtml(s.reps) + '">'
+          : renderSetInputs(ex, idx, s, mode, setNo)) +
         '<button type="button" class="set-done-btn' + (workPop ? " pop" : "") + '" data-toggle-done data-id="' + ex.id + '" data-idx="' + idx + '" aria-pressed="' + (s.done ? "true" : "false") + '" aria-label="' + (s.done ? "Sarja " + setNo + " merkitty valmiiksi" : "Merkitse sarja " + setNo + " valmiiksi") + '">✓</button>' +
         renderRpeRowButton(ex.id, idx, s.rpe, "Sarjan " + setNo) +
         '</div>' +
@@ -9818,11 +10228,12 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var saveHintId = "save-hint-" + ex.id;
     return '<div class="ledger">' +
       (warmupCount ? '<div class="ledger-head" style="margin-top:4px;">Lämmittely</div>' + warmupNoteHtml + warmHtml : '') +
-      '<div class="ledger-row ledger-head"' + (warmupCount ? ' style="margin-top:8px;"' : '') + '><div>Sarja</div><div class="set-last head-center">Viime</div><div class="head-center">Kg</div><div class="head-center">Toistot</div><div class="head-center" aria-hidden="true">✓</div><div></div></div>' +
+      '<div class="ledger-row ledger-head"' + (warmupCount ? ' style="margin-top:8px;"' : '') + '><div>Sarja</div><div class="set-last head-center">Viime</div>' + (defaultFields ? '<div class="head-center">Kg</div><div class="head-center">Toistot</div>' : renderSetHead(mode)) + '<div class="head-center" aria-hidden="true">✓</div><div></div></div>' +
       workHtml +
       '<div class="ledger-actions">' +
       '<button class="btn-secondary btn-sm btn-auto" data-add-set data-id="' + ex.id + '" type="button">+ Sarja</button>' +
-      '<button class="btn-secondary btn-sm btn-auto ledger-warm-btn" data-add-warmup data-id="' + ex.id + '" type="button">+ Lämmittely</button>' +
+      // Lämmittely on paino ja toistot -rivi: vain paino ja toistot -tavoilla.
+      (modeIsWeightReps(mode) ? '<button class="btn-secondary btn-sm btn-auto ledger-warm-btn" data-add-warmup data-id="' + ex.id + '" type="button">+ Lämmittely</button>' : '') +
       '</div>' +
       renderVolumeRow(ex, ex.id) +
       '<div class="ledger-footer">' +
@@ -9884,21 +10295,37 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     return "";
   }
+  // Kirjaustavan selite Painojen laskenta -ikkunan alkuun (vain muulle kuin
+  // paino ja toistot -tavalle tai toispuoliselle liikkeelle).
+  function renderModeHint(ex){
+    var mode = draftMode(ex, ex.id);
+    if(modeIsDefault(mode)) return "";
+    var parts = [];
+    if(mode.tapa !== KIRJAUSTAPA_OLETUS) parts.push("Liike kirjataan liikekirjaston kirjaustavalla: " + mode.tapa.toLowerCase() + ".");
+    if(mode.added) parts.push("Lisäpaino on kehonpainon lisäksi käytetty paino; ilman lisäpainoa kentän voi jättää tyhjäksi.");
+    if(modeHas(mode, "assist")) parts.push("Avustus on laitteen tai kuminauhan avustava paino.");
+    if(modeHas(mode, "time")) parts.push("Aika kirjataan minuutteina ja sekunteina: näppäimistöllä 1, 3, 0 on 1:30.");
+    if(modeHas(mode, "distance")) parts.push("Matka kirjataan metreinä.");
+    if(mode.perSide) parts.push(modeHas(mode, "reps") ? "Toistot kirjataan puolta kohden (toistoa/puoli)." : "Liike kirjataan puolta kohden.");
+    return '<div class="calc-hint">' + escapeHtml(parts.join(" ")) + '</div>';
+  }
   function renderCalcInfo(ex){
+    var modeHint = renderModeHint(ex);
     var html = renderMethodNote(ex);
     // Teholiike ilman 1RM:ää ei ole mykkä: selite kertoo, mitä kirjataan.
     if(ex.intensity && !state.autoCalcInfo[ex.id] && !isExerciseLogged(ex)) html += renderNoMaxHint(ex);
     html += autoCalcHint(state.autoCalcInfo[ex.id], ex.id);
     html += renderDeloadControl(ex);
-    if(html) return html;
+    if(html) return modeHint + html;
     var why;
-    if(isCombo(ex.name)) why = "Yhdistelmäliikkeelle ei ehdoteta painoa. Kirjaa paino ja toistot itse.";
+    if(!modeIsWeightReps(draftMode(ex, ex.id))) why = "Tälle kirjaustavalle ei lasketa painoehdotusta. Kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta; ensimmäisellä kerralla kirjaa arvot itse.";
+    else if(isCombo(ex.name)) why = "Yhdistelmäliikkeelle ei ehdoteta painoa. Kirjaa paino ja toistot itse.";
     else if(ex.autoCalc === false) why = noAutoCalcReason(ex) + " Kirjaa paino ja toistot itse.";
     else if(ex.intensity) why = maxRefOf(ex)
       ? "Painoehdotus perustuu 1RM-pohjan ”" + maxRefOf(ex) + "” 1RM-arvoon, jota hallitaan Asetuksissa."
       : "Painoehdotus perustuu liikkeen 1RM-arvoon, jota hallitaan Asetuksissa.";
     else why = "Tälle liikkeelle ei ole vielä painoehdotusta, koska aiempaa merkintää ei ole. Kirjaa paino ja toistot itse — seuraavalla kerralla ehdotus lasketaan tästä merkinnästä sarjoittain.";
-    return '<div class="calc-hint">' + escapeHtml(why) + '</div>';
+    return modeHint + '<div class="calc-hint">' + escapeHtml(why) + '</div>';
   }
   var VARIANT_ADD_NEW = "__addnew__";
   var VARIANT_PLAIN = "__plain__";
@@ -11335,7 +11762,17 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var txt = fmtW(w.weight) + " kg × " + String(w.reps || "–");
       return renderHistorySetRow("L" + (i+1), escapeHtml(txt), w.rpe, true, "Lämmittely " + (i+1) + ": " + txt + rpeText(w.rpe));
     }).join("");
+    // Kirjaustapa (0.5.1): merkintä näytetään sillä tavalla, jolla se
+    // kirjattiin (vanhat merkinnät painona ja toistoina kuten ennen).
+    var mode = storedMode(data);
+    var custom = !modeIsDefault(mode) && !cluster;
     var work = (data.sets || []).map(function(s, i){
+      if(custom){
+        var mv = fmtSetValue(s, mode);
+        var mrow = renderHistorySetRow(String(i+1), mv.html, s.rpe, false, "Sarja " + (i+1) + ": " + mv.text + rpeText(s.rpe));
+        if(s.notes) mrow += '<div class="history-set-note">Huomio: ' + escapeHtml(s.notes) + '</div>';
+        return mrow;
+      }
       var subs = setSubsets(s);
       var subTxt = subs > 1 ? " × " + subs + (cluster ? " osasarjaa" : "") : "";
       var sub = subs > 1 ? ' × ' + subs + (cluster ? ' <span class="history-set-unit">osasarjaa</span>' : '') : '';
@@ -11788,7 +12225,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var html = renderLiikeSnapshotConfirm() +
       '<div class="exercise" style="padding:16px; margin-bottom:12px;">' +
       '<div class="exercise-name" style="margin-bottom:6px;">' + plural(LIIKEKIRJASTO.length, "liike", "liikettä") + '</div>' +
-      settingsP("Liikekirjaston versio " + formatDateShortFI(LIIKEKIRJASTO_VERSIO) + LIIKEKIRJASTO_VERSIO.slice(0, 4) + ". Jokaisella liikkeellä on pysyvä tunniste, johon merkinnät, ohjelmat ja 1RM-arvot sidotaan, joten liikkeen nimen muutos ei katkaise historiaa. Liikkeen löytää valitsimesta myös muilla nimillä ja englanninkielisellä nimellä.", "0") +
+      settingsP("Liikekirjaston versio " + formatDateShortFI(LIIKEKIRJASTO_VERSIO) + LIIKEKIRJASTO_VERSIO.slice(0, 4) + ". Jokaisella liikkeellä on pysyvä tunniste, johon merkinnät, ohjelmat ja 1RM-arvot sidotaan, joten liikkeen nimen muutos ei katkaise historiaa. Liikkeen löytää valitsimesta myös muilla nimillä ja englanninkielisellä nimellä. Kirjaston kirjaustapa (esim. aika tai matka) ja toispuolisuus valitsevat kirjausruudun kentät uusille merkinnöille.", "0") +
       '</div>';
     if(m){
       html += '<div class="exercise" style="padding:16px; margin-bottom:12px;">' +
@@ -12622,7 +13059,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
         var prevRow = prevRows.length ? prevRows[prevRows.length - 1] : null;
         state.draftSets[id1].push({ weight: prevRow ? prevRow.weight : "", reps: addEx.reps || "", notes:"", done:false, kind:"work", subsets: 0 });
       } else {
-        state.draftSets[id1].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });
+        // Tyhjä rivi kirjaustavan kentillä (paino ja toistot kuten ennen).
+        state.draftSets[id1].push(addEx ? blankModeRow(draftMode(addEx, id1)) : { weight:"", reps:"", notes:"", done:false, kind:"work" });
       }
       state.dirtySets[id1] = true;
       render();
@@ -12660,6 +13098,8 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       // prosenttiportaat; auto-lippu on vain luonnosrivillä ja poistuu, kun
       // painoa tai toistoja muokataan (ei tallennu).
       var exw = findExerciseById(idw);
+      // Lämmittely on paino ja toistot -rivi (painike vain niillä tavoilla).
+      if(exw && !modeIsWeightReps(draftMode(exw, idw))) return;
       var sug = suggestWarmup(exw, idw, wIdx + 1);
       var rowW = { weight: sug ? sug.weight : "", reps: sug ? sug.reps : "", rpe: null, notes: "", done: false, kind: "warmup" };
       if(sug) rowW.auto = sug.source;
@@ -12702,7 +13142,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(state.sheet === "rpe"){ state.sheet = null; state.rpeSheet = null; }
       if(state.draftSets[id2]){
         state.draftSets[id2].splice(idx2, 1);
-        if(state.draftSets[id2].length === 0) state.draftSets[id2].push({ weight:"", reps:"", notes:"", done:false, kind:"work" });
+        if(state.draftSets[id2].length === 0){
+          var rmEx = findExerciseById(id2);
+          state.draftSets[id2].push(rmEx ? blankModeRow(draftMode(rmEx, id2)) : { weight:"", reps:"", notes:"", done:false, kind:"work" });
+        }
         state.dirtySets[id2] = true;
         // Näppäimistön kohde seuraa poistoa: poistettu rivi sulkee sen,
         // aiempi rivi siirtää indeksiä.
@@ -12716,8 +13159,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     }
     if((el = e.target.closest("[data-weight-step]"))){
       var id3 = el.dataset.id, idx3 = parseInt(el.dataset.idx, 10), step3 = parseFloat(el.dataset.step);
+      // Kenttä on paino tai avustus (kirjaustapa "Avustus ja toistot").
+      var f3 = el.dataset.field === "assist" ? "assist" : "weight";
       if(state.draftSets[id3] && state.draftSets[id3][idx3]){
-        var current3 = toNumber(state.draftSets[id3][idx3].weight);
+        var current3 = toNumber(state.draftSets[id3][idx3][f3]);
         var next3;
         if(!isFinite(current3)){
           // Tyhjä kenttä: ensimmäinen painallus tuo viime kerran suurimman
@@ -12725,18 +13170,18 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           var ex3 = findExerciseById(id3);
           var last3 = ex3 ? state.lastSet[exerciseKeyOf(ex3)] : null;
           var lastMax3 = NaN;
-          ((last3 && last3.sets) || []).forEach(function(s3){ var w3 = toNumber(s3.weight); if(isFinite(w3) && (!isFinite(lastMax3) || w3 > lastMax3)) lastMax3 = w3; });
+          ((last3 && last3.sets) || []).forEach(function(s3){ var w3 = toNumber(s3[f3]); if(isFinite(w3) && (!isFinite(lastMax3) || w3 > lastMax3)) lastMax3 = w3; });
           next3 = isFinite(lastMax3) ? lastMax3 : Math.max(0, roundToStep(step3, 2.5));
         } else {
           next3 = Math.max(0, roundToStep(current3 + step3, 2.5));
         }
-        state.draftSets[id3][idx3].weight = String(next3);
+        state.draftSets[id3][idx3][f3] = String(next3);
         state.dirtySets[id3] = true;
         var autoCleared = false;
         if(state.draftSets[id3][idx3].auto){ delete state.draftSets[id3][idx3].auto; autoCleared = true; }
         // Näppäimistön ±: kenttä ja näppäimistön lukema päivitetään suoraan
         // DOM:iin ilman koko näkymän piirtoa (fokus ja näppäimistö säilyvät).
-        var stepInput = document.querySelector('[data-set-field][data-id="' + id3 + '"][data-idx="' + idx3 + '"][data-field="weight"]');
+        var stepInput = document.querySelector('[data-set-field][data-id="' + id3 + '"][data-idx="' + idx3 + '"][data-field="' + f3 + '"]');
         if(stepInput){
           stepInput.value = fmtFieldValue(next3);
           if(autoCleared) syncWarmupNoteDom(stepInput.closest(".ledger"), id3);
@@ -13226,7 +13671,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var id = field.dataset.id, idx = parseInt(field.dataset.idx, 10), key = field.dataset.field;
       var row = state.draftSets[id] && state.draftSets[id][idx];
       if(row){
-        row[key] = field.value;
+        // Aika tallentuu riville sekunteina (parseTimeText); kenttä näyttää
+        // kirjoitetun tekstin, ja seuraava piirto muotoilee sen ("1:30").
+        if(key === "time"){ var secT = parseTimeText(field.value); row.time = isFinite(secT) ? String(secT) : ""; }
+        else row[key] = field.value;
         state.dirtySets[id] = true;
         // Esitäytetyn lämmittelyn muokkaus poistaa auto-lipun ja päivittää
         // selitteen suoraan DOM:iin.
@@ -13349,7 +13797,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       return;
     }
     if(e.key === "Escape" && state.keypad){ e.preventDefault(); closeKeypad(); return; }
-    if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest('[data-set-field][data-field="weight"], [data-set-field][data-field="reps"], [data-editor-field="sets"], [data-editor-field="reps"]')){ e.preventDefault(); keypadNext(); return; }
+    if(e.key === "Enter" && state.keypad && e.target && e.target.closest && e.target.closest('[data-set-field], [data-editor-field="sets"], [data-editor-field="reps"]')){ e.preventDefault(); keypadNext(); return; }
     if(e.key === "Escape" && state.sheet){ e.preventDefault(); closeSheet(); }
     if(e.key === "Enter" && e.target && e.target.id === "liike-haku"){
       // Enter valitsee ensimmäisen katalogiosuman, tai kirjoitetun nimen
