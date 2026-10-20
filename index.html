@@ -115,7 +115,7 @@
   .screen-head > .icon-btn:first-child{margin-left:-10px;}
   .screen-head-main{flex:1; min-width:0;}
   .screen-kicker{font-size:var(--fs-sm); line-height:20px; font-weight:500; color:var(--mist);}
-  .screen-title{font-size:var(--fs-2xl); font-weight:700; line-height:28px; letter-spacing:-.01em; margin:0; overflow-wrap:anywhere; display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px;}
+  .screen-title{font-size:var(--fs-2xl); font-weight:700; line-height:28px; letter-spacing:-.01em; margin:0; overflow-wrap:anywhere; text-wrap:balance; display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px;}
   .screen-title:focus{outline:none;}
   .screen-title:focus-visible{outline:2px solid var(--brass); outline-offset:4px; border-radius:4px;}
   .screen-head-right{flex-shrink:0; margin-right:-10px;}
@@ -649,7 +649,8 @@
   @media (max-width: 379px){ .key-next svg{display:none;} }
   .calc-hint{font-size:var(--fs-sm); color:var(--mist); line-height:20px; margin-bottom:12px;}
   /* Lämmittelyehdotuksen selite Lämmittely-otsikon alla: pienin selitekoko. */
-  .warmup-auto-note{font-size:var(--fs-xs); color:var(--mist); line-height:16px; margin:-2px 0 6px;}
+  .warmup-auto-note{font-size:var(--fs-xs); color:var(--mist); line-height:16px; margin:-2px 0 6px; text-wrap:pretty;}
+  .warmup-note-pcts{white-space:nowrap;}
   /* ---------- Painikehierarkia ----------
      Neljä tasoa, jotta jokaisella ruudulla erottuu yksi ensisijainen toiminto:
        .btn-primary    täytetty messinki, tumma teksti — ruudun päätoiminto
@@ -977,7 +978,8 @@
       "Kirjausruutu kysyy liikkeen kirjaustavan mukaiset kentät liikekirjastosta (versio 0.5.1): esimerkiksi lankku kirjataan lisäpainona ja aikana, hyppynaru aikana, soutulaite matkana ja aikana, farmarikävely painona ja matkana, avustettu leuanveto avustuksena ja toistoina ja dippi lisäpainona ja toistoina, jolloin lisäpainon voi jättää tyhjäksi. Aika syötetään minuutteina ja sekunteina: näppäimistöllä 1, 3, 0 on 1:30.",
       "Toispuolisen liikkeen (esim. yhden käden kulmasoutu) toistot kirjataan puolta kohden, ja yksikkö näkyy muodossa toistoa/puoli.",
       "Kirjaustapa koskee vain uusia merkintöjä: vanhat merkinnät näkyvät Historiassa ja Viime-sarakkeessa ja viedään varmuuskopioon ennallaan (esim. lankku toistoina, 1 = 1 minuutti), ja vanhan merkinnän korjaus tehdään samalla tavalla kuin se kirjattiin. Varmuuskopiossa on uudet sarakkeet Kirjaustapa, Toispuolinen, Aika (s), Matka (m) ja Avustus (kg).",
-      "Painoehdotus, lämmittelyt ja volyymi koskevat edelleen paino ja toistot -liikkeitä (myös lisäpainolla); muilla kirjaustavoilla kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta. Kehitys ei vielä seuraa aikaa eikä matkaa."
+      "Painoehdotus, lämmittelyt ja volyymi koskevat edelleen paino ja toistot -liikkeitä (myös lisäpainolla); muilla kirjaustavoilla kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta. Kehitys ei vielä seuraa aikaa eikä matkaa.",
+      "Kirjausruudulla pitkä liikkeen nimi jakautuu kahdelle riville tasaisesti, eikä yksittäinen sana jää yksin toiselle riville, ja lämmittelyselitteen porrasprosentit pysyvät samalla rivillä."
     ] },
     { date: "2026-10-19", items: [
       "Uusi liikekirjasto (versio 0.5.0): 448 liikettä yhtenäisillä nimillä, ja jokaisella liikkeellä on pysyvä tunniste. Merkinnät, ohjelmat, painoehdotukset ja 1RM-arvot on sidottu tunnisteeseen, joten liikkeen nimen muutos ei enää katkaise historiaa. Liikkeen löytää valitsimesta myös vanhalla, muulla tai englanninkielisellä nimellä (esim. \"sivunosto\" tai \"bench press\").",
@@ -5176,6 +5178,13 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       : WARMUP_LADDER.map(function(r){ return Math.round(r.pct * 100); });
     return "Lämmittelyt ehdotettu työpainosta " + baseStr + " kg (" + pcts.join(" / ") + " %) — muokattavissa.";
   }
+  // Porrasprosentit "(40 / 60 / 80 / 90 %)" pidetään samalla rivillä, jottei
+  // kapealla näytöllä rivi ala vinoviivalla; tekstisisältö on ennallaan.
+  function warmupNoteHtml(note){
+    var m = /\([^()]* %\)/.exec(note);
+    if(!m) return escapeHtml(note);
+    return escapeHtml(note.slice(0, m.index)) + '<span class="warmup-note-pcts">' + escapeHtml(m[0]) + '</span>' + escapeHtml(note.slice(m.index + m[0].length));
+  }
   // Selite päivitetään suoraan DOM:iin, kun auto-lippu poistuu kirjoituksesta
   // tai ±-painikkeesta ilman render()-kutsua (fokus säilyy kentässä).
   function syncWarmupNoteDom(ledger, id){
@@ -5184,7 +5193,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     if(!el) return;
     var ex = findExerciseById(id);
     var note = ex ? warmupAutoNote(ex, id) : "";
-    if(note) el.textContent = note; else el.parentNode.removeChild(el);
+    if(note) el.innerHTML = warmupNoteHtml(note); else el.parentNode.removeChild(el);
   }
   function applyWarmupAdjustment(id){
     var ex = findExerciseById(id);
@@ -10272,7 +10281,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     var allDone = isExerciseFullyDone(ex, ex.id);
     var warmupCount = warmupRows(ex.id).length;
     var warmupNote = warmupCount ? warmupAutoNote(ex, ex.id) : "";
-    var warmupNoteHtml = warmupNote ? '<div class="warmup-auto-note">' + escapeHtml(warmupNote) + '</div>' : '';
+    var warmupNoteBlock = warmupNote ? '<div class="warmup-auto-note">' + warmupNoteHtml(warmupNote) + '</div>' : '';
     // Järjestys: lämmittelyt (jos on) → sarjat → toimintorivi (+ Sarja,
     // + Lämmittely rinnakkain) → volyymirivi (suunniteltu, viime kerta,
     // toteutunut + palkki) → alarivi (Vaihda, Tallenna) → avattu vaihto-
@@ -10280,7 +10289,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     // aria-describedby), kunnes viimeinen sarja on merkitty.
     var saveHintId = "save-hint-" + ex.id;
     return '<div class="ledger">' +
-      (warmupCount ? '<div class="ledger-head" style="margin-top:4px;">Lämmittely</div>' + warmupNoteHtml + warmHtml : '') +
+      (warmupCount ? '<div class="ledger-head" style="margin-top:4px;">Lämmittely</div>' + warmupNoteBlock + warmHtml : '') +
       '<div class="ledger-row ledger-head"' + (warmupCount ? ' style="margin-top:8px;"' : '') + '><div>Sarja</div><div class="set-last head-center">Viime</div>' + (defaultFields ? '<div class="head-center">Kg</div><div class="head-center">Toistot</div>' : renderSetHead(mode)) + '<div class="head-center" aria-hidden="true">✓</div><div></div></div>' +
       workHtml +
       '<div class="ledger-actions">' +
