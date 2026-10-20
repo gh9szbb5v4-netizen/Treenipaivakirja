@@ -880,7 +880,10 @@
   /* Asetusten 1RM-luettelo: 1RM-pohjan selite nimen alla ja Kehityksen
      arvio käyttöönottopainikkeineen rivin levyisenä alarivinä. */
   .max-row-note{font-size:var(--fs-xs); color:var(--mist); margin-top:2px;}
-  .max-estimate{grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:var(--fs-sm); color:var(--mist);}
+  /* Arvio vasemmalla, Käytä-painike aina oikealla: teksti rivittyy ennen
+     painiketta, jotta rivit näyttävät samalta arvion pituudesta riippumatta. */
+  .max-estimate{grid-column:1 / -1; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; font-size:var(--fs-sm); line-height:20px; color:var(--mist);}
+  .max-estimate-value{white-space:nowrap;}
   .max-estimate b{color:var(--chalk); font-variant-numeric:tabular-nums;}
   /* Seuraavaksi-kortti: ruudun ainoa ensisijainen toiminto. Kortin ainoa
      reunaviiva (hento messinki) erottaa sen päiväkorteista. Palkki on
@@ -996,6 +999,7 @@
       "Kirjaustapa koskee vain uusia merkintöjä: vanhat merkinnät näkyvät Historiassa ja Viime-sarakkeessa ja viedään varmuuskopioon ennallaan (esim. lankku toistoina, 1 = 1 minuutti), ja vanhan merkinnän korjaus tehdään samalla tavalla kuin se kirjattiin. Varmuuskopiossa on uudet sarakkeet Kirjaustapa, Toispuolinen, Aika (s), Matka (m) ja Avustus (kg).",
       "Painoehdotus, lämmittelyt ja volyymi koskevat edelleen paino ja toistot -liikkeitä (myös lisäpainolla); muilla kirjaustavoilla kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta. Kehitys ei vielä seuraa aikaa eikä matkaa.",
       "Kirjausruudulla pitkä liikkeen nimi jakautuu kahdelle riville tasaisesti, eikä yksittäinen sana jää yksin toiselle riville, ja lämmittelyselitteen porrasprosentit pysyvät samalla rivillä.",
+      "Liikkeiden 1RM -luettelossa Kehityksen arvion Käytä-painike on aina rivin oikeassa reunassa.",
       "Asetuksissa pois käytöstä olevan lepoajastimen lepoaikaa ei voi enää muokata näppäimistöllä, ja Liikekirjasto-osiolla on oma kuvake.",
       "Kehityksen liikelistan rivi on kaksirivinen: ylärivillä liikkeen nimi ja 1RM, alarivillä päivämäärä, pikkukäyrä ja muutos. Pitkä nimi mahtuu useimmiten yhdelle riville, pikkukäyrät ovat samassa sarakkeessa ja Pysähtynyt-merkki näkyy kehystettynä päivämäärän vieressä. Selitteiden päivämäärä on lauseen sisällä pienellä alkukirjaimella (esim. Viimeisin kerta maanantai 5. lokakuuta)."
     ] },
@@ -11995,9 +11999,9 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       var entry = state.manualMax[key];
       var weightHtml;
       if(entry){
-        weightHtml = '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:14px; text-align:right; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>';
+        weightHtml = '<div style="font-variant-numeric:tabular-nums; color:var(--brass); font-weight:700; font-size:var(--fs-sm); text-align:right; padding-right:6px;">' + String(entry.weight).replace(".", ",") + ' kg</div>';
       } else if(r.own){
-        weightHtml = '<div style="color:var(--mist); font-size:12.5px; text-align:right; padding-right:6px;">Ei vielä asetettu</div>';
+        weightHtml = '<div style="color:var(--mist); font-size:var(--fs-xs); text-align:right; padding-right:6px;">Ei vielä asetettu</div>';
       } else {
         // Liike käyttää vain 1RM-pohjaa: ei omaa arvoa, joten nimi ja selite
         // saavat koko rivin leveyden.
@@ -12027,14 +12031,14 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(est && isFinite(est.weight) && (!entry || est.weight !== entry.weight)){
         var adopt = floorToStep(est.raw, 2.5);
         var adoptStr = String(adopt).replace(".", ",");
-        estHtml = '<div class="max-estimate"><span>Kehityksen arvio <b>' + String(est.weight).replace(".", ",") + ' kg</b> (' + escapeHtml(formatDateShortFI(est.date)) + ')</span>' +
+        estHtml = '<div class="max-estimate"><span>Kehityksen arvio <span class="max-estimate-value"><b>' + String(est.weight).replace(".", ",") + ' kg</b> (' + escapeHtml(formatDateShortFI(est.date)) + ')</span></span>' +
           ((!r.refs.length && adopt > 0 && (!entry || adopt !== entry.weight))
             ? '<button type="button" class="btn-secondary btn-sm btn-auto" data-adopt-max data-name="' + escapeHtml(key) + '" data-weight="' + adopt + '" aria-label="Käytä arviota: ' + escapeHtml(capitalize(r.name)) + ' 1RM ' + adoptStr + ' kg">Käytä ' + adoptStr + ' kg</button>'
             : '') +
           '</div>';
       }
-      return '<div class="ledger-row" style="grid-template-columns:1fr 116px 32px; border-bottom:1px solid var(--hairline); padding:8px 0;">' +
-        '<div' + (r.own ? '' : ' style="grid-column:1 / -1;"') + '><div style="font-size:14px;">' + escapeHtml(capitalize(r.name)) + '</div>' + noteHtml + '</div>' +
+      return '<div class="ledger-row" style="grid-template-columns:minmax(0,1fr) auto 32px; border-bottom:1px solid var(--hairline); padding:8px 0;">' +
+        '<div' + (r.own ? '' : ' style="grid-column:1 / -1;"') + '><div style="font-size:var(--fs-sm);">' + escapeHtml(capitalize(r.name)) + '</div>' + noteHtml + '</div>' +
         weightHtml +
         deleteBtn +
         estHtml +
