@@ -5,9 +5,12 @@ const URL = 'http://127.0.0.1:8765/index.html';
 let fails = 0;
 function ok(cond, msg){ if(cond){ console.log('  ok   ' + msg); } else { fails++; console.log('  FAIL ' + msg); } }
 const w = ms => new Promise(r => setTimeout(r, ms));
-const BENCH = 'Penkkipunnerrus tangolla, Suora tanko';
-const PAUSE = 'Pysäytyspenkkipunnerrus tangolla, Suora tanko';
-const SQUAT = 'Takakyykky tangolla, Suora tanko';
+const BENCH = 'Penkkipunnerrus tangolla';
+// Kirjaston ja nimimuunnosten ulkopuolinen nimi, jotta CSV-tuonti ei liitä
+// sitä kirjastoon (Pysäytyspenkkipunnerrus tangolla, Suora tanko lisättiin
+// taulukkoon 19.10.2026).
+const PAUSE = 'Pysäytyspenkki tangolla';
+const SQUAT = 'Takakyykky tangolla';
 const kb = n => n.trim().toLowerCase();
 function intensity(t){
   if(!t) return null;
@@ -185,7 +188,8 @@ async function uploadBackup(page, text, name){
   ok(exs.length === 3 && exs[0].name === BENCH && exs[1].name === PAUSE && exs[2].name === 'Kulmasoutu', '6 liikkeiden nimet oikein (1RM-pohja ei vie Liike-saraketta): ' + exs.map(e => e.name).join(' | '));
   ok(exs[1] && exs[1].maxRef === BENCH && exs[1].intensity && exs[1].intensity.percents.join() === '70', '6 1RM-pohja luettu ja teho ennallaan');
   ok(exs[0] && !('maxRef' in exs[0]) && !('maxRef' in exs[2]), '6 tyhjä solu ei lisää kenttää');
-  ok(exs[1] && Object.keys(exs[1]).join() === 'id,name,sets,reps,unit,weight,notes,intensity,kind,autoCalc,maxRef', '6 avainjärjestys (1RM-pohja viimeisenä): ' + (exs[1] ? Object.keys(exs[1]).join() : ''));
+  // 0.5.0: kirjaston liikkeeseen osuva 1RM-pohja saa perään tunnisteensa (maxRefId).
+  ok(exs[1] && Object.keys(exs[1]).join() === 'id,name,sets,reps,unit,weight,notes,intensity,kind,autoCalc,maxRef,maxRefId' && exs[1].maxRefId === 'penkkipunnerrus-tangolla', '6 avainjärjestys (1RM-pohja ja sen kirjastotunniste viimeisinä): ' + (exs[1] ? Object.keys(exs[1]).join() : ''));
   await seed(page, { program: null });
   const csv2 = 'Viikko;Treenipäivä;Liike;Sarjat;Toistot;Teho\n1;1;' + PAUSE + ';3;3;70 %\n1;1;Kulmasoutu;3;8;\n';
   await page.setInputFiles('#program-file-initial', { name: 'vanha.csv', mimeType: 'text/csv', buffer: Buffer.from(csv2, 'utf8') });
@@ -206,10 +210,12 @@ async function uploadBackup(page, text, name){
   await openSettings(page, 'varmuuskopio');
   const backup = await download(page);
   const progLines = sectionLines(backup, '#OHJELMA');
-  ok(progLines[0] && /,"Viitetoistot","1RM-pohja"$/.test(progLines[0]), '7 otsikon viimeiset sarakkeet Viitetoistot, 1RM-pohja: ' + (progLines[0] || '').slice(-40));
+  // 0.5.0: 1RM-pohjan perässä kirjaston sarakkeet Liiketunniste, Alkuperäinen nimi
+  // ja 1RM-pohjan liiketunniste (tämän testin nimet eivät ole siirron taulukossa).
+  ok(progLines[0] && /,"Viitetoistot","1RM-pohja","Liiketunniste","Alkuperäinen nimi","1RM-pohjan liiketunniste"$/.test(progLines[0]), '7 otsikossa Viitetoistot ja 1RM-pohja ennen kirjaston sarakkeita: ' + (progLines[0] || '').slice(-100));
   const pauseLine = progLines.find(l => l.indexOf('"p1"') !== -1) || '';
-  ok(/,"Penkkipunnerrus tangolla, Suora tanko"$/.test(pauseLine), '7 pysäytyspenkin rivillä 1RM-pohja: ' + pauseLine.slice(-60));
-  ok(progLines.filter(l => l.indexOf('"b1"') !== -1 || l.indexOf('"k1"') !== -1).every(l => /,""$/.test(l)), '7 muilla riveillä tyhjä 1RM-pohja');
+  ok(/,"Penkkipunnerrus tangolla","","",""$/.test(pauseLine), '7 pysäytyspenkin rivillä 1RM-pohja: ' + pauseLine.slice(-60));
+  ok(progLines.filter(l => l.indexOf('"b1"') !== -1 || l.indexOf('"k1"') !== -1).every(l => /,"","","",""$/.test(l)), '7 muilla riveillä tyhjä 1RM-pohja');
   await seed(page, { program: null });
   await uploadBackup(page, backup);
   await page.click('[data-restore-confirm]'); await w(900);
@@ -224,9 +230,10 @@ async function uploadBackup(page, text, name){
     const start = all.findIndex(x => x.trim() === '"#OHJELMA"');
     let end = all.findIndex((x, j) => j > start && /^"#/.test(x.trim()));
     if(end === -1) end = all.length;
-    return (i > start && i < end && l.trim()) ? l.slice(0, l.lastIndexOf('","') + 1) : l;
+    // 0.4.23:n muoto: Viitetoistot viimeisenä (1RM-pohja ja 0.5.0:n sarakkeet pois).
+    return (i > start && i < end && l.trim()) ? '"' + l.trim().slice(1, -1).split('","').slice(0, 22).join('","') + '"' : l;
   }).join('\n');
-  ok(/,"Viitetoistot"$/.test(sectionLines(oldBackup, '#OHJELMA')[0]) && sectionLines(oldBackup, '#OHJELMA').every(l => l.indexOf('1RM-pohja') === -1 && !/,"Penkkipunnerrus tangolla, Suora tanko"$/.test(l)), '8 vanhan muodon otsikko päättyy Viitetoistot-sarakkeeseen');
+  ok(/,"Viitetoistot"$/.test(sectionLines(oldBackup, '#OHJELMA')[0]) && sectionLines(oldBackup, '#OHJELMA').every(l => l.indexOf('1RM-pohja') === -1 && !/,"Penkkipunnerrus tangolla"$/.test(l)), '8 vanhan muodon otsikko päättyy Viitetoistot-sarakkeeseen');
   await seed(page, { program: null });
   await uploadBackup(page, oldBackup, 'vanha.csv');
   await page.click('[data-restore-confirm]'); await w(900);

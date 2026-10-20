@@ -1,0 +1,269 @@
+Lähde,Vanha rivi,Vanha nimi (nimi | variaatio | lisävariaatio),Vanha lihasryhmä,Uusi tunniste,Uusi näyttönimi,Toimenpide,Perustelu
+Vanha liikelista v19.10.2026,3,Alatalja muu kahva | Köydellä,Selkä,alataljasoutu-koysi,"Alataljasoutu, Köysi",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,4,Alatalja muu kahva | Hihnoilla,Selkä,alataljasoutu-hihnat,"Alataljasoutu, Hihnat",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,5,Alatalja muu kahva | Lapiokahva,Selkä,alataljasoutu-lapiokahva,"Alataljasoutu, Lapiokahva",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,6,Alatalja muu kahva | V-kahva,Selkä,alataljasoutu-v-kahva,"Alataljasoutu, V-kahva",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,7,Alatalja suora tanko | Kapea ote | Myötäotteella,Selkä,alataljasoutu-kapealla-myotaotteella-suora-tanko,"Alataljasoutu kapealla myötäotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,8,Alatalja suora tanko | Kapea ote | Vastaotteella,Selkä,alataljasoutu-kapealla-vastaotteella-suora-tanko,"Alataljasoutu kapealla vastaotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,9,Alatalja suora tanko | Leveä ote,Selkä,alataljasoutu-levealla-otteella-suora-tanko,"Alataljasoutu leveällä otteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,10,Askelkävely lisäpainolla | Käsipainoilla,Jalat,askelkyykkykavely-kasipainoilla,Askelkyykkykävely käsipainoilla,Nimetty uudelleen,Vakiintunut nimi on askelkyykkykävely.
+Vanha liikelista v19.10.2026,11,Askelkävely lisäpainolla | Muu lisäpaino,Jalat,,,Poistettu,"Yleisluokka ""muu lisäpaino"" korvattu välinekohtaisilla riveillä (käsipainot, tanko)."
+Vanha liikelista v19.10.2026,12,Askelkävely lisäpainolla | Tangolla,Jalat,askelkyykkykavely-tangolla,Askelkyykkykävely tangolla,Nimetty uudelleen,Vakiintunut nimi on askelkyykkykävely.
+Vanha liikelista v19.10.2026,13,Burpee | Kevennetty,Koko vartalo,kevennetty-burpee,Kevennetty burpee,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,14,Burpee | Tangon yli,Koko vartalo,burpee-tangon-yli,Burpee tangon yli,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,15,Burpee,Koko vartalo,burpee,Burpee,Ennallaan,
+Vanha liikelista v19.10.2026,16,California press,Ojentajat,california-press-tangolla,California press tangolla,Nimetty uudelleen,Väline lisätty nimeen.
+Vanha liikelista v19.10.2026,17,Devils press,Koko vartalo,devil-press-kasipainoilla,Devil press käsipainoilla,Nimetty uudelleen,Vakiintunut kirjoitusasu devil press; väline lisätty nimeen.
+Vanha liikelista v19.10.2026,18,Dippi,Rinta,dippi,Dippi,Ennallaan,
+Vanha liikelista v19.10.2026,19,"Dippi, kevennetty",Rinta,avustettu-dippi-laitteessa,Avustettu dippi laitteessa,Tulkittu – tarkista,Kevennetty dippi tulkittu laitteessa avustetuksi dipiksi.
+Vanha liikelista v19.10.2026,20,Dragon flag,Vatsa ja keskivartalo,dragon-flag,Dragon flag,Ennallaan,
+Vanha liikelista v19.10.2026,21,Etunojapunnerrus,Rinta,punnerrus,Punnerrus,Nimetty uudelleen,Yleisin nimi on punnerrus; etunojapunnerrus muissa nimissä.
+Vanha liikelista v19.10.2026,22,"Etunojapunnerrus, kevennetty",Rinta,punnerrus-polvet-maassa,Punnerrus polvet maassa,Tulkittu – tarkista,Kevennetty tulkittu polvet maassa -versioksi. Toinen kevennetty versio on Punnerrus kädet korokkeella.
+Vanha liikelista v19.10.2026,23,Etunosto käsipainoilla,Olkapäät,vipunosto-eteen-kasipainoilla,Vipunosto eteen käsipainoilla,Nimetty uudelleen,Yleisin nimi on vipunosto eteen.
+Vanha liikelista v19.10.2026,24,Etunosto taljassa | Kahvalla,Olkapäät,vipunosto-eteen-taljassa-lapiokahva,"Vipunosto eteen taljassa, Lapiokahva",Tulkittu – tarkista,Yleisin nimi on vipunosto eteen. Yksittäinen kahva yhtenäistetty lapiokahvaksi.
+Vanha liikelista v19.10.2026,25,Etunosto taljassa | Köydellä,Olkapäät,vipunosto-eteen-taljassa-koysi,"Vipunosto eteen taljassa, Köysi",Nimetty uudelleen,Yleisin nimi on vipunosto eteen.
+Vanha liikelista v19.10.2026,26,Etunosto taljassa | Hihnoilla,Olkapäät,vipunosto-eteen-taljassa-hihnat,"Vipunosto eteen taljassa, Hihnat",Nimetty uudelleen,Yleisin nimi on vipunosto eteen.
+Vanha liikelista v19.10.2026,27,Etunosto taljassa | Tangolla,Olkapäät,vipunosto-eteen-taljassa-suora-tanko,"Vipunosto eteen taljassa, Suora tanko",Nimetty uudelleen,Yleisin nimi on vipunosto eteen.
+Vanha liikelista v19.10.2026,28,Flyes käsipainoilla,Rinta,flyes-kasipainoilla,Flyes käsipainoilla,Ennallaan,
+Vanha liikelista v19.10.2026,29,Flyes ristitaljassa,Rinta,ristikkaistalja-keskelta,Ristikkäistalja keskeltä,Nimetty uudelleen,Sama liike kuin ristikkäistalja; vedon korkeus on lisävariaatio.
+Vanha liikelista v19.10.2026,30,Hack-kyykky | Kapea asento,Jalat,hack-kyykky-laitteessa-kapealla-jalka-asennolla,Hack-kyykky laitteessa kapealla jalka-asennolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,31,Hack-kyykky | Leveä asento,Jalat,hack-kyykky-laitteessa-levealla-jalka-asennolla,Hack-kyykky laitteessa leveällä jalka-asennolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,32,Hack-kyykky | Medium-asento,Jalat,hack-kyykky-laitteessa,Hack-kyykky laitteessa,Nimetty uudelleen,Keskileveä asento on perusversio.
+Vanha liikelista v19.10.2026,33,Hauiskääntö koneessa,Hauis,hauiskaanto-laitteessa,Hauiskääntö laitteessa,Nimetty uudelleen,Laitteessa yhtenäistetty sanamuoto.
+Vanha liikelista v19.10.2026,34,Hauiskääntö käsipainoilla | Hammerote | Tasatahtiin,Hauis,vasarakaanto-kasipainoilla-tasatahtiin,Vasarakääntö käsipainoilla tasatahtiin,Nimetty uudelleen,Vasaraotteella tehtävä käsipainokääntö on vasarakääntö.
+Vanha liikelista v19.10.2026,35,Hauiskääntö käsipainoilla | Hammerote | Vuorotahtiin,Hauis,vasarakaanto-kasipainoilla-vuorotahtiin,Vasarakääntö käsipainoilla vuorotahtiin,Nimetty uudelleen,Vasaraotteella tehtävä käsipainokääntö on vasarakääntö.
+Vanha liikelista v19.10.2026,36,Hauiskääntö käsipainoilla | Tasatahtiin,Hauis,hauiskaanto-kasipainoilla-tasatahtiin,Hauiskääntö käsipainoilla tasatahtiin,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,37,Hauiskääntö käsipainoilla | Vuorotahtiin,Hauis,hauiskaanto-kasipainoilla-vuorotahtiin,Hauiskääntö käsipainoilla vuorotahtiin,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,38,Hauiskääntö taljassa | Maaten | Köydellä,Hauis,hauiskaanto-taljassa-maaten-koysi,"Hauiskääntö taljassa maaten, Köysi",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,39,Hauiskääntö taljassa | Hihnoilla | Per käsi,Hauis,hauiskaanto-taljassa-yhdella-kadella-hihnat,"Hauiskääntö taljassa yhdellä kädellä, Hihnat",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,40,Hauiskääntö taljassa | Maaten | Per käsi,Hauis,hauiskaanto-taljassa-maaten-yhdella-kadella,Hauiskääntö taljassa maaten yhdellä kädellä,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,41,Hauiskääntö taljassa | Maaten | Scott-kahva,Hauis,hauiskaanto-taljassa-maaten-scott-kahva,"Hauiskääntö taljassa maaten, Scott-kahva",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,42,Hauiskääntö taljassa | Maaten | Suorakahvalla,Hauis,hauiskaanto-taljassa-maaten-suorakahva,"Hauiskääntö taljassa maaten, Suorakahva",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,43,Hauiskääntö taljassa | Köydellä,Hauis,hauiskaanto-taljassa-koysi,"Hauiskääntö taljassa, Köysi",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,44,Hauiskääntö taljassa | Hihnoilla,Hauis,hauiskaanto-taljassa-hihnat,"Hauiskääntö taljassa, Hihnat",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,45,Hauiskääntö taljassa | Per käsi,Hauis,hauiskaanto-taljassa-yhdella-kadella,Hauiskääntö taljassa yhdellä kädellä,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,46,Hauiskääntö taljassa | Ristitaljassa,Hauis,hauiskaanto-ristikkaistaljassa,Hauiskääntö ristikkäistaljassa,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,47,Hauiskääntö taljassa | Scott-kahva,Hauis,hauiskaanto-taljassa-scott-kahva,"Hauiskääntö taljassa, Scott-kahva",Ennallaan,
+Vanha liikelista v19.10.2026,48,Hauiskääntö taljassa | Suorakahva,Hauis,hauiskaanto-taljassa-suorakahva,"Hauiskääntö taljassa, Suorakahva",Ennallaan,
+Vanha liikelista v19.10.2026,49,Hauiskääntö tangolla | Scott-tanko | Myötäotteella,Hauis,hauiskaanto-tangolla-myotaotteella-scott-tanko,"Hauiskääntö tangolla myötäotteella, Scott-tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,50,Hauiskääntö tangolla | Suoratanko | Myötäotteella,Hauis,hauiskaanto-tangolla-myotaotteella-suora-tanko,"Hauiskääntö tangolla myötäotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,51,Hauiskääntö tangolla | Suoratanko | Vastaotteella,Hauis,hauiskaanto-tangolla-suora-tanko,"Hauiskääntö tangolla, Suora tanko",Nimetty uudelleen,Vastaote on hauiskäännön perusote.
+Vanha liikelista v19.10.2026,52,Istumaannousu,Vatsa ja keskivartalo,istumaannousu,Istumaannousu,Ennallaan,
+Vanha liikelista v19.10.2026,53,Istumaannousu lisäpainolla,Vatsa ja keskivartalo,istumaannousu,Istumaannousu,Yhdistetty,Lisäpaino kirjataan painona (kirjaustapa: lisäpaino ja toistot). Sama kohde kuin vanhalla rivillä 52.
+Vanha liikelista v19.10.2026,54,Jalannosto maaten | Tasatahtiin,Vatsa ja keskivartalo,jalkojen-nosto-maaten-tasatahtiin,Jalkojen nosto maaten tasatahtiin,Nimetty uudelleen,Yleisin muoto on jalkojen nosto.
+Vanha liikelista v19.10.2026,55,Jalannosto maaten | Vuorotahtiin,Vatsa ja keskivartalo,jalkojen-nosto-maaten-vuorotahtiin,Jalkojen nosto maaten vuorotahtiin,Nimetty uudelleen,Yleisin muoto on jalkojen nosto.
+Vanha liikelista v19.10.2026,56,Jalkaprässi | Kapea asento,Jalat,jalkaprassi-kapealla-jalka-asennolla,Jalkaprässi kapealla jalka-asennolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,57,Jalkaprässi | Leveä asento,Jalat,jalkaprassi-levealla-jalka-asennolla,Jalkaprässi leveällä jalka-asennolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,58,Jalkaprässi | Medium-asento,Jalat,jalkaprassi,Jalkaprässi,Nimetty uudelleen,Keskileveä asento on perusversio.
+Vanha liikelista v19.10.2026,59,JM Press | Scott-tanko,Ojentajat,jm-press-tangolla-scott-tanko,"JM press tangolla, Scott-tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,60,JM Press | Suoratanko,Ojentajat,jm-press-tangolla-suora-tanko,"JM press tangolla, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,61,JM Press Smith-laitteessa,Ojentajat,jm-press-smith-laitteessa,JM press Smith-laitteessa,Ennallaan,
+Vanha liikelista v19.10.2026,62,Kulmasoutu käsipainoilla | Molemmat kädet,Selkä,kulmasoutu-kasipainoilla,Kulmasoutu käsipainoilla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,63,Kulmasoutu käsipainoilla | Per käsi,Selkä,yhden-kaden-kulmasoutu-kasipainolla,Yhden käden kulmasoutu käsipainolla,Nimetty uudelleen,Vakiintunut nimi on yhden käden kulmasoutu.
+Vanha liikelista v19.10.2026,64,Kulmasoutu taljassa | Suoratanko | Myötäotteella,Selkä,kulmasoutu-taljassa-myotaotteella-suora-tanko,"Kulmasoutu taljassa myötäotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,65,Kulmasoutu taljassa | Suoratanko | Vastaotteella,Selkä,kulmasoutu-taljassa-vastaotteella-suora-tanko,"Kulmasoutu taljassa vastaotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,66,Kulmasoutu taljassa | H-kahva,Selkä,kulmasoutu-taljassa-h-kahva,"Kulmasoutu taljassa, H-kahva",Ennallaan,
+Vanha liikelista v19.10.2026,67,Kulmasoutu taljassa | T-kahva,Selkä,kulmasoutu-taljassa-t-kahva,"Kulmasoutu taljassa, T-kahva",Ennallaan,
+Vanha liikelista v19.10.2026,68,Kulmasoutu tangolla | Suoratanko | Myötäotteella,Selkä,kulmasoutu-tangolla-suora-tanko,"Kulmasoutu tangolla, Suora tanko",Nimetty uudelleen,Myötäote on kulmasoudun perusote.
+Vanha liikelista v19.10.2026,69,Kulmasoutu tangolla | Suoratanko | Vastaotteella,Selkä,kulmasoutu-tangolla-vastaotteella-suora-tanko,"Kulmasoutu tangolla vastaotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,70,Kulmasoutu tangolla | H-kahva,Selkä,t-tankosoutu-h-kahva,"T-tankosoutu, H-kahva",Tulkittu – tarkista,Kahvalla tehtävä tankosoutu tulkittu T-tankosoudoksi.
+Vanha liikelista v19.10.2026,71,Kulmasoutu tangolla | Scott,Selkä,kulmasoutu-tangolla-scott-tanko,"Kulmasoutu tangolla, Scott-tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,72,Kulmasoutu tangolla | T-kahva,Selkä,t-tankosoutu-t-kahva,"T-tankosoutu, T-kahva",Nimetty uudelleen,T-kahvalla tehtävä tankosoutu on T-tankosoutu.
+Vanha liikelista v19.10.2026,73,"Kyykky, bulgarialainen | Muu lisäpaino",Jalat,bulgarialainen-askelkyykky-kasipainoilla,Bulgarialainen askelkyykky käsipainoilla,Tulkittu – tarkista,"""Muu lisäpaino"" tulkittu käsipainoiksi, joille ei ollut omaa riviä."
+Vanha liikelista v19.10.2026,74,"Kyykky, bulgarialainen | Smith-laitteessa",Jalat,bulgarialainen-askelkyykky-smith-laitteessa,Bulgarialainen askelkyykky Smith-laitteessa,Nimetty uudelleen,Vakiintunut nimi on bulgarialainen askelkyykky.
+Vanha liikelista v19.10.2026,75,"Kyykky, bulgarialainen | Tangolla",Jalat,bulgarialainen-askelkyykky-tangolla,Bulgarialainen askelkyykky tangolla,Nimetty uudelleen,Vakiintunut nimi on bulgarialainen askelkyykky.
+Vanha liikelista v19.10.2026,76,"Kyykky, etu | Pysäytyksin | Käsipainoilla",Jalat,etukyykky-kasipainoilla-pysaytyksin,Etukyykky käsipainoilla pysäytyksin,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,77,"Kyykky, etu | Pysäytyksin | Tangolla",Jalat,etukyykky-tangolla-pysaytyksin,Etukyykky tangolla pysäytyksin,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,78,"Kyykky, etu | Käsipainoilla",Jalat,etukyykky-kasipainoilla,Etukyykky käsipainoilla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,79,"Kyykky, etu | Muu paino",Jalat,,,Poistettu,"Yleisluokka ""muu paino"" korvattu välinekohtaisilla riveillä. Kahvakuula rinnan edessä: Goblet-kyykky kahvakuulalla."
+Vanha liikelista v19.10.2026,80,"Kyykky, etu | Tangolla",Jalat,etukyykky-tangolla,Etukyykky tangolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,81,"Kyykky, etu, Smith-laitteessa | Pysäytyksin",Jalat,etukyykky-smith-laitteessa-pysaytyksin,Etukyykky Smith-laitteessa pysäytyksin,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,82,"Kyykky, etu, Smith-laitteessa",Jalat,etukyykky-smith-laitteessa,Etukyykky Smith-laitteessa,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,83,"Kyykky, taka | Pysäytyksin | Tangolla",Jalat,takakyykky-tangolla-pysaytyksin,Takakyykky tangolla pysäytyksin,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,84,"Kyykky, taka | Muu paino",Jalat,,,Poistettu,"Yleisluokka ""muu paino"" korvattu välinekohtaisilla riveillä (esim. Takakyykky SSB-tangolla)."
+Vanha liikelista v19.10.2026,85,"Kyykky, taka | Tangolla",Jalat,takakyykky-tangolla,Takakyykky tangolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,86,"Kyykky, taka, Smith-laitteessa | Pysäytyksin",Jalat,takakyykky-smith-laitteessa-pysaytyksin,Takakyykky Smith-laitteessa pysäytyksin,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,87,"Kyykky, taka, Smith-laitteessa",Jalat,takakyykky-smith-laitteessa,Takakyykky Smith-laitteessa,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,88,Lankku,Vatsa ja keskivartalo,lankku,Lankku,Ennallaan,
+Vanha liikelista v19.10.2026,89,"Lankku, kevennetty",Vatsa ja keskivartalo,lankku-polvet-maassa,Lankku polvet maassa,Tulkittu – tarkista,Kevennetty tulkittu polvet maassa -versioksi.
+Vanha liikelista v19.10.2026,90,Lantionnosto laitteessa,Pakara,lantionnosto-laitteessa,Lantionnosto laitteessa,Ennallaan,
+Vanha liikelista v19.10.2026,91,Lantionnosto tangolla,Pakara,lantionnosto-tangolla,Lantionnosto tangolla,Ennallaan,Hartiat penkillä (hip thrust). Lattialta tehtävä versio omana rivinä.
+Vanha liikelista v19.10.2026,92,Lattiasoutu | Käsipainoilla,Selkä,pendlay-soutu-kasipainoilla,Pendlay-soutu käsipainoilla,Tulkittu – tarkista,Lattialta jokaisella toistolla tehtävä soutu tulkittu Pendlay-soudoksi.
+Vanha liikelista v19.10.2026,93,Lattiasoutu | Tangolla,Selkä,pendlay-soutu-tangolla,Pendlay-soutu tangolla,Tulkittu – tarkista,Lattialta jokaisella toistolla tehtävä tankosoutu tulkittu Pendlay-soudoksi.
+Vanha liikelista v19.10.2026,94,Levypainotwist,Vatsa ja keskivartalo,venalainen-kierto,Venäläinen kierto,Nimetty uudelleen,Yleisin nimi on venäläinen kierto; levypaino kirjataan lisäpainona.
+Vanha liikelista v19.10.2026,95,Maastaveto | Käsipainoilla,Selkä,maastaveto-kasipainoilla,Maastaveto käsipainoilla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,96,Maastaveto | Tangolla,Selkä,maastaveto-tangolla,Maastaveto tangolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,97,"Maastaveto, korokkeelta | Käsipainoilla",Selkä,maastaveto-kasipainoilla-korokkeella-seisten,Maastaveto käsipainoilla korokkeella seisten,Tulkittu – tarkista,"""Korokkeelta"" tulkittu korokkeella seisomiseksi (deficit). Tangon nosto korokkeelta tai telineestä: Räkkiveto."
+Vanha liikelista v19.10.2026,98,"Maastaveto, korokkeelta | Tangolla",Selkä,maastaveto-tangolla-korokkeella-seisten,Maastaveto tangolla korokkeella seisten,Tulkittu – tarkista,"""Korokkeelta"" tulkittu korokkeella seisomiseksi (deficit). Tangon nosto korokkeelta tai telineestä: Räkkiveto."
+Vanha liikelista v19.10.2026,99,"Maastaveto, suorinjaloin | Käsipainoilla",Selkä,suorin-jaloin-maastaveto-kasipainoilla,Suorin jaloin maastaveto käsipainoilla,Nimetty uudelleen,Oikea kirjoitusasu suorin jaloin.
+Vanha liikelista v19.10.2026,100,"Maastaveto, suorinjaloin | Tangolla",Selkä,suorin-jaloin-maastaveto-tangolla,Suorin jaloin maastaveto tangolla,Nimetty uudelleen,Oikea kirjoitusasu suorin jaloin.
+Vanha liikelista v19.10.2026,101,"Maastaveto, suorinjaloin, korokkeelta | Käsipainoilla",Selkä,suorin-jaloin-maastaveto-kasipainoilla-korokkeella-seisten,Suorin jaloin maastaveto käsipainoilla korokkeella seisten,Tulkittu – tarkista,"""Korokkeelta"" tulkittu korokkeella seisomiseksi (pidempi liikerata)."
+Vanha liikelista v19.10.2026,102,"Maastaveto, suorinjaloin, korokkeelta | Tangolla",Selkä,suorin-jaloin-maastaveto-tangolla-korokkeella-seisten,Suorin jaloin maastaveto tangolla korokkeella seisten,Tulkittu – tarkista,"""Korokkeelta"" tulkittu korokkeella seisomiseksi (pidempi liikerata)."
+Vanha liikelista v19.10.2026,103,Ojentajatalja | Hihnoilla,Ojentajat,ojentajapunnerrus-taljassa-hihnat,"Ojentajapunnerrus taljassa, Hihnat",Nimetty uudelleen,Yleisin nimi on ojentajapunnerrus taljassa.
+Vanha liikelista v19.10.2026,104,Ojentajatalja | Köydellä,Ojentajat,ojentajapunnerrus-taljassa-koysi,"Ojentajapunnerrus taljassa, Köysi",Nimetty uudelleen,Yleisin nimi on ojentajapunnerrus taljassa.
+Vanha liikelista v19.10.2026,105,Ojentajatalja | Hihnoilla,Ojentajat,ojentajapunnerrus-taljassa-hihnat,"Ojentajapunnerrus taljassa, Hihnat",Yhdistetty,Yleisin nimi on ojentajapunnerrus taljassa. Sama kohde kuin vanhalla rivillä 103.
+Vanha liikelista v19.10.2026,106,Ojentajatalja | Lapiokahva,Ojentajat,ojentajapunnerrus-taljassa-lapiokahva,"Ojentajapunnerrus taljassa, Lapiokahva",Nimetty uudelleen,Yleisin nimi on ojentajapunnerrus taljassa.
+Vanha liikelista v19.10.2026,107,Ojentajatalja | Tangolla,Ojentajat,ojentajapunnerrus-taljassa-suora-tanko,"Ojentajapunnerrus taljassa, Suora tanko",Nimetty uudelleen,Yleisin nimi on ojentajapunnerrus taljassa.
+Vanha liikelista v19.10.2026,108,Ojentajatalja maaten | Hihnoilla,Ojentajat,ranskalainen-punnerrus-taljassa-hihnat,"Ranskalainen punnerrus taljassa, Hihnat",Nimetty uudelleen,Taljassa maaten tehtävä ojennus on ranskalainen punnerrus taljassa.
+Vanha liikelista v19.10.2026,109,Ojentajatalja maaten | Köydellä,Ojentajat,ranskalainen-punnerrus-taljassa-koysi,"Ranskalainen punnerrus taljassa, Köysi",Nimetty uudelleen,Taljassa maaten tehtävä ojennus on ranskalainen punnerrus taljassa.
+Vanha liikelista v19.10.2026,110,Ojentajatalja maaten | Lapiokahva,Ojentajat,ranskalainen-punnerrus-taljassa-lapiokahva,"Ranskalainen punnerrus taljassa, Lapiokahva",Nimetty uudelleen,Taljassa maaten tehtävä ojennus on ranskalainen punnerrus taljassa.
+Vanha liikelista v19.10.2026,111,Ojentajatalja maaten | Tangolla,Ojentajat,ranskalainen-punnerrus-taljassa-suora-tanko,"Ranskalainen punnerrus taljassa, Suora tanko",Nimetty uudelleen,Taljassa maaten tehtävä ojennus on ranskalainen punnerrus taljassa.
+Vanha liikelista v19.10.2026,112,Pec dec,Rinta,pec-deck,Pec deck,Nimetty uudelleen,Kirjoitusasu yhtenäistetty.
+Vanha liikelista v19.10.2026,113,Penkkipunnerrus,Rinta,penkkipunnerrus-tangolla,Penkkipunnerrus tangolla,Nimetty uudelleen,Väline lisätty nimeen.
+Vanha liikelista v19.10.2026,114,Penkkipunnerrus Smith-laitteessa,Rinta,penkkipunnerrus-smith-laitteessa,Penkkipunnerrus Smith-laitteessa,Ennallaan,
+Vanha liikelista v19.10.2026,115,"Penkkipunnerrus Smith-laitteessa, kapea",Rinta,penkkipunnerrus-smith-laitteessa-kapealla-otteella,Penkkipunnerrus Smith-laitteessa kapealla otteella,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,116,"Penkkipunnerrus, kapea",Rinta,penkkipunnerrus-tangolla-kapealla-otteella,Penkkipunnerrus tangolla kapealla otteella,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,117,"Penkkipunnerrus, käsipainoilla",Rinta,penkkipunnerrus-kasipainoilla,Penkkipunnerrus käsipainoilla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,118,"Penkkipunnerrus, lattialta | Käsipainoilla",Rinta,lattiapunnerrus-kasipainoilla,Lattiapunnerrus käsipainoilla,Nimetty uudelleen,Vakiintunut nimi on lattiapunnerrus.
+Vanha liikelista v19.10.2026,119,"Penkkipunnerrus, lattialta",Rinta,lattiapunnerrus-tangolla,Lattiapunnerrus tangolla,Nimetty uudelleen,Vakiintunut nimi on lattiapunnerrus.
+Vanha liikelista v19.10.2026,120,"Penkkipunnerrus, vino | 10 astetta",Rinta,vinopenkkipunnerrus-tangolla-10-astetta,"Vinopenkkipunnerrus tangolla, 10 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,121,"Penkkipunnerrus, vino | 20 astetta",Rinta,vinopenkkipunnerrus-tangolla-20-astetta,"Vinopenkkipunnerrus tangolla, 20 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,122,"Penkkipunnerrus, vino | 30 astetta",Rinta,vinopenkkipunnerrus-tangolla-30-astetta,"Vinopenkkipunnerrus tangolla, 30 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,123,"Penkkipunnerrus, vino Smith-laitteessa | 10 astetta",Rinta,vinopenkkipunnerrus-smith-laitteessa-10-astetta,"Vinopenkkipunnerrus Smith-laitteessa, 10 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,124,"Penkkipunnerrus, vino, käsipainoilla | 10 astetta",Rinta,vinopenkkipunnerrus-kasipainoilla-10-astetta,"Vinopenkkipunnerrus käsipainoilla, 10 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,125,"Penkkipunnerrus, vino, käsipainoilla | 20 astetta",Rinta,vinopenkkipunnerrus-kasipainoilla-20-astetta,"Vinopenkkipunnerrus käsipainoilla, 20 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,126,"Penkkipunnerrus, vino, käsipainoilla | 30 astetta",Rinta,vinopenkkipunnerrus-kasipainoilla-30-astetta,"Vinopenkkipunnerrus käsipainoilla, 30 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,127,"Penkkipunnerrus, vino, Smith-laitteessa | 20 astetta",Rinta,vinopenkkipunnerrus-smith-laitteessa-20-astetta,"Vinopenkkipunnerrus Smith-laitteessa, 20 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,128,"Penkkipunnerrus, vino, Smith-laitteessa | 30 astetta",Rinta,vinopenkkipunnerrus-smith-laitteessa-30-astetta,"Vinopenkkipunnerrus Smith-laitteessa, 30 astetta",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,129,Pohjenousu koneessa | Istuen,Pohkeet,pohjenousu-laitteessa-istuen,Pohjenousu laitteessa istuen,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,130,Pohjenousu koneessa | Seisten,Pohkeet,pohjenousu-laitteessa-seisten,Pohjenousu laitteessa seisten,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,131,Pohjenousu koneessa | Istuen | Per jalka,Pohkeet,pohjenousu-laitteessa-istuen-yhdella-jalalla,Pohjenousu laitteessa istuen yhdellä jalalla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,132,Pohjenousu koneessa | Seisten | Per jalka,Pohkeet,pohjenousu-laitteessa-seisten-yhdella-jalalla,Pohjenousu laitteessa seisten yhdellä jalalla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,133,Pohjenousu prässissä | Molemmat jalat,Pohkeet,pohjenousu-jalkaprassissa,Pohjenousu jalkaprässissä,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,134,Pohjenousu prässissä | Per jalka,Pohkeet,pohjenousu-jalkaprassissa-yhdella-jalalla,Pohjenousu jalkaprässissä yhdellä jalalla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,135,Pohjenousu Smith-laitteessa | Istuen,Pohkeet,pohjenousu-smith-laitteessa-istuen,Pohjenousu Smith-laitteessa istuen,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,136,Pohjenousu Smith-laitteessa | Seisten,Pohkeet,pohjenousu-smith-laitteessa-seisten,Pohjenousu Smith-laitteessa seisten,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,137,Pohjenousu Smith-laitteessa | Istuen | Per jalka,Pohkeet,pohjenousu-smith-laitteessa-istuen-yhdella-jalalla,Pohjenousu Smith-laitteessa istuen yhdellä jalalla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,138,Pohjenousu Smith-laitteessa | Seisten | Per jalka,Pohkeet,pohjenousu-smith-laitteessa-seisten-yhdella-jalalla,Pohjenousu Smith-laitteessa seisten yhdellä jalalla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,139,Pohjenousu vapailla painoilla | Istuen,Pohkeet,pohjenousu-kasipainoilla-istuen,Pohjenousu käsipainoilla istuen,Tulkittu – tarkista,Vapaat painot tulkittu käsipainoiksi; tangolla seisten oma rivi.
+Vanha liikelista v19.10.2026,140,Pohjenousu vapailla painoilla | Seisten,Pohkeet,pohjenousu-kasipainoilla-seisten,Pohjenousu käsipainoilla seisten,Tulkittu – tarkista,Vapaat painot tulkittu käsipainoiksi; tangolla seisten oma rivi.
+Vanha liikelista v19.10.2026,141,Pohjenousu vapailla painoilla | Istuen | Per jalka,Pohkeet,pohjenousu-kasipainoilla-istuen-yhdella-jalalla,Pohjenousu käsipainoilla istuen yhdellä jalalla,Tulkittu – tarkista,Vapaat painot tulkittu käsipainoiksi.
+Vanha liikelista v19.10.2026,142,Pohjenousu vapailla painoilla | Seisten | Per jalka,Pohkeet,pohjenousu-kasipainoilla-seisten-yhdella-jalalla,Pohjenousu käsipainoilla seisten yhdellä jalalla,Tulkittu – tarkista,Vapaat painot tulkittu käsipainoiksi.
+Vanha liikelista v19.10.2026,143,Pystypunnerrus koneessa,Olkapäät,pystypunnerrus-laitteessa,Pystypunnerrus laitteessa,Nimetty uudelleen,Laitteessa yhtenäistetty sanamuoto.
+Vanha liikelista v19.10.2026,144,Pystypunnerrus käsipainoilla | Istuen,Olkapäät,pystypunnerrus-kasipainoilla-istuen,Pystypunnerrus käsipainoilla istuen,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,145,Pystypunnerrus käsipainoilla | Seisten,Olkapäät,pystypunnerrus-kasipainoilla-seisten,Pystypunnerrus käsipainoilla seisten,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,146,Pystypunnerrus Smith-laitteessa | Istuen | Ilman tukea,Olkapäät,pystypunnerrus-smith-laitteessa-istuen-ilman-selkatukea,Pystypunnerrus Smith-laitteessa istuen ilman selkätukea,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,147,Pystypunnerrus Smith-laitteessa | Istuen | Selkä tuettuna,Olkapäät,pystypunnerrus-smith-laitteessa-istuen-selka-tuettuna,Pystypunnerrus Smith-laitteessa istuen selkä tuettuna,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,148,Pystypunnerrus Smith-laitteessa | Seisten,Olkapäät,pystypunnerrus-smith-laitteessa-seisten,Pystypunnerrus Smith-laitteessa seisten,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,149,Pystypunnerrus tangolla | Istuen | Ilman tukea,Olkapäät,pystypunnerrus-tangolla-istuen-ilman-selkatukea,Pystypunnerrus tangolla istuen ilman selkätukea,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,150,Pystypunnerrus tangolla | Istuen | Selkä tuettuna,Olkapäät,pystypunnerrus-tangolla-istuen-selka-tuettuna,Pystypunnerrus tangolla istuen selkä tuettuna,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,151,Pystypunnerrus tangolla | Seisten,Olkapäät,pystypunnerrus-tangolla-seisten,Pystypunnerrus tangolla seisten,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,152,Pystysoutu käsipainoilla,Olkapäät,pystysoutu-kasipainoilla,Pystysoutu käsipainoilla,Ennallaan,
+Vanha liikelista v19.10.2026,153,Pystysoutu taljassa | Scott-tanko,Olkapäät,pystysoutu-taljassa-scott-tanko,"Pystysoutu taljassa, Scott-tanko",Ennallaan,
+Vanha liikelista v19.10.2026,154,Pystysoutu taljassa | Suoratanko,Olkapäät,pystysoutu-taljassa-suora-tanko,"Pystysoutu taljassa, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,155,Pystysoutu tangolla | Scott-tanko,Olkapäät,pystysoutu-tangolla-scott-tanko,"Pystysoutu tangolla, Scott-tanko",Ennallaan,
+Vanha liikelista v19.10.2026,156,Pystysoutu tangolla | Suoratanko,Olkapäät,pystysoutu-tangolla-suora-tanko,"Pystysoutu tangolla, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,157,Ranskalainen käsipainoilla | Maaten,Ojentajat,ranskalainen-punnerrus-kasipainoilla,Ranskalainen punnerrus käsipainoilla,Nimetty uudelleen,Ranskalainen punnerrus tarkoittaa oletuksena maaten tehtävää.
+Vanha liikelista v19.10.2026,158,Ranskalainen käsipainoilla | Seisten,Ojentajat,ojentajapunnerrus-paan-yli-kasipainolla-seisten,Ojentajapunnerrus pään yli käsipainolla seisten,Nimetty uudelleen,Seisten tehtävä versio on ojentajapunnerrus pään yli.
+Vanha liikelista v19.10.2026,159,Ranskalainen käsipainoilla | Maaten | Per käsi,Ojentajat,ranskalainen-punnerrus-kasipainolla-yhdella-kadella,Ranskalainen punnerrus käsipainolla yhdellä kädellä,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,160,Ranskalainen käsipainoilla | Seisten | Per käsi,Ojentajat,ojentajapunnerrus-paan-yli-kasipainolla-seisten-yhdella-kadella,Ojentajapunnerrus pään yli käsipainolla seisten yhdellä kädellä,Nimetty uudelleen,Seisten tehtävä versio on ojentajapunnerrus pään yli.
+Vanha liikelista v19.10.2026,161,Ranskalainen punnerrus koneessa,Ojentajat,ojentajaojennus-laitteessa,Ojentajaojennus laitteessa,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,162,Ranskalainen punnerrus käsipainoilla,Ojentajat,ranskalainen-punnerrus-kasipainoilla,Ranskalainen punnerrus käsipainoilla,Yhdistetty,Sama kohde kuin vanhalla rivillä 157.
+Vanha liikelista v19.10.2026,163,Ranskalainen punnerrus taljassa | Köydellä,Ojentajat,ranskalainen-punnerrus-taljassa-koysi,"Ranskalainen punnerrus taljassa, Köysi",Tulkittu – tarkista,Asento puuttui; tulkittu maaten tehtäväksi (ranskalaisen punnerruksen perusasento). Sama kohde kuin vanhalla rivillä 109.
+Vanha liikelista v19.10.2026,164,Ranskalainen punnerrus taljassa | Hihnoilla,Ojentajat,ranskalainen-punnerrus-taljassa-hihnat,"Ranskalainen punnerrus taljassa, Hihnat",Tulkittu – tarkista,Asento puuttui; tulkittu maaten tehtäväksi. Sama kohde kuin vanhalla rivillä 108.
+Vanha liikelista v19.10.2026,165,Ranskalainen punnerrus taljassa | Scott-tanko,Ojentajat,ranskalainen-punnerrus-taljassa-scott-tanko,"Ranskalainen punnerrus taljassa, Scott-tanko",Tulkittu – tarkista,Asento puuttui; tulkittu maaten tehtäväksi.
+Vanha liikelista v19.10.2026,166,Ranskalainen punnerrus tangolla | Scott-tanko,Ojentajat,ranskalainen-punnerrus-tangolla-scott-tanko,"Ranskalainen punnerrus tangolla, Scott-tanko",Ennallaan,
+Vanha liikelista v19.10.2026,167,Ranskalainen punnerrus tangolla | Suoratanko,Ojentajat,ranskalainen-punnerrus-tangolla-suora-tanko,"Ranskalainen punnerrus tangolla, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,168,Ranskalainen taljassa maaten | Molemmat kädet | Köydellä,Ojentajat,ranskalainen-punnerrus-taljassa-koysi,"Ranskalainen punnerrus taljassa, Köysi",Yhdistetty,Sama kohde kuin vanhalla rivillä 109.
+Vanha liikelista v19.10.2026,169,Ranskalainen taljassa maaten | Per käsi | Köydellä,Ojentajat,ranskalainen-punnerrus-taljassa-yhdella-kadella-koysi,"Ranskalainen punnerrus taljassa yhdellä kädellä, Köysi",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,170,Ranskalainen taljassa maaten | Scott-tanko,Ojentajat,ranskalainen-punnerrus-taljassa-scott-tanko,"Ranskalainen punnerrus taljassa, Scott-tanko",Yhdistetty,Sama kohde kuin vanhalla rivillä 165.
+Vanha liikelista v19.10.2026,171,Ranskalainen taljassa maaten | Suoratanko,Ojentajat,ranskalainen-punnerrus-taljassa-suora-tanko,"Ranskalainen punnerrus taljassa, Suora tanko",Yhdistetty,Sama kohde kuin vanhalla rivillä 111.
+Vanha liikelista v19.10.2026,172,Ranskalainen taljassa seisten | Molemmat kädet | Köydellä,Ojentajat,ojentajapunnerrus-paan-yli-taljassa-koysi,"Ojentajapunnerrus pään yli taljassa, Köysi",Nimetty uudelleen,Seisten tehtävä versio on ojentajapunnerrus pään yli.
+Vanha liikelista v19.10.2026,173,Ranskalainen taljassa seisten | Per käsi | Köydellä,Ojentajat,ojentajapunnerrus-paan-yli-taljassa-yhdella-kadella-koysi,"Ojentajapunnerrus pään yli taljassa yhdellä kädellä, Köysi",Nimetty uudelleen,Seisten tehtävä versio on ojentajapunnerrus pään yli.
+Vanha liikelista v19.10.2026,174,Ranskalainen taljassa seisten | Scott-tanko,Ojentajat,ojentajapunnerrus-paan-yli-taljassa-scott-tanko,"Ojentajapunnerrus pään yli taljassa, Scott-tanko",Nimetty uudelleen,Seisten tehtävä versio on ojentajapunnerrus pään yli.
+Vanha liikelista v19.10.2026,175,Ranskalainen taljassa seisten | Suoratanko,Ojentajat,ojentajapunnerrus-paan-yli-taljassa-suora-tanko,"Ojentajapunnerrus pään yli taljassa, Suora tanko",Nimetty uudelleen,Seisten tehtävä versio on ojentajapunnerrus pään yli.
+Vanha liikelista v19.10.2026,176,Ranskalainen tangolla maaten | Scott-tanko,Ojentajat,ranskalainen-punnerrus-tangolla-scott-tanko,"Ranskalainen punnerrus tangolla, Scott-tanko",Yhdistetty,Sama kohde kuin vanhalla rivillä 166.
+Vanha liikelista v19.10.2026,177,Ranskalainen tangolla maaten | Suoratanko,Ojentajat,ranskalainen-punnerrus-tangolla-suora-tanko,"Ranskalainen punnerrus tangolla, Suora tanko",Yhdistetty,Sama kohde kuin vanhalla rivillä 167.
+Vanha liikelista v19.10.2026,178,Ranskalainen tangolla seisten | Scott-tanko,Ojentajat,ojentajapunnerrus-paan-yli-tangolla-seisten-scott-tanko,"Ojentajapunnerrus pään yli tangolla seisten, Scott-tanko",Nimetty uudelleen,Seisten tehtävä versio on ojentajapunnerrus pään yli.
+Vanha liikelista v19.10.2026,179,Ranskalainen tangolla seisten | Suoratanko,Ojentajat,ojentajapunnerrus-paan-yli-tangolla-seisten-suora-tanko,"Ojentajapunnerrus pään yli tangolla seisten, Suora tanko",Nimetty uudelleen,Seisten tehtävä versio on ojentajapunnerrus pään yli.
+Vanha liikelista v19.10.2026,180,Reidenkoukistus laitteessa | Istuen,Jalat,reiden-koukistus-laitteessa-istuen,Reiden koukistus laitteessa istuen,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,181,Reidenkoukistus laitteessa | Maaten,Jalat,reiden-koukistus-laitteessa-maaten,Reiden koukistus laitteessa maaten,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,182,Reidenojennus laitteessa | Istuen,Jalat,reiden-ojennus-laitteessa,Reiden ojennus laitteessa,Nimetty uudelleen,Reiden ojennus tehdään laitteessa aina istuen.
+Vanha liikelista v19.10.2026,183,Rintaprässi,Rinta,rintaprassi,Rintaprässi,Ennallaan,
+Vanha liikelista v19.10.2026,184,Ristitalja,Rinta,ristikkaistalja-keskelta,Ristikkäistalja keskeltä,Yhdistetty,Yleisin nimi on ristikkäistalja. Vedon korkeus lisätty; muut korkeudet omina riveinä. Sama kohde kuin vanhalla rivillä 29.
+Vanha liikelista v19.10.2026,185,Selänojennus penkissä,Selkä,selanojennus-penkissa,Selänojennus penkissä,Ennallaan,
+Vanha liikelista v19.10.2026,186,Supermies,Selkä,supermies,Supermies,Ennallaan,
+Vanha liikelista v19.10.2026,187,Tempaus | Käsipainolla,Koko vartalo,tempaus-kasipainolla,Tempaus käsipainolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,188,Tempaus | Levypainolla,Koko vartalo,tempaus-levypainolla,Tempaus levypainolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,189,Tempaus | Tangolla,Koko vartalo,tempaus-tangolla,Tempaus tangolla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,190,Tuettu soutu käsipainoilla | Käsipainoilla,Selkä,rintatuettu-soutu-kasipainoilla,Rintatuettu soutu käsipainoilla,Nimetty uudelleen,Vakiintunut nimi on rintatuettu soutu.
+Vanha liikelista v19.10.2026,191,Tuettu soutu laitteessa,Selkä,rintatuettu-soutu-laitteessa,Rintatuettu soutu laitteessa,Nimetty uudelleen,Vakiintunut nimi on rintatuettu soutu.
+Vanha liikelista v19.10.2026,192,Tuettu soutu tangolla,Selkä,seal-row-tangolla,Seal row tangolla,Tulkittu – tarkista,"Tulkittu seal row'ksi (vatsallaan penkillä tangolla). Jos tarkoitit rintatuettua T-tankosoutulaitetta, käytä Rintatuettu soutu laitteessa."
+Vanha liikelista v19.10.2026,193,Vatsarutistus | Maaten,Vatsa ja keskivartalo,vatsarutistus-lattialla,Vatsarutistus lattialla,Nimetty uudelleen,
+Vanha liikelista v19.10.2026,194,Vatsarutistus | Taljassa,Vatsa ja keskivartalo,vatsarutistus-taljassa-koysi,"Vatsarutistus taljassa, Köysi",Tulkittu – tarkista,Kahva puuttui; tulkittu köydeksi (tavallisin).
+Vanha liikelista v19.10.2026,195,Vatsarutistus lattialla,Vatsa ja keskivartalo,vatsarutistus-lattialla,Vatsarutistus lattialla,Yhdistetty,Sama kohde kuin vanhalla rivillä 193.
+Vanha liikelista v19.10.2026,196,Vatsarutistus taljassa,Vatsa ja keskivartalo,vatsarutistus-taljassa-koysi,"Vatsarutistus taljassa, Köysi",Tulkittu – tarkista,Kahva puuttui; tulkittu köydeksi (tavallisin). Sama kohde kuin vanhalla rivillä 194.
+Vanha liikelista v19.10.2026,197,Vipunosto käsipainoilla | Per käsi,Olkapäät,vipunosto-sivulle-kasipainolla-yhdella-kadella,Vipunosto sivulle käsipainolla yhdellä kädellä,Nimetty uudelleen,Suunta lisätty nimeen (vipunosto sivulle).
+Vanha liikelista v19.10.2026,198,Vipunosto käsipainoilla | Tasatahtiin,Olkapäät,vipunosto-sivulle-kasipainoilla,Vipunosto sivulle käsipainoilla,Nimetty uudelleen,Suunta lisätty nimeen (vipunosto sivulle). Tasatahtiin on perusversio.
+Vanha liikelista v19.10.2026,199,Vipunosto taljassa | Per käsi,Olkapäät,vipunosto-sivulle-taljassa-yhdella-kadella,Vipunosto sivulle taljassa yhdellä kädellä,Nimetty uudelleen,Suunta lisätty nimeen (vipunosto sivulle).
+Vanha liikelista v19.10.2026,200,Vipunosto taljassa | Ristitaljassa,Olkapäät,vipunosto-sivulle-taljassa-ristikkain,Vipunosto sivulle taljassa ristikkäin,Nimetty uudelleen,Suunta lisätty nimeen (vipunosto sivulle).
+Vanha liikelista v19.10.2026,201,Voimapyörä,Vatsa ja keskivartalo,vatsarullaus-polviltaan,Vatsarullaus polviltaan,Tulkittu – tarkista,Yleisin nimi on vatsarullaus. Tulkittu polviltaan tehtäväksi; seisaaltaan oma rivi.
+Vanha liikelista v19.10.2026,202,"Ylätalja, Legless, muu kahva | Köydellä",Selkä,legless-ylatalja-koysi,"Legless-ylätalja, Köysi",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,203,"Ylätalja, Legless, muu kahva | Hihnoilla",Selkä,legless-ylatalja-hihnat,"Legless-ylätalja, Hihnat",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,204,"Ylätalja, Legless, muu kahva | Lapiokahva",Selkä,legless-ylatalja-lapiokahva,"Legless-ylätalja, Lapiokahva",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,205,"Ylätalja, Legless, muu kahva | V-kahva",Selkä,legless-ylatalja-v-kahva,"Legless-ylätalja, V-kahva",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,206,"Ylätalja, Legless, suoratanko | Kapea ote | Myötäotteella",Selkä,legless-ylatalja-kapealla-myotaotteella-suora-tanko,"Legless-ylätalja kapealla myötäotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,207,"Ylätalja, Legless, suoratanko | Kapea ote | Vastaotteella",Selkä,legless-ylatalja-kapealla-vastaotteella-suora-tanko,"Legless-ylätalja kapealla vastaotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,208,"Ylätalja, Legless, suoratanko | Leveä ote",Selkä,legless-ylatalja-levealla-otteella-lat-tanko,"Legless-ylätalja leveällä otteella, Lat-tanko",Tulkittu – tarkista,Leveä ote yhdistetty lat-tankoon kuten treenipäiväkirjassa.
+Vanha liikelista v19.10.2026,209,"Ylätalja, muu kahva | Köydellä",Selkä,ylatalja-koysi,"Ylätalja, Köysi",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,210,"Ylätalja, muu kahva | Hihnoilla",Selkä,ylatalja-hihnat,"Ylätalja, Hihnat",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,211,"Ylätalja, muu kahva | Lapiokahva",Selkä,ylatalja-lapiokahva,"Ylätalja, Lapiokahva",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,212,"Ylätalja, muu kahva | V-kahva",Selkä,ylatalja-v-kahva,"Ylätalja, V-kahva",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,213,"Ylätalja, suora tanko | Kapea ote | Myötäotteella",Selkä,ylatalja-kapealla-myotaotteella-suora-tanko,"Ylätalja kapealla myötäotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,214,"Ylätalja, suora tanko | Kapea ote | Vastaotteella",Selkä,ylatalja-kapealla-vastaotteella-suora-tanko,"Ylätalja kapealla vastaotteella, Suora tanko",Nimetty uudelleen,
+Vanha liikelista v19.10.2026,215,"Ylätalja, suora tanko | Leveä ote",Selkä,ylatalja-levealla-otteella-lat-tanko,"Ylätalja leveällä otteella, Lat-tanko",Tulkittu – tarkista,Leveä ote yhdistetty lat-tankoon kuten treenipäiväkirjassa.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Maastaveto tangolla, Suora tanko",,maastaveto-tangolla,Maastaveto tangolla,Nimetty uudelleen,Suora tanko on tangolla tehtävän liikkeen oletus.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Kulmasoutu tangolla, Suora tanko",,kulmasoutu-tangolla-suora-tanko,"Kulmasoutu tangolla, Suora tanko",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Ylätalja leveällä otteella, Lat-tanko",,ylatalja-levealla-otteella-lat-tanko,"Ylätalja leveällä otteella, Lat-tanko",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Yhden käden kulmasoutu käsipainolla,,yhden-kaden-kulmasoutu-kasipainolla,Yhden käden kulmasoutu käsipainolla,Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Takakyykky tangolla, Suora tanko",,takakyykky-tangolla,Takakyykky tangolla,Nimetty uudelleen,Suora tanko on tangolla tehtävän liikkeen oletus.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Polviltaan eteenpäin rullaus vatsarullalla,,vatsarullaus-polviltaan,Vatsarullaus polviltaan,Nimetty uudelleen,Yleisin nimi on vatsarullaus.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Penkkipunnerrus tangolla, Suora tanko",,penkkipunnerrus-tangolla,Penkkipunnerrus tangolla,Nimetty uudelleen,Suora tanko on tangolla tehtävän liikkeen oletus.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Pystypunnerrus laitteessa istuen,,pystypunnerrus-laitteessa,Pystypunnerrus laitteessa,Nimetty uudelleen,Laite on aina istuen.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Sivunosto taljassa,,vipunosto-sivulle-taljassa,Vipunosto sivulle taljassa,Nimetty uudelleen,Yleisin nimi on vipunosto sivulle.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Hauiskääntö taljassa, Hihnat",,hauiskaanto-taljassa-hihnat,"Hauiskääntö taljassa, Hihnat",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Hauiskääntö taljassa, Scott-kahva",,hauiskaanto-taljassa-scott-kahva,"Hauiskääntö taljassa, Scott-kahva",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Hauiskääntö tangolla, Suora tanko",,hauiskaanto-tangolla-suora-tanko,"Hauiskääntö tangolla, Suora tanko",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Takareisikoukistus istuen laitteessa,,reiden-koukistus-laitteessa-istuen,Reiden koukistus laitteessa istuen,Nimetty uudelleen,Yleisin nimi on reiden koukistus.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Jalkaprässi,,jalkaprassi,Jalkaprässi,Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Pohjenousu Smith-laitteessa,,pohjenousu-smith-laitteessa-seisten,Pohjenousu Smith-laitteessa seisten,Tulkittu – tarkista,Asento puuttui; tulkittu seisten tehtäväksi.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Rintaprässi koneessa,,rintaprassi,Rintaprässi,Nimetty uudelleen,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Ristitalja keskeltä,,ristikkaistalja-keskelta,Ristikkäistalja keskeltä,Nimetty uudelleen,Yleisin nimi on ristikkäistalja.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Ojentajadippi,,dippi,Dippi,Tulkittu – tarkista,"Tulkittu dipiksi nojapuilla ylävartalo pystyssä. Jos teit dipit penkiltä, käytä Penkkidippi."
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"JM-penkkipunnerrus tangolla, Suora tanko",,jm-press-tangolla-suora-tanko,"JM press tangolla, Suora tanko",Nimetty uudelleen,Yleisin nimi on JM press.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Ojentajapunnerrus taljassa, Suora tanko",,ojentajapunnerrus-taljassa-suora-tanko,"Ojentajapunnerrus taljassa, Suora tanko",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Lankku,,lankku,Lankku,Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,PC: Cardiolaite / Punnerrus / Burpee (12 min),,,,Ei kohdistettu,"Kiertoharjoitus (Power Cardio), ei yksittäinen liike. Osaliikkeet: kardiolaite (esim. Soutulaite), Punnerrus ja Burpee."
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Hack-kyykky kelkalla,,hack-kyykky-laitteessa,Hack-kyykky laitteessa,Nimetty uudelleen,Laitteessa yhtenäistetty sanamuoto.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,PC: V-jalkojen nosto,,linkkuveitsi,Linkkuveitsi,Tulkittu – tarkista,Power Cardio -merkintä; liike tulkittu linkkuveitseksi (V-up).
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Hauiskääntö tangolla myötäotteella, Scott-tanko",,hauiskaanto-tangolla-myotaotteella-scott-tanko,"Hauiskääntö tangolla myötäotteella, Scott-tanko",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,PC: Cardiolaite / Rutistus / Levypaino twist (12 min),,,,Ei kohdistettu,"Kiertoharjoitus (Power Cardio), ei yksittäinen liike. Osaliikkeet: kardiolaite, Vatsarutistus lattialla ja Venäläinen kierto."
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Istumaannousu käsipainoilla pään yläpuolella,,istumaannousu-kasipainoilla-kadet-paan-ylapuolella,Istumaannousu käsipainoilla kädet pään yläpuolella,Nimetty uudelleen,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Polven ojennus laitteessa,,reiden-ojennus-laitteessa,Reiden ojennus laitteessa,Nimetty uudelleen,Yleisin nimi on reiden ojennus.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,V-jalkojen nosto,,linkkuveitsi,Linkkuveitsi,Tulkittu – tarkista,Tulkittu linkkuveitseksi (V-up).
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Pec deck,,pec-deck,Pec deck,Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Ojennus Scott-tangolla maaten,,ranskalainen-punnerrus-tangolla-scott-tanko,"Ranskalainen punnerrus tangolla, Scott-tanko",Nimetty uudelleen,Maaten tehtävä ojentajaliike tangolla on ranskalainen punnerrus.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Alataljasoutu V-kahvalla,,alataljasoutu-v-kahva,"Alataljasoutu, V-kahva",Nimetty uudelleen,Kahva variaationa kuten muissa liikkeissä.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Vinopenkkipunnerrus Smith-laitteessa,,vinopenkkipunnerrus-smith-laitteessa,Vinopenkkipunnerrus Smith-laitteessa,Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Alhaalta vipunosto taljassa, Hihnat",,ristikkaistalja-alhaalta-ylos,Ristikkäistalja alhaalta ylös,Tulkittu – tarkista,"Rintapäivän liike tulkittu ristikkäistaljaksi alhaalta ylös. Jos kyse oli olkapään liikkeestä, käytä Vipunosto eteen taljassa, Hihnat."
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Hauiskääntö Scott-penkissä tangolla, Scott-tanko",,scott-hauiskaanto-tangolla-scott-tanko,"Scott-hauiskääntö tangolla, Scott-tanko",Nimetty uudelleen,Yleisin nimi on Scott-hauiskääntö.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Ristiin menevä vasarakääntö taljassa, Hihnat",,vasarakaanto-taljassa-vartalon-yli-hihnat,"Vasarakääntö taljassa vartalon yli, Hihnat",Nimetty uudelleen,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Askelkyykky kävellen käsipainoilla,,askelkyykkykavely-kasipainoilla,Askelkyykkykävely käsipainoilla,Nimetty uudelleen,Yleisin nimi on askelkyykkykävely.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Pystypunnerrus tangolla seisten, Suora tanko",,pystypunnerrus-tangolla-seisten,Pystypunnerrus tangolla seisten,Nimetty uudelleen,Suora tanko on tangolla tehtävän liikkeen oletus.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Takaolkanosto taljassa ristikkäin, Hihnat",,vipunosto-taakse-taljassa-ristikkain-hihnat,"Vipunosto taakse taljassa ristikkäin, Hihnat",Nimetty uudelleen,Yleisin nimi on vipunosto taakse.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Face pull, Hihnat",,face-pull-taljassa-hihnat,"Face pull taljassa, Hihnat",Nimetty uudelleen,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Ojentajapunnerrus taljassa, Scott-kahva",,ojentajapunnerrus-taljassa-scott-kahva,"Ojentajapunnerrus taljassa, Scott-kahva",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Ojentajaojennus pään yli,,ojentajapunnerrus-paan-yli-taljassa-koysi,"Ojentajapunnerrus pään yli taljassa, Köysi",Tulkittu – tarkista,Väline ei käy ilmi nimestä; tulkittu taljaversioksi köydellä. Käsipaino- ja tankoversiot omina riveinä.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Vastaotesoutu tangolla, Suora tanko",,kulmasoutu-tangolla-vastaotteella-suora-tanko,"Kulmasoutu tangolla vastaotteella, Suora tanko",Nimetty uudelleen,Vastaotteella tehtävä kulmasoutu.
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,Rintatuettu soutu laitteessa,,rintatuettu-soutu-laitteessa,Rintatuettu soutu laitteessa,Ennallaan,
+Treenipäiväkirja ja -ohjelmat 23.9.2026,,"Vatsarutistus taljassa, Hihnat",,vatsarutistus-taljassa-hihnat,"Vatsarutistus taljassa, Hihnat",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,Ojentajapunnerrus taljassa köydellä,,ojentajapunnerrus-taljassa-koysi,"Ojentajapunnerrus taljassa, Köysi",Nimetty uudelleen,Köysi variaationa kuten muissa liikkeissä.
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,Takavipunosto laitteessa istuen,,reverse-pec-deck,Reverse pec deck,Tulkittu – tarkista,Laitteessa istuen tehtävä takavipunosto tulkittu Reverse pec deck -liikkeeksi (kirjastossa myös nimillä Takaolkapäälaite ja Takaolkapääkone).
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,"Pystysoutu tangolla, Suora tanko",,pystysoutu-tangolla-suora-tanko,"Pystysoutu tangolla, Suora tanko",Ennallaan,
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,Pystysoutu taljassa,,pystysoutu-taljassa-suora-tanko,"Pystysoutu taljassa, Suora tanko",Tulkittu – tarkista,"Kahva puuttui; tulkittu suoraksi tangoksi. Jos käytit Scott-tankoa, käytä Pystysoutu taljassa, Scott-tanko."
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,"Romanialainen maastaveto, Suora tanko",,romanialainen-maastaveto-tangolla,Romanialainen maastaveto tangolla,Nimetty uudelleen,Suora tanko on tangolla tehtävän liikkeen oletus.
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,"Face pull, Köysi",,face-pull-taljassa-koysi,"Face pull taljassa, Köysi",Nimetty uudelleen,
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,Bulgarialainen askelkyykky käsipainoilla,,bulgarialainen-askelkyykky-kasipainoilla,Bulgarialainen askelkyykky käsipainoilla,Ennallaan,
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,"Pysäytyspenkkipunnerrus tangolla, Suora tanko",,penkkipunnerrus-tangolla-pysaytyksin,Penkkipunnerrus tangolla pysäytyksin,Nimetty uudelleen,Pysäytys on lisävariaatio. Suora tanko on tangolla tehtävän liikkeen oletus.
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,"Kyykky tangolla 2 s pysäytyksellä, Suora tanko",,takakyykky-tangolla-pysaytyksin,Takakyykky tangolla pysäytyksin,Tulkittu – tarkista,Kyykky tulkittu takakyykyksi (kirjastossa takakyykyn muu nimi on Kyykky). Pysäytyksen kesto 2 s ei näy kirjaston nimessä.
+Treenipäiväkirja ja -ohjelmat 19.10.2026,,Pystypunnerrus käsipainoilla istuen,,pystypunnerrus-kasipainoilla-istuen,Pystypunnerrus käsipainoilla istuen,Ennallaan,

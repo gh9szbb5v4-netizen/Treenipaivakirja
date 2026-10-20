@@ -27,7 +27,10 @@ const ENTRIES = {
   '2026-10-05': entry('2026-10-05', 'B', BENCH, [S(70, 8), S(70, 8)], { warmups: [{ weight: '40', reps: '8', rpe: 6 }], deload: true, deloadKind: 'pyydetty' }),
   '2026-10-06': entry('2026-10-06', 'A', ROW, [S(90, 9), S(90, 9)], { deload: true })
 };
-const HEADER = '"Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste","Tuntuma","Osasarjat","Kevennys"';
+// 0.5.0 alkaen Kevennys-sarakkeen perässä ovat Liiketunniste ja Alkuperäinen nimi,
+// 0.5.1 alkaen niiden perässä kirjaustavan sarakkeet.
+const HEADER_050 = '"Päivämäärä","Liike","Sarja","Paino (kg)","Toistot","Huomiot","Tyyppi","Tunniste","Tuntuma","Osasarjat","Kevennys","Liiketunniste","Alkuperäinen nimi"';
+const HEADER = HEADER_050 + ',"Kirjaustapa","Toispuolinen","Aika (s)","Matka (m)","Avustus (kg)"';
 
 async function seed(page, entries){
   await page.goto(URL.replace('index.html', 'manifest.json'));
@@ -108,10 +111,10 @@ const deloadKeys = entries => Object.keys(entries).map(d => Object.keys(entries[
   await openSettings(page, 'varmuuskopio');
   const backup = await download(page);
   const lines = sectionLines(backup, '#MERKINNÄT');
-  ok(lines[0] === HEADER, '1 merkintäosion otsikko päättyy Kevennys-sarakkeeseen: ' + lines[0]);
+  ok(lines[0] === HEADER, '1 merkintäosion Kevennys-sarake Osasarjojen jälkeen: ' + lines[0]);
   const rows = lines.slice(1).map(fieldsOf);
   const lastOf = id => rows.filter(f => f[7] === id).map(f => f[2] + ':' + f[10]).join(' ');
-  ok(rows.every(f => f.length === 11), '1 jokaisella rivillä 11 saraketta');
+  ok(rows.every(f => f.length === 18), '1 jokaisella rivillä 18 saraketta');
   ok(lastOf('B') === '1:pyydetty 2:pyydetty L1:pyydetty', '1 B:n sarjat 1, 2 ja L1 "pyydetty": ' + lastOf('B'));
   ok(lastOf('A') === '1:automaattinen 2:automaattinen', '1 A:n rivit "automaattinen": ' + lastOf('A'));
   ok(lastOf('x1') === '1: 2:' && lastOf('x2') === '1: 2:', '1 x1:n ja x2:n riveillä tyhjä: ' + lastOf('x1') + ' / ' + lastOf('x2'));
@@ -135,8 +138,9 @@ const deloadKeys = entries => Object.keys(entries).map(d => Object.keys(entries[
   ok(JSON.stringify(a2.weights) === '["90","90"]' && nb(a2.target) === '2 sarjaa · 10 toistoa · RPE 8 · ehdotus sama paino', '3 A2: 90 ja 90, ehdotus sama paino: ' + JSON.stringify([a2.weights, nb(a2.target)]));
 
   console.log('=== 4 vanha tiedosto ilman saraketta');
-  const oldBackup = mapEntryLines(backup, l => l.slice(0, l.lastIndexOf('","') + 1));
-  ok(sectionLines(oldBackup, '#MERKINNÄT')[0] === HEADER.replace(',"Kevennys"', '') && sectionLines(oldBackup, '#MERKINNÄT').every(l => fieldsOf(l).length === 10), '4 vanhan muodon otsikko päättyy Osasarjat-sarakkeeseen');
+  // 0.4.28:n muoto: Osasarjat viimeisenä (Kevennys ja 0.5.0:n sarakkeet pois).
+  const oldBackup = mapEntryLines(backup, l => '"' + fieldsOf(l).slice(0, 10).join('","') + '"');
+  ok(sectionLines(oldBackup, '#MERKINNÄT')[0] === HEADER_050.replace(',"Kevennys","Liiketunniste","Alkuperäinen nimi"', '') && sectionLines(oldBackup, '#MERKINNÄT').every(l => fieldsOf(l).length === 10), '4 vanhan muodon otsikko päättyy Osasarjat-sarakkeeseen');
   await seed(page, {});
   await restore(page, oldBackup, 'vanha.csv');
   e = await allEntries(page);

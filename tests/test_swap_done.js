@@ -104,13 +104,13 @@ const formInfo = page => page.evaluate(() => {
   await page.click('[data-swap-open][data-id="b2"]'); await w(400);
   const lab = await page.evaluate(() => { const l = [...document.querySelectorAll('label')].find(x => x.querySelector('#swap-all-weeks')); return l ? l.textContent.trim() + '|' + l.querySelector('input').checked : null; });
   ok(lab === 'Vaihda kaikissa tekemättömissä kohdissa (2 kohtaa) — 1 tehty säilyy ennallaan|true', '4 valinnan selite: ' + lab);
-  await page.selectOption('[data-variant-liike]', 'Alasoutu levypainokoneessa'); await w(400);
+  await page.selectOption('[data-variant-liike]', 'Rintatuettu soutu laitteessa'); await w(400);
   await page.click('[data-swap-confirm]'); await w(700);
   const t4 = await toast(page);
   p = await saved(page);
   const b = p.days.map(d => d.exercises[1]);
   ok(b[0].id === 'b1' && b[0].name === 'Kulmasoutu', '4 tehty viikon 1 liike ennallaan: ' + names(p));
-  ok(b[1].name.indexOf('Alasoutu levypainokoneessa') === 0 && b[2].name === b[1].name && b[1].id !== 'b2' && b[2].id !== 'b3', '4 viikot 2 ja 3 vaihtuivat');
+  ok(b[1].name.indexOf('Rintatuettu soutu laitteessa') === 0 && b[2].name === b[1].name && b[1].id !== 'b2' && b[2].id !== 'b3', '4 viikot 2 ja 3 vaihtuivat');
   ok(t4.indexOf('Liike vaihdettu 2 kohdassa') !== -1, '4 ilmoitus laskee vain vaihdetut: ' + t4);
 
   console.log('=== 5 yksi kohta: valintaa ei näytetä, kun muut ovat tehtyjä');

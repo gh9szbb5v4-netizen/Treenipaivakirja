@@ -12,7 +12,7 @@ let fails = 0;
 function ok(cond, msg){ if(cond){ console.log('  ok   ' + msg); } else { fails++; console.log('  FAIL ' + msg); } }
 const w = ms => new Promise(r => setTimeout(r, ms));
 const NB = ' ';
-const BENCH = 'Penkkipunnerrus tangolla, Suora tanko';
+const BENCH = 'Penkkipunnerrus tangolla';
 const KEY = BENCH.toLowerCase();
 const DL = 'Maastaveto';
 
@@ -65,8 +65,8 @@ const saveMax = (page, rows) => page.evaluate(async rows => {
   const t = window.__t;
   t.state.draftSets.b1 = rows;
   await t.saveExerciseLog('b1');
-  return { max: t.state.manualMax['penkkipunnerrus tangolla, suora tanko'] || null, toast: (document.getElementById('toast') || {}).textContent || '',
-    stored: JSON.parse(localStorage.getItem('treenipk:manual-1rm') || '{}')['penkkipunnerrus tangolla, suora tanko'] || null };
+  return { max: t.state.manualMax['penkkipunnerrus tangolla'] || null, toast: (document.getElementById('toast') || {}).textContent || '',
+    stored: JSON.parse(localStorage.getItem('treenipk:manual-1rm') || '{}')['penkkipunnerrus tangolla'] || null };
 }, rows);
 const storedEntry = (page, date) => page.evaluate(d => JSON.parse(localStorage.getItem('treenipk:entries:' + d) || 'null'), date);
 
@@ -121,7 +121,7 @@ const storedEntry = (page, date) => page.evaluate(d => JSON.parse(localStorage.g
   console.log('=== 4 Historian siirto laskee 1RM:n samalla säännöllä');
   const move = (page, from, to) => page.evaluate(async a => {
     await window.__t.moveHistoryExercise(a[0], 'b1', a[1]);
-    return window.__t.state.manualMax['penkkipunnerrus tangolla, suora tanko'] || null;
+    return window.__t.state.manualMax['penkkipunnerrus tangolla'] || null;
   }, [from, to]);
   await seed(tp, { max: corrMax, entries: { '2026-09-20': entry('2026-09-20', 'b1', BENCH, [row(180, 1), row(185, 0)]) } });
   await tp.click('.tab[data-tab="historia"]'); await w(500);

@@ -239,10 +239,13 @@ async function axeRun(page){
     const rpe = ex.querySelector('.history-set:not(.warm) .history-rpe');
     return { cards, firstBorder: getComputedStyle(ex).borderTopWidth, name: ex.querySelector('.history-ex-name').textContent, variant: (ex.querySelector('.history-ex-variant') || {}).textContent,
       btns: btns.map(b => b.textContent + '|' + b.className), oneRow: btns.every(b => b.offsetTop === btns[0].offsetTop), rpeBg: getComputedStyle(rpe).backgroundColor, rpeText: rpe.textContent,
-      val: ex.querySelector('.history-set:not(.warm) .history-set-val').textContent };
+      val: ex.querySelector('.history-set:not(.warm) .history-set-val').textContent,
+      names: [...ex.parentNode.querySelectorAll('.history-ex-name')].map(n => n.textContent) };
   });
   ok(hi.cards[0] === '16px/0px' && hi.cards[1] === '0px/0px' && hi.cards[2] === '0px/16px', '5 lokakuun päivät yhtenä korttina: ' + JSON.stringify(hi.cards));
-  ok(hi.firstBorder === '0px' && hi.name === 'Maastaveto tangolla, Suora tanko' && hi.variant === ', Suora tanko', '5 ei kaksoisviivaa, variaatio harmaana (teksti ennallaan): ' + JSON.stringify([hi.firstBorder, hi.name]));
+  // 0.5.0: siirto nimesi "Maastaveto tangolla, Suora tanko" → "Maastaveto tangolla"
+  // (kirjastossa ei varustetta), joten nimessä ei ole harmaata varusteosaa.
+  ok(hi.firstBorder === '0px' && hi.name === 'Maastaveto tangolla' && hi.variant === undefined, '5 ei kaksoisviivaa, siirretty nimi ilman varusteosaa: ' + JSON.stringify([hi.firstBorder, hi.names]));
   ok(hi.btns.join(';') === 'Kehitys|btn-secondary btn-sm btn-auto;Korjaa|btn-secondary btn-sm btn-auto;Siirrä päivälle|btn-secondary btn-sm btn-auto' && hi.oneRow, '5 tonaaliset toiminnot yhdellä rivillä: ' + JSON.stringify(hi.btns));
   ok(hi.rpeBg === S3 && hi.rpeText === 'RPE 7' && nb(hi.val) === '130 kg × 5', '5 RPE-merkki neutraali, arvo ennallaan: ' + JSON.stringify([hi.rpeBg, hi.rpeText, hi.val]));
   ax = await axeRun(page);

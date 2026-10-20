@@ -12,8 +12,8 @@ let fails = 0;
 function ok(cond, msg){ if(cond){ console.log('  ok   ' + msg); } else { fails++; console.log('  FAIL ' + msg); } }
 const w = ms => new Promise(r => setTimeout(r, ms));
 const NB = ' ';
-const BENCH = 'Penkkipunnerrus tangolla, Suora tanko';
-const SQUAT = 'Takakyykky tangolla, Suora tanko';
+const BENCH = 'Penkkipunnerrus tangolla';
+const SQUAT = 'Takakyykky tangolla';
 const kb = n => n.trim().toLowerCase();
 
 const EXPOSE = ['oneRepMaxRir', 'tuntumaToRir', 'buildAllOneRepMaxSeries', 'computeProgress', 'buildRecordsByName',
