@@ -721,7 +721,9 @@
   .toggle-switch .toggle-thumb{position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--mist); transition:transform .2s, background-color .2s;}
   .toggle-switch.on{background:var(--surface-3); border-color:var(--brass);}
   .toggle-switch.on .toggle-thumb{transform:translateX(20px); background:var(--brass);}
-  .setting-disabled{opacity:.45; pointer-events:none;}
+  /* Pois käytöstä olevan asetuksen kentät ja painike ovat disabled (eivät
+     fokusoidu); himmennys koskee vain niitä, jotta selite pysyy luettavana. */
+  .setting-disabled .ledger-input, .setting-disabled .btn-secondary{opacity:.45;}
 
   /* ---------- Tiedostonvalitsin ----------
      Natiivi <input type=file> on selaimen näköinen ja englanninkielinen.
@@ -871,6 +873,7 @@
   .lib-main{min-width:0;}
   .lib-title{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-weight:700;}
   .lib-actions{display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-top:4px;}
+  .lib-actions > .btn-tertiary:first-child{margin-left:-16px;}
   .lib-rename{display:flex; align-items:center; gap:8px;}
   .program-row{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
   .program-row-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--fs-md);}
@@ -993,6 +996,7 @@
       "Kirjaustapa koskee vain uusia merkintöjä: vanhat merkinnät näkyvät Historiassa ja Viime-sarakkeessa ja viedään varmuuskopioon ennallaan (esim. lankku toistoina, 1 = 1 minuutti), ja vanhan merkinnän korjaus tehdään samalla tavalla kuin se kirjattiin. Varmuuskopiossa on uudet sarakkeet Kirjaustapa, Toispuolinen, Aika (s), Matka (m) ja Avustus (kg).",
       "Painoehdotus, lämmittelyt ja volyymi koskevat edelleen paino ja toistot -liikkeitä (myös lisäpainolla); muilla kirjaustavoilla kentät esitäytetään edellisestä samalla tavalla kirjatusta kerrasta. Kehitys ei vielä seuraa aikaa eikä matkaa.",
       "Kirjausruudulla pitkä liikkeen nimi jakautuu kahdelle riville tasaisesti, eikä yksittäinen sana jää yksin toiselle riville, ja lämmittelyselitteen porrasprosentit pysyvät samalla rivillä.",
+      "Asetuksissa pois käytöstä olevan lepoajastimen lepoaikaa ei voi enää muokata näppäimistöllä, ja Liikekirjasto-osiolla on oma kuvake.",
       "Kehityksen liikelistan rivi on kaksirivinen: ylärivillä liikkeen nimi ja 1RM, alarivillä päivämäärä, pikkukäyrä ja muutos. Pitkä nimi mahtuu useimmiten yhdelle riville, pikkukäyrät ovat samassa sarakkeessa ja Pysähtynyt-merkki näkyy kehystettynä päivämäärän vieressä. Selitteiden päivämäärä on lauseen sisällä pienellä alkukirjaimella (esim. Viimeisin kerta maanantai 5. lokakuuta)."
     ] },
     { date: "2026-10-19", items: [
@@ -12029,7 +12033,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
             : '') +
           '</div>';
       }
-      return '<div class="ledger-row" style="grid-template-columns:1fr 116px 32px; border-bottom:1px dashed var(--line); padding:8px 0;">' +
+      return '<div class="ledger-row" style="grid-template-columns:1fr 116px 32px; border-bottom:1px solid var(--hairline); padding:8px 0;">' +
         '<div' + (r.own ? '' : ' style="grid-column:1 / -1;"') + '><div style="font-size:14px;">' + escapeHtml(capitalize(r.name)) + '</div>' + noteHtml + '</div>' +
         weightHtml +
         deleteBtn +
@@ -12072,7 +12076,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
     { key:"1rm", icon:"kehitys", title:"Liikkeiden 1RM", group:"Harjoittelu" },
     { key:"lepo", icon:"historia", title:"Lepoajastin", group:"Harjoittelu" },
     { key:"varmuuskopio", icon:"palauta", title:"Varmuuskopio", group:"Tiedot ja sovellus" },
-    { key:"liikekirjasto", icon:"kehitys", title:"Liikekirjasto", group:"Tiedot ja sovellus" },
+    { key:"liikekirjasto", icon:"tiedosto", title:"Liikekirjasto", group:"Tiedot ja sovellus" },
     { key:"muutokset", icon:"tieto", title:"Muutokset", group:"Tiedot ja sovellus" },
     { key:"lisaa", icon:"valikko", title:"Lisää", group:"Tiedot ja sovellus" }
   ];
@@ -12190,10 +12194,10 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="' + (state.restTimerEnabled ? "" : "setting-disabled") + '" style="margin-top:14px;">' +
       settingsP("Lepoaika sarjojen välissä.") +
       '<div style="display:flex; align-items:center; gap:8px;">' +
-      '<input type="text" id="rest-duration-input" class="ledger-input" inputmode="numeric" placeholder="sekuntia" aria-label="Lepoaika sekunteina" value="' + state.restDurationSeconds + '" style="flex:0.6;">' +
+      '<input type="text" id="rest-duration-input" class="ledger-input" inputmode="numeric" placeholder="sekuntia" aria-label="Lepoaika sekunteina" value="' + state.restDurationSeconds + '" style="flex:0.6;"' + (state.restTimerEnabled ? '' : ' disabled') + '>' +
       '<span style="color:var(--mist); font-size:var(--fs-sm);">sekuntia</span>' +
       '</div>' +
-      '<button class="btn-secondary" id="save-rest-duration-btn" type="button" style="margin-top:10px;">Tallenna</button>' +
+      '<button class="btn-secondary" id="save-rest-duration-btn" type="button" style="margin-top:10px;"' + (state.restTimerEnabled ? '' : ' disabled') + '>Tallenna</button>' +
       '</div></div>';
   }
   function renderSettingsVarmuuskopio(){
@@ -12201,7 +12205,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       '<div class="exercise" style="padding:16px;">' +
       settingsP("Yksi CSV-tiedosto, jossa ovat kirjatut treenit, nykyinen treeniohjelma, itse lisäämäsi liikkeet ja liikkeiden 1RM-arvot. Data on vain tässä selaimessa, joten ota varmuuskopio säännöllisesti.") +
       '<button class="btn-secondary" id="export-btn" type="button">' + icon("tiedosto", 20) + '<span>Vie varmuuskopio CSV:nä</span></button>' +
-      '<button class="btn-secondary" id="export-pain-btn" type="button" style="margin-top:10px;">Vie vaivaloki CSV:nä</button>' +
+      '<button class="btn-secondary" id="export-pain-btn" type="button" style="margin-top:10px;">' + icon("tiedosto", 20) + '<span>Vie vaivaloki CSV:nä</span></button>' +
       settingsP("Palauta varmuuskopio tai siirrä tietosi toiselta laitteelta. Ohjelma palautuu sellaisena kuin se oli varmuuskopion hetkellä; omat liikkeet ja merkinnät yhdistetään olemassa oleviin ohittaen jo olemassa olevat, ja 1RM-arvo korvaa laitteen arvon vain, jos varmuuskopion arvo on päivätty myöhemmäksi, joten sama tiedosto voidaan tuoda turvallisesti useaan kertaan.", "16px 0 12px") +
       renderFilePicker("import-entries-input", ".csv,text/csv", false, "btn-secondary", "palauta", "Palauta varmuuskopio", "Valitse palautettava varmuuskopiotiedosto") +
       '</div>';
@@ -12308,7 +12312,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
       if(m.tila === "valmis"){
         html += settingsP("Tehty " + escapeHtml(formatDateTimeFI(m.aika)) + ".", "0 0 8px") + (m.raportti ? renderLiikeSiirtoReport(m.raportti) : "");
       } else if(m.tila === "palautettu"){
-        html += settingsP("Siirto on peruttu: tiedot palautettiin siirtoa edeltävään tilaan " + escapeHtml(formatDateTimeFI(m.aika)) + ". Uusi liikekirjasto on käytössä, mutta tallennetut liikkeet ovat vanhoilla nimillään.") +
+        html += settingsP("Siirto on peruttu: tiedot palautettiin siirtoa edeltävään tilaan" + (m.aika ? " " + escapeHtml(formatDateTimeFI(m.aika)) : "") + ". Uusi liikekirjasto on käytössä, mutta tallennetut liikkeet ovat vanhoilla nimillään.") +
           '<button class="btn-secondary" data-liike-migrate type="button"' + (state.liikeSiirtoBusy ? ' disabled' : '') + '>Siirrä tiedot uusiin nimiin</button>';
       } else {
         html += renderBanner("danger", "varoitus", "Siirto keskeytyi", escapeHtml(m.virhe || "Tuntematon virhe")) +
@@ -12327,7 +12331,7 @@ function parseProgramPDF(pages, fileLabel, idPrefix){
           (confirming ? settingsP("Ohjelmat, merkinnät, painoehdotukset, 1RM-arvot ja omat liikkeet korvataan varmuuskopion tiedoilla, ja siirron jälkeen tehdyt merkinnät poistuvat. Vie nykyiset tiedot ensin CSV:nä, jos haluat säilyttää ne.", "4px 0 0") : '') +
           '<button class="' + (confirming ? "btn-danger" : "btn-secondary") + '" data-liike-snapshot-restore type="button">' + icon("palauta", 20) + '<span>' + (confirming ? "Vahvista palautus" : "Palauta tila ennen siirtoa") + '</span></button>' +
           '</div>'
-        : settingsP("Laitteella ei ole siirtoa edeltävää varmuuskopiota (siirrettävää ei ollut). Ladatun varmuuskopion voi palauttaa tiedostosta.")) +
+        : settingsP("Laitteella ei ole siirtoa edeltävää varmuuskopiota (siirrettävää ei ollut).")) +
       settingsP("Toisella laitteella tai tallennustilan tyhjennyksen jälkeen ladatun varmuuskopion voi palauttaa tiedostosta.", "16px 0 12px") +
       renderFilePicker("liike-snapshot-input", ".json,application/json", false, "btn-secondary", "palauta", "Palauta varmuuskopio tiedostosta", "Valitse siirtoa edeltävä varmuuskopiotiedosto (JSON)") +
       '</div>';
