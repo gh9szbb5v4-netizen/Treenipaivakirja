@@ -96,7 +96,7 @@ const maxRow = (page, key) => page.evaluate(k => {
   const est = row.querySelector('.max-estimate');
   const btn = row.querySelector('[data-adopt-max]');
   const valEl = cells[1] && !cells[1].classList.contains('max-estimate') ? cells[1] : null;
-  return { value: valEl ? valEl.textContent.trim() : '', spans: row.firstElementChild.style.gridColumn || '', note: (row.querySelector('.max-row-note') || {}).textContent || null,
+  return { value: valEl ? valEl.textContent.trim() : '', spans: getComputedStyle(row.firstElementChild).gridColumnEnd === '-1' ? '1 / -1' : '', note: (row.querySelector('.max-row-note') || {}).textContent || null,
     est: est ? est.querySelector('span').textContent.trim() : null, btn: btn ? btn.textContent.trim() : null,
     btnWeight: btn ? btn.getAttribute('data-weight') : null, del: !!row.querySelector('[data-delete-max]') };
 }, key);

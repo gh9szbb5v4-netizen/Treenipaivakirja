@@ -1188,6 +1188,17 @@ alkaen N lasketaan pyöristämättömästä arviosta (`est.raw`, ks. Kehityksen
 Käsittelijä tallentaa `{ weight: N, date: todayISO() }`. Ei automaattista
 käyttöönottoa.
 
+Asettelu (21.10.2026, käyttäjän kuvakaappauksen pohjalta): rivi on
+`.ledger-row.max-row` (sarakkeet nimi, arvo, poisto 40 px; ei inline-
+tyylejä), nimisolu `.max-row-name` (aina 44 px korkea, joten rivi ilman
+poistopainiketta on muiden korkuinen; `.full` pelkällä 1RM-pohjalla), arvo
+`.max-row-value` (`.unset` "Ei vielä asetettu"). `.max-estimate` kattaa
+nimen ja arvon sarakkeet, joten Käytä-painikkeen oikea reuna on arvon
+linjassa; arvio on aina kahdella rivillä (`.max-estimate-label` "Kehityksen
+arvio " ja `.max-estimate-value`; testit lukevat ulomman spanin tekstin
+"Kehityksen arvio 110 kg (12.9.)"), ja painikkeen `min-width` 8,5rem tekee
+painikkeista samanlevyisiä luvun pituudesta riippumatta.
+
 **Varmuuskopion 1RM.** `parseBackupManualMax` jättää puuttuvan päivän
 tyhjäksi (aiemmin tämä päivä, jolloin päivätön arvo olisi näyttänyt uusimmalta).
 `mergeManualMax` → `{ added, updated, skipped }`: puuttuva lisätään (päivä
